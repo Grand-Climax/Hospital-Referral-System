@@ -1,0 +1,22 @@
+# Binaries
+main
+*.exe
+*.out
+
+# Git
+.git
+.gitignore
+
+# IDE/editor configs
+*.swp
+*.swo
+*.log
+.vscode/
+.idea/
+
+# Tests
+.test/
+
+# Docker
+Dockerfile
+docker-compose.yml
