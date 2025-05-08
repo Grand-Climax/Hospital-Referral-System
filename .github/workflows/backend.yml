@@ -38,7 +38,7 @@ jobs:
 
     - name: Push Docker Image
       run: |
-          docker tag your-backend yourusername/your-backend:latest
-          docker push yourusername/your-backend:latest
+          docker tag hospital-referral mennaye/your-hpspital-referral:latest
+          docker push mennaye/hospital-referral:latest
 
     
