@@ -31,7 +31,7 @@ jobs:
 
     - name: Docker build
       working-directory: ./backend
-      run: docker build -t docker_image .
+      run: docker build -t hospital-referral-system .
 
     - name: Debug secrets length
       run: |
@@ -46,7 +46,7 @@ jobs:
 
     - name: Push Docker Image
       run: |
-          docker tag hospital-referral mennaye/hospital-referral-system:latest
+          docker tag hospital-referral-system mennaye/hospital-referral-system:latest
           docker push mennaye/hospital-referral-system:latest
 
     
