@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"Hospital-Referral-System/config"
+	"Hospital-Referral-System/internal/infrastructure/database"
+)
 
 func main() {
-	fmt.Println("Hello, Docker!")
+	cfg := config.LoadConfig()
+	database.ConnectDB(cfg)
 }
