@@ -17,9 +17,9 @@ var testDB *gorm.DB
 
 func TestMain(m *testing.M) {
 	
-	err := godotenv.Load("../.env.test")
+	err := godotenv.Load("../../.env")
 	if err != nil {
-		log.Fatalf("Error loading .env.test file")
+		log.Fatalf("Error loading .env file")
 	}
 
 	dsn := fmt.Sprintf(
