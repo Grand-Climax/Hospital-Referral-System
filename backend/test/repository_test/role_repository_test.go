@@ -17,10 +17,14 @@ var testDB *gorm.DB
 
 func TestMain(m *testing.M) {
 	
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatalf("Error loading .env file")
+	var err error
+	if os.Getenv("CI") != "true" {
+		err := godotenv.Load("../../.env")
+		if err != nil {
+			log.Fatalf("Error loading .env file")
+		}
 	}
+	
 
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
