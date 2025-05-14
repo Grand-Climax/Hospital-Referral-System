@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"Hospital-Referral-System/internal/domain/contract/repository_interface"
+	repository "Hospital-Referral-System/internal/domain/contract/repository_interface"
 	"Hospital-Referral-System/internal/domain/entity"
 
 	"gorm.io/gorm"
@@ -11,7 +11,7 @@ type RoleRepository struct {
 	db *gorm.DB
 }
 
-func NewRoleRepository(db *gorm.DB) contract.RoleRepositoryInterface {
+func NewRoleRepository(db *gorm.DB) repository.RoleRepositoryInterface {
 	return &RoleRepository{
 		db: db,
 	}
