@@ -1,4 +1,4 @@
-package contract
+package usecaseinterface
 
 import "Hospital-Referral-System/internal/domain/entity"
 
