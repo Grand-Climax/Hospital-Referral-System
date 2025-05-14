@@ -1,4 +1,4 @@
-package contract
+package repositoryinterface
 
 import "Hospital-Referral-System/internal/domain/entity"
 
