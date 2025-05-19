@@ -13,18 +13,15 @@ import (
 	"gorm.io/gorm"
 )
 
-var testDB *gorm.DB
-
 func TestMain(m *testing.M) {
-	
+
 	var err error
 	if os.Getenv("CI") != "true" {
-		err := godotenv.Load("../../.env")
+		err = godotenv.Load("../../../.env")
 		if err != nil {
-			log.Fatalf("Error loading .env file")
+			log.Fatalf("Error loading .env file %v", err)
 		}
 	}
-	
 
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
@@ -42,11 +39,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Migrate schema
-	err = testDB.AutoMigrate(&entity.Role{})
-	
-	if err != nil {
-		log.Fatalf("Failed to auto-migrate: %v", err)
-	}
+	Migrate()
 
 	code := m.Run()
 	os.Exit(code)
