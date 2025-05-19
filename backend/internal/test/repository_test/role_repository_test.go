@@ -19,9 +19,9 @@ func TestMain(m *testing.M) {
 	
 	var err error
 	if os.Getenv("CI") != "true" {
-		err := godotenv.Load("../../.env")
+		err := godotenv.Load("../../../.env")
 		if err != nil {
-			log.Fatalf("Error loading .env file")
+			log.Fatalf("Error loading .env file %v",err)
 		}
 	}
 	
@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Migrate schema
-	err = testDB.AutoMigrate(&entity.Role{})
+	err = testDB.AutoMigrate(&entity.Role{},&entity.Department{})
 	
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
