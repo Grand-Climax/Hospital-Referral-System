@@ -21,6 +21,28 @@ func (m *MockDepartmentRepository) CreateDepartment(department *entity.Departmen
 	return result.(*entity.Department), nil
 }
 
+func (m *MockDepartmentRepository) GetDepartmentByID(id uint) (*entity.Department, error){
+	args := m.Called()
+	result := args.Get(0)
+
+	if result == nil {
+		return nil, args.Error(1)
+	}
+
+	return result.(*entity.Department), nil
+}
+
+func (m *MockDepartmentRepository) GetDepartmentByName(name string) (*entity.Department, error) {
+	args := m.Called()
+	result := args.Get(0)
+
+	if result == nil {
+		return nil, args.Error(1)
+	}
+
+	return result.(*entity.Department), nil
+}
+
 func (m *MockDepartmentRepository) GetDepartments() ([]*entity.Department, error) {
 	args := m.Called()
 	result := args.Get(0)
