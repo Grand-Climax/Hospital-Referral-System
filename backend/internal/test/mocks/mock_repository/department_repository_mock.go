@@ -22,7 +22,7 @@ func (m *MockDepartmentRepository) CreateDepartment(department *entity.Departmen
 }
 
 func (m *MockDepartmentRepository) GetDepartmentByID(id uint) (*entity.Department, error){
-	args := m.Called()
+	args := m.Called(id)
 	result := args.Get(0)
 
 	if result == nil {
@@ -33,7 +33,7 @@ func (m *MockDepartmentRepository) GetDepartmentByID(id uint) (*entity.Departmen
 }
 
 func (m *MockDepartmentRepository) GetDepartmentByName(name string) (*entity.Department, error) {
-	args := m.Called()
+	args := m.Called(name)
 	result := args.Get(0)
 
 	if result == nil {
