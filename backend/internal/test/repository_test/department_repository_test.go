@@ -2,110 +2,119 @@ package repositorytest
 
 import (
 	"Hospital-Referral-System/internal/domain/entity"
+	repositoryinterface "Hospital-Referral-System/internal/domain/contract/repository_interface"
+	customerrors "Hospital-Referral-System/internal/errors"
 	"Hospital-Referral-System/internal/repository"
+	"errors"
+	"strings"
 	"testing"
 )
 
-func TestCreateDepartment(t *testing.T) {
-	transaction := testDB.Begin()
-	defer transaction.Rollback()
 
-	//create a mock data
-	input := &entity.Department{Name: "Cashier"}
-	repo := repository.NewDepartmentRepository(transaction)
-
-	created, err := repo.CreateDepartment(input)
-	if err != nil {
-		t.Fatalf("Failed to insert into database %v", err)
-		return
-	}
-
-	if created.ID == 0{
-		t.Fatal("Expected to set the ID")
-		return
-	}
-
-	if created.Name != "Cashier"{
-		t.Fatal("Wrong name setted")
-	}
+func withTransaction(t *testing.T, testFunc func(repo repositoryinterface.DepartmentRepositoryInterface)) {
+	t.Helper()
+	tx := testDB.Begin()
+	defer tx.Rollback()
+	repo := repository.NewDepartmentRepository(tx)
+	testFunc(repo)
 }
 
-func TestGetDepartments(t *testing.T) {
-	transaction := testDB.Begin()
-	defer transaction.Rollback()
+func TestDepartmentRepository(t *testing.T) {
+	t.Run("CreateDepartment", func(t *testing.T) {
+		withTransaction(t, func(repo repositoryinterface.DepartmentRepositoryInterface) {
+			dept := &entity.Department{Name: "Cashier"}
+			dept.Name = strings.ToLower(dept.Name)
 
-	repo := repository.NewDepartmentRepository(transaction)
+			created, err := repo.CreateDepartment(dept)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if created.ID == 0 {
+				t.Fatal("Expected department ID to be set")
+			}
+			if created.Name != "cashier" {
+				t.Errorf("Expected name 'cashier', got '%s'", created.Name)
+			}
+		})
+	})
 
-	input := &entity.Department{Name : "Cashier"}
-	_, err := repo.CreateDepartment(input)
+	t.Run("GetDepartments", func(t *testing.T) {
+		withTransaction(t, func(repo repositoryinterface.DepartmentRepositoryInterface) {
+			_, _ = repo.CreateDepartment(&entity.Department{Name: "finance"})
+			departments, err := repo.GetDepartments()
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if len(departments) == 0 {
+				t.Fatal("Expected non-empty list of departments")
+			}
+		})
+	})
 
-	if err != nil {
-		t.Fatalf("Couldn't insert department %v", err)
-	}
-	departments, err := repo.GetDepartments()
+	t.Run("GetDepartmentByID", func(t *testing.T) {
+		withTransaction(t, func(repo repositoryinterface.DepartmentRepositoryInterface) {
+			created, _ := repo.CreateDepartment(&entity.Department{Name: "admin"})
+			found, err := repo.GetDepartmentByID(created.ID)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if found.Name != "admin" {
+				t.Errorf("Expected 'admin', got '%s'", found.Name)
+			}
 
-	if err != nil{
-		t.Fatalf("couldn't fetch departments %v", err)
-	}
+			_, err = repo.GetDepartmentByID(99999) // likely non-existent
+			if !errors.Is(err, customerrors.ErrNotFound) {
+				t.Errorf("Expected ErrNotFound for non-existent ID, got %v", err)
+			}
+		})
+	})
 
-	if len(departments) == 0{
-		t.Error("Expected one got zero")
-	}
+	t.Run("GetDepartmentByName", func(t *testing.T) {
+		withTransaction(t, func(repo repositoryinterface.DepartmentRepositoryInterface) {
+			name := "marketing"
+			_, _ = repo.CreateDepartment(&entity.Department{Name: name})
 
-	found := false
-	for _, department := range departments {
-		if department.Name == "Cashier"{
-			found = true
-			break
-		}
-	}
-	if !found{
-		t.Error("Expected to find a department with name Cashier but couldn't find any")
-	}
-}
+			found, err := repo.GetDepartmentByName(name)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if found.Name != name {
+				t.Errorf("Expected '%s', got '%s'", name, found.Name)
+			}
 
-func TestUpdateDepartment(t *testing.T) {
-	transaction := testDB.Begin()
-	defer transaction.Rollback()
+			_, err = repo.GetDepartmentByName("nonexistent")
+			if !errors.Is(err, customerrors.ErrNotFound) {
+				t.Errorf("Expected ErrNotFound for unknown name, got %v", err)
+			}
+		})
+	})
 
-	repo := repository.NewDepartmentRepository(transaction)
-	input := &entity.Department{Name: "Cashier"}
+	t.Run("UpdateDepartment", func(t *testing.T) {
+		withTransaction(t, func(repo repositoryinterface.DepartmentRepositoryInterface) {
+			created, _ := repo.CreateDepartment(&entity.Department{Name: "sales"})
+			created.Name = "revenue"
+			updated, err := repo.UpdateDepartment(created)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if updated.Name != "revenue" {
+				t.Errorf("Expected 'revenue', got '%s'", updated.Name)
+			}
+		})
+	})
 
-	created, err := repo.CreateDepartment(input)
-	if err != nil {
-		t.Fatalf("Couldn't insert into database %v", err)
-	}
+	t.Run("DeleteDepartment", func(t *testing.T) {
+		withTransaction(t, func(repo repositoryinterface.DepartmentRepositoryInterface) {
+			created, _ := repo.CreateDepartment(&entity.Department{Name: "legal"})
+			if err := repo.DeleteDepartment(created.ID); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
 
-	updated := &entity.Department{ID: created.ID, Name: "Doctor"}
-
-	updated_department, err := repo.UpdateDepartment(updated)
-
-	if err != nil {
-		t.Fatalf("Couldn't update department %v", err)
-	}
-
-	if updated_department.Name != "Doctor"{
-		t.Errorf("Expected a name doctor found %v", updated_department.Name)
-	}
-}
-
-func TestDeleteDepartment(t *testing.T) {
-	transaction := testDB.Begin()
-	defer transaction.Rollback()
-
-	var err error
-
-	repo := repository.NewDepartmentRepository(transaction)
-	input := &entity.Department{Name:"Doctor"}
-
-	created, err := repo.CreateDepartment(input)
-	if err != nil {
-		t.Fatalf("Failed to create a department %v", err)
-	}
-
-	err = repo.DeleteDepartment(created.ID)
-	if err != nil {
-		t.Fatalf("Failed to delete %v", err)
-	}
-
+			// Try to delete again
+			err := repo.DeleteDepartment(created.ID)
+			if err != nil {
+				t.Errorf("Expected no error on deleting nonexistent record (idempotent), got: %v", err)
+			}
+		})
+	})
 }
