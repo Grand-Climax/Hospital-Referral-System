@@ -46,7 +46,7 @@ func (repo *DepartmentRepository) GetDepartmentByID(department_id uint) (*entity
 
 func (repo *DepartmentRepository) GetDepartmentByName(name string) (*entity.Department, error) {
 	var department entity.Department
-	err := repo.db.Where("name = ?",name).First(&department).Error
+	err := repo.db.Where("name ILIKE ?",name).First(&department).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			return nil, customerrors.ErrNotFound
