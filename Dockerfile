@@ -19,7 +19,7 @@ RUN for i in $(seq 1 3);do \
 COPY . .
 
 #Build the binary code and write the output on some directory
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s"  -o /app/main
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s"  -o /app/main ./cmd/server
 
 #Run stage
 FROM alpine:latest
