@@ -91,3 +91,28 @@ func RequireRole(allowedRoles ...entity.UserRole) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+
+// RequirePermission abstracts the specific role check to a capability check.
+func RequirePermission(requiredAction entity.ActionType) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleVal, exists := c.Get("role")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context. Is RequireAuth missing?"})
+			return
+		}
+
+		userRole, ok := roleVal.(entity.UserRole)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid role type in context"})
+			return
+		}
+
+		if !auth.HasPermission(userRole, requiredAction) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden: You do not have permission to perform this action"})
+			return
+		}
+
+		c.Next()
+	}
+}

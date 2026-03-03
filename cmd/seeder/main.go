@@ -13,8 +13,10 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found. Using environment variables.")
+	if err := godotenv.Load(".env.local"); err != nil {
+		if err := godotenv.Load(); err != nil {
+			log.Println("No .env or .env.local file found. Using environment variables.")
+		}
 	}
 
 	dsn := os.Getenv("DATABASE_URL")
