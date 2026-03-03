@@ -15,7 +15,7 @@ func SeedReferenceData(ctx context.Context, db *gorm.DB) error {
 	log.Println("Starting reference data seeding...")
 
 	// Migrate schemas for these entities first to ensure tables exist
-	err := db.AutoMigrate(&entity.Hospital{}, &entity.Department{}, &entity.HospitalDepartment{}, &entity.User{}, &entity.Session{})
+	err := db.AutoMigrate(&entity.Hospital{}, &entity.Department{}, &entity.HospitalDepartment{}, &entity.User{}, &entity.Session{}, &entity.Referral{}, &entity.ReferralStatusHistory{}, &entity.AuditLog{})
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 	log.Println("Seeding test users for all roles...")
 
 	// Default pre-hashed password: "password123" (bcrypt cost 12)
-	defaultHash := "$2a$12$D23E4/S/t8s0y.sM7e3wJ.cQe/Wp9AItT45xP8rIfC76U3L/hRUKG"
+	defaultHash := "$2a$12$OV/iqbn3GrwIVdFdR60VIuKoydr0CWosGqgAvivL7H/vnUOQM0Tce"
 
 	// 1. System/MoH Global Users
 	for _, u := range systemTestUsers {
