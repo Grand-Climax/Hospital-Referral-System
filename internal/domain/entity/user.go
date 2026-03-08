@@ -16,7 +16,8 @@ const (
 	RoleReceptionist        UserRole = "RECEPTIONIST"
 	RoleMohAnalyst          UserRole = "MOH_ANALYST"
 	RoleDeptHead            UserRole = "DEPT_HEAD"
-	RoleSystemAdmin         UserRole = "SYSTEM_ADMIN"
+	RoleHospitalAdmin       UserRole = "HOSPITAL_ADMIN"
+	RoleSystemSuperAdmin    UserRole = "SYSTEM_SUPER_ADMIN"
 )
 
 type User struct {
