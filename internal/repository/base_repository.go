@@ -4,23 +4,16 @@ import (
 	"context"
 
 	"gorm.io/gorm"
-)
 
-// BaseRepository defines standard CRUD operations.
-type BaseRepository[T any] interface {
-	Create(ctx context.Context, entity *T) error
-	FindByID(ctx context.Context, id interface{}) (*T, error)
-	FindAll(ctx context.Context) ([]T, error)
-	Update(ctx context.Context, entity *T) error
-	Delete(ctx context.Context, id interface{}) error
-}
+	interfaces "Hospital-Referral-System/internal/domain/interfaces/repository_interfaces"
+)
 
 type baseRepository[T any] struct {
 	db *gorm.DB
 }
 
 // NewBaseRepository creates a new generic repository instance.
-func NewBaseRepository[T any](db *gorm.DB) BaseRepository[T] {
+func NewBaseRepository[T any](db *gorm.DB) interfaces.BaseRepository[T] {
 	return &baseRepository[T]{db: db}
 }
 
