@@ -32,9 +32,8 @@ type Referral struct {
 	Status              ReferralStatus `gorm:"type:varchar(50);not null;default:'DRAFT';index;index:idx_target_status;index:idx_dept_status_created"`
 
 	// Triage priority
-	ActiveMLPredictionID *uuid.UUID `gorm:"type:uuid;index"`
 	MLSeverityScore      *float64   `gorm:"type:numeric(5,2);index"`
-	WaitingHoursWeight   float64    `gorm:"type:numeric(5,2);default:0.00"`
+	WaitingHoursWeight   *float64    `gorm:"type:numeric(5,2);default:0.00"`
 
 	// Handle ML Failure
 	MLStatus       string `gorm:"type:varchar(50);default:'PENDING'"`
@@ -56,6 +55,22 @@ type Referral struct {
 	ArchivedAt *time.Time
 	IsDeleted  bool       `gorm:"default:false"`
 	DeletedAt  gorm.DeletedAt
+
+	// Relationships (many-to-one)
+	Patient          *Patient                  `gorm:"foreignKey:PatientID"`
+
+	// Relationships (one-to-one)
+	ReferralForm     *ReferralForm             `gorm:"foreignKey:ReferralID"`
+	EmergencyDetail  *ReferralEmergencyDetail   `gorm:"foreignKey:ReferralID"`
+	Redirection      *ReferralRedirection       `gorm:"foreignKey:ReferralID"`
+	Outcome          *ReferralOutcome           `gorm:"foreignKey:ReferralID"`
+
+	// Relationships (one-to-many)
+	Diagnoses        []ReferralDiagnosis        `gorm:"foreignKey:ReferralID"`
+	StatusHistories  []ReferralStatusHistory     `gorm:"foreignKey:ReferralID"`
+	Vitals           []Vital                    `gorm:"foreignKey:ReferralID"`
+	Attachments      []Attachment               `gorm:"foreignKey:ReferralID"`
+	ClinicalUpdates  []ClinicalUpdate           `gorm:"foreignKey:ReferralID"`
 }
 
 func (r *Referral) BeforeCreate(tx *gorm.DB) (err error) {
