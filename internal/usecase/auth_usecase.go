@@ -10,7 +10,8 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	"Hospital-Referral-System/internal/infrastructure/cache"
 	"Hospital-Referral-System/internal/pkg/auth"
-	"Hospital-Referral-System/internal/repository"
+
+	interfaces "Hospital-Referral-System/internal/domain/interfaces/repository_interfaces"
 )
 
 type AuthUseCase interface {
@@ -20,12 +21,12 @@ type AuthUseCase interface {
 }
 
 type authUseCase struct {
-	repo      repository.AuthRepository
+	repo      interfaces.AuthRepository
 	blacklist cache.TokenBlacklist
 	sessions  cache.SessionStore
 }
 
-func NewAuthUseCase(repo repository.AuthRepository, blacklist cache.TokenBlacklist, sessions cache.SessionStore) AuthUseCase {
+func NewAuthUseCase(repo interfaces.AuthRepository, blacklist cache.TokenBlacklist, sessions cache.SessionStore) AuthUseCase {
 	return &authUseCase{repo: repo, blacklist: blacklist, sessions: sessions}
 }
 
