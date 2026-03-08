@@ -26,8 +26,8 @@ type User struct {
 	FirstName    string    `gorm:"type:varchar(100);not null"`
 	LastName     string    `gorm:"type:varchar(100);not null"`
 	Role         UserRole  `gorm:"type:varchar(50);not null;index"`
-	HospitalID   *uuid.UUID `gorm:"type:uuid;index"`
-	DepartmentID *uuid.UUID `gorm:"type:uuid"`
+	HospitalID   *uuid.UUID `gorm:"type:uuid;index;not null"`
+	DepartmentID *uuid.UUID `gorm:"type:uuid";not null`
 	PasswordHash string    `gorm:"type:varchar(255);not null"`
 	IsActive     bool      `gorm:"default:true;index"`
 	MFASecretEnc *string   `gorm:"type:text"`
@@ -35,6 +35,9 @@ type User struct {
 	DeletedAt    gorm.DeletedAt
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+
+	Hospital     *Hospital    `gorm:"foreignKey:HospitalID"` 
+    Department   *Department  `gorm:"foreignKey:DepartmentID"
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
