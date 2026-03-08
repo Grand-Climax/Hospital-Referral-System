@@ -109,11 +109,11 @@ var initialHospitals = []entity.Hospital{
 // System-wide users independent of hospitals
 var systemTestUsers = []entity.User{
 	{
-		NationalID: "SYSADMIN-001",
-		Email:      "admin@moh.gov.et",
+		NationalID: "SUPERADMIN-001",
+		Email:      "superadmin@moh.gov.et",
 		FirstName:  "System",
-		LastName:   "Administrator",
-		Role:       entity.RoleSystemAdmin,
+		LastName:   "Super Administrator",
+		Role:       entity.RoleSystemSuperAdmin,
 	},
 	{
 		NationalID: "MOH-001",
@@ -168,6 +168,13 @@ var specializedHospUsers = []hospitalUserTemplate{
 		FirstName:  "Cardio",
 		LastName:   "Specialist",
 		Role:       entity.RoleReceivingSpecialist,
+	},
+	{
+		NationalID: "HOSPADMIN-001",
+		Email:      "admin.specialized@hospital.et",
+		FirstName:  "Specialized",
+		LastName:   "Hospital Admin",
+		Role:       entity.RoleHospitalAdmin,
 	},
 	{
 		NationalID: "HEAD-001",
