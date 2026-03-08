@@ -1,0 +1,1059 @@
+basePath: /
+definitions:
+  entity.HospitalTier:
+    enum:
+    - PRIMARY
+    - GENERAL
+    - SPECIALIZED
+    - TERTIARY
+    type: string
+    x-enum-varnames:
+    - PrimaryHosp
+    - GeneralHosp
+    - SpecializedHosp
+    - TertiaryHosp
+  entity.UserRole:
+    enum:
+    - REFERRING_DOCTOR
+    - LIAISON_OFFICER
+    - RECEIVING_SPECIALIST
+    - RECEPTIONIST
+    - MOH_ANALYST
+    - DEPT_HEAD
+    - SYSTEM_ADMIN
+    type: string
+    x-enum-varnames:
+    - RoleReferringDoctor
+    - RoleLiaisonOfficer
+    - RoleReceivingSpecialist
+    - RoleReceptionist
+    - RoleMohAnalyst
+    - RoleDeptHead
+    - RoleSystemAdmin
+  handlers.AssignRoleRequest:
+    properties:
+      role:
+        $ref: '#/definitions/entity.UserRole'
+    required:
+    - role
+    type: object
+  handlers.CreateDepartmentRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  handlers.CreateHospitalRequest:
+    properties:
+      address:
+        type: string
+      contact_phone:
+        type: string
+      name:
+        type: string
+      region:
+        type: string
+      tier_level:
+        $ref: '#/definitions/entity.HospitalTier'
+    required:
+    - name
+    - region
+    - tier_level
+    type: object
+  handlers.CreateUserRequest:
+    properties:
+      department_id:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      hospital_id:
+        type: string
+      last_name:
+        type: string
+      national_id:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      role:
+        $ref: '#/definitions/entity.UserRole'
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - role
+    type: object
+  handlers.DepartmentResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  handlers.HospitalDepartmentResponse:
+    properties:
+      created_at:
+        type: string
+      department:
+        $ref: '#/definitions/handlers.DepartmentResponse'
+      department_id:
+        type: string
+      hospital_id:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      standard_daily_limit:
+        type: integer
+    type: object
+  handlers.HospitalResponse:
+    properties:
+      address:
+        type: string
+      contact_phone:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      region:
+        type: string
+      tier_level:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  handlers.LinkDepartmentRequest:
+    properties:
+      daily_limit:
+        type: integer
+      department_id:
+        type: string
+    required:
+    - department_id
+    type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handlers.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handlers.UpdateDepartmentRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  handlers.UpdateHospitalRequest:
+    properties:
+      address:
+        type: string
+      contact_phone:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      region:
+        type: string
+      tier_level:
+        $ref: '#/definitions/entity.HospitalTier'
+    type: object
+  handlers.UpdateUserRequest:
+    properties:
+      department_id:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      hospital_id:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      national_id:
+        type: string
+      role:
+        $ref: '#/definitions/entity.UserRole'
+    type: object
+  handlers.UserResponse:
+    properties:
+      created_at:
+        type: string
+      department_id:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      hospital_id:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      national_id:
+        type: string
+      role:
+        $ref: '#/definitions/entity.UserRole'
+      updated_at:
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: API for managing hospital referrals, users, hospitals, and departments.
+  title: Hospital Referral System API
+  version: "1.0"
+paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user and return access/refresh token pair
+      parameters:
+      - description: Login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token pair
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User login
+      tags:
+      - Auth
+  /api/v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke both access and refresh tokens
+      parameters:
+      - description: Refresh token to revoke
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - Auth
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchange a valid refresh token for a new access/refresh token pair
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New token pair
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh token
+      tags:
+      - Auth
+  /api/v1/departments:
+    get:
+      description: List departments with optional search
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Search by name
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List departments
+      tags:
+      - Departments
+    post:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to create a department
+      parameters:
+      - description: Department creation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.DepartmentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new department
+      tags:
+      - Departments
+  /api/v1/departments/{id}:
+    delete:
+      description: Admin-only endpoint to delete a department
+      parameters:
+      - description: Department ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a department
+      tags:
+      - Departments
+    get:
+      description: Retrieve a department by its ID
+      parameters:
+      - description: Department ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.DepartmentResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get department by ID
+      tags:
+      - Departments
+    put:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to update department information
+      parameters:
+      - description: Department ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Department update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.DepartmentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a department
+      tags:
+      - Departments
+  /api/v1/hospitals:
+    get:
+      description: List hospitals with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by tier level
+        in: query
+        name: tier
+        type: string
+      - description: Filter by region
+        in: query
+        name: region
+        type: string
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      - description: Search by name
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List hospitals
+      tags:
+      - Hospitals
+    post:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to create a hospital
+      parameters:
+      - description: Hospital creation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateHospitalRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.HospitalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new hospital
+      tags:
+      - Hospitals
+  /api/v1/hospitals/{id}:
+    delete:
+      description: Admin-only endpoint to soft-delete a hospital
+      parameters:
+      - description: Hospital ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a hospital
+      tags:
+      - Hospitals
+    get:
+      description: Retrieve a hospital by its ID
+      parameters:
+      - description: Hospital ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.HospitalResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get hospital by ID
+      tags:
+      - Hospitals
+    put:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to update hospital information
+      parameters:
+      - description: Hospital ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Hospital update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateHospitalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.HospitalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a hospital
+      tags:
+      - Hospitals
+  /api/v1/hospitals/{id}/departments:
+    get:
+      description: Retrieve all departments linked to a specific hospital
+      parameters:
+      - description: Hospital ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.HospitalDepartmentResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List departments of a hospital
+      tags:
+      - Hospitals
+    post:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to associate a department with a hospital
+      parameters:
+      - description: Hospital ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Link payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LinkDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Link a department to a hospital
+      tags:
+      - Hospitals
+  /api/v1/hospitals/{id}/departments/{deptId}:
+    delete:
+      description: Admin-only endpoint to remove a department-hospital association
+      parameters:
+      - description: Hospital ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Department ID
+        in: path
+        name: deptId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Unlink a department from a hospital
+      tags:
+      - Hospitals
+  /api/v1/users:
+    get:
+      description: Admin-only endpoint to list users with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by role
+        in: query
+        name: role
+        type: string
+      - description: Filter by hospital ID
+        in: query
+        name: hospital_id
+        type: string
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      - description: Search by name or email
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to create a new user account
+      parameters:
+      - description: User creation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new user
+      tags:
+      - Users
+  /api/v1/users/{id}:
+    delete:
+      description: Admin-only endpoint to soft-delete a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a user
+      tags:
+      - Users
+    get:
+      description: Admin-only endpoint to retrieve a user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to update a user's information
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a user
+      tags:
+      - Users
+  /api/v1/users/{id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Admin-only endpoint to change a user's role
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role assignment payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Assign role to user
+      tags:
+      - Users
+  /api/v1/users/me:
+    get:
+      description: Returns the profile of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user's profile
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: Enter your bearer token in the format **Bearer &lt;token&gt;**
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

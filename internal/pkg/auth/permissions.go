@@ -42,11 +42,13 @@ var RolePermissions = map[entity.UserRole]map[entity.ActionType]bool{
 		entity.ActionLogout:          true,
 	},
 	entity.RoleSystemAdmin: {
-		entity.ActionViewPatientData: true,
-		entity.ActionExportData:      true,
-		entity.ActionLogin:           true,
-		entity.ActionLogout:          true,
-		// In reality, sys admin has other system-level actions not strictly related to referrals
+		entity.ActionViewPatientData:  true,
+		entity.ActionExportData:       true,
+		entity.ActionLogin:            true,
+		entity.ActionLogout:           true,
+		entity.ActionManageUsers:      true,
+		entity.ActionManageHospitals:  true,
+		entity.ActionManageDepts:      true,
 	},
 	entity.RoleReceptionist: {
 		entity.ActionViewPatientData: true, // Limited strictly per-hospital via query scopes in repositories
