@@ -15,7 +15,24 @@ func SeedReferenceData(ctx context.Context, db *gorm.DB) error {
 	log.Println("Starting reference data seeding...")
 
 	// Migrate schemas for these entities first to ensure tables exist
-	err := db.AutoMigrate(&entity.Hospital{}, &entity.Department{}, &entity.HospitalDepartment{}, &entity.User{}, &entity.Session{}, &entity.Referral{}, &entity.ReferralStatusHistory{}, &entity.AuditLog{})
+	err := db.AutoMigrate(
+		&entity.Hospital{},
+		&entity.Department{},
+		&entity.HospitalDepartment{},
+		&entity.User{},
+		&entity.Session{},
+		&entity.Patient{},
+		&entity.ICDCode{},
+		&entity.Referral{},
+		&entity.ReferralForm{},
+		&entity.ReferralDiagnosis{},
+		&entity.ReferralNetwork{},
+		&entity.Vital{},
+		&entity.ReferralEmergencyDetail{},
+		&entity.ReferralStatusHistory{},
+		&entity.Attachment{},
+		&entity.AuditLog{},
+	)
 	if err != nil {
 		return err
 	}
@@ -37,6 +54,21 @@ func SeedReferenceData(ctx context.Context, db *gorm.DB) error {
 
 	// 4. Seed Users (all 7 roles mapped dynamically)
 	if err := seedUsers(ctx, db); err != nil {
+		return err
+	}
+
+	// 5. Seed ICD Codes
+	if err := seedICDCodes(ctx, db); err != nil {
+		return err
+	}
+
+	// 6. Seed Referral Networks (Routing pathways)
+	if err := seedNetworks(ctx, db); err != nil {
+		return err
+	}
+
+	// 7. Seed Patients
+	if err := seedPatients(ctx, db); err != nil {
 		return err
 	}
 
@@ -125,9 +157,12 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 	defaultHash := "$2a$12$OV/iqbn3GrwIVdFdR60VIuKoydr0CWosGqgAvivL7H/vnUOQM0Tce"
 
 	// 1. System/MoH Global Users
-	for _, u := range systemTestUsers {
-		u.PasswordHash = defaultHash
-		db.WithContext(ctx).Where("email = ?", u.Email).FirstOrCreate(&u)
+	for i := range systemTestUsers {
+		systemTestUsers[i].PasswordHash = defaultHash
+		var user entity.User
+		if err := db.WithContext(ctx).Where("email = ?", systemTestUsers[i].Email).FirstOrCreate(&user, systemTestUsers[i]).Error; err != nil {
+			log.Printf("Warning: failed to seed system user %s: %v", systemTestUsers[i].Email, err)
+		}
 	}
 
 	// 2. Map Primary and Specialized Templates

@@ -10,15 +10,19 @@ import (
 type ReferralStatus string
 
 const (
-	StatusDraft                   ReferralStatus = "DRAFT"
-	StatusPendingAdminReview      ReferralStatus = "PENDING_ADMIN_REVIEW"
-	StatusAdminApproved           ReferralStatus = "ADMIN_APPROVED"
-	StatusPendingSpecialistReview ReferralStatus = "PENDING_SPECIALIST_REVIEW"
-	StatusAccepted                ReferralStatus = "ACCEPTED"
-	StatusRejected                ReferralStatus = "REJECTED"
-	StatusRedirected              ReferralStatus = "REDIRECTED"
-	StatusAdmitted                ReferralStatus = "ADMITTED"
-	StatusMissed                  ReferralStatus = "MISSED"
+	StatusDraft              ReferralStatus = "DRAFT"
+	StatusSubmitted          ReferralStatus = "SUBMITTED"
+	StatusUnderLiaisonReview ReferralStatus = "UNDER_LIAISON_REVIEW"
+	StatusNeedsRevision      ReferralStatus = "NEEDS_REVISION"      // Liaison rejected → doctor must fix
+	StatusForwarded          ReferralStatus = "FORWARDED"
+	StatusReceived           ReferralStatus = "RECEIVED"
+	StatusSpecialistReview   ReferralStatus = "SPECIALIST_REVIEW"   // Received → awaiting specialist decision
+	StatusSpecialistAssigned ReferralStatus = "SPECIALIST_ASSIGNED"
+	StatusScheduled          ReferralStatus = "SCHEDULED"
+	StatusCompleted          ReferralStatus = "COMPLETED"
+	StatusRejected           ReferralStatus = "REJECTED"            // Terminal rejection by specialist/admin
+	StatusCancelled          ReferralStatus = "CANCELLED"
+	StatusMissed             ReferralStatus = "MISSED"
 )
 
 type Referral struct {
@@ -56,6 +60,13 @@ type Referral struct {
 	ArchivedAt *time.Time
 	IsDeleted  bool       `gorm:"default:false"`
 	DeletedAt  gorm.DeletedAt
+
+	// Relationships
+	Patient         *Patient                 `gorm:"foreignKey:PatientID"`
+	ReferralForm    *ReferralForm            `gorm:"foreignKey:ReferralID"`
+	Diagnoses       []ReferralDiagnosis      `gorm:"foreignKey:ReferralID"`
+	Vitals          []Vital                  `gorm:"foreignKey:ReferralID"`
+	EmergencyDetail *ReferralEmergencyDetail `gorm:"foreignKey:ReferralID"`
 }
 
 func (r *Referral) BeforeCreate(tx *gorm.DB) (err error) {
