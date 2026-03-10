@@ -19,8 +19,8 @@ func NewAuthHandler(authUseCase usecase.AuthUseCase) *AuthHandler {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" binding:"required,email" example:"superadmin@moh.gov.et"`
+	Password string `json:"password" binding:"required" example:"password123"`
 }
 
 type RefreshRequest struct {

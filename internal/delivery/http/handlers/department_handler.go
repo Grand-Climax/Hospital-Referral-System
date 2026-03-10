@@ -23,18 +23,18 @@ func NewDepartmentHandler(deptUseCase usecase.DepartmentUseCase) *DepartmentHand
 // --- Request / Response DTOs ---
 
 type CreateDepartmentRequest struct {
-	Name        string  `json:"name" binding:"required"`
-	Description *string `json:"description"`
+	Name        string  `json:"name" binding:"required" example:"Cardiology"`
+	Description *string `json:"description" example:"Heart and blood vessel diseases"`
 }
 
 type UpdateDepartmentRequest struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
+	Name        *string `json:"name" example:"Cardiology"`
+	Description *string `json:"description" example:"Heart and blood vessel diseases"`
 }
 
 type LinkDepartmentRequest struct {
-	DepartmentID string `json:"department_id" binding:"required"`
-	DailyLimit   int    `json:"daily_limit"`
+	DepartmentID string `json:"department_id" binding:"required" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	DailyLimit   int    `json:"daily_limit" example:"20"`
 }
 
 type DepartmentResponse struct {

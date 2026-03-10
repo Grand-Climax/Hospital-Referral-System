@@ -134,3 +134,17 @@ go test ./test -v -count=1
 *   `./test` tells the Go compiler to specifically target and run all integration `_test.go` files we built inside the test module.
 *   `-v` turns on verbose logging so you can see exactly which authentication and routing tests PASS.
 *   `-count=1` actively bypasses Go's native test cache to guarantee the suite runs immediately against the live Database state.
+
+---
+
+## 📖 API Documentation (Swagger)
+
+The project includes an embedded Swagger UI instance for complete exploration and testing of the live API endpoints. Swagger annotations are natively configured using actual Seed Data examples, providing realistic structural payloads.
+
+You can access the generated Swagger documentation here once the server is running:
+- **`http://localhost:8081/swagger/index.html`**
+
+To regenerate or update the swagger definitions when you add new endpoints, run:
+```bash
+swag init -g cmd/server/main.go
+```

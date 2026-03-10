@@ -19,7 +19,17 @@ func NewPatientHandler(patientUC usecase.PatientUseCase) *PatientHandler {
 	}
 }
 
-// GetByNationalID looks up a patient by their unencrypted National ID string.
+// GetByNationalID godoc
+// @Summary      Get patient by National ID
+// @Description  Lookup patient data by plain text National ID
+// @Tags         Patients
+// @Produce      json
+// @Param        id path string true "National ID" default(NAT-12345)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/patients/national-id/{id} [get]
 func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 	nationalID := strings.TrimSpace(c.Param("id"))
 	if nationalID == "" {

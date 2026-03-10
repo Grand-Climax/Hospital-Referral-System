@@ -23,29 +23,29 @@ func NewUserHandler(userUseCase usecase.UserUseCase) *UserHandler {
 // --- Request / Response DTOs ---
 
 type CreateUserRequest struct {
-	Email        string          `json:"email" binding:"required,email"`
-	Password     string          `json:"password" binding:"required,min=8"`
-	FirstName    string          `json:"first_name" binding:"required"`
-	LastName     string          `json:"last_name" binding:"required"`
-	NationalID   string          `json:"national_id"`
-	Role         entity.UserRole `json:"role" binding:"required"`
-	HospitalID   *string         `json:"hospital_id"`
-	DepartmentID *string         `json:"department_id"`
+	Email        string          `json:"email" binding:"required,email" example:"analyst@moh.gov.et"`
+	Password     string          `json:"password" binding:"required,min=8" example:"password123"`
+	FirstName    string          `json:"first_name" binding:"required" example:"MoH"`
+	LastName     string          `json:"last_name" binding:"required" example:"Analyst"`
+	NationalID   string          `json:"national_id" example:"MOH-001"`
+	Role         entity.UserRole `json:"role" binding:"required" example:"MOH_ANALYST"`
+	HospitalID   *string         `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
+	DepartmentID *string         `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
 }
 
 type UpdateUserRequest struct {
-	Email        *string          `json:"email" binding:"omitempty,email"`
-	FirstName    *string          `json:"first_name"`
-	LastName     *string          `json:"last_name"`
-	NationalID   *string          `json:"national_id"`
-	Role         *entity.UserRole `json:"role"`
-	HospitalID   *string          `json:"hospital_id"`
-	DepartmentID *string          `json:"department_id"`
-	IsActive     *bool            `json:"is_active"`
+	Email        *string          `json:"email" binding:"omitempty,email" example:"analyst@moh.gov.et"`
+	FirstName    *string          `json:"first_name" example:"MoH"`
+	LastName     *string          `json:"last_name" example:"Analyst"`
+	NationalID   *string          `json:"national_id" example:"MOH-001"`
+	Role         *entity.UserRole `json:"role" example:"MOH_ANALYST"`
+	HospitalID   *string          `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
+	DepartmentID *string          `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	IsActive     *bool            `json:"is_active" example:"true"`
 }
 
 type AssignRoleRequest struct {
-	Role entity.UserRole `json:"role" binding:"required"`
+	Role entity.UserRole `json:"role" binding:"required" example:"SYSTEM_SUPER_ADMIN"`
 }
 
 type UserResponse struct {
