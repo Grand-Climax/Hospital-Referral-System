@@ -1,0 +1,155 @@
+package test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
+	"Hospital-Referral-System/internal/delivery/http/handlers"
+	"Hospital-Referral-System/internal/domain/entity"
+)
+
+// MockReferenceUseCase simulates the DB logic for dropdown endpoints
+type MockReferenceUseCase struct {
+	mock.Mock
+}
+
+func (m *MockReferenceUseCase) GetHospitals(ctx context.Context, tier string) ([]entity.Hospital, error) {
+	args := m.Called(ctx, tier)
+	return args.Get(0).([]entity.Hospital), args.Error(1)
+}
+
+func (m *MockReferenceUseCase) GetDepartments(ctx context.Context) ([]entity.Department, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.Department), args.Error(1)
+}
+
+func (m *MockReferenceUseCase) SearchICDCodes(ctx context.Context, query string) ([]entity.ICDCode, error) {
+	args := m.Called(ctx, query)
+	return args.Get(0).([]entity.ICDCode), args.Error(1)
+}
+
+func (m *MockReferenceUseCase) GetNetworkedHospitals(ctx context.Context, senderID uuid.UUID) ([]entity.Hospital, error) {
+	args := m.Called(ctx, senderID)
+	return args.Get(0).([]entity.Hospital), args.Error(1)
+}
+
+func (m *MockReferenceUseCase) GetHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.Department, error) {
+	args := m.Called(ctx, hospitalID)
+	return args.Get(0).([]entity.Department), args.Error(1)
+}
+
+func TestReferenceEndpoints(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUC := new(MockReferenceUseCase)
+	handler := handlers.NewReferenceHandler(mockUC)
+
+	router := gin.Default()
+	router.GET("/api/v1/references/hospitals", handler.GetHospitals)
+	router.GET("/api/v1/references/departments", handler.GetDepartments)
+	router.GET("/api/v1/references/icd", handler.SearchICD)
+	router.GET("/api/v1/references/networked-hospitals", handler.GetNetworkedHospitals)
+	router.GET("/api/v1/references/hospitals/:id/departments", handler.GetHospitalDepartments)
+
+	t.Run("Get Global Hospitals List", func(t *testing.T) {
+		hosp := entity.Hospital{
+			ID:        uuid.New(),
+			Name:      "Tikur Anbessa Specialized Hospital",
+			TierLevel: entity.HospitalTier("SPECIALIZED"),
+			Region:    "Addis Ababa",
+		}
+		mockUC.On("GetHospitals", mock.Anything, "").Return([]entity.Hospital{hosp}, nil)
+
+		req := httptest.NewRequest("GET", "/api/v1/references/hospitals", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp map[string][]handlers.HospitalResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		hospitals := resp["data"]
+		assert.Len(t, hospitals, 1)
+		assert.Equal(t, "Tikur Anbessa Specialized Hospital", hospitals[0].Name)
+	})
+
+	t.Run("Search ICD Codes", func(t *testing.T) {
+		icd := entity.ICDCode{
+			Code:        "A00",
+			Description: "Cholera",
+		}
+		mockUC.On("SearchICDCodes", mock.Anything, "Cholera").Return([]entity.ICDCode{icd}, nil)
+
+		req := httptest.NewRequest("GET", "/api/v1/references/icd?q=Cholera", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp map[string][]entity.ICDCode
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		codes := resp["data"]
+		assert.Len(t, codes, 1)
+		assert.Equal(t, "A00", codes[0].Code)
+	})
+
+	t.Run("Get Networked Hospitals", func(t *testing.T) {
+		hosp := entity.Hospital{
+			ID:        uuid.New(),
+			Name:      "Addis Ababa General Hospital",
+			TierLevel: entity.HospitalTier("GENERAL"),
+		}
+		senderID := uuid.New()
+		mockUC.On("GetNetworkedHospitals", mock.Anything, senderID).Return([]entity.Hospital{hosp}, nil)
+
+		req := httptest.NewRequest("GET", "/api/v1/references/networked-hospitals", nil)
+		req.Header.Set("X-Hospital-ID", senderID.String())
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp map[string][]handlers.HospitalResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		hospitals := resp["data"]
+		assert.Len(t, hospitals, 1)
+		assert.Equal(t, "Addis Ababa General Hospital", hospitals[0].Name)
+	})
+
+	t.Run("Get Hospital Departments", func(t *testing.T) {
+		dept := entity.Department{
+			ID:   uuid.New(),
+			Name: "Neurology",
+		}
+		hospitalID := uuid.New()
+		mockUC.On("GetHospitalDepartments", mock.Anything, hospitalID).Return([]entity.Department{dept}, nil)
+
+		req := httptest.NewRequest("GET", "/api/v1/references/hospitals/"+hospitalID.String()+"/departments", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp map[string][]handlers.DepartmentResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		depts := resp["data"]
+		assert.Len(t, depts, 1)
+		assert.Equal(t, "Neurology", depts[0].Name)
+	})
+}
