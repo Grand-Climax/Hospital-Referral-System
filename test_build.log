@@ -1,7 +1,0 @@
-# Hospital-Referral-System/test [Hospital-Referral-System/test.test]
-test\reference_integration_test.go:21:13: undefined: stringToReadCloser
-test\reference_integration_test.go:39:20: undefined: setupTestDBAndRouter
-test\reference_integration_test.go:40:8: undefined: cleanupTestDB
-test\reference_integration_test.go:64:36: undefined: entity.HospitalTierSpecialized
-FAIL	Hospital-Referral-System/test [build failed]
-FAIL

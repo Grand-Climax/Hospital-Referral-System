@@ -1,3 +1,57 @@
+# Environment files
 .env
-
 .env.local
+.env.*.local
+
+# ──────────────────────────────────────────────
+# Go
+# ──────────────────────────────────────────────
+
+# Compiled binaries and objects
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.o
+*.a
+
+# Go workspace (Go 1.18+)
+go.work
+go.work.sum
+
+# Test binary
+*.test
+
+# Test coverage & profiling output
+*.out
+*.prof
+coverage.html
+coverage.txt
+
+# Build output
+/bin/
+/dist/
+/build/
+
+# Temp test logs produced during development
+*.log
+temp_*.log
+*_test.log
+test_build.log
+final_test.log
+
+# ──────────────────────────────────────────────
+# File Storage (uploaded attachments)
+# ──────────────────────────────────────────────
+storage/
+
+# ──────────────────────────────────────────────
+# OS / Editor
+# ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
