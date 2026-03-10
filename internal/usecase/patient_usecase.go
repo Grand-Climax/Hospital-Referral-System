@@ -14,7 +14,8 @@ import (
 
 type PatientUseCase interface {
 	GetByNationalID(ctx context.Context, nationalID string) (*entity.Patient, error)
-	LookupOrCreate(ctx context.Context, req dto.LookupPatientRequest) (*entity.Patient, bool, error)
+	GetByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error)
+	CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error)
 }
 
 type patientUseCase struct {
@@ -36,39 +37,36 @@ func (u *patientUseCase) GetByNationalID(ctx context.Context, nationalID string)
 	return patient, nil
 }
 
-func (u *patientUseCase) LookupOrCreate(ctx context.Context, req dto.LookupPatientRequest) (*entity.Patient, bool, error) {
-	// 1. Try NationalID
+func (u *patientUseCase) GetByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error) {
+	patient, err := u.patientRepo.FindByPhoneAndName(ctx, phone, firstName)
+	if err != nil {
+		return nil, err
+	}
+	return patient, nil
+}
+
+func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error) {
+	// 1. Uniqueness check by National ID (if provided)
 	if req.NationalID != "" {
-		patient, err := u.patientRepo.FindByNationalID(ctx, req.NationalID)
+		existing, err := u.patientRepo.FindByNationalID(ctx, req.NationalID)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
-		if patient != nil {
-			return patient, false, nil // Found by National ID
-		}
-	}
-
-	// 2. Fallback to Phone & FirstName
-	if req.PhoneNumber != "" && req.FirstName != "" {
-		patient, err := u.patientRepo.FindByPhoneAndName(ctx, req.PhoneNumber, req.FirstName)
-		if err != nil {
-			return nil, false, err
-		}
-		if patient != nil {
-			return patient, false, nil // Found by Phone + Name
+		if existing != nil {
+			return nil, errors.New("a patient with this National ID already exists")
 		}
 	}
 
-	// 3. Validation for Auto-Create
-	if req.LastName == "" || req.Sex == "" {
-		return nil, false, errors.New("last_name and sex are required for new patient creation")
+	// 2. Uniqueness check by Phone + First Name
+	existing, err := u.patientRepo.FindByPhoneAndName(ctx, req.PhoneNumber, req.FirstName)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, errors.New("a patient with this Phone Number and First Name already exists")
 	}
 
-	if req.NationalID == "" && (req.PhoneNumber == "" || req.FirstName == "") {
-		return nil, false, errors.New("must provide either national_id OR (phone_number AND first_name)")
-	}
-
-	// 4. Auto-Create New Patient
+	// 3. Create New Patient
 	newPatient := &entity.Patient{
 		PhoneNumber: &req.PhoneNumber,
 		FirstName:   req.FirstName,
@@ -92,8 +90,8 @@ func (u *patientUseCase) LookupOrCreate(ctx context.Context, req dto.LookupPatie
 	}
 
 	if err := u.patientRepo.Create(ctx, newPatient); err != nil {
-		return nil, true, err
+		return nil, err
 	}
 
-	return newPatient, true, nil
+	return newPatient, nil
 }
