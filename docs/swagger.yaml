@@ -465,6 +465,112 @@ info:
   title: Hospital Referral System API
   version: "1.0"
 paths:
+  /api/v1/admin/network-routes:
+    get:
+      description: Retrieve all routing rules, optionally filtered by sender hospital.
+        Only HOSPITAL_ADMIN can view admin routes.
+      parameters:
+      - description: Filter by Sender Hospital ID
+        in: query
+        name: sender_hospital_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Network Routes
+      tags:
+      - Network Routes (Admin)
+    post:
+      consumes:
+      - application/json
+      description: Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN
+        can create routes.
+      parameters:
+      - description: Network routing rule payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateNetworkRouteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create Network Route
+      tags:
+      - Network Routes (Admin)
+  /api/v1/admin/network-routes/{id}:
+    delete:
+      description: Remove a referral network routing rule. Only HOSPITAL_ADMIN can
+        delete routes.
+      parameters:
+      - description: Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete Network Route
+      tags:
+      - Network Routes (Admin)
   /api/v1/attachments/{id}/download:
     get:
       description: Stream actual binary file data for an attachment ID
@@ -1059,109 +1165,6 @@ paths:
       summary: Unlink a department from a hospital
       tags:
       - Hospitals
-  /api/v1/network-routes:
-    get:
-      description: Retrieve all routing rules, optionally filtered by sender hospital
-      parameters:
-      - description: Sender Hospital ID
-        in: query
-        name: sender_hospital_id
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List Network Routes
-      tags:
-      - Networks
-    post:
-      consumes:
-      - application/json
-      description: Define a routing logic rule between two networked hospitals
-      parameters:
-      - description: Network routing rule payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateNetworkRouteRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create Network Route
-      tags:
-      - Networks
-  /api/v1/network-routes/{id}:
-    delete:
-      description: Remove a network routing mapping
-      parameters:
-      - description: Route ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete Network Route
-      tags:
-      - Networks
   /api/v1/patients/national-id/{id}:
     get:
       description: Lookup patient data by plain text National ID
@@ -1197,9 +1200,10 @@ paths:
       summary: Get patient by National ID
       tags:
       - Patients
-  /api/v1/references/departments:
+  /api/v1/reference/departments:
     get:
-      description: Lookup all global departments
+      description: Returns all global departments (not scoped to a hospital). Accessible
+        by all authenticated roles.
       produces:
       - application/json
       responses:
@@ -1213,11 +1217,12 @@ paths:
       summary: Get Departments List
       tags:
       - References
-  /api/v1/references/hospitals:
+  /api/v1/reference/hospitals:
     get:
-      description: Lookup hospitals with optional tier filter
+      description: Returns all hospitals, optionally filtered by tier. Accessible
+        by all authenticated roles.
       parameters:
-      - description: Hospital Tier
+      - description: Hospital Tier (PRIMARY, GENERAL, SPECIALIZED)
         in: query
         name: tier
         type: string
@@ -1234,9 +1239,11 @@ paths:
       summary: Get Hospitals List
       tags:
       - References
-  /api/v1/references/hospitals/{id}/departments:
+  /api/v1/reference/hospitals/{id}/departments:
     get:
-      description: Lookup specific departments mapped to a hospital
+      description: Returns departments available at a specific target hospital. Used
+        by doctors when selecting a department to refer to. Accessible by all authenticated
+        roles.
       parameters:
       - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
         description: Hospital ID
@@ -1257,11 +1264,12 @@ paths:
       summary: Get Hospital Departments
       tags:
       - References
-  /api/v1/references/icd:
+  /api/v1/reference/icd-codes:
     get:
-      description: Lookup ICD codes by string query
+      description: Search ICD-10 codes by keyword. Used by doctors and specialists
+        when filling in diagnoses. Accessible by all authenticated roles.
       parameters:
-      - description: Search query
+      - description: Search query (e.g. Cholera)
         in: query
         name: q
         type: string
@@ -1278,9 +1286,11 @@ paths:
       summary: Search ICD-10 Codes
       tags:
       - References
-  /api/v1/references/networked-hospitals:
+  /api/v1/reference/networked-hospitals:
     get:
-      description: Lookup networked hospitals based on requesting hospital ID
+      description: Returns hospitals in the referral network that can receive from
+        the requesting hospital. Used by doctors/liaison when selecting a referral
+        target. Accessible by all authenticated roles.
       parameters:
       - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
         description: Sender Hospital ID
@@ -1303,7 +1313,8 @@ paths:
       - References
   /api/v1/referrals:
     get:
-      description: Get referrals scoped to the requesting hospital and role
+      description: Get referrals scoped by hospital and role. Doctors see sent referrals;
+        specialists see incoming; admins see all.
       parameters:
       - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
         description: Hospital ID
@@ -1351,7 +1362,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Submit a new referral (Draft or Submitted status)
+      description: 'Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR,
+        RECEPTIONIST.'
       parameters:
       - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
         description: Doctor ID
@@ -1404,7 +1416,8 @@ paths:
       - Referrals
   /api/v1/referrals/{id}:
     delete:
-      description: Permanently delete a draft referral
+      description: Permanently discard a DRAFT referral. Only REFERRING_DOCTOR before
+        submission.
       parameters:
       - description: Referral ID
         in: path
@@ -1438,7 +1451,8 @@ paths:
       tags:
       - Referrals
     get:
-      description: Retrieve full referral details by ID
+      description: Retrieve full referral details by ID. All authenticated roles with
+        access to the referral can view it.
       parameters:
       - description: Referral ID
         in: path
@@ -1467,13 +1481,14 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get Referral ID
+      summary: Get Referral by ID
       tags:
       - Referrals
     put:
       consumes:
       - application/json
-      description: Update an existing referral draft before submission
+      description: Update a DRAFT referral before submission. Only REFERRING_DOCTOR
+        who created it.
       parameters:
       - description: Referral ID
         in: path
@@ -1557,7 +1572,10 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Transition a referral state forwards or backwards securely
+      description: 'Advance or reverse the referral state machine. Transitions vary
+        by role: LIAISON_OFFICER can FORWARD or set NEEDS_REVISION; RECEIVING_SPECIALIST
+        can accept (SPECIALIST_ASSIGNED) or reject back to UNDER_LIAISON_REVIEW; REFERRING_DOCTOR
+        resubmits NEEDS_REVISION → UNDER_LIAISON_REVIEW.'
       parameters:
       - description: Referral ID
         in: path

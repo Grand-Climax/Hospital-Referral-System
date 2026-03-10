@@ -15,6 +15,167 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/admin/network-routes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all routing rules, optionally filtered by sender hospital. Only HOSPITAL_ADMIN can view admin routes.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Network Routes (Admin)"
+                ],
+                "summary": "List Network Routes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by Sender Hospital ID",
+                        "name": "sender_hospital_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Network Routes (Admin)"
+                ],
+                "summary": "Create Network Route",
+                "parameters": [
+                    {
+                        "description": "Network routing rule payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateNetworkRouteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/network-routes/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Network Routes (Admin)"
+                ],
+                "summary": "Delete Network Route",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Route ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/attachments/{id}/download": {
             "get": {
                 "security": [
@@ -941,167 +1102,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/network-routes": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve all routing rules, optionally filtered by sender hospital",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Networks"
-                ],
-                "summary": "List Network Routes",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Sender Hospital ID",
-                        "name": "sender_hospital_id",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Define a routing logic rule between two networked hospitals",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Networks"
-                ],
-                "summary": "Create Network Route",
-                "parameters": [
-                    {
-                        "description": "Network routing rule payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateNetworkRouteRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/network-routes/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Remove a network routing mapping",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Networks"
-                ],
-                "summary": "Delete Network Route",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Route ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/patients/national-id/{id}": {
             "get": {
                 "security": [
@@ -1156,14 +1156,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/references/departments": {
+        "/api/v1/reference/departments": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lookup all global departments",
+                "description": "Returns all global departments (not scoped to a hospital). Accessible by all authenticated roles.",
                 "produces": [
                     "application/json"
                 ],
@@ -1182,14 +1182,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/references/hospitals": {
+        "/api/v1/reference/hospitals": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lookup hospitals with optional tier filter",
+                "description": "Returns all hospitals, optionally filtered by tier. Accessible by all authenticated roles.",
                 "produces": [
                     "application/json"
                 ],
@@ -1200,7 +1200,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Hospital Tier",
+                        "description": "Hospital Tier (PRIMARY, GENERAL, SPECIALIZED)",
                         "name": "tier",
                         "in": "query"
                     }
@@ -1216,14 +1216,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/references/hospitals/{id}/departments": {
+        "/api/v1/reference/hospitals/{id}/departments": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lookup specific departments mapped to a hospital",
+                "description": "Returns departments available at a specific target hospital. Used by doctors when selecting a department to refer to. Accessible by all authenticated roles.",
                 "produces": [
                     "application/json"
                 ],
@@ -1252,14 +1252,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/references/icd": {
+        "/api/v1/reference/icd-codes": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lookup ICD codes by string query",
+                "description": "Search ICD-10 codes by keyword. Used by doctors and specialists when filling in diagnoses. Accessible by all authenticated roles.",
                 "produces": [
                     "application/json"
                 ],
@@ -1270,7 +1270,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search query",
+                        "description": "Search query (e.g. Cholera)",
                         "name": "q",
                         "in": "query"
                     }
@@ -1286,14 +1286,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/references/networked-hospitals": {
+        "/api/v1/reference/networked-hospitals": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lookup networked hospitals based on requesting hospital ID",
+                "description": "Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target. Accessible by all authenticated roles.",
                 "produces": [
                     "application/json"
                 ],
@@ -1329,7 +1329,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get referrals scoped to the requesting hospital and role",
+                "description": "Get referrals scoped by hospital and role. Doctors see sent referrals; specialists see incoming; admins see all.",
                 "produces": [
                     "application/json"
                 ],
@@ -1398,7 +1398,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Submit a new referral (Draft or Submitted status)",
+                "description": "Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR, RECEPTIONIST.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1481,14 +1481,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve full referral details by ID",
+                "description": "Retrieve full referral details by ID. All authenticated roles with access to the referral can view it.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Referrals"
                 ],
-                "summary": "Get Referral ID",
+                "summary": "Get Referral by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -1532,7 +1532,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update an existing referral draft before submission",
+                "description": "Update a DRAFT referral before submission. Only REFERRING_DOCTOR who created it.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1595,7 +1595,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Permanently delete a draft referral",
+                "description": "Permanently discard a DRAFT referral. Only REFERRING_DOCTOR before submission.",
                 "produces": [
                     "application/json"
                 ],
@@ -1713,7 +1713,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Transition a referral state forwards or backwards securely",
+                "description": "Advance or reverse the referral state machine. Transitions vary by role: LIAISON_OFFICER can FORWARD or set NEEDS_REVISION; RECEIVING_SPECIALIST can accept (SPECIALIST_ASSIGNED) or reject back to UNDER_LIAISON_REVIEW; REFERRING_DOCTOR resubmits NEEDS_REVISION → UNDER_LIAISON_REVIEW.",
                 "consumes": [
                     "application/json"
                 ],
