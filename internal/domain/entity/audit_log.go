@@ -26,21 +26,25 @@ const (
 	ActionViewAuditLog        ActionType = "VIEW_AUDIT_LOG"
 	ActionResetMFA            ActionType = "RESET_MFA"
 	ActionManageHospitals     ActionType = "MANAGE_HOSPITALS"
+	ActionManageDepts         ActionType = "MANAGE_DEPTS"
+	ActionAPICall             ActionType = "API_CALL"
 	ActionOverrideQueue       ActionType = "OVERRIDE_QUEUE"
 	ActionGenerateReports     ActionType = "GENERATE_REPORTS"
 	ActionUpdatePatientStatus ActionType = "UPDATE_PATIENT_STATUS"
 )
 
 type AuditLog struct {
-	ID         uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID     uuid.UUID   `gorm:"type:uuid;not null;index;index:idx_audit_user_time"`
-	ReferralID *uuid.UUID  `gorm:"type:uuid;index"`
-	ActionType ActionType  `gorm:"type:varchar(50);not null;index"`
-	OldValue   *string     `gorm:"type:jsonb"`
-	NewValue   *string     `gorm:"type:jsonb"`
-	IPAddress  *string     `gorm:"type:varchar(45)"`
-	UserAgent  *string     `gorm:"type:text"`
-	Timestamp  time.Time   `gorm:"default:now();index;index:idx_audit_user_time"`
+	ID         uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID     uuid.UUID  `gorm:"type:uuid;not null;index;index:idx_audit_user_time"`
+	ReferralID *uuid.UUID `gorm:"type:uuid;index"`
+	ActionType ActionType `gorm:"type:varchar(50);not null;index"`
+	Resource   *string    `gorm:"type:varchar(100);index"`
+	ResourceID *string    `gorm:"type:varchar(100)"`
+	OldValue   *string    `gorm:"type:jsonb"`
+	NewValue   *string    `gorm:"type:jsonb"`
+	IPAddress  *string    `gorm:"type:varchar(45)"`
+	UserAgent  *string    `gorm:"type:text"`
+	Timestamp  time.Time  `gorm:"default:now();index;index:idx_audit_user_time"`
 }
 
 func (al *AuditLog) BeforeCreate(tx *gorm.DB) (err error) {
