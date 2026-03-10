@@ -21,7 +21,7 @@ func NewReferralHandler(uc usecase.ReferralUseCase) *ReferralHandler {
 
 // Create godoc
 // @Summary      Create Referral
-// @Description  Submit a new referral (Draft or Submitted status)
+// @Description  Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR, RECEPTIONIST.
 // @Tags         Referrals
 // @Accept       json
 // @Produce      json
@@ -67,7 +67,7 @@ func (h *ReferralHandler) Create(c *gin.Context) {
 
 // List godoc
 // @Summary      List Referrals
-// @Description  Get referrals scoped to the requesting hospital and role
+// @Description  Get referrals scoped by hospital and role. Doctors see sent referrals; specialists see incoming; admins see all.
 // @Tags         Referrals
 // @Produce      json
 // @Param        X-Hospital-ID header string true "Hospital ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
@@ -98,8 +98,8 @@ func (h *ReferralHandler) List(c *gin.Context) {
 }
 
 // GetByID godoc
-// @Summary      Get Referral ID
-// @Description  Retrieve full referral details by ID
+// @Summary      Get Referral by ID
+// @Description  Retrieve full referral details by ID. All authenticated roles with access to the referral can view it.
 // @Tags         Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -127,7 +127,7 @@ func (h *ReferralHandler) GetByID(c *gin.Context) {
 
 // UpdateDraft godoc
 // @Summary      Update Referral Draft
-// @Description  Update an existing referral draft before submission
+// @Description  Update a DRAFT referral before submission. Only REFERRING_DOCTOR who created it.
 // @Tags         Referrals
 // @Accept       json
 // @Produce      json
@@ -166,7 +166,7 @@ func (h *ReferralHandler) UpdateDraft(c *gin.Context) {
 
 // DeleteDraft godoc
 // @Summary      Delete Referral Draft
-// @Description  Permanently delete a draft referral
+// @Description  Permanently discard a DRAFT referral. Only REFERRING_DOCTOR before submission.
 // @Tags         Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -193,7 +193,7 @@ func (h *ReferralHandler) DeleteDraft(c *gin.Context) {
 
 // UpdateStatus godoc
 // @Summary      Update Referral Status
-// @Description  Transition a referral state forwards or backwards securely
+// @Description  Advance or reverse the referral state machine. Transitions vary by role: LIAISON_OFFICER can FORWARD or set NEEDS_REVISION; RECEIVING_SPECIALIST can accept (SPECIALIST_ASSIGNED) or reject back to UNDER_LIAISON_REVIEW; REFERRING_DOCTOR resubmits NEEDS_REVISION → UNDER_LIAISON_REVIEW.
 // @Tags         Referrals
 // @Accept       json
 // @Produce      json

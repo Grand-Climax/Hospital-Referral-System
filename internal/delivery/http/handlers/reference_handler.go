@@ -19,13 +19,13 @@ func NewReferenceHandler(uc usecase.ReferenceUseCase) *ReferenceHandler {
 
 // GetHospitals godoc
 // @Summary      Get Hospitals List
-// @Description  Lookup hospitals with optional tier filter
+// @Description  Returns all hospitals, optionally filtered by tier. Accessible by all authenticated roles.
 // @Tags         References
 // @Produce      json
-// @Param        tier query string false "Hospital Tier"
+// @Param        tier query string false "Hospital Tier (PRIMARY, GENERAL, SPECIALIZED)"
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
-// @Router       /api/v1/references/hospitals [get]
+// @Router       /api/v1/reference/hospitals [get]
 func (h *ReferenceHandler) GetHospitals(c *gin.Context) {
 	tier := c.Query("tier")
 	hospitals, err := h.referenceUseCase.GetHospitals(c.Request.Context(), tier)
@@ -38,12 +38,12 @@ func (h *ReferenceHandler) GetHospitals(c *gin.Context) {
 
 // GetDepartments godoc
 // @Summary      Get Departments List
-// @Description  Lookup all global departments
+// @Description  Returns all global departments (not scoped to a hospital). Accessible by all authenticated roles.
 // @Tags         References
 // @Produce      json
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
-// @Router       /api/v1/references/departments [get]
+// @Router       /api/v1/reference/departments [get]
 func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 	depts, err := h.referenceUseCase.GetDepartments(c.Request.Context())
 	if err != nil {
@@ -55,13 +55,13 @@ func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 
 // SearchICD godoc
 // @Summary      Search ICD-10 Codes
-// @Description  Lookup ICD codes by string query
+// @Description  Search ICD-10 codes by keyword. Used by doctors and specialists when filling in diagnoses. Accessible by all authenticated roles.
 // @Tags         References
 // @Produce      json
-// @Param        q query string false "Search query"
+// @Param        q query string false "Search query (e.g. Cholera)"
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
-// @Router       /api/v1/references/icd [get]
+// @Router       /api/v1/reference/icd-codes [get]
 func (h *ReferenceHandler) SearchICD(c *gin.Context) {
 	q := c.Query("q")
 	codes, err := h.referenceUseCase.SearchICDCodes(c.Request.Context(), q)
@@ -74,13 +74,13 @@ func (h *ReferenceHandler) SearchICD(c *gin.Context) {
 
 // GetNetworkedHospitals godoc
 // @Summary      Get Networked Hospitals
-// @Description  Lookup networked hospitals based on requesting hospital ID
+// @Description  Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target. Accessible by all authenticated roles.
 // @Tags         References
 // @Produce      json
 // @Param        X-Hospital-ID header string true "Sender Hospital ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
-// @Router       /api/v1/references/networked-hospitals [get]
+// @Router       /api/v1/reference/networked-hospitals [get]
 func (h *ReferenceHandler) GetNetworkedHospitals(c *gin.Context) {
 	senderHospitalID, err := uuid.Parse(c.GetHeader("X-Hospital-ID"))
 	if err != nil {
@@ -98,13 +98,13 @@ func (h *ReferenceHandler) GetNetworkedHospitals(c *gin.Context) {
 
 // GetHospitalDepartments godoc
 // @Summary      Get Hospital Departments
-// @Description  Lookup specific departments mapped to a hospital
+// @Description  Returns departments available at a specific target hospital. Used by doctors when selecting a department to refer to. Accessible by all authenticated roles.
 // @Tags         References
 // @Produce      json
 // @Param        id path string true "Hospital ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
-// @Router       /api/v1/references/hospitals/{id}/departments [get]
+// @Router       /api/v1/reference/hospitals/{id}/departments [get]
 func (h *ReferenceHandler) GetHospitalDepartments(c *gin.Context) {
 	hospitalID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
