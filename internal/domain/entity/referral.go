@@ -13,14 +13,16 @@ const (
 	StatusDraft              ReferralStatus = "DRAFT"
 	StatusSubmitted          ReferralStatus = "SUBMITTED"
 	StatusUnderLiaisonReview ReferralStatus = "UNDER_LIAISON_REVIEW"
+	StatusNeedsRevision      ReferralStatus = "NEEDS_REVISION"      // Liaison rejected → doctor must fix
 	StatusForwarded          ReferralStatus = "FORWARDED"
 	StatusReceived           ReferralStatus = "RECEIVED"
+	StatusSpecialistReview   ReferralStatus = "SPECIALIST_REVIEW"   // Received → awaiting specialist decision
 	StatusSpecialistAssigned ReferralStatus = "SPECIALIST_ASSIGNED"
 	StatusScheduled          ReferralStatus = "SCHEDULED"
 	StatusCompleted          ReferralStatus = "COMPLETED"
-	StatusRejected           ReferralStatus = "REJECTED"
+	StatusRejected           ReferralStatus = "REJECTED"            // Terminal rejection by specialist/admin
 	StatusCancelled          ReferralStatus = "CANCELLED"
-	StatusMissed             ReferralStatus = "MISSED" // Keep missed for appointment analytics
+	StatusMissed             ReferralStatus = "MISSED"
 )
 
 type Referral struct {

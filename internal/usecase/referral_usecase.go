@@ -25,11 +25,24 @@ type ReferralUseCase interface {
 }
 
 var validTransitions = map[entity.ReferralStatus][]entity.ReferralStatus{
-	entity.StatusDraft:              {entity.StatusSubmitted},
-	entity.StatusSubmitted:          {entity.StatusUnderLiaisonReview, entity.StatusCancelled},
-	entity.StatusUnderLiaisonReview: {entity.StatusForwarded, entity.StatusRejected},
-	entity.StatusForwarded:          {entity.StatusReceived, entity.StatusRejected},
-	entity.StatusReceived:           {entity.StatusSpecialistAssigned, entity.StatusRejected},
+	// Doctor workflow
+	entity.StatusDraft:    {entity.StatusSubmitted},
+	entity.StatusSubmitted: {entity.StatusUnderLiaisonReview, entity.StatusCancelled},
+
+	// Liaison review: accept (forward) or reject (send back to doctor for revision)
+	entity.StatusUnderLiaisonReview: {entity.StatusForwarded, entity.StatusNeedsRevision},
+
+	// Doctor fixes form and resubmits after liaison rejection
+	entity.StatusNeedsRevision: {entity.StatusUnderLiaisonReview, entity.StatusCancelled},
+
+	// Forwarded → target hospital marks received → enters specialist review queue
+	entity.StatusForwarded: {entity.StatusReceived},
+	entity.StatusReceived:  {entity.StatusSpecialistReview},
+
+	// Specialist review: accept (assign) or reject (back to liaison, who notifies doctor)
+	entity.StatusSpecialistReview: {entity.StatusSpecialistAssigned, entity.StatusUnderLiaisonReview},
+
+	// Accepted by specialist → scheduling pipeline
 	entity.StatusSpecialistAssigned: {entity.StatusScheduled, entity.StatusRejected},
 	entity.StatusScheduled:          {entity.StatusCompleted, entity.StatusCancelled, entity.StatusMissed},
 }
@@ -259,8 +272,19 @@ func (u *referralUseCase) UpdateReferralStatus(ctx context.Context, id uuid.UUID
 		return errors.New("invalid status transition from " + string(existing.Status) + " to " + string(newStatus))
 	}
 
-	// For simplicity, we directly update the status here. 
-	// In a real implementation, you'd insert into ReferralStatusHistory first in the repo transaction.
+	// Persist rejection reason when sending back to doctor or final rejection
+	if newStatus == entity.StatusNeedsRevision || newStatus == entity.StatusRejected {
+		if reason == "" {
+			return errors.New("a rejection reason is required when rejecting a referral")
+		}
+		existing.RejectionReason = &reason
+	}
+
+	// Clear rejection reason when doctor resubmits after fixing
+	if newStatus == entity.StatusUnderLiaisonReview && existing.Status == entity.StatusNeedsRevision {
+		existing.RejectionReason = nil
+	}
+
 	existing.Status = newStatus
 	return u.referralRepo.UpdateReferralTransaction(ctx, existing)
 }
