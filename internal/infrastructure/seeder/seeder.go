@@ -67,6 +67,11 @@ func SeedReferenceData(ctx context.Context, db *gorm.DB) error {
 		return err
 	}
 
+	// 7. Seed Patients
+	if err := seedPatients(ctx, db); err != nil {
+		return err
+	}
+
 	log.Println("Seeding completed successfully.")
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/usecase"
 )
 
@@ -50,3 +51,49 @@ func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": patient})
 }
+
+// LookupOrCreate godoc
+// @Summary      Lookup or Create Patient
+// @Description  Try to find a patient by National ID. If not found/provided, fallback to Phone + First Name. If still not found, auto-creates a new patient record. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+// @Tags         Patients
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.LookupPatientRequest true "Patient lookup/create payload"
+// @Success      200 {object} map[string]interface{} "Existing patient found"
+// @Success      201 {object} map[string]interface{} "New patient record created"
+// @Failure      400 {object} map[string]string "Validation error"
+// @Failure      500 {object} map[string]string "Server error"
+// @Security     BearerAuth
+// @Router       /api/v1/patients/lookup [post]
+func (h *PatientHandler) LookupOrCreate(c *gin.Context) {
+	var req dto.LookupPatientRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload", "details": err.Error()})
+		return
+	}
+
+	patient, isNew, err := h.patientUC.LookupOrCreate(c.Request.Context(), req)
+	if err != nil {
+		// Differentiate validation errors from actual server faults if needed
+		if strings.Contains(err.Error(), "required") || strings.Contains(err.Error(), "provide either") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to look up or create patient"})
+		return
+	}
+
+	if isNew {
+		c.JSON(http.StatusCreated, gin.H{
+			"message": "New patient record created",
+			"data":    patient,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Existing patient found",
+		"data":    patient,
+	})
+}
+

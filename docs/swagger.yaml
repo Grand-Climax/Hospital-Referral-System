@@ -145,6 +145,43 @@ definitions:
     required:
     - emergency_justification
     type: object
+  dto.LookupPatientRequest:
+    properties:
+      date_of_birth:
+        type: string
+      first_name:
+        example: Abebe
+        type: string
+      home_region:
+        example: Addis Ababa
+        type: string
+      last_name:
+        description: Required fields for auto-create (also used to enrich existing
+          records)
+        example: Kebede
+        type: string
+      middle_name:
+        example: Tilahun
+        type: string
+      national_id:
+        description: Primary lookup key — plain text, will be SHA-256 hashed server-side
+        example: NAT-SEED-001
+        type: string
+      phone_number:
+        description: Fallback lookup keys
+        example: "+251911000001"
+        type: string
+      sex:
+        enum:
+        - male
+        - female
+        - unknown
+        example: male
+        type: string
+    required:
+    - last_name
+    - sex
+    type: object
   dto.VitalsDTO:
     properties:
       diastolic_bp:
@@ -1165,6 +1202,50 @@ paths:
       summary: Unlink a department from a hospital
       tags:
       - Hospitals
+  /api/v1/patients/lookup:
+    post:
+      consumes:
+      - application/json
+      description: 'Try to find a patient by National ID. If not found/provided, fallback
+        to Phone + First Name. If still not found, auto-creates a new patient record.
+        Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN'
+      parameters:
+      - description: Patient lookup/create payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LookupPatientRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Existing patient found
+          schema:
+            additionalProperties: true
+            type: object
+        "201":
+          description: New patient record created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Lookup or Create Patient
+      tags:
+      - Patients
   /api/v1/patients/national-id/{id}:
     get:
       description: Lookup patient data by plain text National ID
