@@ -1,0 +1,44 @@
+package repository
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
+	"Hospital-Referral-System/internal/domain/entity"
+)
+
+type NetworkRepository interface {
+	CreateNetworkRoute(ctx context.Context, route *entity.ReferralNetwork) error
+	ListNetworkRoutes(ctx context.Context, senderID *uuid.UUID) ([]entity.ReferralNetwork, error)
+	DeleteNetworkRoute(ctx context.Context, id uuid.UUID) error
+}
+
+type networkRepository struct {
+	db *gorm.DB
+}
+
+func NewNetworkRepository(db *gorm.DB) NetworkRepository {
+	return &networkRepository{db: db}
+}
+
+func (r *networkRepository) CreateNetworkRoute(ctx context.Context, route *entity.ReferralNetwork) error {
+	return r.db.WithContext(ctx).Create(route).Error
+}
+
+func (r *networkRepository) ListNetworkRoutes(ctx context.Context, senderID *uuid.UUID) ([]entity.ReferralNetwork, error) {
+	var routes []entity.ReferralNetwork
+	query := r.db.WithContext(ctx).Preload("SenderHospital").Preload("ReceiverHospital")
+
+	if senderID != nil && *senderID != uuid.Nil {
+		query = query.Where("sender_hospital_id = ?", *senderID)
+	}
+
+	err := query.Find(&routes).Error
+	return routes, err
+}
+
+func (r *networkRepository) DeleteNetworkRoute(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&entity.ReferralNetwork{}, id).Error
+}
