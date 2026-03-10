@@ -31,6 +31,18 @@ type LogoutRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+// Login godoc
+// @Summary      User login
+// @Description  Authenticate a user and return access/refresh token pair
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body body LoginRequest true "Login credentials"
+// @Success      200 {object} map[string]string "Token pair"
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -57,6 +69,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
+// Refresh godoc
+// @Summary      Refresh token
+// @Description  Exchange a valid refresh token for a new access/refresh token pair
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body body RefreshRequest true "Refresh token"
+// @Success      200 {object} map[string]string "New token pair"
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Router       /api/v1/auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -79,6 +102,18 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	})
 }
 
+// Logout godoc
+// @Summary      User logout
+// @Description  Revoke both access and refresh tokens
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body body LogoutRequest true "Refresh token to revoke"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req LogoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
