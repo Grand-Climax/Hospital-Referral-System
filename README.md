@@ -114,3 +114,23 @@ To maintain the integrity of this codebase, follow these rules when adding new f
 2.  **Define Repositories** (`internal/repository`): Create interfaces and Postgres implementations for database CRUD operations.
 3.  **Define UseCases** (`internal/usecase`): Business logic lives here. UseCases should only communicate with Repositories and external services, never directly with HTTP or Gin.
 4.  **Define Handlers** (`internal/delivery/http/handlers`): Attach HTTP routes to UseCases and handle JSON binding/responses.
+
+---
+
+## 🧪 Running Tests
+
+The application contains professional Go unit and integration tests covering Authentication and the complex multi-step Referral State Machine. 
+
+Because this is a Clean Architecture project, we have isolated our integration layer into a dedicated `test/` directory.
+
+**Prerequisite:** Ensure your database is properly seeded (`go run cmd/seeder/main.go`) before running authentication integration tests, otherwise the superadmin credentials check will skip.
+
+To run the complete test suite (Auth Integration, Referral Logic, etc.), execute:
+
+```bash
+go test ./test -v -count=1
+```
+
+*   `./test` tells the Go compiler to specifically target and run all integration `_test.go` files we built inside the test module.
+*   `-v` turns on verbose logging so you can see exactly which authentication and routing tests PASS.
+*   `-count=1` actively bypasses Go's native test cache to guarantee the suite runs immediately against the live Database state.
