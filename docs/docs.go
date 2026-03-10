@@ -1102,6 +1102,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/patients/lookup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Try to find a patient by National ID. If not found/provided, fallback to Phone + First Name. If still not found, auto-creates a new patient record. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Patients"
+                ],
+                "summary": "Lookup or Create Patient",
+                "parameters": [
+                    {
+                        "description": "Patient lookup/create payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.LookupPatientRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Existing patient found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "201": {
+                        "description": "New patient record created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/patients/national-id/{id}": {
             "get": {
                 "security": [
@@ -2360,6 +2425,54 @@ const docTemplate = `{
             "properties": {
                 "emergency_justification": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.LookupPatientRequest": {
+            "type": "object",
+            "required": [
+                "last_name",
+                "sex"
+            ],
+            "properties": {
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "Abebe"
+                },
+                "home_region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
+                },
+                "last_name": {
+                    "description": "Required fields for auto-create (also used to enrich existing records)",
+                    "type": "string",
+                    "example": "Kebede"
+                },
+                "middle_name": {
+                    "type": "string",
+                    "example": "Tilahun"
+                },
+                "national_id": {
+                    "description": "Primary lookup key — plain text, will be SHA-256 hashed server-side",
+                    "type": "string",
+                    "example": "NAT-SEED-001"
+                },
+                "phone_number": {
+                    "description": "Fallback lookup keys",
+                    "type": "string",
+                    "example": "+251911000001"
+                },
+                "sex": {
+                    "type": "string",
+                    "enum": [
+                        "male",
+                        "female",
+                        "unknown"
+                    ],
+                    "example": "male"
                 }
             }
         },

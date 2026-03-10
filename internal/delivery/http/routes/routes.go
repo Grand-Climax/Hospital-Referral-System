@@ -104,6 +104,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			))
 			{
 				patientGroup.GET("/national-id/:id", patientHandler.GetByNationalID)
+				patientGroup.POST("/lookup", patientHandler.LookupOrCreate)
 			}
 
 			// Sprint 4.1 & 4.2: Reference Dropdowns & Relational Networks
