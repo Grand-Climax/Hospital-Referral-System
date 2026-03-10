@@ -50,6 +50,16 @@ var RolePermissions = map[entity.UserRole]map[entity.ActionType]bool{
 		entity.ActionLogin:            true,
 		entity.ActionLogout:           true,
 	},
+	entity.RoleSystemSuperAdmin: {
+		entity.ActionViewPatientData:  true,
+		entity.ActionExportData:       true,
+		entity.ActionLogin:            true,
+		entity.ActionLogout:           true,
+		entity.ActionManageUsers:      true,
+		entity.ActionManageHospitals:  true,
+		entity.ActionManageDepts:      true,
+		entity.ActionViewAuditLog:     true,
+	},
 	entity.RoleHospitalAdmin: {
 		entity.ActionManageUsers:     true,
 		entity.ActionAssignRoles:     true,
@@ -57,13 +67,6 @@ var RolePermissions = map[entity.UserRole]map[entity.ActionType]bool{
 		entity.ActionViewAuditLog:    true,
 		entity.ActionResetMFA:        true,
 		entity.ActionViewPatientData: true, // Only for their hospital
-		entity.ActionLogin:           true,
-		entity.ActionLogout:          true,
-	},
-	entity.RoleSystemSuperAdmin: {
-		entity.ActionManageHospitals: true,
-		entity.ActionManageUsers:     true,
-		entity.ActionViewAuditLog:    true,
 		entity.ActionLogin:           true,
 		entity.ActionLogout:          true,
 	},
