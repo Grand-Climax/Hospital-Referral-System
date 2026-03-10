@@ -15,6 +15,58 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/attachments/{id}/download": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stream actual binary file data for an attachment ID",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Download Attachment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Attachment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/login": {
             "post": {
                 "description": "Authenticate a user and return access/refresh token pair",
@@ -889,6 +941,846 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/network-routes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all routing rules, optionally filtered by sender hospital",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Networks"
+                ],
+                "summary": "List Network Routes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sender Hospital ID",
+                        "name": "sender_hospital_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Define a routing logic rule between two networked hospitals",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Networks"
+                ],
+                "summary": "Create Network Route",
+                "parameters": [
+                    {
+                        "description": "Network routing rule payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateNetworkRouteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/network-routes/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a network routing mapping",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Networks"
+                ],
+                "summary": "Delete Network Route",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Route ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/patients/national-id/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lookup patient data by plain text National ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Patients"
+                ],
+                "summary": "Get patient by National ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "NAT-12345",
+                        "description": "National ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/references/departments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lookup all global departments",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Get Departments List",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/references/hospitals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lookup hospitals with optional tier filter",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Get Hospitals List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Hospital Tier",
+                        "name": "tier",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/references/hospitals/{id}/departments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lookup specific departments mapped to a hospital",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Get Hospital Departments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
+                        "description": "Hospital ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/references/icd": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lookup ICD codes by string query",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Search ICD-10 Codes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/references/networked-hospitals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lookup networked hospitals based on requesting hospital ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Get Networked Hospitals",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
+                        "description": "Sender Hospital ID",
+                        "name": "X-Hospital-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get referrals scoped to the requesting hospital and role",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "List Referrals",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
+                        "description": "Hospital ID",
+                        "name": "X-Hospital-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "HOSPITAL_ADMIN",
+                        "description": "User Role",
+                        "name": "X-User-Role",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start Date",
+                        "name": "date_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date",
+                        "name": "date_to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit a new referral (Draft or Submitted status)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Create Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
+                        "description": "Doctor ID",
+                        "name": "X-Doctor-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
+                        "description": "Hospital ID",
+                        "name": "X-Hospital-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Referral payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateReferralRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve full referral details by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Get Referral ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing referral draft before submission",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Update Referral Draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Referral update payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateReferralRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently delete a draft referral",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Delete Referral Draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/attachments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit physical files (Images/PDFs/DICOM) explicitly tied to a referral",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Upload Referral Attachment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition a referral state forwards or backwards securely",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Update Referral Status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
+                        "description": "Doctor ID deciding",
+                        "name": "X-Doctor-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Status Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users": {
             "get": {
                 "security": [
@@ -1271,6 +2163,246 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.CreateNetworkRouteRequest": {
+            "type": "object",
+            "required": [
+                "receiver_hospital_id",
+                "sender_hospital_id"
+            ],
+            "properties": {
+                "receiver_hospital_id": {
+                    "type": "string",
+                    "example": "0f74f069-d52d-4482-9ba5-41b007fdc1e5"
+                },
+                "referral_type": {
+                    "type": "string",
+                    "example": "INPATIENT"
+                },
+                "requires_admin_approval": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "sender_hospital_id": {
+                    "type": "string",
+                    "example": "62af3d82-52ce-4e8f-af29-2c5e509e1e24"
+                }
+            }
+        },
+        "dto.CreateReferralRequest": {
+            "type": "object",
+            "required": [
+                "target_dept_id",
+                "target_hospital_id"
+            ],
+            "properties": {
+                "accompanying_person_name": {
+                    "type": "string",
+                    "example": "Sarah Kebede"
+                },
+                "accompanying_person_phone": {
+                    "type": "string",
+                    "example": "+251922334455"
+                },
+                "clinical_summary": {
+                    "description": "Annex IV Clinical Data",
+                    "type": "string",
+                    "example": "Patient complains of severe chest pain for 2 hours"
+                },
+                "condition_at_referral": {
+                    "type": "string",
+                    "example": "UNSTABLE"
+                },
+                "date_of_birth": {
+                    "type": "string",
+                    "example": "1985-05-18"
+                },
+                "diagnoses": {
+                    "description": "Diagnoses",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DiagnosisDTO"
+                    }
+                },
+                "emergency_detail": {
+                    "$ref": "#/definitions/dto.EmergencyDetailDTO"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "Abebe"
+                },
+                "home_region": {
+                    "type": "string",
+                    "example": "Oromia"
+                },
+                "investigation_results": {
+                    "type": "string",
+                    "example": "ECG shows ST elevation"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Tadesse"
+                },
+                "liaison_officer_id": {
+                    "type": "string"
+                },
+                "medication_on_transfer": {
+                    "type": "string",
+                    "example": "IV Nitroglycerin"
+                },
+                "middle_name": {
+                    "type": "string",
+                    "example": "Kebede"
+                },
+                "mode_of_transport": {
+                    "type": "string",
+                    "example": "AMBULANCE"
+                },
+                "national_id_enc": {
+                    "description": "Patient Demographics",
+                    "type": "string",
+                    "example": "NAT-12345"
+                },
+                "national_id_hash": {
+                    "type": "string"
+                },
+                "patient_history": {
+                    "type": "string",
+                    "example": "Hypertension diagnosed 5 years ago"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+251911223344"
+                },
+                "physical_examination_findings": {
+                    "type": "string",
+                    "example": "BP 180/110, HR 105"
+                },
+                "reason_for_referral_category": {
+                    "type": "string",
+                    "example": "EMERGENCY"
+                },
+                "reason_of_referral": {
+                    "type": "string",
+                    "example": "Requires immediate cardiological intervention"
+                },
+                "sex": {
+                    "type": "string",
+                    "enum": [
+                        "male",
+                        "female",
+                        "unknown"
+                    ],
+                    "example": "male"
+                },
+                "status": {
+                    "description": "Status tracking",
+                    "type": "string",
+                    "enum": [
+                        "DRAFT",
+                        "SUBMITTED"
+                    ],
+                    "example": "SUBMITTED"
+                },
+                "target_dept_id": {
+                    "type": "string",
+                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
+                },
+                "target_hospital_id": {
+                    "description": "Routing Information",
+                    "type": "string",
+                    "example": "0f74f069-d52d-4482-9ba5-41b007fdc1e5"
+                },
+                "treatment_given_before_referral": {
+                    "type": "string",
+                    "example": "Aspirin 300mg"
+                },
+                "vitals": {
+                    "description": "Optional Extensions",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.VitalsDTO"
+                        }
+                    ]
+                }
+            }
+        },
+        "dto.DiagnosisDTO": {
+            "type": "object",
+            "required": [
+                "diagnosis_certainty",
+                "icd_code"
+            ],
+            "properties": {
+                "diagnosis_certainty": {
+                    "type": "string",
+                    "enum": [
+                        "CONFIRMED",
+                        "SUSPECTED",
+                        "SYMPTOM_ONLY"
+                    ],
+                    "example": "SUSPECTED"
+                },
+                "icd_code": {
+                    "type": "string",
+                    "example": "I21.9"
+                },
+                "is_primary": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.EmergencyDetailDTO": {
+            "type": "object",
+            "required": [
+                "emergency_justification"
+            ],
+            "properties": {
+                "emergency_justification": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.VitalsDTO": {
+            "type": "object",
+            "properties": {
+                "diastolic_bp": {
+                    "type": "integer",
+                    "maximum": 200,
+                    "minimum": 20
+                },
+                "gcs_score": {
+                    "type": "integer",
+                    "maximum": 15,
+                    "minimum": 3
+                },
+                "heart_rate": {
+                    "type": "integer",
+                    "maximum": 300,
+                    "minimum": 20
+                },
+                "respiratory_rate": {
+                    "type": "integer",
+                    "maximum": 60,
+                    "minimum": 4
+                },
+                "sp_o2": {
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "systolic_bp": {
+                    "type": "integer",
+                    "maximum": 300,
+                    "minimum": 40
+                },
+                "temperature": {
+                    "type": "number",
+                    "maximum": 45,
+                    "minimum": 25
+                }
+            }
+        },
         "entity.HospitalTier": {
             "type": "string",
             "enum": [
@@ -1295,7 +2427,8 @@ const docTemplate = `{
                 "RECEPTIONIST",
                 "MOH_ANALYST",
                 "DEPT_HEAD",
-                "SYSTEM_ADMIN"
+                "HOSPITAL_ADMIN",
+                "SYSTEM_SUPER_ADMIN"
             ],
             "x-enum-varnames": [
                 "RoleReferringDoctor",
@@ -1304,7 +2437,8 @@ const docTemplate = `{
                 "RoleReceptionist",
                 "RoleMohAnalyst",
                 "RoleDeptHead",
-                "RoleSystemAdmin"
+                "RoleHospitalAdmin",
+                "RoleSystemSuperAdmin"
             ]
         },
         "handlers.AssignRoleRequest": {
@@ -1314,7 +2448,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "role": {
-                    "$ref": "#/definitions/entity.UserRole"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.UserRole"
+                        }
+                    ],
+                    "example": "SYSTEM_SUPER_ADMIN"
                 }
             }
         },
@@ -1325,10 +2464,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Heart and blood vessel diseases"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Cardiology"
                 }
             }
         },
@@ -1341,19 +2482,28 @@ const docTemplate = `{
             ],
             "properties": {
                 "address": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Churchill Road, Addis Ababa, Ethiopia"
                 },
                 "contact_phone": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "+251 11 111 2233"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Tikur Anbessa Specialized Hospital"
                 },
                 "region": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Addis Ababa"
                 },
                 "tier_level": {
-                    "$ref": "#/definitions/entity.HospitalTier"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.HospitalTier"
+                        }
+                    ],
+                    "example": "SPECIALIZED"
                 }
             }
         },
@@ -1368,29 +2518,41 @@ const docTemplate = `{
             ],
             "properties": {
                 "department_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "analyst@moh.gov.et"
                 },
                 "first_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "MoH"
                 },
                 "hospital_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "0f74f069-d52d-4482-9ba5-41b007fdc1e5"
                 },
                 "last_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Analyst"
                 },
                 "national_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "MOH-001"
                 },
                 "password": {
                     "type": "string",
-                    "minLength": 8
+                    "minLength": 8,
+                    "example": "password123"
                 },
                 "role": {
-                    "$ref": "#/definitions/entity.UserRole"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.UserRole"
+                        }
+                    ],
+                    "example": "MOH_ANALYST"
                 }
             }
         },
@@ -1479,10 +2641,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "daily_limit": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 20
                 },
                 "department_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
                 }
             }
         },
@@ -1494,10 +2658,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "superadmin@moh.gov.et"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "password123"
                 }
             }
         },
@@ -1527,10 +2693,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Heart and blood vessel diseases"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Cardiology"
                 }
             }
         },
@@ -1538,22 +2706,32 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "address": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Churchill Road, Addis Ababa, Ethiopia"
                 },
                 "contact_phone": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "+251 11 111 2233"
                 },
                 "is_active": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Tikur Anbessa Specialized Hospital"
                 },
                 "region": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Addis Ababa"
                 },
                 "tier_level": {
-                    "$ref": "#/definitions/entity.HospitalTier"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.HospitalTier"
+                        }
+                    ],
+                    "example": "SPECIALIZED"
                 }
             }
         },
@@ -1561,28 +2739,40 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "department_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "analyst@moh.gov.et"
                 },
                 "first_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "MoH"
                 },
                 "hospital_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "0f74f069-d52d-4482-9ba5-41b007fdc1e5"
                 },
                 "is_active": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
                 "last_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Analyst"
                 },
                 "national_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "MOH-001"
                 },
                 "role": {
-                    "$ref": "#/definitions/entity.UserRole"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.UserRole"
+                        }
+                    ],
+                    "example": "MOH_ANALYST"
                 }
             }
         },

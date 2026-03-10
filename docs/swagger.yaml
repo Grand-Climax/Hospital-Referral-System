@@ -1,5 +1,181 @@
 basePath: /
 definitions:
+  dto.CreateNetworkRouteRequest:
+    properties:
+      receiver_hospital_id:
+        example: 0f74f069-d52d-4482-9ba5-41b007fdc1e5
+        type: string
+      referral_type:
+        example: INPATIENT
+        type: string
+      requires_admin_approval:
+        example: true
+        type: boolean
+      sender_hospital_id:
+        example: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
+        type: string
+    required:
+    - receiver_hospital_id
+    - sender_hospital_id
+    type: object
+  dto.CreateReferralRequest:
+    properties:
+      accompanying_person_name:
+        example: Sarah Kebede
+        type: string
+      accompanying_person_phone:
+        example: "+251922334455"
+        type: string
+      clinical_summary:
+        description: Annex IV Clinical Data
+        example: Patient complains of severe chest pain for 2 hours
+        type: string
+      condition_at_referral:
+        example: UNSTABLE
+        type: string
+      date_of_birth:
+        example: "1985-05-18"
+        type: string
+      diagnoses:
+        description: Diagnoses
+        items:
+          $ref: '#/definitions/dto.DiagnosisDTO'
+        type: array
+      emergency_detail:
+        $ref: '#/definitions/dto.EmergencyDetailDTO'
+      first_name:
+        example: Abebe
+        type: string
+      home_region:
+        example: Oromia
+        type: string
+      investigation_results:
+        example: ECG shows ST elevation
+        type: string
+      last_name:
+        example: Tadesse
+        type: string
+      liaison_officer_id:
+        type: string
+      medication_on_transfer:
+        example: IV Nitroglycerin
+        type: string
+      middle_name:
+        example: Kebede
+        type: string
+      mode_of_transport:
+        example: AMBULANCE
+        type: string
+      national_id_enc:
+        description: Patient Demographics
+        example: NAT-12345
+        type: string
+      national_id_hash:
+        type: string
+      patient_history:
+        example: Hypertension diagnosed 5 years ago
+        type: string
+      phone_number:
+        example: "+251911223344"
+        type: string
+      physical_examination_findings:
+        example: BP 180/110, HR 105
+        type: string
+      reason_for_referral_category:
+        example: EMERGENCY
+        type: string
+      reason_of_referral:
+        example: Requires immediate cardiological intervention
+        type: string
+      sex:
+        enum:
+        - male
+        - female
+        - unknown
+        example: male
+        type: string
+      status:
+        description: Status tracking
+        enum:
+        - DRAFT
+        - SUBMITTED
+        example: SUBMITTED
+        type: string
+      target_dept_id:
+        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        type: string
+      target_hospital_id:
+        description: Routing Information
+        example: 0f74f069-d52d-4482-9ba5-41b007fdc1e5
+        type: string
+      treatment_given_before_referral:
+        example: Aspirin 300mg
+        type: string
+      vitals:
+        allOf:
+        - $ref: '#/definitions/dto.VitalsDTO'
+        description: Optional Extensions
+    required:
+    - target_dept_id
+    - target_hospital_id
+    type: object
+  dto.DiagnosisDTO:
+    properties:
+      diagnosis_certainty:
+        enum:
+        - CONFIRMED
+        - SUSPECTED
+        - SYMPTOM_ONLY
+        example: SUSPECTED
+        type: string
+      icd_code:
+        example: I21.9
+        type: string
+      is_primary:
+        example: true
+        type: boolean
+    required:
+    - diagnosis_certainty
+    - icd_code
+    type: object
+  dto.EmergencyDetailDTO:
+    properties:
+      emergency_justification:
+        type: string
+    required:
+    - emergency_justification
+    type: object
+  dto.VitalsDTO:
+    properties:
+      diastolic_bp:
+        maximum: 200
+        minimum: 20
+        type: integer
+      gcs_score:
+        maximum: 15
+        minimum: 3
+        type: integer
+      heart_rate:
+        maximum: 300
+        minimum: 20
+        type: integer
+      respiratory_rate:
+        maximum: 60
+        minimum: 4
+        type: integer
+      sp_o2:
+        maximum: 100
+        minimum: 0
+        type: number
+      systolic_bp:
+        maximum: 300
+        minimum: 40
+        type: integer
+      temperature:
+        maximum: 45
+        minimum: 25
+        type: number
+    type: object
   entity.HospitalTier:
     enum:
     - PRIMARY
@@ -20,7 +196,8 @@ definitions:
     - RECEPTIONIST
     - MOH_ANALYST
     - DEPT_HEAD
-    - SYSTEM_ADMIN
+    - HOSPITAL_ADMIN
+    - SYSTEM_SUPER_ADMIN
     type: string
     x-enum-varnames:
     - RoleReferringDoctor
@@ -29,19 +206,24 @@ definitions:
     - RoleReceptionist
     - RoleMohAnalyst
     - RoleDeptHead
-    - RoleSystemAdmin
+    - RoleHospitalAdmin
+    - RoleSystemSuperAdmin
   handlers.AssignRoleRequest:
     properties:
       role:
-        $ref: '#/definitions/entity.UserRole'
+        allOf:
+        - $ref: '#/definitions/entity.UserRole'
+        example: SYSTEM_SUPER_ADMIN
     required:
     - role
     type: object
   handlers.CreateDepartmentRequest:
     properties:
       description:
+        example: Heart and blood vessel diseases
         type: string
       name:
+        example: Cardiology
         type: string
     required:
     - name
@@ -49,15 +231,21 @@ definitions:
   handlers.CreateHospitalRequest:
     properties:
       address:
+        example: Churchill Road, Addis Ababa, Ethiopia
         type: string
       contact_phone:
+        example: +251 11 111 2233
         type: string
       name:
+        example: Tikur Anbessa Specialized Hospital
         type: string
       region:
+        example: Addis Ababa
         type: string
       tier_level:
-        $ref: '#/definitions/entity.HospitalTier'
+        allOf:
+        - $ref: '#/definitions/entity.HospitalTier'
+        example: SPECIALIZED
     required:
     - name
     - region
@@ -66,22 +254,31 @@ definitions:
   handlers.CreateUserRequest:
     properties:
       department_id:
+        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
         type: string
       email:
+        example: analyst@moh.gov.et
         type: string
       first_name:
+        example: MoH
         type: string
       hospital_id:
+        example: 0f74f069-d52d-4482-9ba5-41b007fdc1e5
         type: string
       last_name:
+        example: Analyst
         type: string
       national_id:
+        example: MOH-001
         type: string
       password:
+        example: password123
         minLength: 8
         type: string
       role:
-        $ref: '#/definitions/entity.UserRole'
+        allOf:
+        - $ref: '#/definitions/entity.UserRole'
+        example: MOH_ANALYST
     required:
     - email
     - first_name
@@ -143,8 +340,10 @@ definitions:
   handlers.LinkDepartmentRequest:
     properties:
       daily_limit:
+        example: 20
         type: integer
       department_id:
+        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
         type: string
     required:
     - department_id
@@ -152,8 +351,10 @@ definitions:
   handlers.LoginRequest:
     properties:
       email:
+        example: superadmin@moh.gov.et
         type: string
       password:
+        example: password123
         type: string
     required:
     - email
@@ -176,43 +377,61 @@ definitions:
   handlers.UpdateDepartmentRequest:
     properties:
       description:
+        example: Heart and blood vessel diseases
         type: string
       name:
+        example: Cardiology
         type: string
     type: object
   handlers.UpdateHospitalRequest:
     properties:
       address:
+        example: Churchill Road, Addis Ababa, Ethiopia
         type: string
       contact_phone:
+        example: +251 11 111 2233
         type: string
       is_active:
+        example: true
         type: boolean
       name:
+        example: Tikur Anbessa Specialized Hospital
         type: string
       region:
+        example: Addis Ababa
         type: string
       tier_level:
-        $ref: '#/definitions/entity.HospitalTier'
+        allOf:
+        - $ref: '#/definitions/entity.HospitalTier'
+        example: SPECIALIZED
     type: object
   handlers.UpdateUserRequest:
     properties:
       department_id:
+        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
         type: string
       email:
+        example: analyst@moh.gov.et
         type: string
       first_name:
+        example: MoH
         type: string
       hospital_id:
+        example: 0f74f069-d52d-4482-9ba5-41b007fdc1e5
         type: string
       is_active:
+        example: true
         type: boolean
       last_name:
+        example: Analyst
         type: string
       national_id:
+        example: MOH-001
         type: string
       role:
-        $ref: '#/definitions/entity.UserRole'
+        allOf:
+        - $ref: '#/definitions/entity.UserRole'
+        example: MOH_ANALYST
     type: object
   handlers.UserResponse:
     properties:
@@ -246,6 +465,39 @@ info:
   title: Hospital Referral System API
   version: "1.0"
 paths:
+  /api/v1/attachments/{id}/download:
+    get:
+      description: Stream actual binary file data for an attachment ID
+      parameters:
+      - description: Attachment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Download Attachment
+      tags:
+      - Attachments
   /api/v1/auth/login:
     post:
       consumes:
@@ -807,6 +1059,549 @@ paths:
       summary: Unlink a department from a hospital
       tags:
       - Hospitals
+  /api/v1/network-routes:
+    get:
+      description: Retrieve all routing rules, optionally filtered by sender hospital
+      parameters:
+      - description: Sender Hospital ID
+        in: query
+        name: sender_hospital_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Network Routes
+      tags:
+      - Networks
+    post:
+      consumes:
+      - application/json
+      description: Define a routing logic rule between two networked hospitals
+      parameters:
+      - description: Network routing rule payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateNetworkRouteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create Network Route
+      tags:
+      - Networks
+  /api/v1/network-routes/{id}:
+    delete:
+      description: Remove a network routing mapping
+      parameters:
+      - description: Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete Network Route
+      tags:
+      - Networks
+  /api/v1/patients/national-id/{id}:
+    get:
+      description: Lookup patient data by plain text National ID
+      parameters:
+      - default: NAT-12345
+        description: National ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get patient by National ID
+      tags:
+      - Patients
+  /api/v1/references/departments:
+    get:
+      description: Lookup all global departments
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Departments List
+      tags:
+      - References
+  /api/v1/references/hospitals:
+    get:
+      description: Lookup hospitals with optional tier filter
+      parameters:
+      - description: Hospital Tier
+        in: query
+        name: tier
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Hospitals List
+      tags:
+      - References
+  /api/v1/references/hospitals/{id}/departments:
+    get:
+      description: Lookup specific departments mapped to a hospital
+      parameters:
+      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
+        description: Hospital ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Hospital Departments
+      tags:
+      - References
+  /api/v1/references/icd:
+    get:
+      description: Lookup ICD codes by string query
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search ICD-10 Codes
+      tags:
+      - References
+  /api/v1/references/networked-hospitals:
+    get:
+      description: Lookup networked hospitals based on requesting hospital ID
+      parameters:
+      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
+        description: Sender Hospital ID
+        in: header
+        name: X-Hospital-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Networked Hospitals
+      tags:
+      - References
+  /api/v1/referrals:
+    get:
+      description: Get referrals scoped to the requesting hospital and role
+      parameters:
+      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
+        description: Hospital ID
+        in: header
+        name: X-Hospital-ID
+        required: true
+        type: string
+      - default: HOSPITAL_ADMIN
+        description: User Role
+        in: header
+        name: X-User-Role
+        required: true
+        type: string
+      - description: Filter by Status
+        in: query
+        name: status
+        type: string
+      - description: Start Date
+        in: query
+        name: date_from
+        type: string
+      - description: End Date
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Referrals
+      tags:
+      - Referrals
+    post:
+      consumes:
+      - application/json
+      description: Submit a new referral (Draft or Submitted status)
+      parameters:
+      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
+        description: Doctor ID
+        in: header
+        name: X-Doctor-ID
+        required: true
+        type: string
+      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
+        description: Hospital ID
+        in: header
+        name: X-Hospital-ID
+        required: true
+        type: string
+      - description: Referral payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReferralRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create Referral
+      tags:
+      - Referrals
+  /api/v1/referrals/{id}:
+    delete:
+      description: Permanently delete a draft referral
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete Referral Draft
+      tags:
+      - Referrals
+    get:
+      description: Retrieve full referral details by ID
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Referral ID
+      tags:
+      - Referrals
+    put:
+      consumes:
+      - application/json
+      description: Update an existing referral draft before submission
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Referral update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReferralRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Referral Draft
+      tags:
+      - Referrals
+  /api/v1/referrals/{id}/attachments:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit physical files (Images/PDFs/DICOM) explicitly tied to a
+        referral
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload Referral Attachment
+      tags:
+      - Attachments
+  /api/v1/referrals/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Transition a referral state forwards or backwards securely
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
+        description: Doctor ID deciding
+        in: header
+        name: X-Doctor-ID
+        required: true
+        type: string
+      - description: Status Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Referral Status
+      tags:
+      - Referrals
   /api/v1/users:
     get:
       description: Admin-only endpoint to list users with optional filters

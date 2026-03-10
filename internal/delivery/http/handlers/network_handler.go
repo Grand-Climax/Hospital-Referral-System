@@ -18,6 +18,18 @@ func NewNetworkHandler(uc usecase.NetworkUseCase) *NetworkHandler {
 	return &NetworkHandler{networkUseCase: uc}
 }
 
+// Create godoc
+// @Summary      Create Network Route
+// @Description  Define a routing logic rule between two networked hospitals
+// @Tags         Networks
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.CreateNetworkRouteRequest true "Network routing rule payload"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/network-routes [post]
 func (h *NetworkHandler) Create(c *gin.Context) {
 	var req dto.CreateNetworkRouteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -43,6 +55,17 @@ func (h *NetworkHandler) Create(c *gin.Context) {
 	})
 }
 
+// List godoc
+// @Summary      List Network Routes
+// @Description  Retrieve all routing rules, optionally filtered by sender hospital
+// @Tags         Networks
+// @Produce      json
+// @Param        sender_hospital_id query string false "Sender Hospital ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/network-routes [get]
 func (h *NetworkHandler) List(c *gin.Context) {
 	var senderID *uuid.UUID
 	if senderQuery := c.Query("sender_hospital_id"); senderQuery != "" {
@@ -62,6 +85,17 @@ func (h *NetworkHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": routes})
 }
 
+// Delete godoc
+// @Summary      Delete Network Route
+// @Description  Remove a network routing mapping
+// @Tags         Networks
+// @Produce      json
+// @Param        id path string true "Route ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/network-routes/{id} [delete]
 func (h *NetworkHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

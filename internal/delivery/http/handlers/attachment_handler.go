@@ -21,6 +21,19 @@ func NewAttachmentHandler(uc usecase.AttachmentUseCase) *AttachmentHandler {
 	return &AttachmentHandler{attachmentUC: uc}
 }
 
+// UploadAttachment godoc
+// @Summary      Upload Referral Attachment
+// @Description  Submit physical files (Images/PDFs/DICOM) explicitly tied to a referral
+// @Tags         Attachments
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        id   path string true "Referral ID"
+// @Param        file formData file true "File to upload"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/referrals/{id}/attachments [post]
 func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
 	idStr := c.Param("id")
 	referralID, err := uuid.Parse(idStr)
@@ -73,6 +86,17 @@ func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
 	})
 }
 
+// DownloadAttachment godoc
+// @Summary      Download Attachment
+// @Description  Stream actual binary file data for an attachment ID
+// @Tags         Attachments
+// @Produce      application/octet-stream
+// @Param        id path string true "Attachment ID"
+// @Success      200 {file} file
+// @Failure      400 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/attachments/{id}/download [get]
 func (h *AttachmentHandler) DownloadAttachment(c *gin.Context) {
 	idStr := c.Param("id")
 	attachmentID, err := uuid.Parse(idStr)

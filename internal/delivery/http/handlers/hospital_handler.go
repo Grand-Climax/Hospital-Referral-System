@@ -23,20 +23,20 @@ func NewHospitalHandler(hospitalUseCase usecase.HospitalUseCase) *HospitalHandle
 // --- Request / Response DTOs ---
 
 type CreateHospitalRequest struct {
-	Name         string             `json:"name" binding:"required"`
-	TierLevel    entity.HospitalTier `json:"tier_level" binding:"required"`
-	Region       string             `json:"region" binding:"required"`
-	Address      *string            `json:"address"`
-	ContactPhone *string            `json:"contact_phone"`
+	Name         string              `json:"name" binding:"required" example:"Tikur Anbessa Specialized Hospital"`
+	TierLevel    entity.HospitalTier `json:"tier_level" binding:"required" example:"SPECIALIZED"`
+	Region       string              `json:"region" binding:"required" example:"Addis Ababa"`
+	Address      *string             `json:"address" example:"Churchill Road, Addis Ababa, Ethiopia"`
+	ContactPhone *string             `json:"contact_phone" example:"+251 11 111 2233"`
 }
 
 type UpdateHospitalRequest struct {
-	Name         *string             `json:"name"`
-	TierLevel    *entity.HospitalTier `json:"tier_level"`
-	Region       *string             `json:"region"`
-	Address      *string             `json:"address"`
-	ContactPhone *string             `json:"contact_phone"`
-	IsActive     *bool               `json:"is_active"`
+	Name         *string              `json:"name" example:"Tikur Anbessa Specialized Hospital"`
+	TierLevel    *entity.HospitalTier `json:"tier_level" example:"SPECIALIZED"`
+	Region       *string              `json:"region" example:"Addis Ababa"`
+	Address      *string              `json:"address" example:"Churchill Road, Addis Ababa, Ethiopia"`
+	ContactPhone *string              `json:"contact_phone" example:"+251 11 111 2233"`
+	IsActive     *bool                `json:"is_active" example:"true"`
 }
 
 type HospitalResponse struct {
