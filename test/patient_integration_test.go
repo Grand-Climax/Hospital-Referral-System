@@ -31,56 +31,68 @@ func (m *MockPatientUseCase) GetByNationalID(ctx context.Context, nationalID str
 	return nil, args.Error(1)
 }
 
-func (m *MockPatientUseCase) LookupOrCreate(ctx context.Context, req dto.LookupPatientRequest) (*entity.Patient, bool, error) {
+func (m *MockPatientUseCase) GetByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error) {
+	args := m.Called(ctx, phone, firstName)
+	if patient := args.Get(0); patient != nil {
+		return patient.(*entity.Patient), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockPatientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error) {
 	args := m.Called(ctx, req)
 	if patient := args.Get(0); patient != nil {
-		return patient.(*entity.Patient), args.Bool(1), args.Error(2)
+		return patient.(*entity.Patient), args.Error(1)
 	}
-	return nil, args.Bool(1), args.Error(2)
+	return nil, args.Error(1)
 }
+
 
 func setupPatientRouter(mockUC *MockPatientUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	handler := handlers.NewPatientHandler(mockUC)
 	router := gin.Default()
-	router.POST("/api/v1/patients/lookup", handler.LookupOrCreate)
+	router.GET("/api/v1/patients/lookup/phone", handler.GetByPhoneAndName)
+	router.POST("/api/v1/patients", handler.CreatePatient)
 	return router
 }
 
-func TestPatientLookupByNationalID(t *testing.T) {
+func TestPatientLookupByPhoneAndName_Found(t *testing.T) {
 	mockUC := new(MockPatientUseCase)
 	router := setupPatientRouter(mockUC)
 
-	reqPayload := dto.LookupPatientRequest{
-		NationalID: "NAT-SEED-001",
-		LastName:   "Placeholder", // required
-		Sex:        "male",        // required
-	}
-
 	mockPatient := &entity.Patient{
 		ID:        uuid.New(),
-		FirstName: "Abebe",
+		FirstName: "Liya",
 	}
 
-	mockUC.On("LookupOrCreate", mock.Anything, mock.AnythingOfType("dto.LookupPatientRequest")).Return(mockPatient, false, nil)
+	mockUC.On("GetByPhoneAndName", mock.Anything, "+251911000002", "Liya").Return(mockPatient, nil)
 
-	body, _ := json.Marshal(reqPayload)
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/patients/lookup", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup/phone?phone_number=%2B251911000002&first_name=Liya", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Abebe")
-	assert.Contains(t, w.Body.String(), "Existing patient found")
+	assert.Contains(t, w.Body.String(), "Liya")
 }
 
-func TestPatientAutoCreate(t *testing.T) {
+func TestPatientLookupByPhoneAndName_MissingParams(t *testing.T) {
 	mockUC := new(MockPatientUseCase)
 	router := setupPatientRouter(mockUC)
 
-	reqPayload := dto.LookupPatientRequest{
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup/phone?phone_number=%2B251911000002", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "required")
+}
+
+func TestCreatePatient_Success(t *testing.T) {
+	mockUC := new(MockPatientUseCase)
+	router := setupPatientRouter(mockUC)
+
+	reqPayload := dto.CreatePatientRequest{
 		PhoneNumber: "+251999999999",
 		FirstName:   "New",
 		LastName:    "Guy",
@@ -93,31 +105,56 @@ func TestPatientAutoCreate(t *testing.T) {
 		PhoneNumber: ptr("+251999999999"),
 	}
 
-	mockUC.On("LookupOrCreate", mock.Anything, mock.AnythingOfType("dto.LookupPatientRequest")).Return(mockPatient, true, nil)
+	mockUC.On("CreatePatient", mock.Anything, mock.AnythingOfType("dto.CreatePatientRequest")).Return(mockPatient, nil)
 
 	body, _ := json.Marshal(reqPayload)
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/patients/lookup", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/patients", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Contains(t, w.Body.String(), "New patient record created")
+	assert.Contains(t, w.Body.String(), "Patient created successfully")
 }
 
-func TestPatientLookupMissingRequiredFields(t *testing.T) {
+func TestCreatePatient_DuplicateConflict(t *testing.T) {
+	mockUC := new(MockPatientUseCase)
+	router := setupPatientRouter(mockUC)
+
+	reqPayload := dto.CreatePatientRequest{
+		PhoneNumber: "+251911000001",
+		FirstName:   "Abebe",
+		LastName:    "Kebede",
+		Sex:         "male",
+	}
+
+	// Simulated Usecase rejecting because patient exists
+	mockUC.On("CreatePatient", mock.Anything, mock.AnythingOfType("dto.CreatePatientRequest")).Return((*entity.Patient)(nil), errors.New("already exists"))
+
+	body, _ := json.Marshal(reqPayload)
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/patients", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.Contains(t, w.Body.String(), "already exists")
+}
+
+func TestCreatePatient_MissingRequiredFields(t *testing.T) {
 	mockUC := new(MockPatientUseCase)
 	router := setupPatientRouter(mockUC)
 
 	// Missing LastName and Sex
-	reqPayload := dto.LookupPatientRequest{
+	reqPayload := dto.CreatePatientRequest{
 		PhoneNumber: "+251999999999",
 		FirstName:   "New",
 	}
 
 	body, _ := json.Marshal(reqPayload)
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/patients/lookup", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/patients", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -126,29 +163,6 @@ func TestPatientLookupMissingRequiredFields(t *testing.T) {
 	// DTO binding enforce LastName and Sex
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid request payload")
-}
-
-func TestPatientLookupLogicErrors(t *testing.T) {
-	mockUC := new(MockPatientUseCase)
-	router := setupPatientRouter(mockUC)
-
-	reqPayload := dto.LookupPatientRequest{
-		LastName: "Guy",
-		Sex:      "male",
-	}
-
-	// Simulated Usecase rejecting because no lookup keys provided
-	mockUC.On("LookupOrCreate", mock.Anything, mock.AnythingOfType("dto.LookupPatientRequest")).Return((*entity.Patient)(nil), false, errors.New("must provide either national_id OR"))
-
-	body, _ := json.Marshal(reqPayload)
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/patients/lookup", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "must provide either")
 }
 
 func ptr(s string) *string {

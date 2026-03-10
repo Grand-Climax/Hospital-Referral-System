@@ -18,6 +18,48 @@ definitions:
     - receiver_hospital_id
     - sender_hospital_id
     type: object
+  dto.CreatePatientRequest:
+    properties:
+      date_of_birth:
+        type: string
+      first_name:
+        example: Abebe
+        maxLength: 100
+        minLength: 2
+        type: string
+      home_region:
+        example: Addis Ababa
+        type: string
+      last_name:
+        example: Kebede
+        maxLength: 100
+        minLength: 2
+        type: string
+      middle_name:
+        description: Optional Fields
+        example: Tilahun
+        type: string
+      national_id:
+        description: Optional Primary ID
+        example: NAT-SEED-001
+        type: string
+      phone_number:
+        description: Required fields
+        example: "+251911000001"
+        type: string
+      sex:
+        enum:
+        - male
+        - female
+        - unknown
+        example: male
+        type: string
+    required:
+    - first_name
+    - last_name
+    - phone_number
+    - sex
+    type: object
   dto.CreateReferralRequest:
     properties:
       accompanying_person_name:
@@ -144,43 +186,6 @@ definitions:
         type: string
     required:
     - emergency_justification
-    type: object
-  dto.LookupPatientRequest:
-    properties:
-      date_of_birth:
-        type: string
-      first_name:
-        example: Abebe
-        type: string
-      home_region:
-        example: Addis Ababa
-        type: string
-      last_name:
-        description: Required fields for auto-create (also used to enrich existing
-          records)
-        example: Kebede
-        type: string
-      middle_name:
-        example: Tilahun
-        type: string
-      national_id:
-        description: Primary lookup key — plain text, will be SHA-256 hashed server-side
-        example: NAT-SEED-001
-        type: string
-      phone_number:
-        description: Fallback lookup keys
-        example: "+251911000001"
-        type: string
-      sex:
-        enum:
-        - male
-        - female
-        - unknown
-        example: male
-        type: string
-    required:
-    - last_name
-    - sex
     type: object
   dto.VitalsDTO:
     properties:
@@ -1202,48 +1207,84 @@ paths:
       summary: Unlink a department from a hospital
       tags:
       - Hospitals
-  /api/v1/patients/lookup:
+  /api/v1/patients:
     post:
       consumes:
       - application/json
-      description: 'Try to find a patient by National ID. If not found/provided, fallback
-        to Phone + First Name. If still not found, auto-creates a new patient record.
-        Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN'
+      description: 'Explicitly create a new patient record. Validates uniqueness covering
+        National ID or Phone+Name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN'
       parameters:
-      - description: Patient lookup/create payload
+      - description: New patient payload
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/dto.LookupPatientRequest'
+          $ref: '#/definitions/dto.CreatePatientRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: Existing patient found
-          schema:
-            additionalProperties: true
-            type: object
         "201":
-          description: New patient record created
+          description: Created
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: Validation error
+          description: Bad Request
           schema:
             additionalProperties:
               type: string
             type: object
-        "500":
-          description: Server error
+        "409":
+          description: Conflict - patient already exists
           schema:
             additionalProperties:
               type: string
             type: object
       security:
       - BearerAuth: []
-      summary: Lookup or Create Patient
+      summary: Create Patient
+      tags:
+      - Patients
+  /api/v1/patients/lookup/phone:
+    get:
+      description: 'Fallback lookup using phone number and first name. Roles: REFERRING_DOCTOR,
+        RECEPTIONIST, SYSTEM_SUPER_ADMIN'
+      parameters:
+      - default: "+251911000002"
+        description: Phone Number (E.164)
+        in: query
+        name: phone_number
+        required: true
+        type: string
+      - default: Liya
+        description: First Name
+        in: query
+        name: first_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get patient by Phone and First Name
       tags:
       - Patients
   /api/v1/patients/national-id/{id}:

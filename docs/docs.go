@@ -1102,14 +1102,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/patients/lookup": {
+        "/api/v1/patients": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Try to find a patient by National ID. If not found/provided, fallback to Phone + First Name. If still not found, auto-creates a new patient record. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
+                "description": "Explicitly create a new patient record. Validates uniqueness covering National ID or Phone+Name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
                 "consumes": [
                     "application/json"
                 ],
@@ -1119,35 +1119,28 @@ const docTemplate = `{
                 "tags": [
                     "Patients"
                 ],
-                "summary": "Lookup or Create Patient",
+                "summary": "Create Patient",
                 "parameters": [
                     {
-                        "description": "Patient lookup/create payload",
+                        "description": "New patient payload",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LookupPatientRequest"
+                            "$ref": "#/definitions/dto.CreatePatientRequest"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Existing patient found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
                     "201": {
-                        "description": "New patient record created",
+                        "description": "Created",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Validation error",
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1155,8 +1148,70 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "500": {
-                        "description": "Server error",
+                    "409": {
+                        "description": "Conflict - patient already exists",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/patients/lookup/phone": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fallback lookup using phone number and first name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Patients"
+                ],
+                "summary": "Get patient by Phone and First Name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "+251911000002",
+                        "description": "Phone Number (E.164)",
+                        "name": "phone_number",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "Liya",
+                        "description": "First Name",
+                        "name": "first_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2253,6 +2308,60 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreatePatientRequest": {
+            "type": "object",
+            "required": [
+                "first_name",
+                "last_name",
+                "phone_number",
+                "sex"
+            ],
+            "properties": {
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "Abebe"
+                },
+                "home_region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
+                },
+                "last_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "Kebede"
+                },
+                "middle_name": {
+                    "description": "Optional Fields",
+                    "type": "string",
+                    "example": "Tilahun"
+                },
+                "national_id": {
+                    "description": "Optional Primary ID",
+                    "type": "string",
+                    "example": "NAT-SEED-001"
+                },
+                "phone_number": {
+                    "description": "Required fields",
+                    "type": "string",
+                    "example": "+251911000001"
+                },
+                "sex": {
+                    "type": "string",
+                    "enum": [
+                        "male",
+                        "female",
+                        "unknown"
+                    ],
+                    "example": "male"
+                }
+            }
+        },
         "dto.CreateReferralRequest": {
             "type": "object",
             "required": [
@@ -2425,54 +2534,6 @@ const docTemplate = `{
             "properties": {
                 "emergency_justification": {
                     "type": "string"
-                }
-            }
-        },
-        "dto.LookupPatientRequest": {
-            "type": "object",
-            "required": [
-                "last_name",
-                "sex"
-            ],
-            "properties": {
-                "date_of_birth": {
-                    "type": "string"
-                },
-                "first_name": {
-                    "type": "string",
-                    "example": "Abebe"
-                },
-                "home_region": {
-                    "type": "string",
-                    "example": "Addis Ababa"
-                },
-                "last_name": {
-                    "description": "Required fields for auto-create (also used to enrich existing records)",
-                    "type": "string",
-                    "example": "Kebede"
-                },
-                "middle_name": {
-                    "type": "string",
-                    "example": "Tilahun"
-                },
-                "national_id": {
-                    "description": "Primary lookup key — plain text, will be SHA-256 hashed server-side",
-                    "type": "string",
-                    "example": "NAT-SEED-001"
-                },
-                "phone_number": {
-                    "description": "Fallback lookup keys",
-                    "type": "string",
-                    "example": "+251911000001"
-                },
-                "sex": {
-                    "type": "string",
-                    "enum": [
-                        "male",
-                        "female",
-                        "unknown"
-                    ],
-                    "example": "male"
                 }
             }
         },
