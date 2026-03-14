@@ -7,21 +7,14 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
-
-type ReferralRepository interface {
-	CreateReferralTransaction(ctx context.Context, referral *entity.Referral) error
-	UpdateReferralTransaction(ctx context.Context, referral *entity.Referral) error
-	DeleteReferral(ctx context.Context, id uuid.UUID) error
-	GetReferralByID(ctx context.Context, id uuid.UUID) (*entity.Referral, error)
-	ListReferrals(ctx context.Context, filter map[string]interface{}) ([]entity.Referral, error)
-}
 
 type referralRepository struct {
 	db *gorm.DB
 }
 
-func NewReferralRepository(db *gorm.DB) ReferralRepository {
+func NewReferralRepository(db *gorm.DB) irepository.ReferralRepository {
 	return &referralRepository{db: db}
 }
 
@@ -65,6 +58,10 @@ func (r *referralRepository) GetReferralByID(ctx context.Context, id uuid.UUID) 
 		Where("id = ?", id).
 		First(&referral).Error
 	return &referral, err
+}
+
+func (r *referralRepository) CreateStatusHistory(ctx context.Context, history *entity.ReferralStatusHistory) error {
+	return r.db.WithContext(ctx).Create(history).Error
 }
 
 func (r *referralRepository) ListReferrals(ctx context.Context, filter map[string]interface{}) ([]entity.Referral, error) {
