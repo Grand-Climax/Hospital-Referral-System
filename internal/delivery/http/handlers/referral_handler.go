@@ -8,14 +8,14 @@ import (
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/usecase"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type ReferralHandler struct {
-	referralUseCase usecase.ReferralUseCase
+	referralUseCase iusecase.ReferralUseCase
 }
 
-func NewReferralHandler(uc usecase.ReferralUseCase) *ReferralHandler {
+func NewReferralHandler(uc iusecase.ReferralUseCase) *ReferralHandler {
 	return &ReferralHandler{referralUseCase: uc}
 }
 
