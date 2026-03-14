@@ -7,14 +7,14 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
-	"Hospital-Referral-System/internal/usecase"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type NetworkHandler struct {
-	networkUseCase usecase.NetworkUseCase
+	networkUseCase iusecase.NetworkUseCase
 }
 
-func NewNetworkHandler(uc usecase.NetworkUseCase) *NetworkHandler {
+func NewNetworkHandler(uc iusecase.NetworkUseCase) *NetworkHandler {
 	return &NetworkHandler{networkUseCase: uc}
 }
 
