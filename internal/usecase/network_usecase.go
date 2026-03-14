@@ -7,20 +7,15 @@ import (
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
-type NetworkUseCase interface {
-	CreateRoute(ctx context.Context, req dto.CreateNetworkRouteRequest) (*entity.ReferralNetwork, error)
-	ListRoutes(ctx context.Context, senderID *uuid.UUID) ([]entity.ReferralNetwork, error)
-	DeleteRoute(ctx context.Context, id uuid.UUID) error
-}
-
 type networkUseCase struct {
-	networkRepo repository.NetworkRepository
+	networkRepo irepository.NetworkRepository
 }
 
-func NewNetworkUseCase(repo repository.NetworkRepository) NetworkUseCase {
+func NewNetworkUseCase(repo irepository.NetworkRepository) iusecase.NetworkUseCase {
 	return &networkUseCase{networkRepo: repo}
 }
 
