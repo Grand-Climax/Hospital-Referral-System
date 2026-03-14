@@ -7,14 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
-	"Hospital-Referral-System/internal/usecase"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type PatientHandler struct {
-	patientUC usecase.PatientUseCase
+	patientUC iusecase.PatientUseCase
 }
 
-func NewPatientHandler(patientUC usecase.PatientUseCase) *PatientHandler {
+func NewPatientHandler(patientUC iusecase.PatientUseCase) *PatientHandler {
 	return &PatientHandler{
 		patientUC: patientUC,
 	}
