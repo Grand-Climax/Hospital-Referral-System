@@ -6,30 +6,15 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
 
-type UserListFilter struct {
-	Page       int
-	PageSize   int
-	Role       *entity.UserRole
-	HospitalID *string
-	IsActive   *bool
-	Search     *string // searches first_name, last_name, email
-}
-
-type UserRepository interface {
-	BaseRepository[entity.User]
-	FindByEmail(ctx context.Context, email string) (*entity.User, error)
-	FindByNationalID(ctx context.Context, nationalID string) (*entity.User, error)
-	ListUsers(ctx context.Context, filter UserListFilter) ([]entity.User, int64, error)
-}
-
 type userRepository struct {
-	BaseRepository[entity.User]
+	*BaseRepository[entity.User]
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) UserRepository {
+func NewUserRepository(db *gorm.DB) irepository.UserRepository {
 	return &userRepository{
 		BaseRepository: NewBaseRepository[entity.User](db),
 		db:             db,
@@ -54,7 +39,7 @@ func (r *userRepository) FindByNationalID(ctx context.Context, nationalID string
 	return &user, nil
 }
 
-func (r *userRepository) ListUsers(ctx context.Context, filter UserListFilter) ([]entity.User, int64, error) {
+func (r *userRepository) ListUsers(ctx context.Context, filter irepository.UserListFilter) ([]entity.User, int64, error) {
 	var users []entity.User
 	var total int64
 
