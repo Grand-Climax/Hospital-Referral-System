@@ -6,14 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"Hospital-Referral-System/internal/usecase"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type ReferenceHandler struct {
-	referenceUseCase usecase.ReferenceUseCase
+	referenceUseCase iusecase.ReferenceUseCase
 }
 
-func NewReferenceHandler(uc usecase.ReferenceUseCase) *ReferenceHandler {
+func NewReferenceHandler(uc iusecase.ReferenceUseCase) *ReferenceHandler {
 	return &ReferenceHandler{referenceUseCase: uc}
 }
 
