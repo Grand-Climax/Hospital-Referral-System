@@ -8,15 +8,16 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/usecase"
 )
 
 type DepartmentHandler struct {
-	deptUseCase usecase.DepartmentUseCase
+	deptUseCase iusecase.DepartmentUseCase
 }
 
-func NewDepartmentHandler(deptUseCase usecase.DepartmentUseCase) *DepartmentHandler {
+func NewDepartmentHandler(deptUseCase iusecase.DepartmentUseCase) *DepartmentHandler {
 	return &DepartmentHandler{deptUseCase: deptUseCase}
 }
 
@@ -124,7 +125,7 @@ func (h *DepartmentHandler) CreateDepartment(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/v1/departments [get]
 func (h *DepartmentHandler) ListDepartments(c *gin.Context) {
-	filter := repository.DepartmentListFilter{
+	filter := irepository.DepartmentListFilter{
 		Page:     1,
 		PageSize: 20,
 	}

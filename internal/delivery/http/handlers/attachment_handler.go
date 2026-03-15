@@ -10,14 +10,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"Hospital-Referral-System/internal/usecase"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type AttachmentHandler struct {
-	attachmentUC usecase.AttachmentUseCase
+	attachmentUC iusecase.AttachmentUseCase
 }
 
-func NewAttachmentHandler(uc usecase.AttachmentUseCase) *AttachmentHandler {
+func NewAttachmentHandler(uc iusecase.AttachmentUseCase) *AttachmentHandler {
 	return &AttachmentHandler{attachmentUC: uc}
 }
 

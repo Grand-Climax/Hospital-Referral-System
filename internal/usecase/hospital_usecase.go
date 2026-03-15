@@ -7,26 +7,19 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 var (
 	ErrHospitalNotFound = errors.New("hospital not found")
 )
 
-type HospitalUseCase interface {
-	CreateHospital(ctx context.Context, hospital *entity.Hospital) error
-	GetHospitalByID(ctx context.Context, id uuid.UUID) (*entity.Hospital, error)
-	UpdateHospital(ctx context.Context, hospital *entity.Hospital) error
-	DeleteHospital(ctx context.Context, id uuid.UUID) error
-	ListHospitals(ctx context.Context, filter repository.HospitalListFilter) ([]entity.Hospital, int64, error)
-}
-
 type hospitalUseCase struct {
-	repo repository.HospitalRepository
+	repo irepository.HospitalRepository
 }
 
-func NewHospitalUseCase(repo repository.HospitalRepository) HospitalUseCase {
+func NewHospitalUseCase(repo irepository.HospitalRepository) iusecase.HospitalUseCase {
 	return &hospitalUseCase{repo: repo}
 }
 
@@ -69,6 +62,6 @@ func (u *hospitalUseCase) DeleteHospital(ctx context.Context, id uuid.UUID) erro
 	return u.repo.Update(ctx, hospital)
 }
 
-func (u *hospitalUseCase) ListHospitals(ctx context.Context, filter repository.HospitalListFilter) ([]entity.Hospital, int64, error) {
+func (u *hospitalUseCase) ListHospitals(ctx context.Context, filter irepository.HospitalListFilter) ([]entity.Hospital, int64, error) {
 	return u.repo.ListHospitals(ctx, filter)
 }

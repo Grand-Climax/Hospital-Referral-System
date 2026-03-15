@@ -7,21 +7,14 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
-
-type ReferenceRepository interface {
-	GetHospitals(ctx context.Context, tier string) ([]entity.Hospital, error)
-	GetDepartments(ctx context.Context) ([]entity.Department, error)
-	SearchICDCodes(ctx context.Context, query string) ([]entity.ICDCode, error)
-	GetNetworkedHospitals(ctx context.Context, senderHospitalID uuid.UUID) ([]entity.Hospital, error)
-	GetHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.Department, error)
-}
 
 type referenceRepository struct {
 	db *gorm.DB
 }
 
-func NewReferenceRepository(db *gorm.DB) ReferenceRepository {
+func NewReferenceRepository(db *gorm.DB) irepository.ReferenceRepository {
 	return &referenceRepository{db: db}
 }
 

@@ -7,8 +7,9 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/pkg/auth"
-	"Hospital-Referral-System/internal/repository"
 )
 
 var (
@@ -18,21 +19,11 @@ var (
 	ErrInvalidRole      = errors.New("invalid user role")
 )
 
-type UserUseCase interface {
-	CreateUser(ctx context.Context, user *entity.User, rawPassword string) error
-	GetUserByID(ctx context.Context, id uuid.UUID) (*entity.User, error)
-	GetMyProfile(ctx context.Context, userID uuid.UUID) (*entity.User, error)
-	UpdateUser(ctx context.Context, user *entity.User) error
-	DeleteUser(ctx context.Context, id uuid.UUID) error
-	ListUsers(ctx context.Context, filter repository.UserListFilter) ([]entity.User, int64, error)
-	AssignRole(ctx context.Context, userID uuid.UUID, role entity.UserRole) error
-}
-
 type userUseCase struct {
-	repo repository.UserRepository
+	repo irepository.UserRepository
 }
 
-func NewUserUseCase(repo repository.UserRepository) UserUseCase {
+func NewUserUseCase(repo irepository.UserRepository) iusecase.UserUseCase {
 	return &userUseCase{repo: repo}
 }
 
@@ -117,7 +108,7 @@ func (u *userUseCase) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return u.repo.Update(ctx, user)
 }
 
-func (u *userUseCase) ListUsers(ctx context.Context, filter repository.UserListFilter) ([]entity.User, int64, error) {
+func (u *userUseCase) ListUsers(ctx context.Context, filter irepository.UserListFilter) ([]entity.User, int64, error) {
 	return u.repo.ListUsers(ctx, filter)
 }
 

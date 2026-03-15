@@ -7,36 +7,22 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
 
-type DepartmentListFilter struct {
-	Page     int
-	PageSize int
-	Search   *string
-}
-
-type DepartmentRepository interface {
-	BaseRepository[entity.Department]
-	ListDepartments(ctx context.Context, filter DepartmentListFilter) ([]entity.Department, int64, error)
-	LinkToHospital(ctx context.Context, link *entity.HospitalDepartment) error
-	UnlinkFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error
-	ListHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.HospitalDepartment, error)
-	FindHospitalDepartment(ctx context.Context, hospitalID, departmentID uuid.UUID) (*entity.HospitalDepartment, error)
-}
-
 type departmentRepository struct {
-	BaseRepository[entity.Department]
+	*BaseRepository[entity.Department]
 	db *gorm.DB
 }
 
-func NewDepartmentRepository(db *gorm.DB) DepartmentRepository {
+func NewDepartmentRepository(db *gorm.DB) irepository.DepartmentRepository {
 	return &departmentRepository{
 		BaseRepository: NewBaseRepository[entity.Department](db),
 		db:             db,
 	}
 }
 
-func (r *departmentRepository) ListDepartments(ctx context.Context, filter DepartmentListFilter) ([]entity.Department, int64, error) {
+func (r *departmentRepository) ListDepartments(ctx context.Context, filter irepository.DepartmentListFilter) ([]entity.Department, int64, error) {
 	var departments []entity.Department
 	var total int64
 

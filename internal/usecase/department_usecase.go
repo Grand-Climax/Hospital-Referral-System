@@ -7,7 +7,8 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 var (
@@ -16,23 +17,12 @@ var (
 	ErrHospitalDeptLinkNotFound = errors.New("department is not linked to this hospital")
 )
 
-type DepartmentUseCase interface {
-	CreateDepartment(ctx context.Context, dept *entity.Department) error
-	GetDepartmentByID(ctx context.Context, id uuid.UUID) (*entity.Department, error)
-	UpdateDepartment(ctx context.Context, dept *entity.Department) error
-	DeleteDepartment(ctx context.Context, id uuid.UUID) error
-	ListDepartments(ctx context.Context, filter repository.DepartmentListFilter) ([]entity.Department, int64, error)
-	LinkDepartmentToHospital(ctx context.Context, hospitalID, departmentID uuid.UUID, dailyLimit int) error
-	UnlinkDepartmentFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error
-	ListHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.HospitalDepartment, error)
-}
-
 type departmentUseCase struct {
-	repo     repository.DepartmentRepository
-	hospRepo repository.HospitalRepository
+	repo     irepository.DepartmentRepository
+	hospRepo irepository.HospitalRepository
 }
 
-func NewDepartmentUseCase(repo repository.DepartmentRepository, hospRepo repository.HospitalRepository) DepartmentUseCase {
+func NewDepartmentUseCase(repo irepository.DepartmentRepository, hospRepo irepository.HospitalRepository) iusecase.DepartmentUseCase {
 	return &departmentUseCase{repo: repo, hospRepo: hospRepo}
 }
 
@@ -65,7 +55,7 @@ func (u *departmentUseCase) DeleteDepartment(ctx context.Context, id uuid.UUID) 
 	return u.repo.Delete(ctx, id)
 }
 
-func (u *departmentUseCase) ListDepartments(ctx context.Context, filter repository.DepartmentListFilter) ([]entity.Department, int64, error) {
+func (u *departmentUseCase) ListDepartments(ctx context.Context, filter irepository.DepartmentListFilter) ([]entity.Department, int64, error) {
 	return u.repo.ListDepartments(ctx, filter)
 }
 

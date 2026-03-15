@@ -8,24 +8,19 @@ import (
 	"time"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/infrastructure/cache"
 	"Hospital-Referral-System/internal/pkg/auth"
-	"Hospital-Referral-System/internal/repository"
 )
 
-type AuthUseCase interface {
-	Login(ctx context.Context, email, password, ipAddress, userAgent string) (*auth.TokenPair, error)
-	Refresh(ctx context.Context, refreshToken, ipAddress, userAgent string) (*auth.TokenPair, error)
-	Logout(ctx context.Context, accessToken, refreshToken string) error
-}
-
 type authUseCase struct {
-	repo      repository.AuthRepository
+	repo      irepository.AuthRepository
 	blacklist cache.TokenBlacklist
 	sessions  cache.SessionStore
 }
 
-func NewAuthUseCase(repo repository.AuthRepository, blacklist cache.TokenBlacklist, sessions cache.SessionStore) AuthUseCase {
+func NewAuthUseCase(repo irepository.AuthRepository, blacklist cache.TokenBlacklist, sessions cache.SessionStore) iusecase.AuthUseCase {
 	return &authUseCase{repo: repo, blacklist: blacklist, sessions: sessions}
 }
 
@@ -81,10 +76,6 @@ func (u *authUseCase) Login(ctx context.Context, email, password, ipAddress, use
 }
 
 func (u *authUseCase) Refresh(ctx context.Context, refreshToken, ipAddress, userAgent string) (*auth.TokenPair, error) {
-	// Validate token structure using JWT lib but ignoring expiration first, or strictly trusting it.
-	// Actually, the refresh token doesn't have custom claims to be validated, it is just checked via DB lookup.
-	// Let's perform DB lookup.
-	
 	// Hash the incoming refresh token
 	refreshHash := hashToken(refreshToken)
 
@@ -132,7 +123,7 @@ func (u *authUseCase) Refresh(ctx context.Context, refreshToken, ipAddress, user
 	if err := u.repo.CreateSession(ctx, newSession); err != nil {
 		return nil, err
 	}
-	
+
 	_ = u.sessions.SetSession(ctx, newSession)
 
 	return tokenPair, nil
@@ -140,7 +131,6 @@ func (u *authUseCase) Refresh(ctx context.Context, refreshToken, ipAddress, user
 
 func (u *authUseCase) Logout(ctx context.Context, accessToken, refreshToken string) error {
 	// 1. Blacklist the Access Token (for remaining valid time, default to 15 mins for safety)
-	// We use 15 minutes as safety net, though technically we could parse the exact token expiration.
 	_ = u.blacklist.Add(ctx, accessToken, 15*time.Minute)
 
 	// 2. Revoke the Session using the Refresh Token Hash
@@ -149,7 +139,7 @@ func (u *authUseCase) Logout(ctx context.Context, accessToken, refreshToken stri
 	if err != nil || session == nil {
 		session, err = u.repo.FindSessionByRefreshTokenHash(ctx, refreshHash)
 	}
-	
+
 	if err == nil && session.RevokedAt == nil {
 		now := time.Now()
 		session.RevokedAt = &now

@@ -8,15 +8,16 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/usecase"
 )
 
 type UserHandler struct {
-	userUseCase usecase.UserUseCase
+	userUseCase iusecase.UserUseCase
 }
 
-func NewUserHandler(userUseCase usecase.UserUseCase) *UserHandler {
+func NewUserHandler(userUseCase iusecase.UserUseCase) *UserHandler {
 	return &UserHandler{userUseCase: userUseCase}
 }
 
@@ -160,7 +161,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/v1/users [get]
 func (h *UserHandler) ListUsers(c *gin.Context) {
-	filter := repository.UserListFilter{
+	filter := irepository.UserListFilter{
 		Page:     1,
 		PageSize: 20,
 	}
