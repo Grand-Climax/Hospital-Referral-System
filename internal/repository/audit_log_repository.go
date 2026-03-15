@@ -6,17 +6,14 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
-
-type AuditLogRepository interface {
-	Create(ctx context.Context, log *entity.AuditLog) error
-}
 
 type auditLogRepository struct {
 	db *gorm.DB
 }
 
-func NewAuditLogRepository(db *gorm.DB) AuditLogRepository {
+func NewAuditLogRepository(db *gorm.DB) irepository.AuditLogRepository {
 	return &auditLogRepository{db: db}
 }
 

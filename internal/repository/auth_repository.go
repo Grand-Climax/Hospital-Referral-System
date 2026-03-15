@@ -6,22 +6,15 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
 
-type AuthRepository interface {
-	BaseRepository[entity.User]
-	FindByEmail(ctx context.Context, email string) (*entity.User, error)
-	CreateSession(ctx context.Context, session *entity.Session) error
-	FindSessionByRefreshTokenHash(ctx context.Context, hash string) (*entity.Session, error)
-	UpdateSession(ctx context.Context, session *entity.Session) error
-}
-
 type authRepository struct {
-	BaseRepository[entity.User]
+	*BaseRepository[entity.User]
 	db *gorm.DB
 }
 
-func NewAuthRepository(db *gorm.DB) AuthRepository {
+func NewAuthRepository(db *gorm.DB) irepository.AuthRepository {
 	return &authRepository{
 		BaseRepository: NewBaseRepository[entity.User](db),
 		db:             db,

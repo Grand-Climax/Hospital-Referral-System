@@ -6,19 +6,15 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
-type AttachmentUseCase interface {
-	SaveAttachment(ctx context.Context, referralID uuid.UUID, fileName, fileType, storagePath string) (*entity.Attachment, error)
-	GetAttachment(ctx context.Context, id uuid.UUID) (*entity.Attachment, error)
-}
-
 type attachmentUseCase struct {
-	repo repository.AttachmentRepository
+	repo irepository.AttachmentRepository
 }
 
-func NewAttachmentUseCase(repo repository.AttachmentRepository) AttachmentUseCase {
+func NewAttachmentUseCase(repo irepository.AttachmentRepository) iusecase.AttachmentUseCase {
 	return &attachmentUseCase{repo: repo}
 }
 

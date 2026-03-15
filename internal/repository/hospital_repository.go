@@ -6,35 +6,22 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
 
-type HospitalListFilter struct {
-	Page     int
-	PageSize int
-	Tier     *entity.HospitalTier
-	Region   *string
-	IsActive *bool
-	Search   *string
-}
-
-type HospitalRepository interface {
-	BaseRepository[entity.Hospital]
-	ListHospitals(ctx context.Context, filter HospitalListFilter) ([]entity.Hospital, int64, error)
-}
-
 type hospitalRepository struct {
-	BaseRepository[entity.Hospital]
+	*BaseRepository[entity.Hospital]
 	db *gorm.DB
 }
 
-func NewHospitalRepository(db *gorm.DB) HospitalRepository {
+func NewHospitalRepository(db *gorm.DB) irepository.HospitalRepository {
 	return &hospitalRepository{
 		BaseRepository: NewBaseRepository[entity.Hospital](db),
 		db:             db,
 	}
 }
 
-func (r *hospitalRepository) ListHospitals(ctx context.Context, filter HospitalListFilter) ([]entity.Hospital, int64, error) {
+func (r *hospitalRepository) ListHospitals(ctx context.Context, filter irepository.HospitalListFilter) ([]entity.Hospital, int64, error) {
 	var hospitals []entity.Hospital
 	var total int64
 

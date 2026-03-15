@@ -7,19 +7,14 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
-
-type NetworkRepository interface {
-	CreateNetworkRoute(ctx context.Context, route *entity.ReferralNetwork) error
-	ListNetworkRoutes(ctx context.Context, senderID *uuid.UUID) ([]entity.ReferralNetwork, error)
-	DeleteNetworkRoute(ctx context.Context, id uuid.UUID) error
-}
 
 type networkRepository struct {
 	db *gorm.DB
 }
 
-func NewNetworkRepository(db *gorm.DB) NetworkRepository {
+func NewNetworkRepository(db *gorm.DB) irepository.NetworkRepository {
 	return &networkRepository{db: db}
 }
 

@@ -52,6 +52,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
 	referralUseCase := usecase.NewReferralUseCase(referralRepo)
+	liaisonUseCase := usecase.NewLiaisonUseCase(referralRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo)
@@ -63,6 +64,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	hospitalHandler := handlers.NewHospitalHandler(hospitalUseCase)
 	departmentHandler := handlers.NewDepartmentHandler(departmentUseCase)
 	referralHandler := handlers.NewReferralHandler(referralUseCase)
+	liaisonHandler := handlers.NewLiaisonHandler(liaisonUseCase)
 	refHandler := handlers.NewReferenceHandler(refUseCase)
 	netHandler := handlers.NewNetworkHandler(netUseCase)
 	patientHandler := handlers.NewPatientHandler(patientUseCase)
@@ -130,6 +132,16 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			// Attachments
 			protected.POST("/referrals/:id/attachments", attachmentHandler.UploadAttachment)
 			protected.GET("/attachments/:id/download", attachmentHandler.DownloadAttachment)
+
+			// Sprint 7: Liaison Officer Endpoints
+			liaisonGroup := protected.Group("/liaison/referrals")
+			liaisonGroup.Use(middleware.RequireRole(entity.RoleLiaisonOfficer))
+			{
+				liaisonGroup.GET("", liaisonHandler.ListSubmitted)
+				liaisonGroup.POST("/:id/approve", liaisonHandler.Approve)
+				liaisonGroup.POST("/:id/reject", liaisonHandler.Reject)
+				liaisonGroup.POST("/:id/forward", liaisonHandler.Forward)
+			}
 
 			// ---- User Management ----
 			// Profile – accessible by any authenticated user

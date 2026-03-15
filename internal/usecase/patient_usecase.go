@@ -9,20 +9,15 @@ import (
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
-type PatientUseCase interface {
-	GetByNationalID(ctx context.Context, nationalID string) (*entity.Patient, error)
-	GetByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error)
-	CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error)
-}
-
 type patientUseCase struct {
-	patientRepo repository.PatientRepository
+	patientRepo irepository.PatientRepository
 }
 
-func NewPatientUseCase(patientRepo repository.PatientRepository) PatientUseCase {
+func NewPatientUseCase(patientRepo irepository.PatientRepository) iusecase.PatientUseCase {
 	return &patientUseCase{
 		patientRepo: patientRepo,
 	}
@@ -83,7 +78,7 @@ func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatien
 	// Hash and store NationalID if provided
 	if req.NationalID != "" {
 		newPatient.NationalIDEnc = &req.NationalID
-		
+
 		hash := sha256.Sum256([]byte(req.NationalID))
 		hashStr := hex.EncodeToString(hash[:])
 		newPatient.NationalIDHash = &hashStr

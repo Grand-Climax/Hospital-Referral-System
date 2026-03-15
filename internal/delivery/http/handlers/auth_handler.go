@@ -5,14 +5,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/usecase"
 )
 
 type AuthHandler struct {
-	authUseCase usecase.AuthUseCase
+	authUseCase iusecase.AuthUseCase
 }
 
-func NewAuthHandler(authUseCase usecase.AuthUseCase) *AuthHandler {
+func NewAuthHandler(authUseCase iusecase.AuthUseCase) *AuthHandler {
 	return &AuthHandler{
 		authUseCase: authUseCase,
 	}

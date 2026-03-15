@@ -8,15 +8,15 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
-	"Hospital-Referral-System/internal/usecase"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type HospitalHandler struct {
-	hospitalUseCase usecase.HospitalUseCase
+	hospitalUseCase iusecase.HospitalUseCase
 }
 
-func NewHospitalHandler(hospitalUseCase usecase.HospitalUseCase) *HospitalHandler {
+func NewHospitalHandler(hospitalUseCase iusecase.HospitalUseCase) *HospitalHandler {
 	return &HospitalHandler{hospitalUseCase: hospitalUseCase}
 }
 
@@ -120,7 +120,7 @@ func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals [get]
 func (h *HospitalHandler) ListHospitals(c *gin.Context) {
-	filter := repository.HospitalListFilter{
+	filter := irepository.HospitalListFilter{
 		Page:     1,
 		PageSize: 20,
 	}

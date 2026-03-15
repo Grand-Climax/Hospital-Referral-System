@@ -8,21 +8,13 @@ import (
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 var (
 	ErrInvalidReferral = errors.New("invalid referral data")
 )
-
-type ReferralUseCase interface {
-	CreateReferral(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
-	GetReferral(ctx context.Context, id uuid.UUID) (*entity.Referral, error)
-	ListReferrals(ctx context.Context, userRole entity.UserRole, userHospitalID uuid.UUID, statusFilter, dateFrom, dateTo string) ([]entity.Referral, error)
-	UpdateDraft(ctx context.Context, id uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
-	DeleteDraft(ctx context.Context, id uuid.UUID) error
-	UpdateReferralStatus(ctx context.Context, id uuid.UUID, newStatus entity.ReferralStatus, userID uuid.UUID, reason string) error
-}
 
 var validTransitions = map[entity.ReferralStatus][]entity.ReferralStatus{
 	// Doctor workflow
@@ -48,16 +40,16 @@ var validTransitions = map[entity.ReferralStatus][]entity.ReferralStatus{
 }
 
 type referralUseCase struct {
-	referralRepo repository.ReferralRepository
+	referralRepo irepository.ReferralRepository
 }
 
-func NewReferralUseCase(repo repository.ReferralRepository) ReferralUseCase {
+func NewReferralUseCase(repo irepository.ReferralRepository) iusecase.ReferralUseCase {
 	return &referralUseCase{referralRepo: repo}
 }
 
 func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
 	// Construct the deeply nested entity
-	
+
 	// Map Diagnoses
 	var diagnoses []entity.ReferralDiagnosis
 	for _, d := range req.Diagnoses {
@@ -183,7 +175,7 @@ func (u *referralUseCase) UpdateDraft(ctx context.Context, id uuid.UUID, req dto
 	existing.TargetHospitalID = req.TargetHospitalID
 	existing.TargetDeptID = req.TargetDeptID
 	existing.LiaisonOfficerID = req.LiaisonOfficerID
-	
+
 	if req.Status == "SUBMITTED" {
 		existing.Status = entity.StatusSubmitted // mapped from DTO transition command
 	}

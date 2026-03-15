@@ -11,13 +11,13 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/domain/entity"
-	"Hospital-Referral-System/internal/repository"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
 
 // AuditLogger writes every authenticated API call to the audit_logs table.
 // It captures timestamp, user ID, action (HTTP method + path), affected resource, response status, IP and user-agent.
 // Writing is done asynchronously so it does not block the HTTP response.
-func AuditLogger(repo repository.AuditLogRepository) gin.HandlerFunc {
+func AuditLogger(repo irepository.AuditLogRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Process request first
 		c.Next()
