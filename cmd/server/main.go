@@ -19,7 +19,6 @@ import (
 // @title           Hospital Referral System API
 // @version         1.0
 // @description     API for managing hospital referrals, users, hospitals, and departments.
-// @host            localhost:8081
 // @BasePath        /
 // @securityDefinitions.apikey BearerAuth
 // @in header
