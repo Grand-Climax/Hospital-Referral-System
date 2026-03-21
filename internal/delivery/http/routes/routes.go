@@ -25,6 +25,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
+	// Public Root Landing Page
+	router.GET("/", handlers.HomeHandler)
+
 	// Swagger docs
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
