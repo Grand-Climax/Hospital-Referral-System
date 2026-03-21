@@ -20,3 +20,6 @@ main
 # Docker
 Dockerfile
 docker-compose.yml
+
+# Environment variables
+.env*

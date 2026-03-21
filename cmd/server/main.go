@@ -48,9 +48,19 @@ func main() {
 		redisAddr = "localhost:6379"
 	}
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
-	})
+	var redisClient *redis.Client
+
+	// Support Upstash/Cloud Redis URLs via ParseURL
+	opt, parseErr := redis.ParseURL(redisAddr)
+	if parseErr == nil {
+		redisClient = redis.NewClient(opt)
+	} else {
+		// Fallback for simple localhost addresses
+		redisClient = redis.NewClient(&redis.Options{
+			Addr: redisAddr,
+		})
+	}
+
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
@@ -66,7 +76,13 @@ func main() {
 
 	routes.Register(router, db, redisClient)
 
-	if err := router.Run(":8081"); err != nil {
+	// Cloud Run injects the PORT dynamically. Fallback to 8081 for local dev.
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8081"
+	}
+
+	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }
