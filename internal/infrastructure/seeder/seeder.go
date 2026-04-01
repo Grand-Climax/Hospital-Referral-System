@@ -14,6 +14,10 @@ import (
 func SeedReferenceData(ctx context.Context, db *gorm.DB) error {
 	log.Println("Starting reference data seeding...")
 
+	// Clean up legacy UUID mismatches for the new strict foreign key mappings
+	db.Exec("ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_department;")
+	db.Exec("UPDATE users SET department_id = NULL;")
+
 	// Migrate schemas for these entities first to ensure tables exist
 	err := db.AutoMigrate(
 		&entity.Hospital{},
@@ -69,6 +73,11 @@ func SeedReferenceData(ctx context.Context, db *gorm.DB) error {
 
 	// 7. Seed Patients
 	if err := seedPatients(ctx, db); err != nil {
+		return err
+	}
+
+	// 8. Seed Referrals (Requires all above dependencies)
+	if err := seedReferrals(ctx, db); err != nil {
 		return err
 	}
 
@@ -208,8 +217,8 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 				PasswordHash: defaultHash,
 			}
 			
-			if tmpl.DeptName == "Cardiology" && specCardioDept.ID != uuid.Nil {
-				user.DepartmentID = &specCardioDept.ID
+			if tmpl.DeptName == "Cardiology" && specCardioDept.HospitalID != uuid.Nil {
+				user.DepartmentID = &cardiologyDept.ID
 			}
 
 			db.WithContext(ctx).Where("email = ?", user.Email).FirstOrCreate(&user)

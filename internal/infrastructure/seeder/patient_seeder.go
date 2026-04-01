@@ -45,6 +45,24 @@ func seedPatients(ctx context.Context, db *gorm.DB) error {
 	}
 
 	patients := []entity.Patient{p1, p2}
+	
+	for i := 3; i <= 15; i++ {
+		tempPhone := "+2519110000" + string(rune('0'+i))
+		if i > 9 {
+			tempPhone = "+2519110000" + string(rune('0'+(i/10))) + string(rune('0'+(i%10)))
+		}
+		dob, _ := time.Parse("2006-01-02", "1990-05-15") // Simplified common DoB
+		p := entity.Patient{
+			PhoneNumber: &tempPhone,
+			FirstName:   "MockFirst",
+			MiddleName:  "MockMiddle",
+			LastName:    "MockLast",
+			Sex:         "male",
+			DateOfBirth: &dob,
+		}
+		patients = append(patients, p)
+	}
+
 	for _, p := range patients {
 		if err := db.Where("phone_number = ?", p.PhoneNumber).FirstOrCreate(&p).Error; err != nil {
 			return err
