@@ -57,10 +57,12 @@ type UserResponse struct {
 	NationalID   string          `json:"national_id"`
 	Role         entity.UserRole `json:"role"`
 	HospitalID   *string         `json:"hospital_id,omitempty"`
-	DepartmentID *string         `json:"department_id,omitempty"`
-	IsActive     bool            `json:"is_active"`
-	CreatedAt    string          `json:"created_at"`
-	UpdatedAt    string          `json:"updated_at"`
+	DepartmentID   *string         `json:"department_id,omitempty"`
+	HospitalName   string          `json:"hospital_name,omitempty"`
+	DepartmentName string          `json:"department_name,omitempty"`
+	IsActive       bool            `json:"is_active"`
+	CreatedAt      string          `json:"created_at"`
+	UpdatedAt      string          `json:"updated_at"`
 }
 
 func toUserResponse(u *entity.User) UserResponse {
@@ -79,9 +81,15 @@ func toUserResponse(u *entity.User) UserResponse {
 		s := u.HospitalID.String()
 		resp.HospitalID = &s
 	}
+	if u.Hospital != nil {
+		resp.HospitalName = u.Hospital.Name
+	}
 	if u.DepartmentID != nil {
 		s := u.DepartmentID.String()
 		resp.DepartmentID = &s
+	}
+	if u.Department != nil {
+		resp.DepartmentName = u.Department.Name
 	}
 	return resp
 }

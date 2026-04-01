@@ -36,6 +36,10 @@ type User struct {
 	DeletedAt    gorm.DeletedAt
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+
+	// Relationships
+	Hospital     *Hospital   `gorm:"foreignKey:HospitalID;constraint:OnDelete:SET NULL;"`
+	Department   *Department `gorm:"foreignKey:DepartmentID;constraint:OnDelete:SET NULL;"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

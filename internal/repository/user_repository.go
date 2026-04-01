@@ -21,6 +21,18 @@ func NewUserRepository(db *gorm.DB) irepository.UserRepository {
 	}
 }
 
+func (r *userRepository) FindByID(ctx context.Context, id interface{}) (*entity.User, error) {
+	var user entity.User
+	err := r.db.WithContext(ctx).
+		Preload("Hospital").
+		Preload("Department").
+		First(&user, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
 	var user entity.User
 	err := r.db.WithContext(ctx).Where("email = ? AND is_deleted = false", email).First(&user).Error
