@@ -126,22 +126,60 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 	return referral, nil
 }
 
-func (u *referralUseCase) GetReferral(ctx context.Context, id uuid.UUID) (*entity.Referral, error) {
-	return u.referralRepo.GetReferralByID(ctx, id)
+func (u *referralUseCase) GetReferral(ctx context.Context, id, userID, hospID, deptID uuid.UUID, userRole entity.UserRole) (*entity.Referral, error) {
+	referral, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// RBAC Validation for GetByID
+	switch userRole {
+	case entity.RoleSystemSuperAdmin:
+		// Allowed unconditionally
+	case entity.RoleReferringDoctor:
+		if referral.ReferringDoctorID != userID {
+			return nil, errors.New("unauthorized: can only view own referrals")
+		}
+	case entity.RoleLiaisonOfficer:
+		if referral.SenderHospitalID != hospID {
+			return nil, errors.New("unauthorized: referral does not belong to your facility")
+		}
+	case entity.RoleReceivingSpecialist, entity.RoleDeptHead:
+		if referral.TargetHospitalID != hospID || (deptID != uuid.Nil && referral.TargetDeptID != deptID) {
+			return nil, errors.New("unauthorized: referral target mismatch for your department/hospital")
+		}
+	case entity.RoleReceptionist:
+		if referral.TargetHospitalID != hospID {
+			return nil, errors.New("unauthorized: patient not assigned to your hospital")
+		}
+	default:
+		return nil, errors.New("unauthorized role")
+	}
+
+	return referral, nil
 }
 
-func (u *referralUseCase) ListReferrals(ctx context.Context, userRole entity.UserRole, userHospitalID uuid.UUID, statusFilter, dateFrom, dateTo string) ([]entity.Referral, error) {
+func (u *referralUseCase) ListReferrals(ctx context.Context, userID, hospID, deptID uuid.UUID, userRole entity.UserRole, statusFilter, dateFrom, dateTo string) ([]entity.Referral, error) {
 	filters := make(map[string]interface{})
 
 	// Apply RBAC Scopes based on Role
 	switch userRole {
-	case entity.RoleReferringDoctor, entity.RoleReceptionist:
-		filters["sender_hospital_id"] = userHospitalID
-	case entity.RoleReceivingSpecialist, entity.RoleDeptHead:
-		filters["target_hospital_id"] = userHospitalID
+	case entity.RoleSystemSuperAdmin:
+		// No restrictions, sees all nationwide.
+	case entity.RoleReferringDoctor:
+		filters["referring_doctor_id"] = userID // Strictly personal creations
 	case entity.RoleLiaisonOfficer:
-		// Basic scope test setup, usually handles hospital bidirectional
-		filters["sender_hospital_id"] = userHospitalID
+		filters["sender_hospital_id"] = hospID  // Outgoing gatekeeper
+	case entity.RoleReceivingSpecialist, entity.RoleDeptHead:
+		filters["target_hospital_id"] = hospID
+		if deptID != uuid.Nil {
+			filters["target_dept_id"] = deptID // Incoming queue
+		}
+	case entity.RoleReceptionist:
+		filters["target_hospital_id"] = hospID // Usually filtered further by front desk for "ACCEPTED" only.
+	default:
+		// Unknown or restricted roles return empty to be safe
+		return []entity.Referral{}, errors.New("unauthorized role")
 	}
 
 	if statusFilter != "" {
@@ -159,11 +197,16 @@ func (u *referralUseCase) ListReferrals(ctx context.Context, userRole entity.Use
 	return u.referralRepo.ListReferrals(ctx, filters)
 }
 
-func (u *referralUseCase) UpdateDraft(ctx context.Context, id uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
+func (u *referralUseCase) UpdateDraft(ctx context.Context, id, userID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
 	// 1. Fetch existing
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	// Enforce creator constraint
+	if existing.ReferringDoctorID != userID {
+		return nil, errors.New("unauthorized: only the creator can update this draft")
 	}
 
 	// 2. Enforce DRAFT only status update
@@ -229,10 +272,14 @@ func (u *referralUseCase) UpdateDraft(ctx context.Context, id uuid.UUID, req dto
 	return existing, nil
 }
 
-func (u *referralUseCase) DeleteDraft(ctx context.Context, id uuid.UUID) error {
+func (u *referralUseCase) DeleteDraft(ctx context.Context, id, userID uuid.UUID) error {
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if existing.ReferringDoctorID != userID {
+		return errors.New("unauthorized: only the creator can delete this draft")
 	}
 
 	if existing.Status != entity.StatusDraft {
