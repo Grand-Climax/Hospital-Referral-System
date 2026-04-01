@@ -85,6 +85,14 @@ func (r *referralRepository) ListReferrals(ctx context.Context, filter map[strin
 		query = query.Where("target_hospital_id = ?", targetID)
 	}
 
+	if doctorID, ok := filter["referring_doctor_id"]; ok {
+		query = query.Where("referring_doctor_id = ?", doctorID)
+	}
+
+	if deptID, ok := filter["target_dept_id"]; ok {
+		query = query.Where("target_dept_id = ?", deptID)
+	}
+
 	if startDate, ok := filter["start_date"]; ok {
 		query = query.Where("created_at >= ?", startDate)
 	}

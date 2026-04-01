@@ -70,23 +70,44 @@ func (h *ReferralHandler) Create(c *gin.Context) {
 // @Description  Get referrals scoped by hospital and role. Doctors see sent referrals; specialists see incoming; admins see all.
 // @Tags         Referrals
 // @Produce      json
-// @Param        X-Hospital-ID header string true "Hospital ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
-// @Param        X-User-Role header string true "User Role" default(HOSPITAL_ADMIN)
 // @Param        status query string false "Filter by Status"
 // @Param        date_from query string false "Start Date"
 // @Param        date_to query string false "End Date"
 // @Success      200 {object} map[string]interface{}
+// @Failure      403 {object} map[string]string
 // @Failure      500 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/referrals [get]
 func (h *ReferralHandler) List(c *gin.Context) {
-	hospitalID, _ := uuid.Parse(c.GetHeader("X-Hospital-ID"))
-	role := entity.UserRole(c.GetHeader("X-User-Role"))
+	// Extract secure claims from context (provided by AuthMiddleware)
+	userID, _ := c.Get("userID")
+	role, _ := c.Get("role")
+	hospID, _ := c.Get("hospID")
+	deptID, _ := c.Get("deptID")
+
+	uID, _ := userID.(uuid.UUID)
+	r, _ := role.(entity.UserRole)
+	
+	// HospID and DeptID are pointers in the JWT payload
+	var hID, dID uuid.UUID
+	if h, ok := hospID.(*uuid.UUID); ok && h != nil {
+		hID = *h
+	}
+	if d, ok := deptID.(*uuid.UUID); ok && d != nil {
+		dID = *d
+	}
+
+	// Forbid Hospital Admin completely based on document rules
+	if r == entity.RoleHospitalAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Hospital Admins are restricted from viewing clinical patient records"})
+		return
+	}
+
 	status := c.Query("status")
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
-	referrals, err := h.referralUseCase.ListReferrals(c.Request.Context(), role, hospitalID, status, dateFrom, dateTo)
+	referrals, err := h.referralUseCase.ListReferrals(c.Request.Context(), uID, hID, dID, r, status, dateFrom, dateTo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch referrals"})
 		return
@@ -116,7 +137,29 @@ func (h *ReferralHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	referral, err := h.referralUseCase.GetReferral(c.Request.Context(), id)
+	userID, _ := c.Get("userID")
+	role, _ := c.Get("role")
+	hospID, _ := c.Get("hospID")
+	deptID, _ := c.Get("deptID")
+
+	uID, _ := userID.(uuid.UUID)
+	r, _ := role.(entity.UserRole)
+	
+	var hID, dID uuid.UUID
+	if h, ok := hospID.(*uuid.UUID); ok && h != nil {
+		hID = *h
+	}
+	if d, ok := deptID.(*uuid.UUID); ok && d != nil {
+		dID = *d
+	}
+
+	// Forbid Hospital Admin completely
+	if r == entity.RoleHospitalAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Hospital Admins are restricted from viewing clinical patient records"})
+		return
+	}
+
+	referral, err := h.referralUseCase.GetReferral(c.Request.Context(), id, uID, hID, dID, r)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Referral not found"})
 		return
@@ -152,7 +195,10 @@ func (h *ReferralHandler) UpdateDraft(c *gin.Context) {
 		return
 	}
 
-	referral, err := h.referralUseCase.UpdateDraft(c.Request.Context(), id, req)
+	userID, _ := c.Get("userID")
+	uID, _ := userID.(uuid.UUID)
+
+	referral, err := h.referralUseCase.UpdateDraft(c.Request.Context(), id, uID, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update draft", "details": err.Error()})
 		return
@@ -183,7 +229,10 @@ func (h *ReferralHandler) DeleteDraft(c *gin.Context) {
 		return
 	}
 
-	if err := h.referralUseCase.DeleteDraft(c.Request.Context(), id); err != nil {
+	userID, _ := c.Get("userID")
+	uID, _ := userID.(uuid.UUID)
+
+	if err := h.referralUseCase.DeleteDraft(c.Request.Context(), id, uID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete draft", "details": err.Error()})
 		return
 	}

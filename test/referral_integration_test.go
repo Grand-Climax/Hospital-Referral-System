@@ -29,23 +29,23 @@ func (m *MockReferralUseCase) CreateReferral(ctx context.Context, doctorID uuid.
 	return args.Get(0).(*entity.Referral), args.Error(1)
 }
 
-func (m *MockReferralUseCase) GetReferral(ctx context.Context, id uuid.UUID) (*entity.Referral, error) {
-	args := m.Called(ctx, id)
+func (m *MockReferralUseCase) GetReferral(ctx context.Context, id, userID, hospID, deptID uuid.UUID, userRole entity.UserRole) (*entity.Referral, error) {
+	args := m.Called(ctx, id, userID, hospID, deptID, userRole)
 	return args.Get(0).(*entity.Referral), args.Error(1)
 }
 
-func (m *MockReferralUseCase) ListReferrals(ctx context.Context, userRole entity.UserRole, userHospitalID uuid.UUID, statusFilter, dateFrom, dateTo string) ([]entity.Referral, error) {
-	args := m.Called(ctx, userRole, userHospitalID, statusFilter, dateFrom, dateTo)
+func (m *MockReferralUseCase) ListReferrals(ctx context.Context, userID, hospID, deptID uuid.UUID, userRole entity.UserRole, statusFilter, dateFrom, dateTo string) ([]entity.Referral, error) {
+	args := m.Called(ctx, userID, hospID, deptID, userRole, statusFilter, dateFrom, dateTo)
 	return args.Get(0).([]entity.Referral), args.Error(1)
 }
 
-func (m *MockReferralUseCase) UpdateDraft(ctx context.Context, id uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
-	args := m.Called(ctx, id, req)
+func (m *MockReferralUseCase) UpdateDraft(ctx context.Context, id, userID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
+	args := m.Called(ctx, id, userID, req)
 	return args.Get(0).(*entity.Referral), args.Error(1)
 }
 
-func (m *MockReferralUseCase) DeleteDraft(ctx context.Context, id uuid.UUID) error {
-	args := m.Called(ctx, id)
+func (m *MockReferralUseCase) DeleteDraft(ctx context.Context, id, userID uuid.UUID) error {
+	args := m.Called(ctx, id, userID)
 	return args.Error(0)
 }
 
