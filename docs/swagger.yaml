@@ -1655,18 +1655,6 @@ paths:
       description: Get referrals scoped by hospital and role. Doctors see sent referrals;
         specialists see incoming; admins see all.
       parameters:
-      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
-        description: Hospital ID
-        in: header
-        name: X-Hospital-ID
-        required: true
-        type: string
-      - default: HOSPITAL_ADMIN
-        description: User Role
-        in: header
-        name: X-User-Role
-        required: true
-        type: string
       - description: Filter by Status
         in: query
         name: status
@@ -1686,6 +1674,12 @@ paths:
           description: OK
           schema:
             additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Internal Server Error

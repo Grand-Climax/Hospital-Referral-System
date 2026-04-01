@@ -1750,22 +1750,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
-                        "description": "Hospital ID",
-                        "name": "X-Hospital-ID",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "HOSPITAL_ADMIN",
-                        "description": "User Role",
-                        "name": "X-User-Role",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Filter by Status",
                         "name": "status",
                         "in": "query"
@@ -1789,6 +1773,15 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
