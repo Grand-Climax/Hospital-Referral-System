@@ -100,38 +100,21 @@ func (u *authUseCase) Refresh(ctx context.Context, refreshToken, ipAddress, user
 		return nil, ErrInactiveAccount
 	}
 
-	// Generate New Pair
-	tokenPair, refreshExp, err := auth.GenerateTokenPair(user)
+	// Generate just a new Access Token (Refresh Token Rotation disabled)
+	newAccessToken, err := auth.GenerateAccessTokenOnly(user)
 	if err != nil {
 		return nil, err
 	}
 
-	// Revoke old session (Refresh Token Rotation)
-	now := time.Now()
-	session.RevokedAt = &now
-	_ = u.repo.UpdateSession(ctx, session)
-	_ = u.sessions.DeleteSession(ctx, refreshHash)
-
-	// Create new session
-	newSession := &entity.Session{
-		UserID:           user.ID,
-		RefreshTokenHash: hashToken(tokenPair.RefreshToken),
-		IPAddress:        &ipAddress,
-		UserAgent:        &userAgent,
-		ExpiresAt:        refreshExp,
-	}
-	if err := u.repo.CreateSession(ctx, newSession); err != nil {
-		return nil, err
-	}
-
-	_ = u.sessions.SetSession(ctx, newSession)
-
-	return tokenPair, nil
+	return &auth.TokenPair{
+		AccessToken:  newAccessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 func (u *authUseCase) Logout(ctx context.Context, accessToken, refreshToken string) error {
-	// 1. Blacklist the Access Token (for remaining valid time, default to 15 mins for safety)
-	_ = u.blacklist.Add(ctx, accessToken, 15*time.Minute)
+	// 1. Blacklist the Access Token (for remaining valid time, default to 1 hour for safety)
+	_ = u.blacklist.Add(ctx, accessToken, 1*time.Hour)
 
 	// 2. Revoke the Session using the Refresh Token Hash
 	refreshHash := hashToken(refreshToken)

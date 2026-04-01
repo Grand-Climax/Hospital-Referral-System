@@ -36,9 +36,24 @@ func getSecret() []byte {
 	return []byte(secret)
 }
 
+func GenerateAccessTokenOnly(user *entity.User) (string, error) {
+	accessExpiration := time.Now().Add(1 * time.Hour)
+	accessPayload := &TokenPayload{
+		UserID: user.ID,
+		Role:   user.Role,
+		HospID: user.HospitalID,
+		DeptID: user.DepartmentID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(accessExpiration),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, accessPayload).SignedString(getSecret())
+}
+
 func GenerateTokenPair(user *entity.User) (*TokenPair, time.Time, error) {
-	// Access token (e.g. 15 mins)
-	accessExpiration := time.Now().Add(15 * time.Minute)
+	// Access token (1 hour)
+	accessExpiration := time.Now().Add(1 * time.Hour)
 	accessPayload := &TokenPayload{
 		UserID: user.ID,
 		Role:   user.Role,
