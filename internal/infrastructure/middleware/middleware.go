@@ -61,7 +61,9 @@ func RecoveryMiddleware() gin.HandlerFunc {
 
 func CORS() gin.HandlerFunc {
 	cfg := cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOriginFunc: func(origin string) bool {
+			return true // Allow all origins dynamically while safely supporting credentials
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
