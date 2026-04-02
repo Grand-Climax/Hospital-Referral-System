@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -41,16 +42,24 @@ var validTransitions = map[entity.ReferralStatus][]entity.ReferralStatus{
 
 type referralUseCase struct {
 	referralRepo irepository.ReferralRepository
+	networkRepo  irepository.NetworkRepository
 }
 
-func NewReferralUseCase(repo irepository.ReferralRepository) iusecase.ReferralUseCase {
-	return &referralUseCase{referralRepo: repo}
+func NewReferralUseCase(rRepo irepository.ReferralRepository, nRepo irepository.NetworkRepository) iusecase.ReferralUseCase {
+	return &referralUseCase{referralRepo: rRepo, networkRepo: nRepo}
 }
 
 func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
-	// Construct the deeply nested entity
+	// 1. Verify Network Pathway
+	isValidRoute, err := u.networkRepo.VerifyNetworkPathway(ctx, senderHospitalID, req.TargetHospitalID)
+	if err != nil {
+		return nil, errors.New("failed to verify network routing")
+	}
+	if !isValidRoute {
+		return nil, errors.New("forbidden: no active referral network established between sender and target hospitals")
+	}
 
-	// Map Diagnoses
+	// 2. Map Diagnoses
 	var diagnoses []entity.ReferralDiagnosis
 	for _, d := range req.Diagnoses {
 		diagnoses = append(diagnoses, entity.ReferralDiagnosis{
@@ -60,7 +69,7 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 		})
 	}
 
-	// Map Form (Annex IV)
+	// 3. Map Form (Annex IV)
 	form := &entity.ReferralForm{
 		ClinicalSummary:              req.ClinicalSummary,
 		PatientHistory:               req.PatientHistory,
@@ -76,25 +85,18 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 		AccompanyingPersonPhone:      req.AccompanyingPersonPhone,
 	}
 
-	patient := &entity.Patient{
-		NationalIDEnc:  req.NationalIDEnc,
-		NationalIDHash: req.NationalIDHash,
-		PhoneNumber:    req.PhoneNumber,
-		FirstName:      req.FirstName,
-		MiddleName:     req.MiddleName,
-		LastName:       req.LastName,
-		Sex:            req.Sex,
-		HomeRegion:     req.HomeRegion,
-	}
+	// Determine Initial Request Status enforcing gating limits
+	requestStatus := entity.StatusDraft
 
+	// 4. Construct envelope mapping existing Patient explicitly
 	referral := &entity.Referral{
 		ReferringDoctorID: doctorID,
 		SenderHospitalID:  senderHospitalID,
 		TargetHospitalID:  req.TargetHospitalID,
 		TargetDeptID:      req.TargetDeptID,
+		PatientID:         req.PatientID,
 		LiaisonOfficerID:  req.LiaisonOfficerID,
-		Status:            entity.StatusDraft, // Initialize heavily normalized payload as DRAFT
-		Patient:           patient,
+		Status:            requestStatus,
 		ReferralForm:      form,
 		Diagnoses:         diagnoses,
 	}
@@ -117,6 +119,10 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 		referral.EmergencyDetail = &entity.ReferralEmergencyDetail{
 			EmergencyJustification: req.EmergencyDetail.EmergencyJustification,
 		}
+	}
+
+	if err := u.verifySubmissionRequirements(referral); err != nil {
+		return nil, err
 	}
 
 	if err := u.referralRepo.CreateReferralTransaction(ctx, referral); err != nil {
@@ -209,19 +215,15 @@ func (u *referralUseCase) UpdateDraft(ctx context.Context, id, userID uuid.UUID,
 		return nil, errors.New("unauthorized: only the creator can update this draft")
 	}
 
-	// 2. Enforce DRAFT only status update
-	if existing.Status != entity.StatusDraft {
-		return nil, errors.New("only referrals in DRAFT status can be updated via this endpoint")
+	// 2. Enforce DRAFT or NEEDS_REVISION only status update
+	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedsRevision {
+		return nil, errors.New("forbidden: only referrals actively in DRAFT or NEEDS_REVISION status can be updated via this endpoint")
 	}
 
-	// 3. Map updates (simplified for brevity, normally you'd map fields selectively or fully recreate)
+	// 3. Map updates
 	existing.TargetHospitalID = req.TargetHospitalID
 	existing.TargetDeptID = req.TargetDeptID
 	existing.LiaisonOfficerID = req.LiaisonOfficerID
-
-	if req.Status == "SUBMITTED" {
-		existing.Status = entity.StatusSubmitted // mapped from DTO transition command
-	}
 
 	// Update Form
 	existing.ReferralForm.ClinicalSummary = req.ClinicalSummary
@@ -282,48 +284,134 @@ func (u *referralUseCase) DeleteDraft(ctx context.Context, id, userID uuid.UUID)
 		return errors.New("unauthorized: only the creator can delete this draft")
 	}
 
-	if existing.Status != entity.StatusDraft {
-		return errors.New("cannot delete a referral that has already been submitted")
+	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedsRevision {
+		return errors.New("cannot delete a referral that has already been submitted and accepted for review")
 	}
 
 	return u.referralRepo.DeleteReferral(ctx, id)
 }
 
-func (u *referralUseCase) UpdateReferralStatus(ctx context.Context, id uuid.UUID, newStatus entity.ReferralStatus, userID uuid.UUID, reason string) error {
+func (u *referralUseCase) SubmitReferral(ctx context.Context, id, userID uuid.UUID) error {
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	// Validate Transition
-	validNextStates, ok := validTransitions[existing.Status]
-	if !ok {
-		return errors.New("current status does not allow any transitions")
-	}
-	isValid := false
-	for _, state := range validNextStates {
-		if state == newStatus {
-			isValid = true
-			break
-		}
-	}
-	if !isValid {
-		return errors.New("invalid status transition from " + string(existing.Status) + " to " + string(newStatus))
+	if existing.ReferringDoctorID != userID {
+		return errors.New("unauthorized: only the creator can submit this referral")
 	}
 
-	// Persist rejection reason when sending back to doctor or final rejection
-	if newStatus == entity.StatusNeedsRevision || newStatus == entity.StatusRejected {
-		if reason == "" {
-			return errors.New("a rejection reason is required when rejecting a referral")
-		}
-		existing.RejectionReason = &reason
+	if existing.Status != entity.StatusDraft {
+		return errors.New("invalid status: can only submit a referral in DRAFT status")
 	}
 
-	// Clear rejection reason when doctor resubmits after fixing
-	if newStatus == entity.StatusUnderLiaisonReview && existing.Status == entity.StatusNeedsRevision {
-		existing.RejectionReason = nil
+	// Fake the status temporarily for validation check
+	existing.Status = entity.StatusSubmitted
+	if err := u.verifySubmissionRequirements(existing); err != nil {
+		return err
 	}
 
-	existing.Status = newStatus
-	return u.referralRepo.UpdateReferralTransaction(ctx, existing)
+	oldStatus := entity.StatusDraft
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
+		return err
+	}
+
+	return u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
+		ReferralID:  id,
+		ChangedByID: userID,
+		FromStatus:  &oldStatus,
+		ToStatus:    entity.StatusSubmitted,
+		ChangedAt:   time.Now(),
+	})
+}
+
+func (u *referralUseCase) ResubmitReferral(ctx context.Context, id, userID uuid.UUID) error {
+	existing, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if existing.ReferringDoctorID != userID {
+		return errors.New("unauthorized: only the creator can resubmit this referral")
+	}
+
+	if existing.Status != entity.StatusNeedsRevision {
+		return errors.New("invalid status: can only resubmit a referral in NEEDS_REVISION status")
+	}
+
+	existing.Status = entity.StatusUnderLiaisonReview
+	existing.RejectionReason = nil // Clear previous rejection
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
+		return err
+	}
+
+	oldStatus := entity.StatusNeedsRevision
+	return u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
+		ReferralID:  id,
+		ChangedByID: userID,
+		FromStatus:  &oldStatus,
+		ToStatus:    entity.StatusUnderLiaisonReview,
+		ChangedAt:   time.Now(),
+	})
+}
+
+func (u *referralUseCase) CancelReferral(ctx context.Context, id, userID uuid.UUID, reason string) error {
+	existing, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if existing.ReferringDoctorID != userID {
+		return errors.New("unauthorized: only the creator can cancel this referral")
+	}
+
+	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedsRevision {
+		return errors.New("cannot cancel a referral that has already been submitted and accepted for review")
+	}
+
+	oldStatus := existing.Status
+	existing.Status = entity.StatusCancelled
+
+	var reasonPtr *string
+	if reason != "" {
+		reasonPtr = &reason
+	}
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
+		return err
+	}
+
+	return u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
+		ReferralID:  id,
+		ChangedByID: userID,
+		FromStatus:  &oldStatus,
+		ToStatus:    entity.StatusCancelled,
+		Reason:      reasonPtr,
+		ChangedAt:   time.Now(),
+	})
+}
+
+func (u *referralUseCase) verifySubmissionRequirements(ref *entity.Referral) error {
+	if ref.Status != entity.StatusSubmitted {
+		return nil // No severe restrictions exist for piecemeal DRAFTS
+	}
+
+	// Rule 1: Diagnoses
+	if len(ref.Diagnoses) == 0 {
+		return errors.New("cannot submit: at least one clinical diagnosis is required")
+	}
+
+	// Rule 2: Referral Form Fields
+	if ref.ReferralForm == nil {
+		return errors.New("cannot submit: referral form annex is missing")
+	}
+
+	f := ref.ReferralForm
+	if f.ClinicalSummary == "" || f.PatientHistory == "" || f.ReasonOfReferral == "" || f.ReasonForReferralCategory == "" || f.ConditionAtReferral == "" {
+		return errors.New("cannot submit: Clinical Summary, Patient History, Reason For Referral and Condition are structurally mandatory")
+	}
+
+	return nil
 }

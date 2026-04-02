@@ -32,15 +32,41 @@ func (u *patientUseCase) GetByNationalID(ctx context.Context, nationalID string)
 	return patient, nil
 }
 
-func (u *patientUseCase) GetByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error) {
-	patient, err := u.patientRepo.FindByPhoneAndName(ctx, phone, firstName)
-	if err != nil {
-		return nil, err
+func (u *patientUseCase) SearchPatients(ctx context.Context, query string) ([]entity.Patient, error) {
+	// Reverted to support explicit matching
+	return nil, errors.New("method deprecated: use explicit lookup methods")
+}
+
+func (u *patientUseCase) LookupPatient(ctx context.Context, nationalID, phone, firstName string) (*entity.Patient, error) {
+	if nationalID != "" {
+		return u.patientRepo.FindByNationalID(ctx, nationalID)
 	}
-	return patient, nil
+
+	if phone != "" && firstName != "" {
+		// Validate Ethiopian phone number
+		if err := u.validateEthiopianPhone(phone); err != nil {
+			return nil, err
+		}
+
+		patient, err := u.patientRepo.FindByPhoneAndName(ctx, phone, firstName)
+		if err != nil {
+			return nil, err
+		}
+		if patient == nil {
+			return nil, nil
+		}
+		return patient, nil
+	}
+
+	return nil, errors.New("insufficient lookup parameters: provide national_id OR (phone_number AND first_name)")
 }
 
 func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error) {
+	// 0. Validate Ethiopian phone number
+	if err := u.validateEthiopianPhone(req.PhoneNumber); err != nil {
+		return nil, err
+	}
+
 	// 1. Uniqueness check by National ID (if provided)
 	if req.NationalID != "" {
 		existing, err := u.patientRepo.FindByNationalID(ctx, req.NationalID)
@@ -52,13 +78,15 @@ func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatien
 		}
 	}
 
-	// 2. Uniqueness check by Phone + First Name
-	existing, err := u.patientRepo.FindByPhoneAndName(ctx, req.PhoneNumber, req.FirstName)
+	// 2. Uniqueness check by Phone
+	existingPhones, err := u.patientRepo.SearchPatients(ctx, req.PhoneNumber)
 	if err != nil {
 		return nil, err
 	}
-	if existing != nil {
-		return nil, errors.New("a patient with this Phone Number and First Name already exists")
+	for _, p := range existingPhones {
+		if p.PhoneNumber != nil && *p.PhoneNumber == req.PhoneNumber && strings.EqualFold(p.FirstName, req.FirstName) {
+			return nil, errors.New("a patient with this Phone Number and First Name already exists")
+		}
 	}
 
 	// 3. Create New Patient
@@ -89,4 +117,14 @@ func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatien
 	}
 
 	return newPatient, nil
+}
+
+func (u *patientUseCase) validateEthiopianPhone(phone string) error {
+	if !strings.HasPrefix(phone, "09") && !strings.HasPrefix(phone, "07") && !strings.HasPrefix(phone, "+2519") && !strings.HasPrefix(phone, "+2517") {
+		return errors.New("invalid phone format: must be an Ethiopian number (09/07 or +251)")
+	}
+	if len(phone) < 10 || len(phone) > 13 {
+		return errors.New("invalid phone format length")
+	}
+	return nil
 }

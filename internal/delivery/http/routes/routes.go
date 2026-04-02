@@ -54,8 +54,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	userUseCase := usecase.NewUserUseCase(userRepo)
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
-	referralUseCase := usecase.NewReferralUseCase(referralRepo)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, netRepo)
 	liaisonUseCase := usecase.NewLiaisonUseCase(referralRepo)
+	specialistUseCase := usecase.NewSpecialistUseCase(referralRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo)
@@ -68,6 +69,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	departmentHandler := handlers.NewDepartmentHandler(departmentUseCase)
 	referralHandler := handlers.NewReferralHandler(referralUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(liaisonUseCase)
+	specialistHandler := handlers.NewSpecialistHandler(specialistUseCase)
 	refHandler := handlers.NewReferenceHandler(refUseCase)
 	netHandler := handlers.NewNetworkHandler(netUseCase)
 	patientHandler := handlers.NewPatientHandler(patientUseCase)
@@ -109,7 +111,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			))
 			{
 				patientGroup.GET("/national-id/:id", patientHandler.GetByNationalID)
-				patientGroup.GET("/lookup/phone", patientHandler.GetByPhoneAndName)
+				patientGroup.GET("/lookup", patientHandler.LookupPatient)
 				patientGroup.POST("", patientHandler.CreatePatient)
 			}
 
@@ -125,12 +127,33 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			// protected.GET("/clinical-data", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleReceivingSpecialist), someHandler)
 
 			// Sprint 5 & 6: Referral Endpoints (Annex IV & State Machine)
-			protected.POST("/referrals", middleware.RequirePermission(entity.ActionCreateReferral), referralHandler.Create)
+			protected.POST("/referrals", 
+				middleware.RequirePermission(entity.ActionCreateReferral), 
+				middleware.RequireRole(entity.RoleReferringDoctor),
+				referralHandler.Create,
+			)
 			protected.GET("/referrals", referralHandler.List)
 			protected.GET("/referrals/:id", referralHandler.GetByID)
-			protected.PUT("/referrals/:id", referralHandler.UpdateDraft)
-			protected.DELETE("/referrals/:id", referralHandler.DeleteDraft)
-			protected.PATCH("/referrals/:id/status", referralHandler.UpdateStatus)
+			protected.PUT("/referrals/:id", 
+				middleware.RequireRole(entity.RoleReferringDoctor),
+				referralHandler.UpdateDraft,
+			)
+			protected.DELETE("/referrals/:id", 
+				middleware.RequireRole(entity.RoleReferringDoctor),
+				referralHandler.DeleteDraft,
+			)
+			protected.POST("/referrals/:id/submit", 
+				middleware.RequireRole(entity.RoleReferringDoctor),
+				referralHandler.Submit,
+			)
+			protected.POST("/referrals/:id/resubmit", 
+				middleware.RequireRole(entity.RoleReferringDoctor),
+				referralHandler.Resubmit,
+			)
+			protected.POST("/referrals/:id/cancel", 
+				middleware.RequireRole(entity.RoleReferringDoctor),
+				referralHandler.Cancel,
+			)
 			
 			// Attachments
 			protected.POST("/referrals/:id/attachments", attachmentHandler.UploadAttachment)
@@ -144,6 +167,14 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 				liaisonGroup.POST("/:id/approve", liaisonHandler.Approve)
 				liaisonGroup.POST("/:id/reject", liaisonHandler.Reject)
 				liaisonGroup.POST("/:id/forward", liaisonHandler.Forward)
+			}
+
+			// Specialist Actions
+			specialistGroup := protected.Group("/specialist/referrals")
+			specialistGroup.Use(middleware.RequireRole(entity.RoleReceivingSpecialist))
+			{
+				specialistGroup.POST("/:id/accept", specialistHandler.Accept)
+				specialistGroup.POST("/:id/reject", specialistHandler.Reject)
 			}
 
 			// ---- User Management ----

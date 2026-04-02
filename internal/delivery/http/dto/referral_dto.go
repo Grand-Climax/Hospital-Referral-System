@@ -3,21 +3,13 @@ package dto
 import "github.com/google/uuid"
 
 type CreateReferralRequest struct {
-	// Patient Demographics
-	NationalIDEnc  *string `json:"national_id_enc" example:"NAT-12345"`
-	NationalIDHash *string `json:"national_id_hash"`
-	PhoneNumber    *string `json:"phone_number" binding:"omitempty,e164" example:"+251911223344"`
-	FirstName      string  `json:"first_name" example:"Abebe"`
-	MiddleName     string  `json:"middle_name" example:"Kebede"`
-	LastName       string  `json:"last_name" example:"Tadesse"`
-	Sex            string  `json:"sex" binding:"omitempty,oneof=male female unknown" example:"male"`
-	DateOfBirth    string  `json:"date_of_birth" binding:"omitempty,datetime=2006-01-02" example:"1985-05-18"`
-	HomeRegion     *string `json:"home_region" example:"Oromia"`
+	// Patient Logic
+	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"912b4375-2295-41bb-8ffd-c8318e9c051f"`
 
 	// Routing Information
-	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
-	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
-	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id"`
+	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"c9020345-5e41-42d6-9a66-c8d4557519ff"`
+	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"23fdcea4-074f-4c6b-8fe8-400da55df997"`
+	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id" swaggerignore:"true"`
 
 	// Annex IV Clinical Data
 	ClinicalSummary              string  `json:"clinical_summary" example:"Patient complains of severe chest pain for 2 hours"`
@@ -45,7 +37,7 @@ type CreateReferralRequest struct {
 }
 
 type DiagnosisDTO struct {
-	ICDCode            string `json:"icd_code" binding:"required" example:"I21.9"`
+	ICDCode            string `json:"icd_code" binding:"required" example:"I10"`
 	IsPrimary          bool   `json:"is_primary" example:"true"`
 	DiagnosisCertainty string `json:"diagnosis_certainty" binding:"required,oneof=CONFIRMED SUSPECTED SYMPTOM_ONLY" example:"SUSPECTED"`
 }
@@ -61,5 +53,5 @@ type VitalsDTO struct {
 }
 
 type EmergencyDetailDTO struct {
-	EmergencyJustification string `json:"emergency_justification" binding:"required"`
+	EmergencyJustification string `json:"emergency_justification" binding:"required" example:"Patient requires immediate intubation and bypass surgery"`
 }

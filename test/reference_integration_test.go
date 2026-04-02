@@ -114,10 +114,17 @@ func TestReferenceEndpoints(t *testing.T) {
 		senderID := uuid.New()
 		mockUC.On("GetNetworkedHospitals", mock.Anything, senderID).Return([]entity.Hospital{hosp}, nil)
 
+		// Create a separate route for this test to inject the context
+		testRouter := gin.Default()
+		testRouter.Use(func(c *gin.Context) {
+			c.Set("hospID", &senderID)
+			c.Next()
+		})
+		testRouter.GET("/api/v1/references/networked-hospitals", handler.GetNetworkedHospitals)
+
 		req := httptest.NewRequest("GET", "/api/v1/references/networked-hospitals", nil)
-		req.Header.Set("X-Hospital-ID", senderID.String())
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		testRouter.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
