@@ -31,8 +31,8 @@ func (m *MockPatientUseCase) GetByNationalID(ctx context.Context, nationalID str
 	return nil, args.Error(1)
 }
 
-func (m *MockPatientUseCase) GetByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error) {
-	args := m.Called(ctx, phone, firstName)
+func (m *MockPatientUseCase) LookupPatient(ctx context.Context, nationalID, phone, firstName string) (*entity.Patient, error) {
+	args := m.Called(ctx, nationalID, phone, firstName)
 	if patient := args.Get(0); patient != nil {
 		return patient.(*entity.Patient), args.Error(1)
 	}
@@ -47,12 +47,20 @@ func (m *MockPatientUseCase) CreatePatient(ctx context.Context, req dto.CreatePa
 	return nil, args.Error(1)
 }
 
+func (m *MockPatientUseCase) SearchPatients(ctx context.Context, query string) ([]entity.Patient, error) {
+	args := m.Called(ctx, query)
+	if patients := args.Get(0); patients != nil {
+		return patients.([]entity.Patient), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 
 func setupPatientRouter(mockUC *MockPatientUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	handler := handlers.NewPatientHandler(mockUC)
 	router := gin.Default()
-	router.GET("/api/v1/patients/lookup/phone", handler.GetByPhoneAndName)
+	router.GET("/api/v1/patients/lookup", handler.LookupPatient)
 	router.POST("/api/v1/patients", handler.CreatePatient)
 	return router
 }
@@ -66,9 +74,10 @@ func TestPatientLookupByPhoneAndName_Found(t *testing.T) {
 		FirstName: "Liya",
 	}
 
-	mockUC.On("GetByPhoneAndName", mock.Anything, "+251911000002", "Liya").Return(mockPatient, nil)
+	phone := "+251911000002"
+	mockUC.On("LookupPatient", mock.Anything, "", phone, "Liya").Return(mockPatient, nil)
 
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup/phone?phone_number=%2B251911000002&first_name=Liya", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup?phone_number=%2B251911000002&first_name=Liya", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -76,11 +85,11 @@ func TestPatientLookupByPhoneAndName_Found(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Liya")
 }
 
-func TestPatientLookupByPhoneAndName_MissingParams(t *testing.T) {
+func TestPatientLookup_MissingParams(t *testing.T) {
 	mockUC := new(MockPatientUseCase)
 	router := setupPatientRouter(mockUC)
 
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup/phone?phone_number=%2B251911000002", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
