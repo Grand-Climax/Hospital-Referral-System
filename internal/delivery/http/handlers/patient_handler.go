@@ -52,30 +52,32 @@ func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": patient})
 }
 
-// GetByPhoneAndName godoc
-// @Summary      Get patient by Phone and First Name
-// @Description  Fallback lookup using phone number and first name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+// LookupPatient godoc
+// @Summary      Lookup patient
+// @Description  Intelligent secure search by strictly providing National ID OR (Phone + First Name). Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
 // @Tags         Patients
 // @Produce      json
-// @Param        phone_number query string true "Phone Number (E.164)" default(+251911000002)
-// @Param        first_name query string true "First Name" default(Liya)
+// @Param        national_id query string false "National ID"
+// @Param        phone_number query string false "Phone Number (E.164)"
+// @Param        first_name query string false "First Name"
 // @Success      200 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
-// @Router       /api/v1/patients/lookup/phone [get]
-func (h *PatientHandler) GetByPhoneAndName(c *gin.Context) {
+// @Router       /api/v1/patients/lookup [get]
+func (h *PatientHandler) LookupPatient(c *gin.Context) {
+	nationalID := strings.TrimSpace(c.Query("national_id"))
 	phone := strings.TrimSpace(c.Query("phone_number"))
 	firstName := strings.TrimSpace(c.Query("first_name"))
 
-	if phone == "" || firstName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "phone_number and first_name are required"})
+	if nationalID == "" && (phone == "" || firstName == "") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "either national_id OR both phone_number and first_name are required"})
 		return
 	}
 
-	patient, err := h.patientUC.GetByPhoneAndName(c.Request.Context(), phone, firstName)
+	patient, err := h.patientUC.LookupPatient(c.Request.Context(), nationalID, phone, firstName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to look up patient"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

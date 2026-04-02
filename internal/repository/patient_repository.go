@@ -43,9 +43,23 @@ func (r *patientRepository) FindByNationalID(ctx context.Context, nationalID str
 	return &patient, nil
 }
 
+func (r *patientRepository) SearchPatients(ctx context.Context, query string) ([]entity.Patient, error) {
+	var patients []entity.Patient
+	
+	wildcard := "%" + query + "%"
+	hashedID := hashNationalID(query)
+
+	err := r.db.WithContext(ctx).
+		Where("phone_number ILIKE ? OR national_id_hash = ? OR first_name ILIKE ? OR last_name ILIKE ?", 
+		wildcard, hashedID, wildcard, wildcard).
+		Limit(20).
+		Find(&patients).Error
+
+	return patients, err
+}
+
 func (r *patientRepository) FindByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error) {
 	var patient entity.Patient
-
 	err := r.db.WithContext(ctx).
 		Where("phone_number = ? AND LOWER(first_name) = LOWER(?)", phone, firstName).
 		First(&patient).Error
@@ -56,6 +70,5 @@ func (r *patientRepository) FindByPhoneAndName(ctx context.Context, phone, first
 		}
 		return nil, err
 	}
-
 	return &patient, nil
 }
