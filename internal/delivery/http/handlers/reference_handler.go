@@ -77,18 +77,22 @@ func (h *ReferenceHandler) SearchICD(c *gin.Context) {
 // @Description  Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target. Accessible by all authenticated roles.
 // @Tags         References
 // @Produce      json
-// @Param        X-Hospital-ID header string true "Sender Hospital ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
 // @Router       /api/v1/reference/networked-hospitals [get]
 func (h *ReferenceHandler) GetNetworkedHospitals(c *gin.Context) {
-	senderHospitalID, err := uuid.Parse(c.GetHeader("X-Hospital-ID"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid requesting hospital ID"})
+	hospIDVal, exists := c.Get("hospID")
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+		return
+	}
+	hospIDPtr, ok := hospIDVal.(*uuid.UUID)
+	if !ok || hospIDPtr == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
 		return
 	}
 
-	hospitals, err := h.referenceUseCase.GetNetworkedHospitals(c.Request.Context(), senderHospitalID)
+	hospitals, err := h.referenceUseCase.GetNetworkedHospitals(c.Request.Context(), *hospIDPtr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch networked hospitals"})
 		return

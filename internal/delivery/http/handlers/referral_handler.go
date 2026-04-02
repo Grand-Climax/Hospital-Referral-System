@@ -25,8 +25,6 @@ func NewReferralHandler(uc iusecase.ReferralUseCase) *ReferralHandler {
 // @Tags         Referrals
 // @Accept       json
 // @Produce      json
-// @Param        X-Doctor-ID header string true "Doctor ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
-// @Param        X-Hospital-ID header string true "Hospital ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
 // @Param        body body dto.CreateReferralRequest true "Referral payload"
 // @Success      201 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
@@ -41,17 +39,23 @@ func (h *ReferralHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// For Sprint 4 testing, we extract ID logic headers since we are bypassing complex JWT extraction here
-	doctorIDStr := c.GetHeader("X-Doctor-ID")
-	hospitalIDStr := c.GetHeader("X-Hospital-ID")
+	// Extract securely from Context populated by Auth middleware
+	userIDVal, _ := c.Get("userID")
+	hospIDVal, _ := c.Get("hospID")
 
-	if doctorIDStr == "" || hospitalIDStr == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user context headers"})
+	doctorID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: Invalid user ID format"})
 		return
 	}
 
-	doctorID, _ := uuid.Parse(doctorIDStr)
-	hospitalID, _ := uuid.Parse(hospitalIDStr)
+	hospIDPtr, _ := hospIDVal.(*uuid.UUID)
+	if hospIDPtr == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: User is not linked to a Sender Hospital"})
+		return
+	}
+
+	hospitalID := *hospIDPtr
 
 	referral, err := h.referralUseCase.CreateReferral(c.Request.Context(), doctorID, hospitalID, req)
 	if err != nil {
@@ -240,21 +244,97 @@ func (h *ReferralHandler) DeleteDraft(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Draft deleted successfully"})
 }
 
-// UpdateStatus godoc
-// @Summary      Update Referral Status
-// @Description  Advance or reverse the referral state machine. Transitions vary by role: LIAISON_OFFICER can FORWARD or set NEEDS_REVISION; RECEIVING_SPECIALIST can accept (SPECIALIST_ASSIGNED) or reject back to UNDER_LIAISON_REVIEW; REFERRING_DOCTOR resubmits NEEDS_REVISION → UNDER_LIAISON_REVIEW.
+// Submit godoc
+// @Summary      Submit Referral Draft
+// @Description  Transition referral from DRAFT to SUBMITTED state. Enforces clinical validation. Only creator.
+// @Tags         Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      409 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/referrals/{id}/submit [post]
+func (h *ReferralHandler) Submit(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	userIDVal, _ := c.Get("userID")
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	if err := h.referralUseCase.SubmitReferral(c.Request.Context(), id, userID); err != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Failed to submit referral", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Referral submitted successfully",
+		"newStatus": entity.StatusSubmitted,
+	})
+}
+
+// Resubmit godoc
+// @Summary      Resubmit Rejected Referral
+// @Description  Transition referral from NEEDS_REVISION to UNDER_LIAISON_REVIEW. Clears old rejection reason. Only creator.
+// @Tags         Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      409 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/referrals/{id}/resubmit [post]
+func (h *ReferralHandler) Resubmit(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	userIDVal, _ := c.Get("userID")
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	if err := h.referralUseCase.ResubmitReferral(c.Request.Context(), id, userID); err != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Failed to resubmit referral", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Referral resubmitted successfully",
+		"newStatus": entity.StatusUnderLiaisonReview,
+	})
+}
+
+// Cancel godoc
+// @Summary      Cancel Referral
+// @Description  Transition referral to CANCELLED state. Available from DRAFT or NEEDS_REVISION.
 // @Tags         Referrals
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
-// @Param        X-Doctor-ID header string true "Doctor ID deciding" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
-// @Param        body body object true "Status Payload"
-// @Success      200 {object} map[string]string
+// @Param        body body object false "Cancel Payload (reason optional)"
+// @Success      200 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
 // @Failure      409 {object} map[string]string
 // @Security     BearerAuth
-// @Router       /api/v1/referrals/{id}/status [patch]
-func (h *ReferralHandler) UpdateStatus(c *gin.Context) {
+// @Router       /api/v1/referrals/{id}/cancel [post]
+func (h *ReferralHandler) Cancel(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -263,22 +343,25 @@ func (h *ReferralHandler) UpdateStatus(c *gin.Context) {
 	}
 
 	var req struct {
-		Status string `json:"status" binding:"required"`
 		Reason string `json:"reason"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status payload", "details": err.Error()})
+	// Note: ShouldBindJSON is okay here if body is empty it returns error, but we can safely ignore it to make it optional.
+	_ = c.ShouldBindJSON(&req)
+
+	userIDVal, _ := c.Get("userID")
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	// Assuming we extract the user ID deciding the change from the JWT/Headers
-	userIDStr := c.GetHeader("X-Doctor-ID")
-	userID, _ := uuid.Parse(userIDStr)
-
-	if err := h.referralUseCase.UpdateReferralStatus(c.Request.Context(), id, entity.ReferralStatus(req.Status), userID, req.Reason); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Status transition failed", "details": err.Error()})
+	if err := h.referralUseCase.CancelReferral(c.Request.Context(), id, userID, req.Reason); err != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Failed to cancel referral", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Referral status updated to " + req.Status})
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Referral cancelled successfully",
+		"newStatus": entity.StatusCancelled,
+	})
 }

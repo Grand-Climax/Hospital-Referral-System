@@ -120,6 +120,16 @@ func mapActionType(action string) entity.ActionType {
 		return entity.ActionLogin
 	case strings.Contains(lower, "/auth/logout"):
 		return entity.ActionLogout
+	case strings.Contains(lower, "/submit") || strings.Contains(lower, "/resubmit"):
+		return entity.ActionCreateReferral
+	case strings.Contains(lower, "/approve") || strings.Contains(lower, "/forward"):
+		return entity.ActionApproveReferral
+	case strings.Contains(lower, "/reject"):
+		return entity.ActionRejectReferral
+	case strings.Contains(lower, "/accept"):
+		return entity.ActionAcceptReferral
+	case strings.Contains(lower, "/referrals") && strings.HasPrefix(lower, "post"):
+		return entity.ActionCreateReferral
 	default:
 		return entity.ActionAPICall
 	}
