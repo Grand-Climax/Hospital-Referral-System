@@ -20,6 +20,7 @@ var sampleICDCodes = []entity.ICDCode{
 	{Code: "R50.9", Description: "Fever, unspecified", Category: "Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified"},
 	{Code: "Z00.00", Description: "Encounter for general adult medical examination without abnormal findings", Category: "Factors influencing health status and contact with health services"},
 	{Code: "K35.80", Description: "Unspecified acute appendicitis", Category: "Diseases of the digestive system"},
+	{Code: "I21.9", Description: "Acute myocardial infarction, unspecified", Category: "Diseases of the circulatory system"},
 }
 
 func seedICDCodes(ctx context.Context, db *gorm.DB) error {

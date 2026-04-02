@@ -1683,7 +1683,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: 'Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR.'
+      description: 'Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR,
+        RECEPTIONIST.'
       parameters:
       - description: Referral payload
         in: body

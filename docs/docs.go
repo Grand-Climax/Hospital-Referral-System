@@ -1793,7 +1793,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR.",
+                "description": "Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR, RECEPTIONIST.",
                 "consumes": [
                     "application/json"
                 ],
