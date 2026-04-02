@@ -81,6 +81,38 @@ func seedNetworks(ctx context.Context, db *gorm.DB) error {
 		})
 	}
 
+	// ── Critical dev/test routes ─────────────────────────────────────────────
+	// Bishoftu Primary → Adama General  (matches test JWT hosp_id cd323204...)
+	// Adama General → Jimma Specialized
+	var bishoftu, adama, jimma *entity.Hospital
+	for i, h := range hospitals {
+		switch h.Name {
+		case "Bishoftu Primary Hospital":
+			bishoftu = &hospitals[i]
+		case "Adama General Hospital":
+			adama = &hospitals[i]
+		case "Jimma University Medical Center":
+			jimma = &hospitals[i]
+		}
+	}
+
+	if bishoftu != nil && adama != nil {
+		networks = append(networks, entity.ReferralNetwork{
+			SenderHospitalID:      bishoftu.ID,
+			ReceiverHospitalID:    adama.ID,
+			ReferralType:          "routine",
+			RequiresAdminApproval: false,
+		})
+	}
+	if adama != nil && jimma != nil {
+		networks = append(networks, entity.ReferralNetwork{
+			SenderHospitalID:      adama.ID,
+			ReceiverHospitalID:    jimma.ID,
+			ReferralType:          "routine",
+			RequiresAdminApproval: false,
+		})
+	}
+
 	// Persist
 	for _, raw := range networks {
 		var existing entity.ReferralNetwork

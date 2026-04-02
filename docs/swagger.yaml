@@ -3,7 +3,6 @@ definitions:
   dto.CreateNetworkRouteRequest:
     properties:
       receiver_hospital_id:
-        example: 0f74f069-d52d-4482-9ba5-41b007fdc1e5
         type: string
       referral_type:
         example: INPATIENT
@@ -12,7 +11,6 @@ definitions:
         example: true
         type: boolean
       sender_hospital_id:
-        example: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
         type: string
     required:
     - receiver_hospital_id
@@ -75,9 +73,6 @@ definitions:
       condition_at_referral:
         example: UNSTABLE
         type: string
-      date_of_birth:
-        example: "1985-05-18"
-        type: string
       diagnoses:
         description: Diagnoses
         items:
@@ -85,40 +80,21 @@ definitions:
         type: array
       emergency_detail:
         $ref: '#/definitions/dto.EmergencyDetailDTO'
-      first_name:
-        example: Abebe
-        type: string
-      home_region:
-        example: Oromia
-        type: string
       investigation_results:
         example: ECG shows ST elevation
-        type: string
-      last_name:
-        example: Tadesse
-        type: string
-      liaison_officer_id:
         type: string
       medication_on_transfer:
         example: IV Nitroglycerin
         type: string
-      middle_name:
-        example: Kebede
-        type: string
       mode_of_transport:
         example: AMBULANCE
-        type: string
-      national_id_enc:
-        description: Patient Demographics
-        example: NAT-12345
-        type: string
-      national_id_hash:
         type: string
       patient_history:
         example: Hypertension diagnosed 5 years ago
         type: string
-      phone_number:
-        example: "+251911223344"
+      patient_id:
+        description: Patient Logic
+        example: 912b4375-2295-41bb-8ffd-c8318e9c051f
         type: string
       physical_examination_findings:
         example: BP 180/110, HR 105
@@ -129,13 +105,6 @@ definitions:
       reason_of_referral:
         example: Requires immediate cardiological intervention
         type: string
-      sex:
-        enum:
-        - male
-        - female
-        - unknown
-        example: male
-        type: string
       status:
         description: Status tracking
         enum:
@@ -144,11 +113,11 @@ definitions:
         example: SUBMITTED
         type: string
       target_dept_id:
-        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        example: 23fdcea4-074f-4c6b-8fe8-400da55df997
         type: string
       target_hospital_id:
         description: Routing Information
-        example: 0f74f069-d52d-4482-9ba5-41b007fdc1e5
+        example: c9020345-5e41-42d6-9a66-c8d4557519ff
         type: string
       treatment_given_before_referral:
         example: Aspirin 300mg
@@ -158,6 +127,7 @@ definitions:
         - $ref: '#/definitions/dto.VitalsDTO'
         description: Optional Extensions
     required:
+    - patient_id
     - target_dept_id
     - target_hospital_id
     type: object
@@ -171,7 +141,7 @@ definitions:
         example: SUSPECTED
         type: string
       icd_code:
-        example: I21.9
+        example: I10
         type: string
       is_primary:
         example: true
@@ -183,6 +153,7 @@ definitions:
   dto.EmergencyDetailDTO:
     properties:
       emergency_justification:
+        example: Patient requires immediate intubation and bypass surgery
         type: string
     required:
     - emergency_justification
@@ -210,6 +181,26 @@ definitions:
     properties:
       reason:
         example: Incomplete clinical summary
+        type: string
+    required:
+    - reason
+    type: object
+  dto.SpecialistActionResponse:
+    properties:
+      message:
+        example: Referral rejected and returned to liaison review
+        type: string
+      new_status:
+        example: UNDER_LIAISON_REVIEW
+        type: string
+      referral_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  dto.SpecialistRejectRequest:
+    properties:
+      reason:
+        example: Patient condition not suitable for this department
         type: string
     required:
     - reason
@@ -508,11 +499,15 @@ definitions:
         type: string
       department_id:
         type: string
+      department_name:
+        type: string
       email:
         type: string
       first_name:
         type: string
       hospital_id:
+        type: string
+      hospital_name:
         type: string
       id:
         type: string
@@ -1462,22 +1457,22 @@ paths:
       summary: Create Patient
       tags:
       - Patients
-  /api/v1/patients/lookup/phone:
+  /api/v1/patients/lookup:
     get:
-      description: 'Fallback lookup using phone number and first name. Roles: REFERRING_DOCTOR,
-        RECEPTIONIST, SYSTEM_SUPER_ADMIN'
+      description: 'Intelligent secure search by strictly providing National ID OR
+        (Phone + First Name). Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN'
       parameters:
-      - default: "+251911000002"
-        description: Phone Number (E.164)
+      - description: National ID
+        in: query
+        name: national_id
+        type: string
+      - description: Phone Number (E.164)
         in: query
         name: phone_number
-        required: true
         type: string
-      - default: Liya
-        description: First Name
+      - description: First Name
         in: query
         name: first_name
-        required: true
         type: string
       produces:
       - application/json
@@ -1501,7 +1496,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get patient by Phone and First Name
+      summary: Lookup patient
       tags:
       - Patients
   /api/v1/patients/national-id/{id}:
@@ -1630,13 +1625,6 @@ paths:
       description: Returns hospitals in the referral network that can receive from
         the requesting hospital. Used by doctors/liaison when selecting a referral
         target. Accessible by all authenticated roles.
-      parameters:
-      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
-        description: Sender Hospital ID
-        in: header
-        name: X-Hospital-ID
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -1698,18 +1686,6 @@ paths:
       description: 'Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR,
         RECEPTIONIST.'
       parameters:
-      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
-        description: Doctor ID
-        in: header
-        name: X-Doctor-ID
-        required: true
-        type: string
-      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
-        description: Hospital ID
-        in: header
-        name: X-Hospital-ID
-        required: true
-        type: string
       - description: Referral payload
         in: body
         name: body
@@ -1901,30 +1877,21 @@ paths:
       summary: Upload Referral Attachment
       tags:
       - Attachments
-  /api/v1/referrals/{id}/status:
-    patch:
+  /api/v1/referrals/{id}/cancel:
+    post:
       consumes:
       - application/json
-      description: 'Advance or reverse the referral state machine. Transitions vary
-        by role: LIAISON_OFFICER can FORWARD or set NEEDS_REVISION; RECEIVING_SPECIALIST
-        can accept (SPECIALIST_ASSIGNED) or reject back to UNDER_LIAISON_REVIEW; REFERRING_DOCTOR
-        resubmits NEEDS_REVISION → UNDER_LIAISON_REVIEW.'
+      description: Transition referral to CANCELLED state. Available from DRAFT or
+        NEEDS_REVISION.
       parameters:
       - description: Referral ID
         in: path
         name: id
         required: true
         type: string
-      - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
-        description: Doctor ID deciding
-        in: header
-        name: X-Doctor-ID
-        required: true
-        type: string
-      - description: Status Payload
+      - description: Cancel Payload (reason optional)
         in: body
         name: body
-        required: true
         schema:
           type: object
       produces:
@@ -1933,11 +1900,16 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string
@@ -1950,9 +1922,190 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Update Referral Status
+      summary: Cancel Referral
       tags:
       - Referrals
+  /api/v1/referrals/{id}/resubmit:
+    post:
+      description: Transition referral from NEEDS_REVISION to UNDER_LIAISON_REVIEW.
+        Clears old rejection reason. Only creator.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Resubmit Rejected Referral
+      tags:
+      - Referrals
+  /api/v1/referrals/{id}/submit:
+    post:
+      description: Transition referral from DRAFT to SUBMITTED state. Enforces clinical
+        validation. Only creator.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit Referral Draft
+      tags:
+      - Referrals
+  /api/v1/specialist/referrals/{id}/accept:
+    post:
+      description: Transition referral from FORWARDED/RECEIVED to SPECIALIST_ASSIGNED.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SpecialistActionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Accept Referral (Specialist)
+      tags:
+      - Specialist
+  /api/v1/specialist/referrals/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Transition referral back to UNDER_LIAISON_REVIEW at origin hospital.
+        Reason required.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reject Payload (reason required)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SpecialistRejectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SpecialistActionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reject Referral (Specialist)
+      tags:
+      - Specialist
   /api/v1/users:
     get:
       description: Admin-only endpoint to list users with optional filters
