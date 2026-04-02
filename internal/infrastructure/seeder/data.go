@@ -1,6 +1,10 @@
 package seeder
 
-import "Hospital-Referral-System/internal/domain/entity"
+import (
+	"github.com/google/uuid"
+
+	"Hospital-Referral-System/internal/domain/entity"
+)
 
 func ptrStr(s string) *string {
 	return &s
@@ -11,7 +15,11 @@ var initialDepartments = []entity.Department{
 	{Name: "General Surgery", Description: ptrStr("General surgical procedures")},
 	{Name: "Pediatrics", Description: ptrStr("Care of infants, children, and adolescents")},
 	{Name: "Obstetrics and Gynecology", Description: ptrStr("Pregnancy, childbirth, and female reproductive system")},
-	{Name: "Cardiology", Description: ptrStr("Heart and blood vessel disorders")},
+	{
+		ID:          uuid.MustParse("dfc2b777-a5d5-424b-911a-976b2e8d8614"),
+		Name:        "Cardiology", 
+		Description: ptrStr("Heart and blood vessel disorders"),
+	},
 	{Name: "Neurology", Description: ptrStr("Disorders of the nervous system")},
 	{Name: "Oncology", Description: ptrStr("Diagnosis and treatment of cancer")},
 	{Name: "Orthopedics", Description: ptrStr("Conditions involving the musculoskeletal system")},
@@ -68,6 +76,7 @@ var initialHospitals = []entity.Hospital{
 	
 	// General Hospitals (Regional)
 	{
+		ID:           uuid.MustParse("0f74f069-d52d-4482-9ba5-41b007fdc1e5"),
 		Name:         "Adama General Hospital",
 		TierLevel:    entity.GeneralHosp,
 		Region:       "Oromia",
@@ -91,6 +100,7 @@ var initialHospitals = []entity.Hospital{
 	
 	// Primary Hospitals (District level)
 	{
+		ID:           uuid.MustParse("cd323204-bfb7-4583-88e9-bb5cbed68af0"),
 		Name:         "Bishoftu Primary Hospital",
 		TierLevel:    entity.PrimaryHosp,
 		Region:       "Oromia",
@@ -134,22 +144,35 @@ var systemTestUsers = []entity.User{
 
 // Helper structs for building users dynamically mapped to inserted hospitals
 type hospitalUserTemplate struct {
-	NationalID string
-	Email      string
-	FirstName  string
-	LastName   string
-	Role       entity.UserRole
-	DeptName   string // For mapping to a seeded department if required
+	NationalID   string
+	Email        string
+	FirstName    string
+	LastName     string
+	Role         entity.UserRole
+	DepartmentID *uuid.UUID // nil for roles that don't need a department (Admin, Liaison, Receptionist)
 }
 
-// Primary Hospital template users
+var (
+	cardiologyID = uuid.MustParse("dfc2b777-a5d5-424b-911a-976b2e8d8614")
+)
+
+// Primary Hospital template users (Bishoftu Primary Hospital = cd323204-bfb7-4583-88e9-bb5cbed68af0)
 var primaryHospUsers = []hospitalUserTemplate{
 	{
-		NationalID: "DOC-PRI-001",
-		Email:      "doc.primary@hospital.et",
+		NationalID:   "DOC-PRI-001",
+		Email:        "doc.primary@hospital.et",
+		FirstName:    "Primary",
+		LastName:     "Doctor",
+		Role:         entity.RoleReferringDoctor,
+		DepartmentID: &cardiologyID, // Doctors are linked to their clinical department
+	},
+	{
+		NationalID: "LIAISON-PRI-001",
+		Email:      "liaison.primary@hospital.et",
 		FirstName:  "Primary",
-		LastName:   "Doctor",
-		Role:       entity.RoleReferringDoctor,
+		LastName:   "Liaison Officer",
+		Role:       entity.RoleLiaisonOfficer,
+		// No department
 	},
 	{
 		NationalID: "RECEPT-PRI-001",
@@ -157,17 +180,19 @@ var primaryHospUsers = []hospitalUserTemplate{
 		FirstName:  "Primary",
 		LastName:   "Receptionist",
 		Role:       entity.RoleReceptionist,
+		// No department
 	},
 }
 
-// Specialized Hospital template users
+// Specialized Hospital template users (Jimma University Medical Center)
 var specializedHospUsers = []hospitalUserTemplate{
 	{
-		NationalID: "SPEC-001",
-		Email:      "specialist.cardio@hospital.et",
-		FirstName:  "Cardio",
-		LastName:   "Specialist",
-		Role:       entity.RoleReceivingSpecialist,
+		NationalID:   "SPEC-001",
+		Email:        "specialist.cardio@hospital.et",
+		FirstName:    "Cardio",
+		LastName:     "Specialist",
+		Role:         entity.RoleReceivingSpecialist,
+		DepartmentID: &cardiologyID,
 	},
 	{
 		NationalID: "HOSPADMIN-001",
@@ -177,12 +202,19 @@ var specializedHospUsers = []hospitalUserTemplate{
 		Role:       entity.RoleHospitalAdmin,
 	},
 	{
-		NationalID: "HEAD-001",
-		Email:      "head.cardio@hospital.et",
-		FirstName:  "Cardio",
-		LastName:   "Dept Head",
-		Role:       entity.RoleDeptHead,
-		DeptName:   "Cardiology",
+		NationalID:   "HEAD-001",
+		Email:        "head.cardio@hospital.et",
+		FirstName:    "Cardio",
+		LastName:     "Dept Head",
+		Role:         entity.RoleDeptHead,
+		DepartmentID: &cardiologyID,
+	},
+	{
+		NationalID: "LIAISON-SPEC-001",
+		Email:      "liaison.specialized@hospital.et",
+		FirstName:  "Specialized",
+		LastName:   "Liaison Officer",
+		Role:       entity.RoleLiaisonOfficer,
 	},
 	{
 		NationalID: "RECEPT-SPEC-001",
@@ -190,5 +222,31 @@ var specializedHospUsers = []hospitalUserTemplate{
 		FirstName:  "Specialized",
 		LastName:   "Receptionist",
 		Role:       entity.RoleReceptionist,
+	},
+}
+
+// General Hospital template users (Adama General Hospital = 0f74f069-d52d-4482-9ba5-41b007fdc1e5)
+var generalHospUsers = []hospitalUserTemplate{
+	{
+		NationalID:   "SPEC-GENERAL-001",
+		Email:        "specialist.general@hospital.et",
+		FirstName:    "General",
+		LastName:     "Specialist",
+		Role:         entity.RoleReceivingSpecialist,
+		DepartmentID: &cardiologyID,
+	},
+	{
+		NationalID: "LIAISON-GEN-001",
+		Email:      "liaison.general@hospital.et",
+		FirstName:  "General",
+		LastName:   "Liaison Officer",
+		Role:       entity.RoleLiaisonOfficer,
+	},
+	{
+		NationalID: "HOSPADMIN-GEN-001",
+		Email:      "admin.general@hospital.et",
+		FirstName:  "General",
+		LastName:   "Hospital Admin",
+		Role:       entity.RoleHospitalAdmin,
 	},
 }
