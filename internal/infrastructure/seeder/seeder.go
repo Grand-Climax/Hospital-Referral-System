@@ -165,7 +165,7 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 	// Default pre-hashed password: "password123" (bcrypt cost 12)
 	defaultHash := "$2a$12$OV/iqbn3GrwIVdFdR60VIuKoydr0CWosGqgAvivL7H/vnUOQM0Tce"
 
-	// 1. System/MoH Global Users
+	// 1. System/MoH Global Users (no hospital)
 	for i := range systemTestUsers {
 		systemTestUsers[i].PasswordHash = defaultHash
 		var user entity.User
@@ -174,56 +174,44 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 		}
 	}
 
-	// 2. Map Primary and Specialized Templates
-	var primaryHospitals, specializedHospitals []entity.Hospital
-	db.WithContext(ctx).Where("tier_level = ?", entity.PrimaryHosp).Find(&primaryHospitals)
-	db.WithContext(ctx).Where("tier_level = ?", entity.SpecializedHosp).Find(&specializedHospitals)
+			// Cardiology is pinned to a stable UUID in data.go — use it directly
+	cardiologyID := uuid.MustParse("dfc2b777-a5d5-424b-911a-976b2e8d8614")
 
-	var cardiologyDept entity.Department
-	db.WithContext(ctx).Where("name = ?", "Cardiology").First(&cardiologyDept)
+	// helper: creates a user pinned to a hospital, optionally with a department
+	seedHospUsers := func(hospName string, templates []hospitalUserTemplate) {
+		var hosp entity.Hospital
+		if err := db.WithContext(ctx).Where("name = ?", hospName).First(&hosp).Error; err != nil {
+			log.Printf("Warning: hospital %q not found, skipping users: %v", hospName, err)
+			return
+		}
 
-	// Seed primary users
-	if len(primaryHospitals) > 0 {
-		priHosp := primaryHospitals[0]
-		for _, tmpl := range primaryHospUsers {
+		for _, tmpl := range templates {
 			user := entity.User{
 				NationalID:   tmpl.NationalID,
 				Email:        tmpl.Email,
 				FirstName:    tmpl.FirstName,
 				LastName:     tmpl.LastName,
 				Role:         tmpl.Role,
-				HospitalID:   &priHosp.ID,
+				HospitalID:   &hosp.ID,
+				DepartmentID: tmpl.DepartmentID, // directly from template (*uuid.UUID, nil if not set)
 				PasswordHash: defaultHash,
 			}
-			db.WithContext(ctx).Where("email = ?", user.Email).FirstOrCreate(&user)
+			if err := db.WithContext(ctx).Where("email = ?", user.Email).FirstOrCreate(&user).Error; err != nil {
+				log.Printf("Warning: failed to seed user %s: %v", user.Email, err)
+			}
 		}
 	}
 
-	// Seed specialized users
-	if len(specializedHospitals) > 0 {
-		specHosp := specializedHospitals[0]
+	_ = cardiologyID // used via &cardiologyID in data.go templates
 
-		var specCardioDept entity.HospitalDepartment
-		db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", specHosp.ID, cardiologyDept.ID).First(&specCardioDept)
+	// 2. Bishoftu Primary Hospital (= cd323204-bfb7-4583-88e9-bb5cbed68af0)
+	seedHospUsers("Bishoftu Primary Hospital", primaryHospUsers)
 
-		for _, tmpl := range specializedHospUsers {
-			user := entity.User{
-				NationalID:   tmpl.NationalID,
-				Email:        tmpl.Email,
-				FirstName:    tmpl.FirstName,
-				LastName:     tmpl.LastName,
-				Role:         tmpl.Role,
-				HospitalID:   &specHosp.ID,
-				PasswordHash: defaultHash,
-			}
-			
-			if tmpl.DeptName == "Cardiology" && specCardioDept.HospitalID != uuid.Nil {
-				user.DepartmentID = &cardiologyDept.ID
-			}
+	// 3. Adama General Hospital (= 0f74f069-d52d-4482-9ba5-41b007fdc1e5)
+	seedHospUsers("Adama General Hospital", generalHospUsers)
 
-			db.WithContext(ctx).Where("email = ?", user.Email).FirstOrCreate(&user)
-		}
-	}
+	// 4. Jimma University Medical Center (specialized)
+	seedHospUsers("Jimma University Medical Center", specializedHospUsers)
 
 	return nil
 }
