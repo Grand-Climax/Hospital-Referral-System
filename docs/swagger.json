@@ -1443,37 +1443,39 @@
                 }
             }
         },
-        "/api/v1/patients/lookup/phone": {
+        "/api/v1/patients/lookup": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Fallback lookup using phone number and first name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
+                "description": "Intelligent secure search by strictly providing National ID OR (Phone + First Name). Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Patients"
                 ],
-                "summary": "Get patient by Phone and First Name",
+                "summary": "Lookup patient",
                 "parameters": [
                     {
                         "type": "string",
-                        "default": "+251911000002",
-                        "description": "Phone Number (E.164)",
-                        "name": "phone_number",
-                        "in": "query",
-                        "required": true
+                        "description": "National ID",
+                        "name": "national_id",
+                        "in": "query"
                     },
                     {
                         "type": "string",
-                        "default": "Liya",
+                        "description": "Phone Number (E.164)",
+                        "name": "phone_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "First Name",
                         "name": "first_name",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1704,16 +1706,6 @@
                     "References"
                 ],
                 "summary": "Get Networked Hospitals",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
-                        "description": "Sender Hospital ID",
-                        "name": "X-Hospital-ID",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1794,7 +1786,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR, RECEPTIONIST.",
+                "description": "Submit a new referral (Draft or Submitted). Roles: REFERRING_DOCTOR.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1806,22 +1798,6 @@
                 ],
                 "summary": "Create Referral",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
-                        "description": "Doctor ID",
-                        "name": "X-Doctor-ID",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
-                        "description": "Hospital ID",
-                        "name": "X-Hospital-ID",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "Referral payload",
                         "name": "body",
@@ -2102,14 +2078,14 @@
                 }
             }
         },
-        "/api/v1/referrals/{id}/status": {
-            "patch": {
+        "/api/v1/referrals/{id}/cancel": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Advance or reverse the referral state machine. Transitions vary by role: LIAISON_OFFICER can FORWARD or set NEEDS_REVISION; RECEIVING_SPECIALIST can accept (SPECIALIST_ASSIGNED) or reject back to UNDER_LIAISON_REVIEW; REFERRING_DOCTOR resubmits NEEDS_REVISION → UNDER_LIAISON_REVIEW.",
+                "description": "Transition referral to CANCELLED state. Available from DRAFT or NEEDS_REVISION.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2119,7 +2095,7 @@
                 "tags": [
                     "Referrals"
                 ],
-                "summary": "Update Referral Status",
+                "summary": "Cancel Referral",
                 "parameters": [
                     {
                         "type": "string",
@@ -2129,18 +2105,9 @@
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "default": "62af3d82-52ce-4e8f-af29-2c5e509e1e24",
-                        "description": "Doctor ID deciding",
-                        "name": "X-Doctor-ID",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "Status Payload",
+                        "description": "Cancel Payload (reason optional)",
                         "name": "body",
                         "in": "body",
-                        "required": true,
                         "schema": {
                             "type": "object"
                         }
@@ -2151,13 +2118,296 @@
                         "description": "OK",
                         "schema": {
                             "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
                             "additionalProperties": {
                                 "type": "string"
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/resubmit": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition referral from NEEDS_REVISION to UNDER_LIAISON_REVIEW. Clears old rejection reason. Only creator.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Resubmit Rejected Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/submit": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition referral from DRAFT to SUBMITTED state. Enforces clinical validation. Only creator.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Submit Referral Draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition referral from FORWARDED/RECEIVED to SPECIALIST_ASSIGNED.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Accept Referral (Specialist)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SpecialistActionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition referral back to UNDER_LIAISON_REVIEW at origin hospital. Reason required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Reject Referral (Specialist)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reject Payload (reason required)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SpecialistRejectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SpecialistActionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2567,8 +2817,7 @@
             ],
             "properties": {
                 "receiver_hospital_id": {
-                    "type": "string",
-                    "example": "0f74f069-d52d-4482-9ba5-41b007fdc1e5"
+                    "type": "string"
                 },
                 "referral_type": {
                     "type": "string",
@@ -2579,8 +2828,7 @@
                     "example": true
                 },
                 "sender_hospital_id": {
-                    "type": "string",
-                    "example": "62af3d82-52ce-4e8f-af29-2c5e509e1e24"
+                    "type": "string"
                 }
             }
         },
@@ -2641,6 +2889,7 @@
         "dto.CreateReferralRequest": {
             "type": "object",
             "required": [
+                "patient_id",
                 "target_dept_id",
                 "target_hospital_id"
             ],
@@ -2662,10 +2911,6 @@
                     "type": "string",
                     "example": "UNSTABLE"
                 },
-                "date_of_birth": {
-                    "type": "string",
-                    "example": "1985-05-18"
-                },
                 "diagnoses": {
                     "description": "Diagnoses",
                     "type": "array",
@@ -2676,52 +2921,26 @@
                 "emergency_detail": {
                     "$ref": "#/definitions/dto.EmergencyDetailDTO"
                 },
-                "first_name": {
-                    "type": "string",
-                    "example": "Abebe"
-                },
-                "home_region": {
-                    "type": "string",
-                    "example": "Oromia"
-                },
                 "investigation_results": {
                     "type": "string",
                     "example": "ECG shows ST elevation"
-                },
-                "last_name": {
-                    "type": "string",
-                    "example": "Tadesse"
-                },
-                "liaison_officer_id": {
-                    "type": "string"
                 },
                 "medication_on_transfer": {
                     "type": "string",
                     "example": "IV Nitroglycerin"
                 },
-                "middle_name": {
-                    "type": "string",
-                    "example": "Kebede"
-                },
                 "mode_of_transport": {
                     "type": "string",
                     "example": "AMBULANCE"
-                },
-                "national_id_enc": {
-                    "description": "Patient Demographics",
-                    "type": "string",
-                    "example": "NAT-12345"
-                },
-                "national_id_hash": {
-                    "type": "string"
                 },
                 "patient_history": {
                     "type": "string",
                     "example": "Hypertension diagnosed 5 years ago"
                 },
-                "phone_number": {
+                "patient_id": {
+                    "description": "Patient Logic",
                     "type": "string",
-                    "example": "+251911223344"
+                    "example": "912b4375-2295-41bb-8ffd-c8318e9c051f"
                 },
                 "physical_examination_findings": {
                     "type": "string",
@@ -2735,15 +2954,6 @@
                     "type": "string",
                     "example": "Requires immediate cardiological intervention"
                 },
-                "sex": {
-                    "type": "string",
-                    "enum": [
-                        "male",
-                        "female",
-                        "unknown"
-                    ],
-                    "example": "male"
-                },
                 "status": {
                     "description": "Status tracking",
                     "type": "string",
@@ -2755,12 +2965,12 @@
                 },
                 "target_dept_id": {
                     "type": "string",
-                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
+                    "example": "23fdcea4-074f-4c6b-8fe8-400da55df997"
                 },
                 "target_hospital_id": {
                     "description": "Routing Information",
                     "type": "string",
-                    "example": "0f74f069-d52d-4482-9ba5-41b007fdc1e5"
+                    "example": "c9020345-5e41-42d6-9a66-c8d4557519ff"
                 },
                 "treatment_given_before_referral": {
                     "type": "string",
@@ -2794,7 +3004,7 @@
                 },
                 "icd_code": {
                     "type": "string",
-                    "example": "I21.9"
+                    "example": "I10"
                 },
                 "is_primary": {
                     "type": "boolean",
@@ -2809,7 +3019,8 @@
             ],
             "properties": {
                 "emergency_justification": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Patient requires immediate intubation and bypass surgery"
                 }
             }
         },
@@ -2851,6 +3062,35 @@
                 "reason": {
                     "type": "string",
                     "example": "Incomplete clinical summary"
+                }
+            }
+        },
+        "dto.SpecialistActionResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Referral rejected and returned to liaison review"
+                },
+                "new_status": {
+                    "type": "string",
+                    "example": "UNDER_LIAISON_REVIEW"
+                },
+                "referral_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "dto.SpecialistRejectRequest": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "example": "Patient condition not suitable for this department"
                 }
             }
         },
@@ -3276,6 +3516,9 @@
                 "department_id": {
                     "type": "string"
                 },
+                "department_name": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -3283,6 +3526,9 @@
                     "type": "string"
                 },
                 "hospital_id": {
+                    "type": "string"
+                },
+                "hospital_name": {
                     "type": "string"
                 },
                 "id": {
