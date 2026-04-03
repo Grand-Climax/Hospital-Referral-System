@@ -8,18 +8,18 @@ import (
 )
 
 type Patient struct {
-	ID             uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	NationalIDEnc  *string    `gorm:"type:text"`
-	NationalIDHash *string    `gorm:"type:varchar(64);uniqueIndex"`
-	PhoneNumber    *string    `gorm:"type:varchar(20)"`
-	FirstName      string     `gorm:"type:varchar(100);not null"`
-	MiddleName     string     `gorm:"type:varchar(100);not null"`
-	LastName       string     `gorm:"type:varchar(100);not null"`
-	Sex            string     `gorm:"type:varchar(10);not null"`
-	DateOfBirth    *time.Time `gorm:"type:date"`
-	HomeRegion     *string    `gorm:"type:varchar(100);index"`
-	IsDeleted      bool       `gorm:"default:false;index"`
-	DeletedAt      gorm.DeletedAt
+	ID             uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	NationalIDEnc  *string    `gorm:"type:text" json:"-"`
+	NationalIDHash *string    `gorm:"type:varchar(64);uniqueIndex" json:"-"`
+	PhoneNumber    *string    `gorm:"type:varchar(20)" json:"phone_number,omitempty"`
+	FirstName      string     `gorm:"type:varchar(100);not null" json:"first_name"`
+	MiddleName     string     `gorm:"type:varchar(100);not null" json:"middle_name"`
+	LastName       string     `gorm:"type:varchar(100);not null" json:"last_name"`
+	Sex            string     `gorm:"type:varchar(10);not null" json:"sex"`
+	DateOfBirth    *time.Time `gorm:"type:date" json:"date_of_birth,omitempty"`
+	HomeRegion     *string    `gorm:"type:varchar(100);index" json:"home_region,omitempty"`
+	IsDeleted      bool       `gorm:"default:false;index" json:"-"`
+	DeletedAt      gorm.DeletedAt `json:"-"`
 }
 
 func (p *Patient) BeforeCreate(tx *gorm.DB) (err error) {

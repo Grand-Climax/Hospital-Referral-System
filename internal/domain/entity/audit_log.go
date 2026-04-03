@@ -34,17 +34,17 @@ const (
 )
 
 type AuditLog struct {
-	ID         uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID     uuid.UUID  `gorm:"type:uuid;not null;index;index:idx_audit_user_time"`
-	ReferralID *uuid.UUID `gorm:"type:uuid;index"`
-	ActionType ActionType `gorm:"type:varchar(50);not null;index"`
-	Resource   *string    `gorm:"type:varchar(100);index"`
-	ResourceID *string    `gorm:"type:varchar(100)"`
-	OldValue   *string    `gorm:"type:jsonb"`
-	NewValue   *string    `gorm:"type:jsonb"`
-	IPAddress  *string    `gorm:"type:varchar(45)"`
-	UserAgent  *string    `gorm:"type:text"`
-	Timestamp  time.Time  `gorm:"default:now();index;index:idx_audit_user_time"`
+	ID         uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID     uuid.UUID  `gorm:"type:uuid;not null;index;index:idx_audit_user_time" json:"user_id"`
+	ReferralID *uuid.UUID `gorm:"type:uuid;index" json:"referral_id,omitempty"`
+	ActionType ActionType `gorm:"type:varchar(50);not null;index" json:"action_type"`
+	Resource   *string    `gorm:"type:varchar(100);index" json:"resource,omitempty"`
+	ResourceID *string    `gorm:"type:varchar(100)" json:"resource_id,omitempty"`
+	OldValue   *string    `gorm:"type:jsonb" json:"old_value,omitempty"`
+	NewValue   *string    `gorm:"type:jsonb" json:"new_value,omitempty"`
+	IPAddress  *string    `gorm:"type:varchar(45)" json:"ip_address,omitempty"`
+	UserAgent  *string    `gorm:"type:text" json:"user_agent,omitempty"`
+	Timestamp  time.Time  `gorm:"default:now();index;index:idx_audit_user_time" json:"timestamp"`
 }
 
 func (al *AuditLog) BeforeCreate(tx *gorm.DB) (err error) {
