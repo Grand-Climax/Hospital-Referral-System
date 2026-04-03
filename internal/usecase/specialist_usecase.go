@@ -31,8 +31,8 @@ func (u *specialistUseCase) AcceptReferral(ctx context.Context, referralID, spec
 		return errors.New("unauthorized: referral is not directed to your hospital")
 	}
 
-	// Check if it's in a valid state to be accepted (e.g. FORWARDED, RECEIVED, or SPECIALIST_REVIEW)
-	if referral.Status != entity.StatusForwarded && referral.Status != entity.StatusReceived && referral.Status != entity.StatusSpecialistReview {
+	// Check if it's in a valid state to be accepted (FORWARDED or SPECIALIST_REVIEW)
+	if referral.Status != entity.StatusForwarded && referral.Status != entity.StatusSpecialistReview {
 		return errors.New("invalid status: referral must be forwarded or received before a specialist can accept it")
 	}
 
@@ -62,7 +62,7 @@ func (u *specialistUseCase) RejectReferral(ctx context.Context, referralID, spec
 		return errors.New("unauthorized: referral is not directed to your hospital")
 	}
 
-	if referral.Status != entity.StatusForwarded && referral.Status != entity.StatusReceived && referral.Status != entity.StatusSpecialistReview {
+	if referral.Status != entity.StatusForwarded && referral.Status != entity.StatusSpecialistReview {
 		return errors.New("invalid status: referral cannot be rejected from current state")
 	}
 
