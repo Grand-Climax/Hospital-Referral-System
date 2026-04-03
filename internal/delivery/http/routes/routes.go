@@ -122,7 +122,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			protected.GET("/reference/departments", refHandler.GetDepartments)
 			// Target Dropdown targets a specific receiver hospital path ID
 			protected.GET("/reference/hospitals/:id/departments", refHandler.GetHospitalDepartments)
-			protected.GET("/reference/icd-codes", refHandler.SearchICD)
+			protected.GET("/reference/icd-codes", refHandler.ListICDCodes)
+			protected.GET("/reference/liaisons", refHandler.GetLiaisons)
 			// Example: Both DOCTOR and SPECIALIST
 			// protected.GET("/clinical-data", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleReceivingSpecialist), someHandler)
 
