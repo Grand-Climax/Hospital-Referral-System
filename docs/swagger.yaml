@@ -83,6 +83,9 @@ definitions:
       investigation_results:
         example: ECG shows ST elevation
         type: string
+      liaison_officer_id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
       medication_on_transfer:
         example: IV Nitroglycerin
         type: string
@@ -127,6 +130,7 @@ definitions:
         - $ref: '#/definitions/dto.VitalsDTO'
         description: Optional Extensions
     required:
+    - liaison_officer_id
     - patient_id
     - target_dept_id
     - target_hospital_id

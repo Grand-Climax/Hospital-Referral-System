@@ -2896,6 +2896,7 @@ const docTemplate = `{
         "dto.CreateReferralRequest": {
             "type": "object",
             "required": [
+                "liaison_officer_id",
                 "patient_id",
                 "target_dept_id",
                 "target_hospital_id"
@@ -2931,6 +2932,10 @@ const docTemplate = `{
                 "investigation_results": {
                     "type": "string",
                     "example": "ECG shows ST elevation"
+                },
+                "liaison_officer_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "medication_on_transfer": {
                     "type": "string",

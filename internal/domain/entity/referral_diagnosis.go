@@ -14,14 +14,14 @@ const (
 )
 
 type ReferralDiagnosis struct {
-	ID                 uuid.UUID          `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	ReferralID         uuid.UUID          `gorm:"type:uuid;not null;index;uniqueIndex:idx_ref_diag"`
-	ICDCode            string             `gorm:"type:varchar(10);not null;index;uniqueIndex:idx_ref_diag"`
-	IsPrimary          bool               `gorm:"default:true"`
-	DiagnosisCertainty DiagnosisCertainty `gorm:"type:varchar(20);not null;default:'CONFIRMED'"`
+	ID                 uuid.UUID          `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	ReferralID         uuid.UUID          `gorm:"type:uuid;not null;index;uniqueIndex:idx_ref_diag" json:"referral_id"`
+	ICDCode            string             `gorm:"type:varchar(10);not null;index;uniqueIndex:idx_ref_diag" json:"icd_code"`
+	IsPrimary          bool               `gorm:"default:true" json:"is_primary"`
+	DiagnosisCertainty DiagnosisCertainty `gorm:"type:varchar(20);not null;default:'CONFIRMED'" json:"diagnosis_certainty"`
 
 	// Relationship
-	CodeInfo *ICDCode `gorm:"foreignKey:ICDCode;references:Code"`
+	CodeInfo *ICDCode `gorm:"foreignKey:ICDCode;references:Code" json:"code_info,omitempty"`
 }
 
 func (r *ReferralDiagnosis) BeforeCreate(tx *gorm.DB) (err error) {

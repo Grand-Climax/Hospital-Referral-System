@@ -8,14 +8,14 @@ import (
 )
 
 type Session struct {
-	ID               uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID           uuid.UUID `gorm:"type:uuid;not null;index"`
-	RefreshTokenHash string    `gorm:"type:varchar(255);not null;index"`
-	IPAddress        *string   `gorm:"type:varchar(45)"`
-	UserAgent        *string   `gorm:"type:text"`
-	ExpiresAt        time.Time `gorm:"not null;index"`
-	CreatedAt        time.Time `gorm:"default:now()"`
-	RevokedAt        *time.Time
+	ID               uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID           uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	RefreshTokenHash string    `gorm:"type:varchar(255);not null;index" json:"-"`
+	IPAddress        *string   `gorm:"type:varchar(45)" json:"ip_address,omitempty"`
+	UserAgent        *string   `gorm:"type:text" json:"user_agent,omitempty"`
+	ExpiresAt        time.Time `gorm:"not null;index" json:"expires_at"`
+	CreatedAt        time.Time `gorm:"default:now()" json:"created_at"`
+	RevokedAt        *time.Time `json:"revoked_at,omitempty"`
 }
 
 func (s *Session) BeforeCreate(tx *gorm.DB) (err error) {

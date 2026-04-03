@@ -73,9 +73,9 @@ func seedReferrals(ctx context.Context, db *gorm.DB) error {
 			log.Printf("Failed to generate SUBMITTED referral: %v", err)
 		}
 
-		// Referral 3: RECEIVED (Ready for Triage Specialist Queue)
-		if err := generateFullReferralPackage(ctx, db, patient.ID, doc.ID, senderHospID, targetHosp.ID, cardiologyDept.ID, liaisonID, entity.StatusReceived, icdCodes); err != nil {
-			log.Printf("Failed to generate RECEIVED referral: %v", err)
+		// Referral 3: FORWARDED (Ready for Specialist Review Queue)
+		if err := generateFullReferralPackage(ctx, db, patient.ID, doc.ID, senderHospID, targetHosp.ID, cardiologyDept.ID, liaisonID, entity.StatusForwarded, icdCodes); err != nil {
+			log.Printf("Failed to generate FORWARDED referral: %v", err)
 		}
 	}
 
@@ -176,7 +176,7 @@ func generateFullReferralPackage(
 	}
 	tx.Create(&hist1)
 
-	if status == entity.StatusSubmitted || status == entity.StatusReceived {
+	if status == entity.StatusSubmitted || status == entity.StatusForwarded {
 		draft := entity.StatusDraft
 		hist2 := entity.ReferralStatusHistory{
 			ReferralID:  ref.ID,
@@ -187,9 +187,9 @@ func generateFullReferralPackage(
 		tx.Create(&hist2)
 	}
 
-	if status == entity.StatusReceived {
+	if status == entity.StatusForwarded {
 		sub := entity.StatusSubmitted
-		// Liaison approves it, arriving at Target queue
+		// Liaison approves it and forwards to target hospital
 		officer := doctorID // Default fallback if no liaison
 		if liaisonID != nil {
 			officer = *liaisonID
@@ -198,7 +198,7 @@ func generateFullReferralPackage(
 			ReferralID:  ref.ID,
 			ChangedByID: officer,
 			FromStatus:  &sub,
-			ToStatus:    entity.StatusReceived,
+			ToStatus:    entity.StatusForwarded,
 		}
 		tx.Create(&hist3)
 	}
