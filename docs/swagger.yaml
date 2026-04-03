@@ -1604,13 +1604,8 @@ paths:
       - References
   /api/v1/reference/icd-codes:
     get:
-      description: Search ICD-10 codes by keyword. Used by doctors and specialists
-        when filling in diagnoses. Accessible by all authenticated roles.
-      parameters:
-      - description: Search query (e.g. Cholera)
-        in: query
-        name: q
-        type: string
+      description: Returns all available ICD-10 codes. Used by doctors and specialists
+        when filling in diagnoses.
       produces:
       - application/json
       responses:
@@ -1621,7 +1616,36 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Search ICD-10 Codes
+      summary: List all ICD-10 Codes
+      tags:
+      - References
+  /api/v1/reference/liaisons:
+    get:
+      description: Returns all active liaison officers belonging to the authenticated
+        user's hospital. Hospital ID is extracted from the JWT token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Liaisons for Current Hospital
       tags:
       - References
   /api/v1/reference/networked-hospitals:

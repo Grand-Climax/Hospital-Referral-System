@@ -26,8 +26,8 @@ func (u *referenceUseCase) GetDepartments(ctx context.Context) ([]entity.Departm
 	return u.referenceRepo.GetDepartments(ctx)
 }
 
-func (u *referenceUseCase) SearchICDCodes(ctx context.Context, query string) ([]entity.ICDCode, error) {
-	return u.referenceRepo.SearchICDCodes(ctx, query)
+func (u *referenceUseCase) ListICDCodes(ctx context.Context) ([]entity.ICDCode, error) {
+	return u.referenceRepo.ListICDCodes(ctx)
 }
 
 func (u *referenceUseCase) GetNetworkedHospitals(ctx context.Context, senderHospitalID uuid.UUID) ([]entity.Hospital, error) {
@@ -35,10 +35,13 @@ func (u *referenceUseCase) GetNetworkedHospitals(ctx context.Context, senderHosp
 	if err != nil {
 		return nil, err
 	}
-
 	return hospitals, nil
 }
 
 func (u *referenceUseCase) GetHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.Department, error) {
 	return u.referenceRepo.GetHospitalDepartments(ctx, hospitalID)
+}
+
+func (u *referenceUseCase) GetLiaisonsByHospital(ctx context.Context, hospitalID uuid.UUID) ([]entity.User, error) {
+	return u.referenceRepo.GetLiaisonsByHospital(ctx, hospitalID)
 }
