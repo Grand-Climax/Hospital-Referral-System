@@ -9,7 +9,7 @@ type CreateReferralRequest struct {
 	// Routing Information
 	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"c9020345-5e41-42d6-9a66-c8d4557519ff"`
 	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"23fdcea4-074f-4c6b-8fe8-400da55df997"`
-	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id" swaggerignore:"true"`
+	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id" binding:"required" example:"00000000-0000-0000-0000-000000000000"`
 
 	// Annex IV Clinical Data
 	ClinicalSummary              string  `json:"clinical_summary" example:"Patient complains of severe chest pain for 2 hours"`
