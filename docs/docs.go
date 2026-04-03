@@ -1671,28 +1671,64 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Search ICD-10 codes by keyword. Used by doctors and specialists when filling in diagnoses. Accessible by all authenticated roles.",
+                "description": "Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "References"
                 ],
-                "summary": "Search ICD-10 Codes",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Search query (e.g. Cholera)",
-                        "name": "q",
-                        "in": "query"
-                    }
-                ],
+                "summary": "List all ICD-10 Codes",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/reference/liaisons": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all active liaison officers belonging to the authenticated user's hospital. Hospital ID is extracted from the JWT token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Get Liaisons for Current Hospital",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -2896,6 +2932,7 @@ const docTemplate = `{
         "dto.CreateReferralRequest": {
             "type": "object",
             "required": [
+                "liaison_officer_id",
                 "patient_id",
                 "target_dept_id",
                 "target_hospital_id"
@@ -2931,6 +2968,10 @@ const docTemplate = `{
                 "investigation_results": {
                     "type": "string",
                     "example": "ECG shows ST elevation"
+                },
+                "liaison_officer_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "medication_on_transfer": {
                     "type": "string",
