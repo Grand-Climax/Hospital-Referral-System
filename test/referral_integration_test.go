@@ -86,10 +86,12 @@ func TestReferralDraftCreation(t *testing.T) {
 		c.Next()
 	}, handler.Create)
 
+	liaisonID := uuid.New()
 	reqPayload := dto.CreateReferralRequest{
 		PatientID:        uuid.New(),
 		TargetHospitalID: uuid.New(),
 		TargetDeptID:     uuid.New(),
+		LiaisonOfficerID: &liaisonID,
 		Status:           "DRAFT",
 	}
 
@@ -240,11 +242,13 @@ func TestReferralWithVitalsAndEmergency(t *testing.T) {
 	systolic := int16(185)
 	diastolic := int16(115)
 	heartRate := int16(110)
+	liaisonID := uuid.New()
 
 	reqPayload := dto.CreateReferralRequest{
 		PatientID:        uuid.New(),
 		TargetHospitalID: uuid.New(),
 		TargetDeptID:     uuid.New(),
+		LiaisonOfficerID: &liaisonID,
 		ClinicalSummary:  "Acute MI with cardiogenic shock",
 		PatientHistory:   "HTN x 10 years",
 		ReasonOfReferral: "Cardiac catheterization",
