@@ -28,9 +28,8 @@ var validTransitions = map[entity.ReferralStatus][]entity.ReferralStatus{
 	// Doctor fixes form and resubmits after liaison rejection
 	entity.StatusNeedsRevision: {entity.StatusUnderLiaisonReview, entity.StatusCancelled},
 
-	// Forwarded → target hospital marks received → enters specialist review queue
-	entity.StatusForwarded: {entity.StatusReceived},
-	entity.StatusReceived:  {entity.StatusSpecialistReview},
+	// Forwarded → enters specialist review queue at target hospital
+	entity.StatusForwarded: {entity.StatusSpecialistReview},
 
 	// Specialist review: accept (assign) or reject (back to liaison, who notifies doctor)
 	entity.StatusSpecialistReview: {entity.StatusSpecialistAssigned, entity.StatusUnderLiaisonReview},
