@@ -214,7 +214,7 @@ func (u *referralUseCase) UpdateDraft(ctx context.Context, id, userID uuid.UUID,
 		return nil, errors.New("unauthorized: only the creator can update this draft")
 	}
 
-	// 2. Enforce DRAFT or NEEDS_REVISION only status update
+	// Check if it's in a valid state to be accepted (FORWARDED or SPECIALIST_REVIEW)
 	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedsRevision {
 		return nil, errors.New("forbidden: only referrals actively in DRAFT or NEEDS_REVISION status can be updated via this endpoint")
 	}
