@@ -53,20 +53,18 @@ func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": depts})
 }
 
-// SearchICD godoc
-// @Summary      Search ICD-10 Codes
-// @Description  Search ICD-10 codes by keyword. Used by doctors and specialists when filling in diagnoses. Accessible by all authenticated roles.
+// ListICDCodes godoc
+// @Summary      List all ICD-10 Codes
+// @Description  Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.
 // @Tags         References
 // @Produce      json
-// @Param        q query string false "Search query (e.g. Cholera)"
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
 // @Router       /api/v1/reference/icd-codes [get]
-func (h *ReferenceHandler) SearchICD(c *gin.Context) {
-	q := c.Query("q")
-	codes, err := h.referenceUseCase.SearchICDCodes(c.Request.Context(), q)
+func (h *ReferenceHandler) ListICDCodes(c *gin.Context) {
+	codes, err := h.referenceUseCase.ListICDCodes(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search ICD codes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ICD codes"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": codes})
@@ -122,4 +120,50 @@ func (h *ReferenceHandler) GetHospitalDepartments(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": depts})
+}
+
+// GetLiaisons godoc
+// @Summary      Get Liaisons for Current Hospital
+// @Description  Returns all active liaison officers belonging to the authenticated user's hospital. Hospital ID is extracted from the JWT token.
+// @Tags         References
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Failure      403 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/reference/liaisons [get]
+func (h *ReferenceHandler) GetLiaisons(c *gin.Context) {
+	hospIDVal, exists := c.Get("hospID")
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+		return
+	}
+	hospIDPtr, ok := hospIDVal.(*uuid.UUID)
+	if !ok || hospIDPtr == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+		return
+	}
+
+	liaisons, err := h.referenceUseCase.GetLiaisonsByHospital(c.Request.Context(), *hospIDPtr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch liaison officers"})
+		return
+	}
+
+	type liaisonItem struct {
+		ID        string `json:"id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+	}
+	var result []liaisonItem
+	for _, l := range liaisons {
+		result = append(result, liaisonItem{
+			ID:        l.ID.String(),
+			FirstName: l.FirstName,
+			LastName:  l.LastName,
+			Email:     l.Email,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"data": result})
 }

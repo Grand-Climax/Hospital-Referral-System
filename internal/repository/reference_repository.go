@@ -34,13 +34,9 @@ func (r *referenceRepository) GetDepartments(ctx context.Context) ([]entity.Depa
 	return depts, err
 }
 
-func (r *referenceRepository) SearchICDCodes(ctx context.Context, q string) ([]entity.ICDCode, error) {
+func (r *referenceRepository) ListICDCodes(ctx context.Context) ([]entity.ICDCode, error) {
 	var codes []entity.ICDCode
-	query := r.db.WithContext(ctx)
-	if q != "" {
-		query = query.Where("code ILIKE ? OR description ILIKE ?", "%"+q+"%", "%"+q+"%")
-	}
-	err := query.Limit(50).Order("code asc").Find(&codes).Error
+	err := r.db.WithContext(ctx).Order("code asc").Find(&codes).Error
 	return codes, err
 }
 
@@ -62,4 +58,14 @@ func (r *referenceRepository) GetHospitalDepartments(ctx context.Context, hospit
 		Where("hospital_departments.hospital_id = ? AND hospital_departments.is_active = ?", hospitalID, true).
 		Find(&depts).Error
 	return depts, err
+}
+
+func (r *referenceRepository) GetLiaisonsByHospital(ctx context.Context, hospitalID uuid.UUID) ([]entity.User, error) {
+	var liaisons []entity.User
+	err := r.db.WithContext(ctx).
+		Where("hospital_id = ? AND role = ? AND is_active = ? AND is_deleted = ?",
+			hospitalID, entity.RoleLiaisonOfficer, true, false).
+		Order("first_name asc").
+		Find(&liaisons).Error
+	return liaisons, err
 }

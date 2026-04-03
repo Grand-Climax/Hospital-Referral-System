@@ -32,8 +32,8 @@ func (m *MockReferenceUseCase) GetDepartments(ctx context.Context) ([]entity.Dep
 	return args.Get(0).([]entity.Department), args.Error(1)
 }
 
-func (m *MockReferenceUseCase) SearchICDCodes(ctx context.Context, query string) ([]entity.ICDCode, error) {
-	args := m.Called(ctx, query)
+func (m *MockReferenceUseCase) ListICDCodes(ctx context.Context) ([]entity.ICDCode, error) {
+	args := m.Called(ctx)
 	return args.Get(0).([]entity.ICDCode), args.Error(1)
 }
 
@@ -47,6 +47,11 @@ func (m *MockReferenceUseCase) GetHospitalDepartments(ctx context.Context, hospi
 	return args.Get(0).([]entity.Department), args.Error(1)
 }
 
+func (m *MockReferenceUseCase) GetLiaisonsByHospital(ctx context.Context, hospitalID uuid.UUID) ([]entity.User, error) {
+	args := m.Called(ctx, hospitalID)
+	return args.Get(0).([]entity.User), args.Error(1)
+}
+
 func TestReferenceEndpoints(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferenceUseCase)
@@ -55,7 +60,7 @@ func TestReferenceEndpoints(t *testing.T) {
 	router := gin.Default()
 	router.GET("/api/v1/references/hospitals", handler.GetHospitals)
 	router.GET("/api/v1/references/departments", handler.GetDepartments)
-	router.GET("/api/v1/references/icd", handler.SearchICD)
+	router.GET("/api/v1/references/icd-codes", handler.ListICDCodes)
 	router.GET("/api/v1/references/networked-hospitals", handler.GetNetworkedHospitals)
 	router.GET("/api/v1/references/hospitals/:id/departments", handler.GetHospitalDepartments)
 
@@ -83,14 +88,14 @@ func TestReferenceEndpoints(t *testing.T) {
 		assert.Equal(t, "Tikur Anbessa Specialized Hospital", hospitals[0].Name)
 	})
 
-	t.Run("Search ICD Codes", func(t *testing.T) {
+	t.Run("List All ICD Codes", func(t *testing.T) {
 		icd := entity.ICDCode{
 			Code:        "A00",
 			Description: "Cholera",
 		}
-		mockUC.On("SearchICDCodes", mock.Anything, "Cholera").Return([]entity.ICDCode{icd}, nil)
+		mockUC.On("ListICDCodes", mock.Anything).Return([]entity.ICDCode{icd}, nil)
 
-		req := httptest.NewRequest("GET", "/api/v1/references/icd?q=Cholera", nil)
+		req := httptest.NewRequest("GET", "/api/v1/references/icd-codes", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
