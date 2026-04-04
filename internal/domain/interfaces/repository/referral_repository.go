@@ -17,10 +17,10 @@ type ReferralRepository interface {
 	CreateStatusHistory(ctx context.Context, history *entity.ReferralStatusHistory) error
 
 	// Role-Based Queries
-	ListForSystemAdmin(ctx context.Context, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
-	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, offset int) ([]entity.ReferralStatusHistory, int64, error)
-	ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
-	ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
-	ListForSpecialist(ctx context.Context, hospID uuid.UUID, specialistID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
-	ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	ListForSystemAdmin(ctx context.Context, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
+	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
+	ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
+	ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
+	ListForSpecialist(ctx context.Context, hospID uuid.UUID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
+	ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
 }

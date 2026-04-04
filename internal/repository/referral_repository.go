@@ -105,9 +105,10 @@ func (r *referralRepository) ListReferrals(ctx context.Context, filter map[strin
 	return referrals, err
 }
 
-func (r *referralRepository) ListForSystemAdmin(ctx context.Context, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForSystemAdmin(ctx context.Context, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
+	offset := (page - 1) * limit
 	query := r.db.WithContext(ctx).Model(&entity.Referral{})
 	if statusFilter != "" {
 		query = query.Where("status = ?", statusFilter)
@@ -117,9 +118,10 @@ func (r *referralRepository) ListForSystemAdmin(ctx context.Context, limit, offs
 	return referrals, count, err
 }
 
-func (r *referralRepository) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, offset int) ([]entity.ReferralStatusHistory, int64, error) {
+func (r *referralRepository) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
 	var logs []entity.ReferralStatusHistory
 	var count int64
+	offset := (page - 1) * limit
 	query := r.db.WithContext(ctx).Model(&entity.ReferralStatusHistory{}).
 		Joins("JOIN referrals ON referral_status_histories.referral_id = referrals.id").
 		Where("referrals.sender_hospital_id = ? OR referrals.target_hospital_id = ?", hospID, hospID)
@@ -127,9 +129,10 @@ func (r *referralRepository) GetHospitalLogsForAdmin(ctx context.Context, hospID
 	return logs, count, err
 }
 
-func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
+	offset := (page - 1) * limit
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ?", doctorID)
 	if statusFilter != "" {
 		query = query.Where("status = ?", statusFilter)
@@ -139,9 +142,10 @@ func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UU
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
+	offset := (page - 1) * limit
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("sender_hospital_id = ? AND status != ?", hospID, entity.StatusDraft)
 	if statusFilter != "" {
 		query = query.Where("status = ?", statusFilter)
@@ -151,9 +155,10 @@ func (r *referralRepository) ListForLiaison(ctx context.Context, hospID uuid.UUI
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.UUID, specialistID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.UUID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
+	offset := (page - 1) * limit
 	allowedStatuses := []entity.ReferralStatus{
 		entity.StatusForwarded, entity.StatusUnderSpecialistReview, entity.StatusAccepted, 
 		entity.StatusScheduled, entity.StatusAssigned, entity.StatusCompleted, 
@@ -171,9 +176,10 @@ func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
+	offset := (page - 1) * limit
 	allowedStatuses := []entity.ReferralStatus{
 		entity.StatusAccepted, entity.StatusScheduled, entity.StatusAssigned, 
 		entity.StatusMissed, entity.StatusRescheduled,
