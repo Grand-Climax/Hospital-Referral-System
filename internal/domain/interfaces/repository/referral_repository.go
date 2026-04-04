@@ -23,4 +23,6 @@ type ReferralRepository interface {
 	ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
 	ListForSpecialist(ctx context.Context, hospID uuid.UUID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
 	ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
+	GetDoctorStats(ctx context.Context, doctorID uuid.UUID) (total, pending, accepted, critical int64, err error)
+	GetLatestPendingForDoctor(ctx context.Context, doctorID uuid.UUID, limit int) ([]entity.Referral, error)
 }

@@ -27,15 +27,17 @@ func (r *referralRepository) CreateReferralTransaction(ctx context.Context, refe
 func (r *referralRepository) UpdateReferralTransaction(ctx context.Context, referral *entity.Referral) error {
 	// Use a transaction to safely clear old relations (like diagnoses/vitals) and insert new ones
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Replace associated slice collections entirely to avoid orphans
-		if err := tx.Model(referral).Association("Diagnoses").Replace(referral.Diagnoses); err != nil {
+		// Manually delete the existing dependent records from the DB instead of using Association.Replace()
+		// which tries to SET NULL on columns with NOT NULL constraints before deleting them.
+		if err := tx.Unscoped().Where("referral_id = ?", referral.ID).Delete(&entity.ReferralDiagnosis{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Model(referral).Association("Vitals").Replace(referral.Vitals); err != nil {
+		if err := tx.Unscoped().Where("referral_id = ?", referral.ID).Delete(&entity.Vital{}).Error; err != nil {
 			return err
 		}
 
-		// Save the parent and one-to-one models
+		// Save the parent and its associations (ReferralForm, EmergencyDetail, and the new Diagnoses/Vitals).
+		// FullSaveAssociations: true ensures that GORM saves everything in the entity graph.
 		return tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(referral).Error
 	})
 }
@@ -192,4 +194,58 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
 		Preload("Patient").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
+}
+func (r *referralRepository) GetDoctorStats(ctx context.Context, doctorID uuid.UUID) (total, pending, accepted, critical int64, err error) {
+	// Total
+	if err := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ?", doctorID).Count(&total).Error; err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	// Pending
+	pendingStatuses := []entity.ReferralStatus{
+		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded, 
+		entity.StatusUnderSpecialistReview, entity.StatusNeedRevision,
+	}
+	if err := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ? AND status IN ?", doctorID, pendingStatuses).Count(&pending).Error; err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	// Accepted
+	acceptedStatuses := []entity.ReferralStatus{
+		entity.StatusAccepted, entity.StatusScheduled, entity.StatusAssigned, entity.StatusCompleted,
+	}
+	if err := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ? AND status IN ?", doctorID, acceptedStatuses).Count(&accepted).Error; err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	// Critical
+	excludedStatuses := []entity.ReferralStatus{
+		entity.StatusRejectedByLiaison, entity.StatusRejectedBySpecialist, entity.StatusCancelled, entity.StatusCompleted,
+	}
+	if err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Joins("JOIN referral_forms ON referral_forms.referral_id = referrals.id").
+		Where("referrals.referring_doctor_id = ? AND referrals.status NOT IN ? AND LOWER(referral_forms.condition_at_referral) = ?", doctorID, excludedStatuses, "critical").
+		Count(&critical).Error; err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	return total, pending, accepted, critical, nil
+}
+
+func (r *referralRepository) GetLatestPendingForDoctor(ctx context.Context, doctorID uuid.UUID, limit int) ([]entity.Referral, error) {
+	var referrals []entity.Referral
+	pendingStatuses := []entity.ReferralStatus{
+		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded, 
+		entity.StatusUnderSpecialistReview, entity.StatusNeedRevision,
+	}
+	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("referring_doctor_id = ? AND status IN ?", doctorID, pendingStatuses).
+		Order("created_at desc").
+		Limit(limit).
+		Preload("Patient").
+		Preload("Diagnoses").
+		Preload("Diagnoses.CodeInfo").
+		Preload("ReferralForm").
+		Find(&referrals).Error
+	return referrals, err
 }
