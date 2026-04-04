@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -12,32 +11,6 @@ import (
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
-
-var (
-	ErrInvalidReferral = errors.New("invalid referral data")
-)
-
-var validTransitions = map[entity.ReferralStatus][]entity.ReferralStatus{
-	// Doctor workflow
-	entity.StatusDraft:    {entity.StatusSubmitted},
-	entity.StatusSubmitted: {entity.StatusUnderLiaisonReview, entity.StatusCancelled},
-
-	// Liaison review: accept (forward) or reject (send back to doctor for revision)
-	entity.StatusUnderLiaisonReview: {entity.StatusForwarded, entity.StatusNeedsRevision},
-
-	// Doctor fixes form and resubmits after liaison rejection
-	entity.StatusNeedsRevision: {entity.StatusUnderLiaisonReview, entity.StatusCancelled},
-
-	// Forwarded → enters specialist review queue at target hospital
-	entity.StatusForwarded: {entity.StatusSpecialistReview},
-
-	// Specialist review: accept (assign) or reject (back to liaison, who notifies doctor)
-	entity.StatusSpecialistReview: {entity.StatusSpecialistAssigned, entity.StatusUnderLiaisonReview},
-
-	// Accepted by specialist → scheduling pipeline
-	entity.StatusSpecialistAssigned: {entity.StatusScheduled, entity.StatusRejected},
-	entity.StatusScheduled:          {entity.StatusCompleted, entity.StatusCancelled, entity.StatusMissed},
-}
 
 type referralUseCase struct {
 	referralRepo irepository.ReferralRepository
@@ -48,17 +21,34 @@ func NewReferralUseCase(rRepo irepository.ReferralRepository, nRepo irepository.
 	return &referralUseCase{referralRepo: rRepo, networkRepo: nRepo}
 }
 
-func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
-	// 1. Verify Network Pathway
-	isValidRoute, err := u.networkRepo.VerifyNetworkPathway(ctx, senderHospitalID, req.TargetHospitalID)
-	if err != nil {
-		return nil, errors.New("failed to verify network routing")
+// ---------------------------------------------------------
+// Helper for History Log Generation
+// ---------------------------------------------------------
+func (u *referralUseCase) logStatusChange(ctx context.Context, id, userID uuid.UUID, from *entity.ReferralStatus, to entity.ReferralStatus, reason string) error {
+	var reasonPtr *string
+	if reason != "" {
+		reasonPtr = &reason
 	}
-	if !isValidRoute {
+	return u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
+		ReferralID:  id,
+		ChangedByID: userID,
+		FromStatus:  from,
+		ToStatus:    to,
+		Reason:      reasonPtr,
+	})
+}
+
+// ---------------------------------------------------------
+// Doctor Actions
+// ---------------------------------------------------------
+
+func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
+	// Verify Network
+	isValidRoute, err := u.networkRepo.VerifyNetworkPathway(ctx, senderHospitalID, req.TargetHospitalID)
+	if err != nil || !isValidRoute {
 		return nil, errors.New("forbidden: no active referral network established between sender and target hospitals")
 	}
 
-	// 2. Map Diagnoses
 	var diagnoses []entity.ReferralDiagnosis
 	for _, d := range req.Diagnoses {
 		diagnoses = append(diagnoses, entity.ReferralDiagnosis{
@@ -68,7 +58,6 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 		})
 	}
 
-	// 3. Map Form (Annex IV)
 	form := &entity.ReferralForm{
 		ClinicalSummary:              req.ClinicalSummary,
 		PatientHistory:               req.PatientHistory,
@@ -84,10 +73,11 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 		AccompanyingPersonPhone:      req.AccompanyingPersonPhone,
 	}
 
-	// Determine Initial Request Status enforcing gating limits
-	requestStatus := entity.StatusDraft
+	status := entity.StatusDraft
+	if req.Status == string(entity.StatusSubmitted) {
+		status = entity.StatusSubmitted
+	}
 
-	// 4. Construct envelope mapping existing Patient explicitly
 	referral := &entity.Referral{
 		ReferringDoctorID: doctorID,
 		SenderHospitalID:  senderHospitalID,
@@ -95,7 +85,7 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 		TargetDeptID:      req.TargetDeptID,
 		PatientID:         req.PatientID,
 		LiaisonOfficerID:  req.LiaisonOfficerID,
-		Status:            requestStatus,
+		Status:            status,
 		ReferralForm:      form,
 		Diagnoses:         diagnoses,
 	}
@@ -120,111 +110,72 @@ func (u *referralUseCase) CreateReferral(ctx context.Context, doctorID uuid.UUID
 		}
 	}
 
-	if err := u.verifySubmissionRequirements(referral); err != nil {
-		return nil, err
+	// Validation constraints
+	if status == entity.StatusSubmitted {
+		if len(referral.Diagnoses) == 0 {
+			return nil, errors.New("cannot submit: at least one clinical diagnosis is required")
+		}
+		f := referral.ReferralForm
+		if f.ClinicalSummary == "" || f.PatientHistory == "" || f.ReasonOfReferral == "" || f.ReasonForReferralCategory == nil || f.ConditionAtReferral == "" {
+			return nil, errors.New("cannot submit: Clinical Summary, Patient History, Reason For Referral and Condition are structurally mandatory")
+		}
 	}
 
 	if err := u.referralRepo.CreateReferralTransaction(ctx, referral); err != nil {
 		return nil, err
 	}
 
+	// Log if submitted immediately
+	draftStatus := entity.StatusDraft
+	if status == entity.StatusSubmitted {
+		_ = u.logStatusChange(ctx, referral.ID, doctorID, &draftStatus, entity.StatusSubmitted, "")
+	}
+
 	return referral, nil
 }
 
-func (u *referralUseCase) GetReferral(ctx context.Context, id, userID, hospID, deptID uuid.UUID, userRole entity.UserRole) (*entity.Referral, error) {
-	referral, err := u.referralRepo.GetReferralByID(ctx, id)
+func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForDoctor(ctx, doctorID, limit, offset, statusFilter)
+}
+
+func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error) {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-
-	// RBAC Validation for GetByID
-	switch userRole {
-	case entity.RoleSystemSuperAdmin:
-		// Allowed unconditionally
-	case entity.RoleReferringDoctor:
-		if referral.ReferringDoctorID != userID {
-			return nil, errors.New("unauthorized: can only view own referrals")
-		}
-	case entity.RoleLiaisonOfficer:
-		if referral.SenderHospitalID != hospID {
-			return nil, errors.New("unauthorized: referral does not belong to your facility")
-		}
-	case entity.RoleReceivingSpecialist, entity.RoleDeptHead:
-		if referral.TargetHospitalID != hospID || (deptID != uuid.Nil && referral.TargetDeptID != deptID) {
-			return nil, errors.New("unauthorized: referral target mismatch for your department/hospital")
-		}
-	case entity.RoleReceptionist:
-		if referral.TargetHospitalID != hospID {
-			return nil, errors.New("unauthorized: patient not assigned to your hospital")
-		}
-	default:
-		return nil, errors.New("unauthorized role")
+	if ref.ReferringDoctorID != doctorID {
+		return nil, errors.New("unauthorized: can only view own referrals")
 	}
-
-	return referral, nil
+	return ref, nil
 }
 
-func (u *referralUseCase) ListReferrals(ctx context.Context, userID, hospID, deptID uuid.UUID, userRole entity.UserRole, statusFilter, dateFrom, dateTo string) ([]entity.Referral, error) {
-	filters := make(map[string]interface{})
-
-	// Apply RBAC Scopes based on Role
-	switch userRole {
-	case entity.RoleSystemSuperAdmin:
-		// No restrictions, sees all nationwide.
-	case entity.RoleReferringDoctor:
-		filters["referring_doctor_id"] = userID // Strictly personal creations
-	case entity.RoleLiaisonOfficer:
-		filters["sender_hospital_id"] = hospID  // Outgoing gatekeeper
-	case entity.RoleReceivingSpecialist, entity.RoleDeptHead:
-		filters["target_hospital_id"] = hospID
-		if deptID != uuid.Nil {
-			filters["target_dept_id"] = deptID // Incoming queue
-		}
-	case entity.RoleReceptionist:
-		filters["target_hospital_id"] = hospID // Usually filtered further by front desk for "ACCEPTED" only.
-	default:
-		// Unknown or restricted roles return empty to be safe
-		return []entity.Referral{}, errors.New("unauthorized role")
-	}
-
-	if statusFilter != "" {
-		filters["status"] = entity.ReferralStatus(statusFilter)
-	}
-
-	if dateFrom != "" {
-		filters["start_date"] = dateFrom
-	}
-
-	if dateTo != "" {
-		filters["end_date"] = dateTo
-	}
-
-	return u.referralRepo.ListReferrals(ctx, filters)
-}
-
-func (u *referralUseCase) UpdateDraft(ctx context.Context, id, userID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
-	// 1. Fetch existing
+func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Enforce creator constraint
-	if existing.ReferringDoctorID != userID {
-		return nil, errors.New("unauthorized: only the creator can update this draft")
+	if existing.ReferringDoctorID != doctorID {
+		return nil, errors.New("unauthorized: only the creator can update this draft/referral")
 	}
 
-	// Check if it's in a valid state to be accepted (FORWARDED or SPECIALIST_REVIEW)
-	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedsRevision {
-		return nil, errors.New("forbidden: only referrals actively in DRAFT or NEEDS_REVISION status can be updated via this endpoint")
+	// Immutability Check
+	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedRevision {
+		return nil, errors.New("forbidden: referral is immutable in current state")
 	}
 
-	// 3. Map updates
+	oldStatus := existing.Status
+	// If the user wants to jump strictly to submitted
+	nextStatus := entity.StatusDraft
+	if req.Status == string(entity.StatusSubmitted) {
+		nextStatus = entity.StatusSubmitted
+	}
+
+	// Map
 	existing.TargetHospitalID = req.TargetHospitalID
 	existing.TargetDeptID = req.TargetDeptID
 	existing.LiaisonOfficerID = req.LiaisonOfficerID
 
-	// Update Form
 	existing.ReferralForm.ClinicalSummary = req.ClinicalSummary
 	existing.ReferralForm.PatientHistory = req.PatientHistory
 	existing.ReferralForm.PhysicalExaminationFindings = req.PhysicalExaminationFindings
@@ -236,7 +187,6 @@ func (u *referralUseCase) UpdateDraft(ctx context.Context, id, userID uuid.UUID,
 	existing.ReferralForm.ConditionAtReferral = req.ConditionAtReferral
 	existing.ReferralForm.ModeOfTransport = req.ModeOfTransport
 
-	// Re-map Diagnoses
 	var diagnoses []entity.ReferralDiagnosis
 	for _, d := range req.Diagnoses {
 		diagnoses = append(diagnoses, entity.ReferralDiagnosis{
@@ -248,169 +198,342 @@ func (u *referralUseCase) UpdateDraft(ctx context.Context, id, userID uuid.UUID,
 	}
 	existing.Diagnoses = diagnoses
 
-	// Re-map Vitals
 	if req.Vitals != nil {
-		existing.Vitals = []entity.Vital{
-			{
-				ReferralID:      existing.ID,
-				SystolicBP:      req.Vitals.SystolicBP,
-				DiastolicBP:     req.Vitals.DiastolicBP,
-				HeartRate:       req.Vitals.HeartRate,
-				SpO2:            req.Vitals.SpO2,
-				Temperature:     req.Vitals.Temperature,
-				RespiratoryRate: req.Vitals.RespiratoryRate,
-				GCSScore:        req.Vitals.GCSScore,
-			},
-		}
+		existing.Vitals = []entity.Vital{{
+			ReferralID:      existing.ID,
+			SystolicBP:      req.Vitals.SystolicBP,
+			DiastolicBP:     req.Vitals.DiastolicBP,
+			HeartRate:       req.Vitals.HeartRate,
+			SpO2:            req.Vitals.SpO2,
+			Temperature:     req.Vitals.Temperature,
+			RespiratoryRate: req.Vitals.RespiratoryRate,
+			GCSScore:        req.Vitals.GCSScore,
+		}}
 	} else {
 		existing.Vitals = nil
 	}
 
+	if nextStatus == entity.StatusSubmitted {
+		if len(existing.Diagnoses) == 0 {
+			return nil, errors.New("cannot submit: at least one diagnosis is required")
+		}
+	}
+
+	existing.Status = nextStatus
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
 		return nil, err
+	}
+
+	if oldStatus != nextStatus {
+		_ = u.logStatusChange(ctx, existing.ID, doctorID, &oldStatus, nextStatus, "")
 	}
 
 	return existing, nil
 }
 
-func (u *referralUseCase) DeleteDraft(ctx context.Context, id, userID uuid.UUID) error {
+func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.UUID, reason string) error {
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return err
 	}
-
-	if existing.ReferringDoctorID != userID {
-		return errors.New("unauthorized: only the creator can delete this draft")
+	if existing.ReferringDoctorID != doctorID {
+		return errors.New("unauthorized")
 	}
-
-	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedsRevision {
-		return errors.New("cannot delete a referral that has already been submitted and accepted for review")
-	}
-
-	return u.referralRepo.DeleteReferral(ctx, id)
-}
-
-func (u *referralUseCase) SubmitReferral(ctx context.Context, id, userID uuid.UUID) error {
-	existing, err := u.referralRepo.GetReferralByID(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if existing.ReferringDoctorID != userID {
-		return errors.New("unauthorized: only the creator can submit this referral")
-	}
-
-	if existing.Status != entity.StatusDraft {
-		return errors.New("invalid status: can only submit a referral in DRAFT status")
-	}
-
-	// Fake the status temporarily for validation check
-	existing.Status = entity.StatusSubmitted
-	if err := u.verifySubmissionRequirements(existing); err != nil {
-		return err
-	}
-
-	oldStatus := entity.StatusDraft
-
-	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
-		return err
-	}
-
-	return u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
-		ReferralID:  id,
-		ChangedByID: userID,
-		FromStatus:  &oldStatus,
-		ToStatus:    entity.StatusSubmitted,
-		ChangedAt:   time.Now(),
-	})
-}
-
-func (u *referralUseCase) ResubmitReferral(ctx context.Context, id, userID uuid.UUID) error {
-	existing, err := u.referralRepo.GetReferralByID(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if existing.ReferringDoctorID != userID {
-		return errors.New("unauthorized: only the creator can resubmit this referral")
-	}
-
-	if existing.Status != entity.StatusNeedsRevision {
-		return errors.New("invalid status: can only resubmit a referral in NEEDS_REVISION status")
-	}
-
-	existing.Status = entity.StatusUnderLiaisonReview
-	existing.RejectionReason = nil // Clear previous rejection
-
-	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
-		return err
-	}
-
-	oldStatus := entity.StatusNeedsRevision
-	return u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
-		ReferralID:  id,
-		ChangedByID: userID,
-		FromStatus:  &oldStatus,
-		ToStatus:    entity.StatusUnderLiaisonReview,
-		ChangedAt:   time.Now(),
-	})
-}
-
-func (u *referralUseCase) CancelReferral(ctx context.Context, id, userID uuid.UUID, reason string) error {
-	existing, err := u.referralRepo.GetReferralByID(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if existing.ReferringDoctorID != userID {
-		return errors.New("unauthorized: only the creator can cancel this referral")
-	}
-
-	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedsRevision {
-		return errors.New("cannot cancel a referral that has already been submitted and accepted for review")
+	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedRevision {
+		return errors.New("forbidden: cannot cancel once in active review pipeline")
 	}
 
 	oldStatus := existing.Status
 	existing.Status = entity.StatusCancelled
-
-	var reasonPtr *string
-	if reason != "" {
-		reasonPtr = &reason
-	}
-
+	
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
 		return err
 	}
 
-	return u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
-		ReferralID:  id,
-		ChangedByID: userID,
-		FromStatus:  &oldStatus,
-		ToStatus:    entity.StatusCancelled,
-		Reason:      reasonPtr,
-		ChangedAt:   time.Now(),
-	})
+	return u.logStatusChange(ctx, id, doctorID, &oldStatus, entity.StatusCancelled, reason)
 }
 
-func (u *referralUseCase) verifySubmissionRequirements(ref *entity.Referral) error {
+// ---------------------------------------------------------
+// Liaison Actions
+// ---------------------------------------------------------
+
+func (u *referralUseCase) ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForLiaison(ctx, hospID, limit, offset, statusFilter)
+}
+
+func (u *referralUseCase) GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ref.SenderHospitalID != hospID {
+		return nil, errors.New("unauthorized: referral does not originate from your hospital")
+	}
+	return ref, nil
+}
+
+func (u *referralUseCase) LiaisonRead(ctx context.Context, id, liaisonID, hospID uuid.UUID) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.SenderHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
 	if ref.Status != entity.StatusSubmitted {
-		return nil // No severe restrictions exist for piecemeal DRAFTS
+		return errors.New("invalid status transition: must be SUBMITTED")
 	}
 
-	// Rule 1: Diagnoses
-	if len(ref.Diagnoses) == 0 {
-		return errors.New("cannot submit: at least one clinical diagnosis is required")
+	oldStatus := ref.Status
+	ref.Status = entity.StatusUnderLiaisonReview
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, liaisonID, &oldStatus, entity.StatusUnderLiaisonReview, "")
+}
+
+func (u *referralUseCase) LiaisonForward(ctx context.Context, id, liaisonID, hospID uuid.UUID, comment string) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.SenderHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
+	if ref.Status != entity.StatusUnderLiaisonReview {
+		return errors.New("invalid status transition: must be UNDER_LIAISON_REVIEW")
 	}
 
-	// Rule 2: Referral Form Fields
-	if ref.ReferralForm == nil {
-		return errors.New("cannot submit: referral form annex is missing")
+	oldStatus := ref.Status
+	ref.Status = entity.StatusForwarded
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, liaisonID, &oldStatus, entity.StatusForwarded, comment)
+}
+
+func (u *referralUseCase) LiaisonReject(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.SenderHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
+	if ref.Status != entity.StatusUnderLiaisonReview {
+		return errors.New("invalid status: must be UNDER_LIAISON_REVIEW")
+	}
+	if reason == "" {
+		return errors.New("rejection reason is required")
 	}
 
-	f := ref.ReferralForm
-	if f.ClinicalSummary == "" || f.PatientHistory == "" || f.ReasonOfReferral == "" || f.ReasonForReferralCategory == "" || f.ConditionAtReferral == "" {
-		return errors.New("cannot submit: Clinical Summary, Patient History, Reason For Referral and Condition are structurally mandatory")
+	oldStatus := ref.Status
+	ref.Status = entity.StatusRejectedByLiaison
+	ref.RejectionReason = &reason
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, liaisonID, &oldStatus, entity.StatusRejectedByLiaison, reason)
+}
+
+func (u *referralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.SenderHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
+	if ref.Status != entity.StatusUnderLiaisonReview {
+		return errors.New("invalid status: must be UNDER_LIAISON_REVIEW")
+	}
+	if reason == "" {
+		return errors.New("revision reason is required")
 	}
 
+	oldStatus := ref.Status
+	ref.Status = entity.StatusNeedRevision
+	ref.RevisionReason = &reason
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, liaisonID, &oldStatus, entity.StatusNeedRevision, reason)
+}
+
+// ---------------------------------------------------------
+// Specialist Actions
+// ---------------------------------------------------------
+
+func (u *referralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForSpecialist(ctx, hospID, specialistID, limit, offset, statusFilter)
+}
+
+func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ref.TargetHospitalID != hospID {
+		return nil, errors.New("unauthorized")
+	}
+	return ref, nil
+}
+
+func (u *referralUseCase) SpecialistRead(ctx context.Context, id, specialistID, hospID uuid.UUID) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.TargetHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
+	if ref.Status != entity.StatusForwarded {
+		return errors.New("invalid status: must be FORWARDED")
+	}
+
+	oldStatus := ref.Status
+	ref.Status = entity.StatusUnderSpecialistReview
+	ref.SpecialistID = &specialistID
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, specialistID, &oldStatus, entity.StatusUnderSpecialistReview, "")
+}
+
+func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID, hospID uuid.UUID, severityScore *float64) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.TargetHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
+	if ref.Status != entity.StatusUnderSpecialistReview {
+		return errors.New("invalid status: must be UNDER_SPECIALIST_REVIEW")
+	}
+
+	oldStatus := ref.Status
+	ref.Status = entity.StatusAccepted
+	if severityScore != nil {
+		ref.MLSeverityScore = severityScore
+	}
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, specialistID, &oldStatus, entity.StatusAccepted, "")
+}
+
+func (u *referralUseCase) SpecialistReject(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.TargetHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
+	if ref.Status != entity.StatusForwarded && ref.Status != entity.StatusUnderSpecialistReview {
+		return errors.New("invalid status: must be FORWARDED or UNDER_SPECIALIST_REVIEW")
+	}
+	if reason == "" {
+		return errors.New("rejection reason is required")
+	}
+
+	oldStatus := ref.Status
+	ref.Status = entity.StatusRejectedBySpecialist
+	ref.RejectionReason = &reason
+	ref.SpecialistID = &specialistID
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, specialistID, &oldStatus, entity.StatusRejectedBySpecialist, reason)
+}
+
+func (u *referralUseCase) SpecialistRerunML(ctx context.Context, id, specialistID, hospID uuid.UUID) error {
+	// Dummy ML Rerun implementation
 	return nil
+}
+
+// ---------------------------------------------------------
+// Receptionist Actions
+// ---------------------------------------------------------
+
+func (u *referralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForReceptionist(ctx, hospID, limit, offset, statusFilter)
+}
+
+func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ref.TargetHospitalID != hospID {
+		return nil, errors.New("unauthorized")
+	}
+	return ref, nil
+}
+
+func (u *referralUseCase) ConfirmAttendance(ctx context.Context, id, receptionistID, hospID uuid.UUID, status string) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.TargetHospitalID != hospID {
+		return errors.New("unauthorized")
+	}
+
+	// This mapping requires the Referral to be SCHEDULED prior, though some systems allow ACCEPTED -> ASSIGNED skipping SCHEDULED.
+	// We'll enforce ACCEPTED or SCHEDULED or RESCHEDULED -> ASSIGNED, and SCHEDULED->MISSED, etc.
+	oldStatus := ref.Status
+	var newStatus entity.ReferralStatus
+
+	switch status {
+	case string(entity.StatusAssigned):
+		if oldStatus != entity.StatusAccepted && oldStatus != entity.StatusScheduled && oldStatus != entity.StatusRescheduled {
+			return errors.New("invalid transition to ASSIGNED")
+		}
+		newStatus = entity.StatusAssigned
+	case string(entity.StatusMissed):
+		if oldStatus != entity.StatusScheduled && oldStatus != entity.StatusRescheduled {
+			return errors.New("invalid transition to MISSED")
+		}
+		newStatus = entity.StatusMissed
+	case string(entity.StatusCompleted):
+		if oldStatus != entity.StatusAssigned {
+			return errors.New("invalid transition: must be ASSIGNED to COMPLETE")
+		}
+		newStatus = entity.StatusCompleted
+	case string(entity.StatusScheduled):
+		if oldStatus != entity.StatusAccepted {
+			return errors.New("invalid transition: must be ACCEPTED")
+		}
+		newStatus = entity.StatusScheduled
+	default:
+		return errors.New("invalid status selected")
+	}
+
+	ref.Status = newStatus
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+	return u.logStatusChange(ctx, id, receptionistID, &oldStatus, newStatus, "")
+}
+
+// ---------------------------------------------------------
+// Admin Actions
+// ---------------------------------------------------------
+
+func (u *referralUseCase) ListForSystemAdmin(ctx context.Context, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForSystemAdmin(ctx, limit, offset, statusFilter)
+}
+
+func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, offset int) ([]entity.ReferralStatusHistory, int64, error) {
+	return u.referralRepo.GetHospitalLogsForAdmin(ctx, hospID, limit, offset)
 }
