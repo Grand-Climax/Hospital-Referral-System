@@ -684,9 +684,9 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Pagination offset",
-                        "name": "offset",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -961,9 +961,9 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Pagination offset",
-                        "name": "offset",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
                         "in": "query"
                     }
                 ],
@@ -1464,9 +1464,9 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Pagination offset",
-                        "name": "offset",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -1965,9 +1965,9 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Pagination offset",
-                        "name": "offset",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -2398,9 +2398,9 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Pagination offset",
-                        "name": "offset",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -2726,9 +2726,9 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Pagination offset",
-                        "name": "offset",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
                         "in": "query"
                     },
                     {
