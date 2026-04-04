@@ -47,7 +47,7 @@ func TestAttachmentEndpoints(t *testing.T) {
 	referralID := uuid.New()
 
 	router := gin.Default()
-	router.POST("/api/v1/referrals/:id/attachments", handler.UploadAttachment)
+	router.POST("/api/v1/attachments/referrals/:id", handler.UploadAttachment)
 	router.GET("/api/v1/attachments/:id/download", handler.DownloadAttachment)
 
 	t.Run("Upload Attachment - Valid PDF", func(t *testing.T) {
@@ -77,7 +77,7 @@ func TestAttachmentEndpoints(t *testing.T) {
 			mock.AnythingOfType("string"),
 		).Return(returnedAttachment, nil)
 
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/referrals/"+referralID.String()+"/attachments", body)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/attachments/referrals/"+referralID.String(), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -98,7 +98,7 @@ func TestAttachmentEndpoints(t *testing.T) {
 		_, _ = part.Write([]byte("MZ fake executable"))
 		writer.Close()
 
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/referrals/"+referralID.String()+"/attachments", body)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/attachments/referrals/"+referralID.String(), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -113,7 +113,7 @@ func TestAttachmentEndpoints(t *testing.T) {
 		_, _ = part.Write([]byte("%PDF fake"))
 		writer.Close()
 
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/referrals/not-a-uuid/attachments", body)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/attachments/referrals/not-a-uuid", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
