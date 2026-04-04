@@ -10,12 +10,35 @@ import (
 )
 
 type ReferralUseCase interface {
-	CreateReferral(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
-	GetReferral(ctx context.Context, id, userID, hospID, deptID uuid.UUID, userRole entity.UserRole) (*entity.Referral, error)
-	ListReferrals(ctx context.Context, userID, hospID, deptID uuid.UUID, userRole entity.UserRole, statusFilter, dateFrom, dateTo string) ([]entity.Referral, error)
-	UpdateDraft(ctx context.Context, id, userID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
-	DeleteDraft(ctx context.Context, id, userID uuid.UUID) error
-	SubmitReferral(ctx context.Context, id, userID uuid.UUID) error
-	ResubmitReferral(ctx context.Context, id, userID uuid.UUID) error
-	CancelReferral(ctx context.Context, id, userID uuid.UUID, reason string) error
+	// --- Doctor Actions ---
+	CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
+	ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error)
+	UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
+	CancelReferral(ctx context.Context, id, doctorID uuid.UUID, reason string) error
+
+	// --- Liaison Actions ---
+	ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error)
+	LiaisonRead(ctx context.Context, id, liaisonID, hospID uuid.UUID) error
+	LiaisonForward(ctx context.Context, id, liaisonID, hospID uuid.UUID, comment string) error
+	LiaisonReject(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
+	LiaisonRevise(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
+
+	// --- Specialist Actions ---
+	ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	GetDetailsForSpecialist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error)
+	SpecialistRead(ctx context.Context, id, specialistID, hospID uuid.UUID) error
+	SpecialistAccept(ctx context.Context, id, specialistID, hospID uuid.UUID, severityScore *float64) error
+	SpecialistReject(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error
+	SpecialistRerunML(ctx context.Context, id, specialistID, hospID uuid.UUID) error
+
+	// --- Receptionist Actions ---
+	ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error)
+	ConfirmAttendance(ctx context.Context, id, receptionistID, hospID uuid.UUID, status string) error
+
+	// --- Admin Actions ---
+	ListForSystemAdmin(ctx context.Context, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, offset int) ([]entity.ReferralStatusHistory, int64, error)
 }

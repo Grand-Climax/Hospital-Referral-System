@@ -19,7 +19,7 @@ type CreateReferralRequest struct {
 	TreatmentGivenBeforeReferral *string `json:"treatment_given_before_referral" example:"Aspirin 300mg"`
 	MedicationOnTransfer         *string `json:"medication_on_transfer" example:"IV Nitroglycerin"`
 	ReasonOfReferral             string  `json:"reason_of_referral" example:"Requires immediate cardiological intervention"`
-	ReasonForReferralCategory    string  `json:"reason_for_referral_category" example:"EMERGENCY"`
+	ReasonForReferralCategory    *string `json:"reason_for_referral_category,omitempty" example:"EMERGENCY"`
 	ConditionAtReferral          string  `json:"condition_at_referral" example:"UNSTABLE"`
 	ModeOfTransport              *string `json:"mode_of_transport" example:"AMBULANCE"`
 	AccompanyingPersonName       *string `json:"accompanying_person_name" example:"Sarah Kebede"`
@@ -54,4 +54,44 @@ type VitalsDTO struct {
 
 type EmergencyDetailDTO struct {
 	EmergencyJustification string `json:"emergency_justification" binding:"required" example:"Patient requires immediate intubation and bypass surgery"`
+}
+
+// ListReferralResponse is the unified DTO for role-based list endpoints
+type ListReferralResponse struct {
+	ID                  uuid.UUID `json:"id"`
+	PatientFirstName    string    `json:"patient_first_name"`
+	PatientMiddleName   string    `json:"patient_middle_name"`
+	PatientLastName     string    `json:"patient_last_name"`
+	Department          string    `json:"department"`
+	Date                string    `json:"date"` // formatted CreatedAt
+	Status              string    `json:"status"`
+	ICDCode             string    `json:"icd_code"`
+	Diagnosis           string    `json:"diagnosis"` // Typically the primary diagnosis CodeInfo name
+	ConditionAtReferral string    `json:"condition_at_referral"`
+}
+
+type PaginatedReferralResponse struct {
+	Data     []ListReferralResponse `json:"data"`
+	Total    int64                  `json:"total"`
+	Page     int                    `json:"page"`
+	PageSize int                    `json:"page_size"`
+}
+
+type RejectDTO struct {
+	Reason string `json:"reason" binding:"required,min=5"`
+}
+
+type ReviseDTO struct {
+	Reason string `json:"reason" binding:"required,min=5"`
+}
+
+// LogResponseDTO is used by HospitalAdmins to view event log history without clinical details.
+type LogResponseDTO struct {
+	HistoryID   uuid.UUID  `json:"history_id"`
+	ReferralID  uuid.UUID  `json:"referral_id"`
+	ChangedByID uuid.UUID  `json:"changed_by_id"`
+	Role        string     `json:"role"`
+	FromStatus  *string    `json:"from_status,omitempty"`
+	ToStatus    string     `json:"to_status"`
+	CreatedAt   string     `json:"created_at"`
 }
