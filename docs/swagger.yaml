@@ -1188,10 +1188,10 @@ paths:
         in: query
         name: limit
         type: integer
-      - default: 0
-        description: Pagination offset
+      - default: 1
+        description: Page number
         in: query
-        name: offset
+        name: page
         type: integer
       - description: Filter by status
         in: query
@@ -1369,10 +1369,10 @@ paths:
         in: query
         name: limit
         type: integer
-      - default: 0
-        description: Pagination offset
+      - default: 1
+        description: Page number
         in: query
-        name: offset
+        name: page
         type: integer
       produces:
       - application/json
@@ -1693,10 +1693,10 @@ paths:
         in: query
         name: limit
         type: integer
-      - default: 0
-        description: Pagination offset
+      - default: 1
+        description: Page number
         in: query
-        name: offset
+        name: page
         type: integer
       - description: Filter by status
         in: query
@@ -2016,10 +2016,10 @@ paths:
         in: query
         name: limit
         type: integer
-      - default: 0
-        description: Pagination offset
+      - default: 1
+        description: Page number
         in: query
-        name: offset
+        name: page
         type: integer
       - description: Filter by status
         in: query
@@ -2301,10 +2301,10 @@ paths:
         in: query
         name: limit
         type: integer
-      - default: 0
-        description: Pagination offset
+      - default: 1
+        description: Page number
         in: query
-        name: offset
+        name: page
         type: integer
       - description: Filter by status
         in: query
@@ -2511,10 +2511,10 @@ paths:
         in: query
         name: limit
         type: integer
-      - default: 0
-        description: Pagination offset
+      - default: 1
+        description: Page number
         in: query
-        name: offset
+        name: page
         type: integer
       - description: Filter by status
         in: query

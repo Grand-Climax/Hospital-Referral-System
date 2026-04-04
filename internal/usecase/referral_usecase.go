@@ -134,8 +134,8 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 	return referral, nil
 }
 
-func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForDoctor(ctx, doctorID, limit, offset, statusFilter)
+func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForDoctor(ctx, doctorID, limit, page, statusFilter)
 }
 
 func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error) {
@@ -257,8 +257,8 @@ func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.
 // Liaison Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForLiaison(ctx, hospID, limit, offset, statusFilter)
+func (u *referralUseCase) ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForLiaison(ctx, hospID, limit, page, statusFilter)
 }
 
 func (u *referralUseCase) GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -368,8 +368,8 @@ func (u *referralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, hosp
 // Specialist Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForSpecialist(ctx, hospID, specialistID, limit, offset, statusFilter)
+func (u *referralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForSpecialist(ctx, hospID, specialistID, limit, page, statusFilter)
 }
 
 func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -464,8 +464,8 @@ func (u *referralUseCase) SpecialistRerunML(ctx context.Context, id, specialistI
 // Receptionist Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForReceptionist(ctx, hospID, limit, offset, statusFilter)
+func (u *referralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForReceptionist(ctx, hospID, limit, page, statusFilter)
 }
 
 func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -530,10 +530,10 @@ func (u *referralUseCase) ConfirmAttendance(ctx context.Context, id, receptionis
 // Admin Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListForSystemAdmin(ctx context.Context, limit, offset int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForSystemAdmin(ctx, limit, offset, statusFilter)
+func (u *referralUseCase) ListForSystemAdmin(ctx context.Context, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+	return u.referralRepo.ListForSystemAdmin(ctx, limit, page, statusFilter)
 }
 
-func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, offset int) ([]entity.ReferralStatusHistory, int64, error) {
-	return u.referralRepo.GetHospitalLogsForAdmin(ctx, hospID, limit, offset)
+func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
+	return u.referralRepo.GetHospitalLogsForAdmin(ctx, hospID, limit, page)
 }
