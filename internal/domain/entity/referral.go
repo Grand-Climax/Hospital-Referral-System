@@ -10,19 +10,23 @@ import (
 type ReferralStatus string
 
 const (
-	StatusDraft              ReferralStatus = "DRAFT"
-	StatusSubmitted          ReferralStatus = "SUBMITTED"
-	StatusUnderLiaisonReview ReferralStatus = "UNDER_LIAISON_REVIEW"
-	StatusNeedsRevision      ReferralStatus = "NEEDS_REVISION"      // Liaison rejected → doctor must fix
-	StatusForwarded          ReferralStatus = "FORWARDED"
-	StatusSpecialistReview   ReferralStatus = "SPECIALIST_REVIEW"   // Received → awaiting specialist decision
-	StatusAccepted           ReferralStatus = "ACCEPTED"
-	StatusRejected           ReferralStatus = "REJECTED"            // Terminal rejection by specialist/admin
-	StatusSpecialistAssigned ReferralStatus = "SPECIALIST_ASSIGNED"
-	StatusScheduled          ReferralStatus = "SCHEDULED"
-	StatusCompleted          ReferralStatus = "COMPLETED"
-	StatusCancelled          ReferralStatus = "CANCELLED"
-	StatusMissed             ReferralStatus = "MISSED"
+	StatusDraft                 ReferralStatus = "DRAFT"
+	StatusSubmitted             ReferralStatus = "SUBMITTED"
+	StatusUnderLiaisonReview    ReferralStatus = "UNDER_LIAISON_REVIEW"
+	StatusForwarded             ReferralStatus = "FORWARDED"
+	StatusUnderSpecialistReview ReferralStatus = "UNDER_SPECIALIST_REVIEW"
+	StatusAccepted              ReferralStatus = "ACCEPTED"
+	StatusScheduled             ReferralStatus = "SCHEDULED"
+	StatusAssigned              ReferralStatus = "ASSIGNED"
+	StatusCompleted             ReferralStatus = "COMPLETED"
+	
+	// Interruption Statuses
+	StatusNeedRevision         ReferralStatus = "NEED_REVISION"
+	StatusCancelled            ReferralStatus = "CANCELLED"
+	StatusRejectedByLiaison    ReferralStatus = "REJECTED_BY_LIAISON"
+	StatusRejectedBySpecialist ReferralStatus = "REJECTED_BY_SPECIALIST"
+	StatusMissed               ReferralStatus = "MISSED"
+	StatusRescheduled          ReferralStatus = "RESCHEDULED"
 )
 
 type Referral struct {
@@ -45,8 +49,12 @@ type Referral struct {
 	MLRetryCount   int    `gorm:"default:0" json:"ml_retry_count"`
 	MLLastError    *string `gorm:"type:text" json:"ml_last_error,omitempty"`
 
-	// Rejection
+	// Rejection and Revision
 	RejectionReason *string `gorm:"type:text" json:"rejection_reason,omitempty"`
+	RevisionReason  *string `gorm:"type:text" json:"revision_reason,omitempty"`
+
+	// Specialist Assignment
+	SpecialistID    *uuid.UUID `gorm:"type:uuid;index" json:"specialist_id,omitempty"`
 
 	// Timestamps
 	CreatedAt time.Time `gorm:"default:now();index:idx_sender_created;index:idx_dept_status_created;index:idx_patient_created" json:"created_at"`
