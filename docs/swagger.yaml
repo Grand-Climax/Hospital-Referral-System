@@ -58,6 +58,205 @@ definitions:
     - phone_number
     - sex
     type: object
+  dto.CreateReferralRequest:
+    properties:
+      accompanying_person_name:
+        example: Sarah Kebede
+        type: string
+      accompanying_person_phone:
+        example: "+251922334455"
+        type: string
+      clinical_summary:
+        description: Annex IV Clinical Data
+        example: Patient complains of severe chest pain for 2 hours
+        type: string
+      condition_at_referral:
+        example: UNSTABLE
+        type: string
+      diagnoses:
+        description: Diagnoses
+        items:
+          $ref: '#/definitions/dto.DiagnosisDTO'
+        type: array
+      emergency_detail:
+        $ref: '#/definitions/dto.EmergencyDetailDTO'
+      investigation_results:
+        example: ECG shows ST elevation
+        type: string
+      liaison_officer_id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      medication_on_transfer:
+        example: IV Nitroglycerin
+        type: string
+      mode_of_transport:
+        example: AMBULANCE
+        type: string
+      patient_history:
+        example: Hypertension diagnosed 5 years ago
+        type: string
+      patient_id:
+        description: Patient Logic
+        example: 912b4375-2295-41bb-8ffd-c8318e9c051f
+        type: string
+      physical_examination_findings:
+        example: BP 180/110, HR 105
+        type: string
+      reason_for_referral_category:
+        example: EMERGENCY
+        type: string
+      reason_of_referral:
+        example: Requires immediate cardiological intervention
+        type: string
+      status:
+        description: Status tracking
+        enum:
+        - DRAFT
+        - SUBMITTED
+        example: SUBMITTED
+        type: string
+      target_dept_id:
+        example: 23fdcea4-074f-4c6b-8fe8-400da55df997
+        type: string
+      target_hospital_id:
+        description: Routing Information
+        example: c9020345-5e41-42d6-9a66-c8d4557519ff
+        type: string
+      treatment_given_before_referral:
+        example: Aspirin 300mg
+        type: string
+      vitals:
+        allOf:
+        - $ref: '#/definitions/dto.VitalsDTO'
+        description: Optional Extensions
+    required:
+    - liaison_officer_id
+    - patient_id
+    - target_dept_id
+    - target_hospital_id
+    type: object
+  dto.DiagnosisDTO:
+    properties:
+      diagnosis_certainty:
+        enum:
+        - CONFIRMED
+        - SUSPECTED
+        - SYMPTOM_ONLY
+        example: SUSPECTED
+        type: string
+      icd_code:
+        example: I10
+        type: string
+      is_primary:
+        example: true
+        type: boolean
+    required:
+    - diagnosis_certainty
+    - icd_code
+    type: object
+  dto.EmergencyDetailDTO:
+    properties:
+      emergency_justification:
+        example: Patient requires immediate intubation and bypass surgery
+        type: string
+    required:
+    - emergency_justification
+    type: object
+  dto.ListReferralResponse:
+    properties:
+      condition_at_referral:
+        type: string
+      date:
+        description: formatted CreatedAt
+        type: string
+      department:
+        type: string
+      diagnosis:
+        description: Typically the primary diagnosis CodeInfo name
+        type: string
+      icd_code:
+        type: string
+      id:
+        type: string
+      patient_first_name:
+        type: string
+      patient_last_name:
+        type: string
+      patient_middle_name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.PaginatedReferralResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ListReferralResponse'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.RejectDTO:
+    properties:
+      reason:
+        minLength: 5
+        type: string
+    required:
+    - reason
+    type: object
+  dto.ReviseDTO:
+    properties:
+      reason:
+        minLength: 5
+        type: string
+    required:
+    - reason
+    type: object
+  dto.VitalsDTO:
+    properties:
+      diastolic_bp:
+        maximum: 200
+        minimum: 20
+        type: integer
+      gcs_score:
+        maximum: 15
+        minimum: 3
+        type: integer
+      heart_rate:
+        maximum: 300
+        minimum: 20
+        type: integer
+      respiratory_rate:
+        maximum: 60
+        minimum: 4
+        type: integer
+      sp_o2:
+        maximum: 100
+        minimum: 0
+        type: number
+      systolic_bp:
+        maximum: 300
+        minimum: 40
+        type: integer
+      temperature:
+        maximum: 45
+        minimum: 25
+        type: number
+    type: object
+  entity.DiagnosisCertainty:
+    enum:
+    - CONFIRMED
+    - SUSPECTED
+    - SYMPTOM_ONLY
+    type: string
+    x-enum-varnames:
+    - CertaintyConfirmed
+    - CertaintySuspected
+    - CertaintySymptomOnly
   entity.HospitalTier:
     enum:
     - PRIMARY
@@ -70,6 +269,196 @@ definitions:
     - GeneralHosp
     - SpecializedHosp
     - TertiaryHosp
+  entity.ICDCode:
+    properties:
+      category:
+        type: string
+      code:
+        type: string
+      description:
+        type: string
+    type: object
+  entity.Patient:
+    properties:
+      date_of_birth:
+        type: string
+      first_name:
+        type: string
+      home_region:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      phone_number:
+        type: string
+      sex:
+        type: string
+    type: object
+  entity.Referral:
+    properties:
+      active_ml_prediction_id:
+        description: Triage priority
+        type: string
+      archived_at:
+        type: string
+      created_at:
+        description: Timestamps
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/entity.ReferralDiagnosis'
+        type: array
+      emergency_detail:
+        $ref: '#/definitions/entity.ReferralEmergencyDetail'
+      id:
+        type: string
+      is_archived:
+        description: Lifecycle
+        type: boolean
+      liaison_officer_id:
+        type: string
+      ml_last_error:
+        type: string
+      ml_retry_count:
+        type: integer
+      ml_severity_score:
+        type: number
+      ml_status:
+        description: Handle ML Failure
+        type: string
+      patient:
+        allOf:
+        - $ref: '#/definitions/entity.Patient'
+        description: Relationships
+      patient_id:
+        type: string
+      referral_form:
+        $ref: '#/definitions/entity.ReferralForm'
+      referring_doctor_id:
+        type: string
+      rejection_reason:
+        description: Rejection and Revision
+        type: string
+      revision_reason:
+        type: string
+      sender_hospital_id:
+        type: string
+      specialist_id:
+        description: Specialist Assignment
+        type: string
+      status:
+        $ref: '#/definitions/entity.ReferralStatus'
+      target_dept_id:
+        type: string
+      target_hospital_id:
+        type: string
+      updated_at:
+        type: string
+      vitals:
+        items:
+          $ref: '#/definitions/entity.Vital'
+        type: array
+      waiting_hours_weight:
+        type: number
+    type: object
+  entity.ReferralDiagnosis:
+    properties:
+      code_info:
+        allOf:
+        - $ref: '#/definitions/entity.ICDCode'
+        description: Relationship
+      diagnosis_certainty:
+        $ref: '#/definitions/entity.DiagnosisCertainty'
+      icd_code:
+        type: string
+      id:
+        type: string
+      is_primary:
+        type: boolean
+      referral_id:
+        type: string
+    type: object
+  entity.ReferralEmergencyDetail:
+    properties:
+      admitted_at:
+        type: string
+      emergency_justification:
+        type: string
+      id:
+        type: string
+      referral_id:
+        type: string
+    type: object
+  entity.ReferralForm:
+    properties:
+      accompanying_person_name:
+        type: string
+      accompanying_person_phone:
+        type: string
+      clinical_summary:
+        type: string
+      condition_at_referral:
+        type: string
+      id:
+        type: string
+      investigation_results:
+        type: string
+      medication_on_transfer:
+        type: string
+      mode_of_transport:
+        type: string
+      patient_history:
+        type: string
+      physical_examination_findings:
+        type: string
+      reason_for_referral_category:
+        description: 'TODO: Remove ReasonForReferralCategory in production phase.
+          Kept temporarily as nullable.'
+        type: string
+      reason_of_referral:
+        type: string
+      referral_id:
+        type: string
+      treatment_given_before_referral:
+        type: string
+    type: object
+  entity.ReferralStatus:
+    enum:
+    - DRAFT
+    - SUBMITTED
+    - UNDER_LIAISON_REVIEW
+    - FORWARDED
+    - UNDER_SPECIALIST_REVIEW
+    - ACCEPTED
+    - SCHEDULED
+    - ASSIGNED
+    - COMPLETED
+    - NEED_REVISION
+    - CANCELLED
+    - REJECTED_BY_LIAISON
+    - REJECTED_BY_SPECIALIST
+    - MISSED
+    - RESCHEDULED
+    type: string
+    x-enum-varnames:
+    - StatusDraft
+    - StatusSubmitted
+    - StatusUnderLiaisonReview
+    - StatusForwarded
+    - StatusUnderSpecialistReview
+    - StatusAccepted
+    - StatusScheduled
+    - StatusAssigned
+    - StatusCompleted
+    - StatusNeedRevision
+    - StatusCancelled
+    - StatusRejectedByLiaison
+    - StatusRejectedBySpecialist
+    - StatusMissed
+    - StatusRescheduled
   entity.UserRole:
     enum:
     - REFERRING_DOCTOR
@@ -90,6 +479,29 @@ definitions:
     - RoleDeptHead
     - RoleHospitalAdmin
     - RoleSystemSuperAdmin
+  entity.Vital:
+    properties:
+      diastolic_bp:
+        type: integer
+      gcs_score:
+        type: integer
+      heart_rate:
+        type: integer
+      id:
+        type: string
+      recorded_at:
+        type: string
+      referral_id:
+        type: string
+      respiratory_rate:
+        type: integer
+      sp_o2:
+        type: number
+      systolic_bp:
+        type: integer
+      temperature:
+        type: number
+    type: object
   handlers.AssignRoleRequest:
     properties:
       role:
@@ -766,6 +1178,227 @@ paths:
       summary: Update a department
       tags:
       - Departments
+  /api/v1/doctor/referrals:
+    get:
+      description: Get a paginated list of referrals created by the authenticated
+        doctor.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Referrals for Doctor
+      tags:
+      - Doctor Referrals
+    post:
+      consumes:
+      - application/json
+      description: Create a new referral draft or submit it directly based on the
+        status provided.
+      parameters:
+      - description: Referral Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReferralRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Referral'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create or Submit Referral
+      tags:
+      - Doctor Referrals
+  /api/v1/doctor/referrals/{id}:
+    get:
+      description: Get detailed information about a specific referral created by the
+        doctor.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Referral'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Referral Details for Doctor
+      tags:
+      - Doctor Referrals
+    put:
+      consumes:
+      - application/json
+      description: Update a previously returned/draft referral and optionally resubmit
+        it.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated Referral Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReferralRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Referral'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update and Resubmit Referral
+      tags:
+      - Doctor Referrals
+  /api/v1/doctor/referrals/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel an active referral that has not yet been processed.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Cancellation Reason (key: reason)'
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cancel Referral
+      tags:
+      - Doctor Referrals
+  /api/v1/hospital-admin/referrals-log:
+    get:
+      description: Get audit logs of all referral status transitions connected to
+        the hospital.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Referral Logs for Hospital
+      tags:
+      - Admin Referrals
   /api/v1/hospitals:
     get:
       description: List hospitals with optional filters
@@ -1050,6 +1683,214 @@ paths:
       summary: Unlink a department from a hospital
       tags:
       - Hospitals
+  /api/v1/liaison/referrals:
+    get:
+      description: Get a paginated list of referrals forwarded to or managed by the
+        liaison's hospital.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Referrals for Liaison
+      tags:
+      - Liaison Referrals
+  /api/v1/liaison/referrals/{id}:
+    get:
+      description: Get detailed information about a specific referral.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Referral'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Referral Details for Liaison
+      tags:
+      - Liaison Referrals
+  /api/v1/liaison/referrals/{id}/forward:
+    post:
+      description: Forward an approved referral to the specialists within the hospital.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Forward Referral to Specialist
+      tags:
+      - Liaison Referrals
+  /api/v1/liaison/referrals/{id}/read:
+    post:
+      description: Acknowledge receipt and mark the referral as read by the liaison.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark Referral as Read
+      tags:
+      - Liaison Referrals
+  /api/v1/liaison/referrals/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Reject an incoming referral.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RejectDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reject Referral
+      tags:
+      - Liaison Referrals
+  /api/v1/liaison/referrals/{id}/revise:
+    post:
+      consumes:
+      - application/json
+      description: Send a referral back to the draft stage to ask the sender for revisions.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Revision Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReviseDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Request Referral Revision
+      tags:
+      - Liaison Referrals
   /api/v1/patients:
     post:
       consumes:
@@ -1165,6 +2006,121 @@ paths:
       summary: Get patient by National ID
       tags:
       - Patients
+  /api/v1/receptionist/referrals:
+    get:
+      description: Get a paginated list of referrals assigned to the receptionist's
+        hospital.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Referrals for Receptionist
+      tags:
+      - Receptionist Referrals
+  /api/v1/receptionist/referrals/{id}:
+    get:
+      description: Get detailed information about a specific referral.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Referral'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Referral Details for Receptionist
+      tags:
+      - Receptionist Referrals
+  /api/v1/receptionist/referrals/{id}/confirm-attendance:
+    post:
+      consumes:
+      - application/json
+      description: Confirm that the patient has attended their referral appointment.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Status (key: status)'
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Confirm Referral Attendance
+      tags:
+      - Receptionist Referrals
   /api/v1/reference/departments:
     get:
       description: Returns all global departments (not scoped to a hospital). Accessible
@@ -1335,6 +2291,259 @@ paths:
       summary: Upload Referral Attachment
       tags:
       - Attachments
+  /api/v1/specialist/referrals:
+    get:
+      description: Get a paginated list of referrals forwarded to the specialist's
+        department.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Referrals for Specialist
+      tags:
+      - Specialist Referrals
+  /api/v1/specialist/referrals/{id}:
+    get:
+      description: Get detailed information about a specific referral.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Referral'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Referral Details for Specialist
+      tags:
+      - Specialist Referrals
+  /api/v1/specialist/referrals/{id}/accept:
+    post:
+      consumes:
+      - application/json
+      description: Accept an incoming referral and assign a severity score.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Severity Score (key: severity_score)'
+        in: body
+        name: request
+        schema:
+          additionalProperties:
+            format: float64
+            type: number
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Accept Referral
+      tags:
+      - Specialist Referrals
+  /api/v1/specialist/referrals/{id}/read:
+    post:
+      description: Acknowledge receipt and claim the referral for review by the specialist.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark Referral as Read
+      tags:
+      - Specialist Referrals
+  /api/v1/specialist/referrals/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Reject an incoming referral.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RejectDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reject Referral
+      tags:
+      - Specialist Referrals
+  /api/v1/specialist/referrals/{id}/rerun-ml:
+    post:
+      description: Rerun the machine learning prediction for a specific referral.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Rerun ML Prediction
+      tags:
+      - Specialist Referrals
+  /api/v1/system-admin/referrals:
+    get:
+      description: Get a global paginated list of all referrals with optional status
+        filtering.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: System Admin Global Listing
+      tags:
+      - Admin Referrals
   /api/v1/users:
     get:
       description: Admin-only endpoint to list users with optional filters
