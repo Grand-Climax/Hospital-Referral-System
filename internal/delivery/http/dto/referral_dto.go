@@ -9,7 +9,7 @@ type CreateReferralRequest struct {
 	// Routing Information
 	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"c9020345-5e41-42d6-9a66-c8d4557519ff"`
 	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"23fdcea4-074f-4c6b-8fe8-400da55df997"`
-	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id,omitempty" binding:"required" example:"00000000-0000-0000-0000-000000000000"`
+	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id,omitempty" binding:"required" example:"42b00780-6bd7-4919-ad05-dfaa060a319d"`
 
 	// Annex IV Clinical Data
 	ClinicalSummary              string  `json:"clinical_summary" example:"Patient complains of severe chest pain for 2 hours"`
@@ -30,6 +30,38 @@ type CreateReferralRequest struct {
 
 	// Status tracking
 	Status string `json:"status" binding:"omitempty,oneof=DRAFT SUBMITTED" example:"SUBMITTED"`
+
+	// Optional Extensions
+	Vitals          *VitalsDTO          `json:"vitals"`
+	EmergencyDetail *EmergencyDetailDTO `json:"emergency_detail"`
+}
+
+type UpdateReferralRequest struct {
+	// Patient ID cannot be changed in update usually, but we'll include it for consistency or restrict if needed.
+	// For now, mirroring Create except Status.
+	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"912b4375-2295-41bb-8ffd-c8318e9c051f"`
+
+	// Routing Information
+	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"c9020345-5e41-42d6-9a66-c8d4557519ff"`
+	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"23fdcea4-074f-4c6b-8fe8-400da55df997"`
+	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id,omitempty" binding:"required" example:"42b00780-6bd7-4919-ad05-dfaa060a319d"`
+
+	// Annex IV Clinical Data
+	ClinicalSummary              string  `json:"clinical_summary" example:"Patient complains of severe chest pain for 2 hours"`
+	PatientHistory               string  `json:"patient_history" example:"Hypertension diagnosed 5 years ago"`
+	PhysicalExaminationFindings  *string `json:"physical_examination_findings" example:"BP 180/110, HR 105"`
+	InvestigationResults         *string `json:"investigation_results" example:"ECG shows ST elevation"`
+	TreatmentGivenBeforeReferral *string `json:"treatment_given_before_referral" example:"Aspirin 300mg"`
+	MedicationOnTransfer         *string `json:"medication_on_transfer" example:"IV Nitroglycerin"`
+	ReasonOfReferral             string  `json:"reason_of_referral" example:"Requires immediate cardiological intervention"`
+	ReasonForReferralCategory    *string `json:"reason_for_referral_category,omitempty" example:"EMERGENCY"`
+	ConditionAtReferral          string  `json:"condition_at_referral" example:"UNSTABLE"`
+	ModeOfTransport              *string `json:"mode_of_transport" example:"AMBULANCE"`
+	AccompanyingPersonName       *string `json:"accompanying_person_name" example:"Sarah Kebede"`
+	AccompanyingPersonPhone      *string `json:"accompanying_person_phone" binding:"omitempty,e164" example:"+251922334455"`
+
+	// Diagnoses
+	Diagnoses []DiagnosisDTO `json:"diagnoses" binding:"omitempty,dive"`
 
 	// Optional Extensions
 	Vitals          *VitalsDTO          `json:"vitals"`
@@ -71,6 +103,7 @@ type ListReferralResponse struct {
 }
 
 type PaginatedReferralResponse struct {
+	BaseResponse
 	Data     []ListReferralResponse `json:"data"`
 	Total    int64                  `json:"total"`
 	Page     int                    `json:"page"`
@@ -83,6 +116,10 @@ type RejectDTO struct {
 
 type ReviseDTO struct {
 	Reason string `json:"reason" binding:"required,min=5"`
+}
+
+type CancelReferralRequest struct {
+	Reason string `json:"reason" example:"Patient decided not to proceed with the referral"`
 }
 
 // LogResponseDTO is used by HospitalAdmins to view event log history without clinical details.

@@ -34,22 +34,22 @@ func NewPatientHandler(patientUC iusecase.PatientUseCase) *PatientHandler {
 func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 	nationalID := strings.TrimSpace(c.Param("id"))
 	if nationalID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "national ID is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "national ID is required"})
 		return
 	}
 
 	patient, err := h.patientUC.GetByNationalID(c.Request.Context(), nationalID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to look up patient"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to look up patient"})
 		return
 	}
 
 	if patient == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Patient not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": patient})
+	c.JSON(http.StatusOK, dto.SuccessPayload(patient, "Patient retrieved successfully"))
 }
 
 // LookupPatient godoc
@@ -71,22 +71,22 @@ func (h *PatientHandler) LookupPatient(c *gin.Context) {
 	firstName := strings.TrimSpace(c.Query("first_name"))
 
 	if nationalID == "" && (phone == "" || firstName == "") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "either national_id OR both phone_number and first_name are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "either national_id OR both phone_number and first_name are required"})
 		return
 	}
 
 	patient, err := h.patientUC.LookupPatient(c.Request.Context(), nationalID, phone, firstName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	if patient == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Patient not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": patient})
+	c.JSON(http.StatusOK, dto.SuccessPayload(patient, "Patient found successfully"))
 }
 
 // CreatePatient godoc
@@ -104,23 +104,19 @@ func (h *PatientHandler) LookupPatient(c *gin.Context) {
 func (h *PatientHandler) CreatePatient(c *gin.Context) {
 	var req dto.CreatePatientRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request payload", "details": err.Error()})
 		return
 	}
 
 	patient, err := h.patientUC.CreatePatient(c.Request.Context(), req)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			c.JSON(http.StatusConflict, gin.H{"success": false, "error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create patient"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create patient"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Patient created successfully",
-		"data":    patient,
-	})
+	c.JSON(http.StatusCreated, dto.SuccessPayload(patient, "Patient record created successfully"))
 }
-

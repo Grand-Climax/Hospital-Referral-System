@@ -16,13 +16,13 @@ func RequireAuth(blacklist cache.TokenBlacklist) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Authorization header is required"})
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be Bearer {token}"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Authorization header format must be Bearer {token}"})
 			return
 		}
 
@@ -37,7 +37,7 @@ func RequireAuth(blacklist cache.TokenBlacklist) gin.HandlerFunc {
 				return
 			}
 			if isBlacklisted {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token has been revoked"})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Token has been revoked"})
 				return
 			}
 		}
@@ -45,7 +45,7 @@ func RequireAuth(blacklist cache.TokenBlacklist) gin.HandlerFunc {
 		// 2. Cryptographically validate payload
 		payload, err := auth.ValidateToken(tokenStr)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired access token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Invalid or expired access token"})
 			return
 		}
 
@@ -65,13 +65,13 @@ func RequireRole(allowedRoles ...entity.UserRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, exists := c.Get("role")
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context. Is RequireAuth missing?"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "User role not found in context. Is RequireAuth missing?"})
 			return
 		}
 
 		userRole, ok := roleVal.(entity.UserRole)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid role type in context"})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Invalid role type in context"})
 			return
 		}
 
@@ -84,7 +84,7 @@ func RequireRole(allowedRoles ...entity.UserRole) gin.HandlerFunc {
 		}
 
 		if !isAllowed {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden: You do not have permission to access this resource"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "error": "Forbidden: You do not have permission to access this resource"})
 			return
 		}
 
@@ -98,18 +98,18 @@ func RequirePermission(requiredAction entity.ActionType) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, exists := c.Get("role")
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context. Is RequireAuth missing?"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "User role not found in context. Is RequireAuth missing?"})
 			return
 		}
 
 		userRole, ok := roleVal.(entity.UserRole)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid role type in context"})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Invalid role type in context"})
 			return
 		}
 
 		if !auth.HasPermission(userRole, requiredAction) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden: You do not have permission to perform this action"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "error": "Forbidden: You do not have permission to perform this action"})
 			return
 		}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
@@ -77,7 +78,7 @@ func toHospitalResponse(h *entity.Hospital) HospitalResponse {
 // @Accept       json
 // @Produce      json
 // @Param        body body CreateHospitalRequest true "Hospital creation payload"
-// @Success      201 {object} HospitalResponse
+// @Success      201 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      500 {object} map[string]string
 // @Security     BearerAuth
@@ -85,7 +86,7 @@ func toHospitalResponse(h *entity.Hospital) HospitalResponse {
 func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 	var req CreateHospitalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -98,11 +99,11 @@ func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 	}
 
 	if err := h.hospitalUseCase.CreateHospital(c.Request.Context(), hospital); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create hospital"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create hospital"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, toHospitalResponse(hospital))
+	c.JSON(http.StatusCreated, dto.SuccessPayload(toHospitalResponse(hospital), "Hospital created successfully"))
 }
 
 // ListHospitals godoc
@@ -148,7 +149,7 @@ func (h *HospitalHandler) ListHospitals(c *gin.Context) {
 
 	hospitals, total, err := h.hospitalUseCase.ListHospitals(c.Request.Context(), filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list hospitals"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to list hospitals"})
 		return
 	}
 
@@ -158,9 +159,11 @@ func (h *HospitalHandler) ListHospitals(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":  resp,
-		"total": total,
-		"page":  filter.Page,
+		"success": true,
+		"message": "Hospitals retrieved successfully",
+		"data":    resp,
+		"total":   total,
+		"page":    filter.Page,
 	})
 }
 
@@ -170,24 +173,24 @@ func (h *HospitalHandler) ListHospitals(c *gin.Context) {
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"
-// @Success      200 {object} HospitalResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals/{id} [get]
 func (h *HospitalHandler) GetHospital(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
 		return
 	}
 
 	hospital, err := h.hospitalUseCase.GetHospitalByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Hospital not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, toHospitalResponse(hospital))
+	c.JSON(http.StatusOK, dto.SuccessPayload(toHospitalResponse(hospital), "Hospital details retrieved successfully"))
 }
 
 // UpdateHospital godoc
@@ -198,7 +201,7 @@ func (h *HospitalHandler) GetHospital(c *gin.Context) {
 // @Produce      json
 // @Param        id   path string               true "Hospital ID"
 // @Param        body body UpdateHospitalRequest  true "Hospital update payload"
-// @Success      200 {object} HospitalResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
@@ -206,19 +209,19 @@ func (h *HospitalHandler) GetHospital(c *gin.Context) {
 func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
 		return
 	}
 
 	var req UpdateHospitalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	existing, err := h.hospitalUseCase.GetHospitalByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Hospital not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
 		return
 	}
 
@@ -242,11 +245,11 @@ func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 	}
 
 	if err := h.hospitalUseCase.UpdateHospital(c.Request.Context(), existing); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update hospital"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to update hospital"})
 		return
 	}
 
-	c.JSON(http.StatusOK, toHospitalResponse(existing))
+	c.JSON(http.StatusOK, dto.SuccessPayload(toHospitalResponse(existing), "Hospital updated successfully"))
 }
 
 // DeleteHospital godoc
@@ -255,21 +258,24 @@ func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"
-// @Success      200 {object} map[string]string
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals/{id} [delete]
 func (h *HospitalHandler) DeleteHospital(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
 		return
 	}
 
 	if err := h.hospitalUseCase.DeleteHospital(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Hospital not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Hospital deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Hospital deleted successfully",
+	})
 }

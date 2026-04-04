@@ -10,6 +10,7 @@ type CreateNetworkRouteRequest struct {
 }
 
 type NetworkRouteResponse struct {
+	BaseResponse
 	ID                    uuid.UUID `json:"id"`
 	SenderHospitalID      uuid.UUID `json:"sender_hospital_id"`
 	ReceiverHospitalID    uuid.UUID `json:"receiver_hospital_id"`
