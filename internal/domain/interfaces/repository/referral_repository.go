@@ -15,4 +15,12 @@ type ReferralRepository interface {
 	GetReferralByID(ctx context.Context, id uuid.UUID) (*entity.Referral, error)
 	ListReferrals(ctx context.Context, filter map[string]interface{}) ([]entity.Referral, error)
 	CreateStatusHistory(ctx context.Context, history *entity.ReferralStatusHistory) error
+
+	// Role-Based Queries
+	ListForSystemAdmin(ctx context.Context, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, offset int) ([]entity.ReferralStatusHistory, int64, error)
+	ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	ListForSpecialist(ctx context.Context, hospID uuid.UUID, specialistID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
+	ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, offset int, statusFilter string) ([]entity.Referral, int64, error)
 }

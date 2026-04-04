@@ -121,13 +121,14 @@ func generateFullReferralPackage(
 	physExam := "BP 160/90, HR 105, regular rhythm."
 	reason := "Urgent cardiological evaluation for unstable angina."
 	
+	cat := "Evaluation and Management"
 	form := entity.ReferralForm{
 		ReferralID:                  ref.ID,
 		ClinicalSummary:             mockSummary,
 		PatientHistory:              mockHistory,
 		PhysicalExaminationFindings: &physExam,
 		ReasonOfReferral:            reason,
-		ReasonForReferralCategory:   "Evaluation and Management",
+		ReasonForReferralCategory:   &cat,
 		ConditionAtReferral:         "Stable but critical",
 	}
 	if err := tx.Create(&form).Error; err != nil {

@@ -55,8 +55,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
 	referralUseCase := usecase.NewReferralUseCase(referralRepo, netRepo)
-	liaisonUseCase := usecase.NewLiaisonUseCase(referralRepo)
-	specialistUseCase := usecase.NewSpecialistUseCase(referralRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo)
@@ -67,9 +65,14 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	userHandler := handlers.NewUserHandler(userUseCase)
 	hospitalHandler := handlers.NewHospitalHandler(hospitalUseCase)
 	departmentHandler := handlers.NewDepartmentHandler(departmentUseCase)
-	referralHandler := handlers.NewReferralHandler(referralUseCase)
-	liaisonHandler := handlers.NewLiaisonHandler(liaisonUseCase)
-	specialistHandler := handlers.NewSpecialistHandler(specialistUseCase)
+	
+	// Role-Based State Machine Handlers
+	doctorHandler := handlers.NewDoctorHandler(referralUseCase)
+	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase)
+	specialistHandler := handlers.NewSpecialistHandler(referralUseCase)
+	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase)
+	adminHandler := handlers.NewAdminHandler(referralUseCase)
+
 	refHandler := handlers.NewReferenceHandler(refUseCase)
 	netHandler := handlers.NewNetworkHandler(netUseCase)
 	patientHandler := handlers.NewPatientHandler(patientUseCase)
@@ -127,55 +130,72 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			// Example: Both DOCTOR and SPECIALIST
 			// protected.GET("/clinical-data", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleReceivingSpecialist), someHandler)
 
-			// Sprint 5 & 6: Referral Endpoints (Annex IV & State Machine)
-			protected.POST("/referrals", 
-				middleware.RequirePermission(entity.ActionCreateReferral), 
-				middleware.RequireRole(entity.RoleReferringDoctor),
-				referralHandler.Create,
-			)
-			protected.GET("/referrals", referralHandler.List)
-			protected.GET("/referrals/:id", referralHandler.GetByID)
-			protected.PUT("/referrals/:id", 
-				middleware.RequireRole(entity.RoleReferringDoctor),
-				referralHandler.UpdateDraft,
-			)
-			protected.DELETE("/referrals/:id", 
-				middleware.RequireRole(entity.RoleReferringDoctor),
-				referralHandler.DeleteDraft,
-			)
-			protected.POST("/referrals/:id/submit", 
-				middleware.RequireRole(entity.RoleReferringDoctor),
-				referralHandler.Submit,
-			)
-			protected.POST("/referrals/:id/resubmit", 
-				middleware.RequireRole(entity.RoleReferringDoctor),
-				referralHandler.Resubmit,
-			)
-			protected.POST("/referrals/:id/cancel", 
-				middleware.RequireRole(entity.RoleReferringDoctor),
-				referralHandler.Cancel,
-			)
-			
-			// Attachments
-			protected.POST("/referrals/:id/attachments", attachmentHandler.UploadAttachment)
-			protected.GET("/attachments/:id/download", attachmentHandler.DownloadAttachment)
+			// -------------------------
+			// State Machine Role Groups
+			// -------------------------
 
-			// Sprint 7: Liaison Officer Endpoints
+			// DOCTOR
+			doctorGroup := protected.Group("/doctor/referrals")
+			doctorGroup.Use(middleware.RequireRole(entity.RoleReferringDoctor))
+			{
+				doctorGroup.GET("", doctorHandler.ListReferrals)
+				doctorGroup.POST("", doctorHandler.CreateOrSubmit)
+				doctorGroup.GET("/:id", doctorHandler.GetReferral)
+				doctorGroup.PUT("/:id/resubmit", doctorHandler.UpdateAndResubmit) // Serves updates or resubmits
+				doctorGroup.PUT("/:id/cancel", doctorHandler.Cancel)
+			}
+
+			// LIAISON
 			liaisonGroup := protected.Group("/liaison/referrals")
 			liaisonGroup.Use(middleware.RequireRole(entity.RoleLiaisonOfficer))
 			{
-				liaisonGroup.GET("", liaisonHandler.ListSubmitted)
-				liaisonGroup.POST("/:id/approve", liaisonHandler.Approve)
-				liaisonGroup.POST("/:id/reject", liaisonHandler.Reject)
+				liaisonGroup.GET("", liaisonHandler.ListReferrals)
+				liaisonGroup.GET("/:id", liaisonHandler.GetReferral)
+				liaisonGroup.POST("/:id/read", liaisonHandler.Read)
 				liaisonGroup.POST("/:id/forward", liaisonHandler.Forward)
+				liaisonGroup.POST("/:id/reject", liaisonHandler.Reject)
+				liaisonGroup.POST("/:id/revise", liaisonHandler.Revise)
 			}
 
-			// Specialist Actions
+			// SPECIALIST
 			specialistGroup := protected.Group("/specialist/referrals")
 			specialistGroup.Use(middleware.RequireRole(entity.RoleReceivingSpecialist))
 			{
+				specialistGroup.GET("", specialistHandler.ListReferrals)
+				specialistGroup.GET("/:id", specialistHandler.GetReferral)
+				specialistGroup.POST("/:id/read", specialistHandler.Read)
 				specialistGroup.POST("/:id/accept", specialistHandler.Accept)
 				specialistGroup.POST("/:id/reject", specialistHandler.Reject)
+				specialistGroup.POST("/:id/rerun-ml", specialistHandler.RerunML)
+			}
+
+			// RECEPTIONIST
+			receptionistGroup := protected.Group("/receptionist/referrals")
+			receptionistGroup.Use(middleware.RequireRole(entity.RoleReceptionist))
+			{
+				receptionistGroup.GET("", receptionistHandler.ListReferrals)
+				receptionistGroup.GET("/:id", receptionistHandler.GetReferral)
+				receptionistGroup.POST("/:id/confirm-attendance", receptionistHandler.ConfirmAttendance)
+			}
+
+			// ADMINS
+			systemAdminGroup := protected.Group("/system-admin/referrals")
+			systemAdminGroup.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin))
+			{
+				systemAdminGroup.GET("", adminHandler.SystemAdminList)
+			}
+
+			hospitalAdminGroup := protected.Group("/hospital-admin")
+			hospitalAdminGroup.Use(middleware.RequireRole(entity.RoleHospitalAdmin))
+			{
+				hospitalAdminGroup.GET("/referrals-log", adminHandler.HospitalAdminLogs)
+			}
+			
+			// Attachments (Can be used by any authenticated role dealing with referrals)
+			attachmentGroup := protected.Group("/attachments")
+			{
+				attachmentGroup.POST("/referrals/:id", attachmentHandler.UploadAttachment)
+				attachmentGroup.GET("/:id/download", attachmentHandler.DownloadAttachment)
 			}
 
 			// ---- User Management ----

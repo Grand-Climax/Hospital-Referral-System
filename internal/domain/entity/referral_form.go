@@ -15,7 +15,8 @@ type ReferralForm struct {
 	TreatmentGivenBeforeReferral *string   `gorm:"type:text" json:"treatment_given_before_referral,omitempty"`
 	MedicationOnTransfer         *string   `gorm:"type:text" json:"medication_on_transfer,omitempty"`
 	ReasonOfReferral             string    `gorm:"type:text;not null" json:"reason_of_referral"`
-	ReasonForReferralCategory    string    `gorm:"type:varchar(50);not null" json:"reason_for_referral_category"`
+	// TODO: Remove ReasonForReferralCategory in production phase. Kept temporarily as nullable.
+	ReasonForReferralCategory    *string   `gorm:"type:varchar(50)" json:"reason_for_referral_category,omitempty"`
 	ConditionAtReferral          string    `gorm:"type:varchar(50);not null" json:"condition_at_referral"`
 	ModeOfTransport              *string   `gorm:"type:varchar(50)" json:"mode_of_transport,omitempty"`
 	AccompanyingPersonName       *string   `gorm:"type:varchar(100)" json:"accompanying_person_name,omitempty"`
