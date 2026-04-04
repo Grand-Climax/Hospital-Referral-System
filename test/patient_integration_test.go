@@ -124,7 +124,7 @@ func TestCreatePatient_Success(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Contains(t, w.Body.String(), "Patient created successfully")
+	assert.Contains(t, w.Body.String(), "Patient record created successfully")
 }
 
 func TestCreatePatient_DuplicateConflict(t *testing.T) {

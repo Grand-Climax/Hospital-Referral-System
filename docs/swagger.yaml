@@ -1,5 +1,11 @@
 basePath: /
 definitions:
+  dto.CancelReferralRequest:
+    properties:
+      reason:
+        example: Patient decided not to proceed with the referral
+        type: string
+    type: object
   dto.CreateNetworkRouteRequest:
     properties:
       receiver_hospital_id:
@@ -84,7 +90,7 @@ definitions:
         example: ECG shows ST elevation
         type: string
       liaison_officer_id:
-        example: 00000000-0000-0000-0000-000000000000
+        example: 42b00780-6bd7-4919-ad05-dfaa060a319d
         type: string
       medication_on_transfer:
         example: IV Nitroglycerin
@@ -154,6 +160,17 @@ definitions:
     - diagnosis_certainty
     - icd_code
     type: object
+  dto.DoctorDashboardStats:
+    properties:
+      accepted:
+        type: integer
+      critical:
+        type: integer
+      pending:
+        type: integer
+      total_referrals:
+        type: integer
+    type: object
   dto.EmergencyDetailDTO:
     properties:
       emergency_justification:
@@ -193,10 +210,14 @@ definitions:
         items:
           $ref: '#/definitions/dto.ListReferralResponse'
         type: array
+      message:
+        type: string
       page:
         type: integer
       page_size:
         type: integer
+      success:
+        type: boolean
       total:
         type: integer
     type: object
@@ -215,6 +236,78 @@ definitions:
         type: string
     required:
     - reason
+    type: object
+  dto.UpdateReferralRequest:
+    properties:
+      accompanying_person_name:
+        example: Sarah Kebede
+        type: string
+      accompanying_person_phone:
+        example: "+251922334455"
+        type: string
+      clinical_summary:
+        description: Annex IV Clinical Data
+        example: Patient complains of severe chest pain for 2 hours
+        type: string
+      condition_at_referral:
+        example: UNSTABLE
+        type: string
+      diagnoses:
+        description: Diagnoses
+        items:
+          $ref: '#/definitions/dto.DiagnosisDTO'
+        type: array
+      emergency_detail:
+        $ref: '#/definitions/dto.EmergencyDetailDTO'
+      investigation_results:
+        example: ECG shows ST elevation
+        type: string
+      liaison_officer_id:
+        example: 42b00780-6bd7-4919-ad05-dfaa060a319d
+        type: string
+      medication_on_transfer:
+        example: IV Nitroglycerin
+        type: string
+      mode_of_transport:
+        example: AMBULANCE
+        type: string
+      patient_history:
+        example: Hypertension diagnosed 5 years ago
+        type: string
+      patient_id:
+        description: |-
+          Patient ID cannot be changed in update usually, but we'll include it for consistency or restrict if needed.
+          For now, mirroring Create except Status.
+        example: 912b4375-2295-41bb-8ffd-c8318e9c051f
+        type: string
+      physical_examination_findings:
+        example: BP 180/110, HR 105
+        type: string
+      reason_for_referral_category:
+        example: EMERGENCY
+        type: string
+      reason_of_referral:
+        example: Requires immediate cardiological intervention
+        type: string
+      target_dept_id:
+        example: 23fdcea4-074f-4c6b-8fe8-400da55df997
+        type: string
+      target_hospital_id:
+        description: Routing Information
+        example: c9020345-5e41-42d6-9a66-c8d4557519ff
+        type: string
+      treatment_given_before_referral:
+        example: Aspirin 300mg
+        type: string
+      vitals:
+        allOf:
+        - $ref: '#/definitions/dto.VitalsDTO'
+        description: Optional Extensions
+    required:
+    - liaison_officer_id
+    - patient_id
+    - target_dept_id
+    - target_hospital_id
     type: object
   dto.VitalsDTO:
     properties:
@@ -580,57 +673,6 @@ definitions:
     - password
     - role
     type: object
-  handlers.DepartmentResponse:
-    properties:
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  handlers.HospitalDepartmentResponse:
-    properties:
-      created_at:
-        type: string
-      department:
-        $ref: '#/definitions/handlers.DepartmentResponse'
-      department_id:
-        type: string
-      hospital_id:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      standard_daily_limit:
-        type: integer
-    type: object
-  handlers.HospitalResponse:
-    properties:
-      address:
-        type: string
-      contact_phone:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      name:
-        type: string
-      region:
-        type: string
-      tier_level:
-        type: string
-      updated_at:
-        type: string
-    type: object
   handlers.LinkDepartmentRequest:
     properties:
       daily_limit:
@@ -726,35 +768,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/entity.UserRole'
         example: MOH_ANALYST
-    type: object
-  handlers.UserResponse:
-    properties:
-      created_at:
-        type: string
-      department_id:
-        type: string
-      department_name:
-        type: string
-      email:
-        type: string
-      first_name:
-        type: string
-      hospital_id:
-        type: string
-      hospital_name:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      last_name:
-        type: string
-      national_id:
-        type: string
-      role:
-        $ref: '#/definitions/entity.UserRole'
-      updated_at:
-        type: string
     type: object
 info:
   contact: {}
@@ -919,8 +932,7 @@ paths:
         "200":
           description: Token pair
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request
@@ -961,8 +973,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request
@@ -999,8 +1010,7 @@ paths:
         "200":
           description: New token pair
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request
@@ -1065,7 +1075,8 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/handlers.DepartmentResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -1098,8 +1109,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "404":
           description: Not Found
@@ -1126,7 +1136,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.DepartmentResponse'
+            additionalProperties: true
+            type: object
         "404":
           description: Not Found
           schema:
@@ -1160,7 +1171,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.DepartmentResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -1178,6 +1190,30 @@ paths:
       summary: Update a department
       tags:
       - Departments
+  /api/v1/doctor/latest-pending:
+    get:
+      description: Get a list of the most recent pending referrals for the doctor's
+        dashboard.
+      parameters:
+      - default: 5
+        description: Number of records to fetch
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ListReferralResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get Latest Pending Referrals
+      tags:
+      - Doctor Dashboard
   /api/v1/doctor/referrals:
     get:
       description: Get a paginated list of referrals created by the authenticated
@@ -1288,8 +1324,9 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update a previously returned/draft referral and optionally resubmit
-        it.
+      description: Allows updating a referral. Saving without the /submit suffix persists
+        changes as a DRAFT. Adding /submit finalizes the referral and moves it to
+        SUBMITTED status for liaison processing.
       parameters:
       - description: Referral ID
         in: path
@@ -1301,7 +1338,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateReferralRequest'
+          $ref: '#/definitions/dto.UpdateReferralRequest'
       produces:
       - application/json
       responses:
@@ -1317,28 +1354,27 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Update and Resubmit Referral
+      summary: Update (Draft) or Submit Referral
       tags:
       - Doctor Referrals
   /api/v1/doctor/referrals/{id}/cancel:
     post:
       consumes:
       - application/json
-      description: Cancel an active referral that has not yet been processed.
+      description: Cancel an active referral that has not yet been processed (must
+        be in DRAFT or NEED_REVISION status).
       parameters:
       - description: Referral ID
         in: path
         name: id
         required: true
         type: string
-      - description: 'Cancellation Reason (key: reason)'
+      - description: Cancellation Reason
         in: body
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/dto.CancelReferralRequest'
       produces:
       - application/json
       responses:
@@ -1359,6 +1395,59 @@ paths:
       summary: Cancel Referral
       tags:
       - Doctor Referrals
+  /api/v1/doctor/referrals/{id}/submit:
+    put:
+      consumes:
+      - application/json
+      description: Allows updating a referral. Saving without the /submit suffix persists
+        changes as a DRAFT. Adding /submit finalizes the referral and moves it to
+        SUBMITTED status for liaison processing.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated Referral Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateReferralRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Referral'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update (Draft) or Submit Referral
+      tags:
+      - Doctor Referrals
+  /api/v1/doctor/stats:
+    get:
+      description: Get a summary of referral counts (Total, Pending, Accepted, Critical)
+        for the doctor's dashboard.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DoctorDashboardStats'
+      security:
+      - BearerAuth: []
+      summary: Get Doctor Dashboard Stats
+      tags:
+      - Doctor Dashboard
   /api/v1/hospital-admin/referrals-log:
     get:
       description: Get audit logs of all referral status transitions connected to
@@ -1459,7 +1548,8 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/handlers.HospitalResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -1492,8 +1582,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "404":
           description: Not Found
@@ -1520,7 +1609,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.HospitalResponse'
+            additionalProperties: true
+            type: object
         "404":
           description: Not Found
           schema:
@@ -1554,7 +1644,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.HospitalResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -1587,9 +1678,8 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/handlers.HospitalDepartmentResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "404":
           description: Not Found
           schema:
@@ -1623,8 +1713,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request
@@ -1669,8 +1758,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "404":
           description: Not Found
@@ -2189,6 +2277,11 @@ paths:
     get:
       description: Returns all available ICD-10 codes. Used by doctors and specialists
         when filling in diagnoses.
+      parameters:
+      - description: Search by code or description
+        in: query
+        name: search
+        type: string
       produces:
       - application/json
       responses:
@@ -2604,7 +2697,8 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/handlers.UserResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2643,8 +2737,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "404":
           description: Not Found
@@ -2671,7 +2764,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.UserResponse'
+            additionalProperties: true
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2705,7 +2799,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.UserResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2746,8 +2841,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request
@@ -2775,7 +2869,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.UserResponse'
+            additionalProperties: true
+            type: object
         "401":
           description: Unauthorized
           schema:

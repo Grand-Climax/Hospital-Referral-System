@@ -1,14 +1,17 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
+	"Hospital-Referral-System/internal/domain/entity"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
@@ -37,7 +40,7 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
 	doctorID, ok := userIdVal.(uuid.UUID)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid user"})
 		return
 	}
 
@@ -53,7 +56,21 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 
 	referrals, total, err := h.referralUC.ListForDoctor(c.Request.Context(), doctorID, limit, page, statusFilter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+			BaseResponse: dto.BaseResponse{
+				Success: false,
+				Message: "No referrals found matching your criteria",
+			},
+			Data:     []dto.ListReferralResponse{},
+			Total:    0,
+			Page:     page,
+			PageSize: limit,
+		})
 		return
 	}
 
@@ -94,10 +111,14 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
-		Data:     responseData,
-		Total:    total,
-		Page:     page,
-		PageSize: limit,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referrals retrieved successfully",
+		},
+		Data:         responseData,
+		Total:        total,
+		Page:         page,
+		PageSize:     limit,
 	})
 }
 
@@ -116,7 +137,7 @@ func (h *DoctorHandler) GetReferral(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid id format"})
 		return
 	}
 
@@ -126,11 +147,74 @@ func (h *DoctorHandler) GetReferral(c *gin.Context) {
 	ref, err := h.referralUC.GetDetailsForDoctor(c.Request.Context(), id, doctorID)
 	if err != nil {
 		log.Printf("[DoctorHandler.GetReferral] error: %v", err)
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, ref)
+	c.JSON(http.StatusOK, dto.SuccessPayload(ref, "Referral details retrieved successfully"))
+}
+
+// GetStats godoc
+// @Summary      Get Doctor Dashboard Stats
+// @Description  Get a summary of referral counts (Total, Pending, Accepted, Critical) for the doctor's dashboard.
+// @Tags         Doctor Dashboard
+// @Produce      json
+// @Success      200 {object} dto.DoctorDashboardStats
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/stats [get]
+func (h *DoctorHandler) GetStats(c *gin.Context) {
+	userIdVal, _ := c.Get("userID")
+	doctorID, _ := userIdVal.(uuid.UUID)
+
+	stats, err := h.referralUC.GetDoctorDashboardStats(c.Request.Context(), doctorID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessPayload(stats, "Dashboard statistics retrieved successfully"))
+}
+
+// GetLatestPending godoc
+// @Summary      Get Latest Pending Referrals
+// @Description  Get a list of the most recent pending referrals for the doctor's dashboard.
+// @Tags         Doctor Dashboard
+// @Produce      json
+// @Param        limit query int false "Number of records to fetch" default(5)
+// @Success      200 {array} dto.ListReferralResponse
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/latest-pending [get]
+func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
+	userIdVal, _ := c.Get("userID")
+	doctorID, ok := userIdVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid user session"})
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "5")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		// If negative or non-numeric, default to 5 as per user request to "handle" it
+		limit = 5
+	}
+
+	referrals, err := h.referralUC.GetLatestPendingReferrals(c.Request.Context(), doctorID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	if len(referrals) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "No pending referrals found",
+			"data":    []interface{}{},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessPayload(gin.H{"data": referrals}, "Latest pending referrals retrieved successfully"))
 }
 
 // CreateOrSubmit godoc
@@ -156,65 +240,103 @@ func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 
 	var req dto.CreateReferralRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	// Default to SUBMITTED if status is missing
+	if req.Status == "" {
+		req.Status = string(entity.StatusSubmitted)
+	}
+
+	// Validate status is only DRAFT or SUBMITTED
+	if req.Status != string(entity.StatusDraft) && req.Status != string(entity.StatusSubmitted) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid status: only DRAFT or SUBMITTED are allowed during creation"})
 		return
 	}
 
 	ref, err := h.referralUC.CreateDraftOrSubmit(c.Request.Context(), doctorID, hospID, req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, ref)
+	msg := "New referral draft created (DRAFT)"
+	if req.Status == string(entity.StatusSubmitted) {
+		msg = "New referral submitted for review (SUBMITTED)"
+	}
+	c.JSON(http.StatusCreated, dto.SuccessPayload(ref, msg))
 }
 
 // UpdateAndResubmit godoc
-// @Summary      Update and Resubmit Referral
-// @Description  Update a previously returned/draft referral and optionally resubmit it.
+// @Summary      Update (Draft) or Submit Referral
+// @Description  Allows updating a referral. Saving without the /submit suffix persists changes as a DRAFT. Adding /submit finalizes the referral and moves it to SUBMITTED status for liaison processing.
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
-// @Param        request body dto.CreateReferralRequest true "Updated Referral Details"
+// @Param        request body dto.UpdateReferralRequest true "Updated Referral Details"
 // @Success      200 {object} entity.Referral
 // @Failure      400 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/doctor/referrals/{id} [put]
+// @Router       /api/v1/doctor/referrals/{id}/submit [put]
 func (h *DoctorHandler) UpdateAndResubmit(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid id format"})
 		return
 	}
 
 	userIdVal, _ := c.Get("userID")
 	doctorID, _ := userIdVal.(uuid.UUID)
 
-	var req dto.CreateReferralRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// We use a map to check if "status" was explicitly provided in the JSON body
+	var rawBody map[string]interface{}
+	if err := c.ShouldBindJSON(&rawBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	ref, err := h.referralUC.UpdateAndResubmit(c.Request.Context(), id, doctorID, req)
+	if _, exists := rawBody["status"]; exists {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "status field is not allowed in update; use the specific route to submit"})
+		return
+	}
+
+	// Re-bind to the new update DTO
+	jsonData, _ := json.Marshal(rawBody)
+	var req dto.UpdateReferralRequest
+	_ = json.Unmarshal(jsonData, &req)
+
+	// Determine if it is a submission based on the route
+	submit := false
+	fullPath := c.FullPath()
+	if strings.HasSuffix(fullPath, "/submit") {
+		submit = true
+	}
+
+	ref, err := h.referralUC.UpdateAndResubmit(c.Request.Context(), id, doctorID, req, submit)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, ref)
+	msg := "Referral draft changes saved (DRAFT)"
+	if submit {
+		msg = "Referral submitted for review (SUBMITTED)"
+	}
+	c.JSON(http.StatusOK, dto.SuccessPayload(ref, msg))
 }
 
 // Cancel godoc
 // @Summary      Cancel Referral
-// @Description  Cancel an active referral that has not yet been processed.
+// @Description  Cancel an active referral that has not yet been processed (must be in DRAFT or NEED_REVISION status).
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
-// @Param        request body map[string]string true "Cancellation Reason (key: reason)"
+// @Param        request body dto.CancelReferralRequest true "Cancellation Reason"
 // @Success      200 {object} map[string]string
 // @Failure      400 {object} map[string]string
 // @Security     BearerAuth
@@ -223,22 +345,23 @@ func (h *DoctorHandler) Cancel(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid id format"})
 		return
 	}
 
 	userIdVal, _ := c.Get("userID")
 	doctorID, _ := userIdVal.(uuid.UUID)
 
-	var dto struct {
-		Reason string `json:"reason"`
-	}
-	_ = c.ShouldBindJSON(&dto)
+	var req dto.CancelReferralRequest
+	_ = c.ShouldBindJSON(&req)
 
-	if err := h.referralUC.CancelReferral(c.Request.Context(), id, doctorID, dto.Reason); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.referralUC.CancelReferral(c.Request.Context(), id, doctorID, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "referral cancelled successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Referral cancelled successfully",
+	})
 }

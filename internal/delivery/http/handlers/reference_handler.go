@@ -30,10 +30,14 @@ func (h *ReferenceHandler) GetHospitals(c *gin.Context) {
 	tier := c.Query("tier")
 	hospitals, err := h.referenceUseCase.GetHospitals(c.Request.Context(), tier)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch hospitals"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to fetch hospitals"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": hospitals})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Hospitals retrieved successfully",
+		"data":    hospitals,
+	})
 }
 
 // GetDepartments godoc
@@ -47,10 +51,14 @@ func (h *ReferenceHandler) GetHospitals(c *gin.Context) {
 func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 	depts, err := h.referenceUseCase.GetDepartments(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch departments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to fetch departments"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": depts})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Departments retrieved successfully",
+		"data":    depts,
+	})
 }
 
 // ListICDCodes godoc
@@ -58,16 +66,21 @@ func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 // @Description  Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.
 // @Tags         References
 // @Produce      json
+// @Param        search query string false "Search by code or description"
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
 // @Router       /api/v1/reference/icd-codes [get]
 func (h *ReferenceHandler) ListICDCodes(c *gin.Context) {
 	codes, err := h.referenceUseCase.ListICDCodes(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ICD codes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to fetch ICD codes"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": codes})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "ICD codes retrieved successfully",
+		"data":    codes,
+	})
 }
 
 // GetNetworkedHospitals godoc
@@ -81,21 +94,25 @@ func (h *ReferenceHandler) ListICDCodes(c *gin.Context) {
 func (h *ReferenceHandler) GetNetworkedHospitals(c *gin.Context) {
 	hospIDVal, exists := c.Get("hospID")
 	if !exists {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "No hospital assigned to user"})
 		return
 	}
 	hospIDPtr, ok := hospIDVal.(*uuid.UUID)
 	if !ok || hospIDPtr == nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "No hospital assigned to user"})
 		return
 	}
 
 	hospitals, err := h.referenceUseCase.GetNetworkedHospitals(c.Request.Context(), *hospIDPtr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch networked hospitals"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to fetch networked hospitals"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": hospitals})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Networked hospitals retrieved successfully",
+		"data":    hospitals,
+	})
 }
 
 // GetHospitalDepartments godoc
@@ -110,16 +127,20 @@ func (h *ReferenceHandler) GetNetworkedHospitals(c *gin.Context) {
 func (h *ReferenceHandler) GetHospitalDepartments(c *gin.Context) {
 	hospitalID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid target hospital ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid target hospital ID format"})
 		return
 	}
 
 	depts, err := h.referenceUseCase.GetHospitalDepartments(c.Request.Context(), hospitalID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch hospital departments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to fetch hospital departments"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": depts})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Hospital departments retrieved successfully",
+		"data":    depts,
+	})
 }
 
 // GetLiaisons godoc
@@ -135,18 +156,18 @@ func (h *ReferenceHandler) GetHospitalDepartments(c *gin.Context) {
 func (h *ReferenceHandler) GetLiaisons(c *gin.Context) {
 	hospIDVal, exists := c.Get("hospID")
 	if !exists {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "No hospital assigned to user"})
 		return
 	}
 	hospIDPtr, ok := hospIDVal.(*uuid.UUID)
 	if !ok || hospIDPtr == nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "No hospital assigned to user"})
 		return
 	}
 
 	liaisons, err := h.referenceUseCase.GetLiaisonsByHospital(c.Request.Context(), *hospIDPtr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch liaison officers"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to fetch liaison officers"})
 		return
 	}
 
@@ -165,5 +186,9 @@ func (h *ReferenceHandler) GetLiaisons(c *gin.Context) {
 			Email:     l.Email,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"data": result})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Liaisons retrieved successfully",
+		"data":    result,
+	})
 }

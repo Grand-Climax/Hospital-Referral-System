@@ -32,7 +32,8 @@ func RateLimiter(client *redis.Client, maxRequests int, window time.Duration) gi
 		// Reject if max requests exceeded
 		if count > int64(maxRequests) {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error": "Too many requests. Please try again later.",
+				"success": false,
+				"error":   "Too many requests. Please try again later.",
 			})
 			return
 		}

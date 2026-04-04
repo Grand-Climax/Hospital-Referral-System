@@ -40,7 +40,7 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user scopes"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid user scopes"})
 		return
 	}
 
@@ -60,7 +60,21 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 	referrals, total, err := h.referralUC.ListForSpecialist(c.Request.Context(), hospID, specialistID, limit, page, statusFilter)
 	if err != nil {
 		log.Printf("[SpecialistHandler.List] error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+			BaseResponse: dto.BaseResponse{
+				Success: false,
+				Message: "No referrals found in your department",
+			},
+			Data:     []dto.ListReferralResponse{},
+			Total:    0,
+			Page:     page,
+			PageSize: limit,
+		})
 		return
 	}
 
@@ -101,10 +115,14 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
-		Data:     responseData,
-		Total:    total,
-		Page:     page,
-		PageSize: limit,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referrals retrieved successfully",
+		},
+		Data:         responseData,
+		Total:        total,
+		Page:         page,
+		PageSize:     limit,
 	})
 }
 
@@ -123,7 +141,7 @@ func (h *SpecialistHandler) GetReferral(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
@@ -135,10 +153,10 @@ func (h *SpecialistHandler) GetReferral(c *gin.Context) {
 
 	ref, err := h.referralUC.GetDetailsForSpecialist(c.Request.Context(), id, hospID)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, ref)
+	c.JSON(http.StatusOK, dto.SuccessPayload(ref, "Referral details retrieved successfully"))
 }
 
 // Read godoc
@@ -155,7 +173,7 @@ func (h *SpecialistHandler) Read(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
@@ -168,10 +186,13 @@ func (h *SpecialistHandler) Read(c *gin.Context) {
 	}
 
 	if err := h.referralUC.SpecialistRead(c.Request.Context(), id, specialistID, hospID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "claimed for review"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Referral marked as read and claimed",
+	})
 }
 
 // Accept godoc
@@ -190,7 +211,7 @@ func (h *SpecialistHandler) Accept(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
@@ -208,10 +229,13 @@ func (h *SpecialistHandler) Accept(c *gin.Context) {
 	}
 
 	if err := h.referralUC.SpecialistAccept(c.Request.Context(), id, specialistID, hospID, req.SeverityScore); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "referral accepted"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Referral accepted and severity score assigned",
+	})
 }
 
 // Reject godoc
@@ -230,13 +254,13 @@ func (h *SpecialistHandler) Reject(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
 	var req dto.RejectDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -249,10 +273,13 @@ func (h *SpecialistHandler) Reject(c *gin.Context) {
 	}
 
 	if err := h.referralUC.SpecialistReject(c.Request.Context(), id, specialistID, hospID, req.Reason); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "referral rejected"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Referral rejected",
+	})
 }
 
 // RerunML godoc
@@ -269,7 +296,7 @@ func (h *SpecialistHandler) RerunML(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
@@ -282,8 +309,11 @@ func (h *SpecialistHandler) RerunML(c *gin.Context) {
 	}
 
 	if err := h.referralUC.SpecialistRerunML(c.Request.Context(), id, specialistID, hospID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "ML triggered"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "ML prediction rerun successfully",
+	})
 }
