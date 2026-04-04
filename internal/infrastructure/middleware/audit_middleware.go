@@ -62,6 +62,13 @@ func AuditLogger(repo irepository.AuditLogRepository) gin.HandlerFunc {
 		actionDetail := fmt.Sprintf(`{"method":"%s","path":"%s","status":%d}`, method, c.Request.URL.Path, statusCode)
 		auditEntry.NewValue = &actionDetail
 
+		// If this is a referral-related resource and we have a resourceID, populate the specific ReferralID column
+		if resourceID != nil && strings.Contains(resource, "referral") {
+			if refID, err := uuid.Parse(*resourceID); err == nil {
+				auditEntry.ReferralID = &refID
+			}
+		}
+
 		// Override ActionType with a more specific action if applicable
 		auditEntry.ActionType = mapActionType(action)
 
@@ -128,6 +135,8 @@ func mapActionType(action string) entity.ActionType {
 		return entity.ActionRejectReferral
 	case strings.Contains(lower, "/accept"):
 		return entity.ActionAcceptReferral
+	case strings.Contains(lower, "/cancel"):
+		return entity.ActionCancelReferral
 	case strings.Contains(lower, "/referrals") && strings.HasPrefix(lower, "post"):
 		return entity.ActionCreateReferral
 	default:

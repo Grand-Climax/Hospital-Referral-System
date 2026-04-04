@@ -47,7 +47,21 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 	referrals, total, err := h.referralUC.ListForSystemAdmin(c.Request.Context(), limit, page, statusFilter)
 	if err != nil {
 		log.Printf("[AdminHandler.SystemAdminList] error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+			BaseResponse: dto.BaseResponse{
+				Success: false,
+				Message: "No referrals found in the system",
+			},
+			Data:     []dto.ListReferralResponse{},
+			Total:    0,
+			Page:     page,
+			PageSize: limit,
+		})
 		return
 	}
 
@@ -88,10 +102,14 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
-		Data:     responseData,
-		Total:    total,
-		Page:     page,
-		PageSize: limit,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Global referrals retrieved successfully",
+		},
+		Data:         responseData,
+		Total:        total,
+		Page:         page,
+		PageSize:     limit,
 	})
 }
 
@@ -114,7 +132,7 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user scopes"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid user scopes"})
 		return
 	}
 
@@ -129,7 +147,19 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 
 	logs, total, err := h.referralUC.GetHospitalLogsForAdmin(c.Request.Context(), hospID, limit, page)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"success":   false,
+			"message":   "No referral logs found",
+			"data":      []dto.LogResponseDTO{},
+			"total":     0,
+			"page":      page,
+			"page_size": limit,
+		})
 		return
 	}
 
@@ -152,8 +182,9 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 		})
 	}
 
-	// We can reuse pagination response style or just return custom map
 	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"message":   "Hospital referral logs retrieved successfully",
 		"data":      responseData,
 		"total":     total,
 		"page":      page,

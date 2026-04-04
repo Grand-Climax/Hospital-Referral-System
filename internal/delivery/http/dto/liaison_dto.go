@@ -18,9 +18,9 @@ type LiaisonForwardRequest struct {
 	Comment          string    `json:"comment,omitempty"`
 }
 
-// LiaisonActionResponse is the uniform response for all liaison actions.
 type LiaisonActionResponse struct {
 	Message    string `json:"message"`
+	BaseResponse
 	ReferralID string `json:"referral_id"`
 	NewStatus  string `json:"new_status"`
 }

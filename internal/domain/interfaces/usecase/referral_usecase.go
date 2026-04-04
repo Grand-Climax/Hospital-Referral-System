@@ -14,8 +14,10 @@ type ReferralUseCase interface {
 	CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
 	ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
 	GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error)
-	UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error)
+	UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*entity.Referral, error)
 	CancelReferral(ctx context.Context, id, doctorID uuid.UUID, reason string) error
+	GetDoctorDashboardStats(ctx context.Context, doctorID uuid.UUID) (*dto.DoctorDashboardStats, error)
+	GetLatestPendingReferrals(ctx context.Context, doctorID uuid.UUID, limit int) ([]dto.ListReferralResponse, error)
 
 	// --- Liaison Actions ---
 	ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)

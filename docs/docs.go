@@ -257,9 +257,7 @@ const docTemplate = `{
                         "description": "Token pair",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -326,9 +324,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -381,9 +377,7 @@ const docTemplate = `{
                         "description": "New token pair",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -486,7 +480,8 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/handlers.DepartmentResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -538,7 +533,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.DepartmentResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -591,7 +587,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.DepartmentResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -642,9 +639,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -653,6 +648,43 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/doctor/latest-pending": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of the most recent pending referrals for the doctor's dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Dashboard"
+                ],
+                "summary": "Get Latest Pending Referrals",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Number of records to fetch",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ListReferralResponse"
                             }
                         }
                     }
@@ -827,7 +859,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update a previously returned/draft referral and optionally resubmit it.",
+                "description": "Allows updating a referral. Saving without the /submit suffix persists changes as a DRAFT. Adding /submit finalizes the referral and moves it to SUBMITTED status for liaison processing.",
                 "consumes": [
                     "application/json"
                 ],
@@ -837,7 +869,7 @@ const docTemplate = `{
                 "tags": [
                     "Doctor Referrals"
                 ],
-                "summary": "Update and Resubmit Referral",
+                "summary": "Update (Draft) or Submit Referral",
                 "parameters": [
                     {
                         "type": "string",
@@ -852,7 +884,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateReferralRequest"
+                            "$ref": "#/definitions/dto.UpdateReferralRequest"
                         }
                     }
                 ],
@@ -882,7 +914,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Cancel an active referral that has not yet been processed.",
+                "description": "Cancel an active referral that has not yet been processed (must be in DRAFT or NEED_REVISION status).",
                 "consumes": [
                     "application/json"
                 ],
@@ -902,15 +934,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Cancellation Reason (key: reason)",
+                        "description": "Cancellation Reason",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.CancelReferralRequest"
                         }
                     }
                 ],
@@ -931,6 +960,86 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/doctor/referrals/{id}/submit": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows updating a referral. Saving without the /submit suffix persists changes as a DRAFT. Adding /submit finalizes the referral and moves it to SUBMITTED status for liaison processing.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Referrals"
+                ],
+                "summary": "Update (Draft) or Submit Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated Referral Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateReferralRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/doctor/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a summary of referral counts (Total, Pending, Accepted, Critical) for the doctor's dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Dashboard"
+                ],
+                "summary": "Get Doctor Dashboard Stats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DoctorDashboardStats"
                         }
                     }
                 }
@@ -1093,7 +1202,8 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/handlers.HospitalResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -1145,7 +1255,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.HospitalResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -1198,7 +1309,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.HospitalResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -1249,9 +1361,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -1294,10 +1404,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/handlers.HospitalDepartmentResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -1351,9 +1459,7 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -1422,9 +1528,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -2229,6 +2333,14 @@ const docTemplate = `{
                     "References"
                 ],
                 "summary": "List all ICD-10 Codes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search by code or description",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2863,7 +2975,8 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/handlers.UserResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2915,7 +3028,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.UserResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -2958,7 +3072,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.UserResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -3011,7 +3126,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.UserResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -3062,9 +3178,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -3120,9 +3234,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -3148,6 +3260,15 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.CancelReferralRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "example": "Patient decided not to proceed with the referral"
+                }
+            }
+        },
         "dto.CreateNetworkRouteRequest": {
             "type": "object",
             "required": [
@@ -3267,7 +3388,7 @@ const docTemplate = `{
                 },
                 "liaison_officer_id": {
                     "type": "string",
-                    "example": "00000000-0000-0000-0000-000000000000"
+                    "example": "42b00780-6bd7-4919-ad05-dfaa060a319d"
                 },
                 "medication_on_transfer": {
                     "type": "string",
@@ -3356,6 +3477,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.DoctorDashboardStats": {
+            "type": "object",
+            "properties": {
+                "accepted": {
+                    "type": "integer"
+                },
+                "critical": {
+                    "type": "integer"
+                },
+                "pending": {
+                    "type": "integer"
+                },
+                "total_referrals": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.EmergencyDetailDTO": {
             "type": "object",
             "required": [
@@ -3414,11 +3552,17 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.ListReferralResponse"
                     }
                 },
+                "message": {
+                    "type": "string"
+                },
                 "page": {
                     "type": "integer"
                 },
                 "page_size": {
                     "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
                 },
                 "total": {
                     "type": "integer"
@@ -3446,6 +3590,102 @@ const docTemplate = `{
                 "reason": {
                     "type": "string",
                     "minLength": 5
+                }
+            }
+        },
+        "dto.UpdateReferralRequest": {
+            "type": "object",
+            "required": [
+                "liaison_officer_id",
+                "patient_id",
+                "target_dept_id",
+                "target_hospital_id"
+            ],
+            "properties": {
+                "accompanying_person_name": {
+                    "type": "string",
+                    "example": "Sarah Kebede"
+                },
+                "accompanying_person_phone": {
+                    "type": "string",
+                    "example": "+251922334455"
+                },
+                "clinical_summary": {
+                    "description": "Annex IV Clinical Data",
+                    "type": "string",
+                    "example": "Patient complains of severe chest pain for 2 hours"
+                },
+                "condition_at_referral": {
+                    "type": "string",
+                    "example": "UNSTABLE"
+                },
+                "diagnoses": {
+                    "description": "Diagnoses",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DiagnosisDTO"
+                    }
+                },
+                "emergency_detail": {
+                    "$ref": "#/definitions/dto.EmergencyDetailDTO"
+                },
+                "investigation_results": {
+                    "type": "string",
+                    "example": "ECG shows ST elevation"
+                },
+                "liaison_officer_id": {
+                    "type": "string",
+                    "example": "42b00780-6bd7-4919-ad05-dfaa060a319d"
+                },
+                "medication_on_transfer": {
+                    "type": "string",
+                    "example": "IV Nitroglycerin"
+                },
+                "mode_of_transport": {
+                    "type": "string",
+                    "example": "AMBULANCE"
+                },
+                "patient_history": {
+                    "type": "string",
+                    "example": "Hypertension diagnosed 5 years ago"
+                },
+                "patient_id": {
+                    "description": "Patient ID cannot be changed in update usually, but we'll include it for consistency or restrict if needed.\nFor now, mirroring Create except Status.",
+                    "type": "string",
+                    "example": "912b4375-2295-41bb-8ffd-c8318e9c051f"
+                },
+                "physical_examination_findings": {
+                    "type": "string",
+                    "example": "BP 180/110, HR 105"
+                },
+                "reason_for_referral_category": {
+                    "type": "string",
+                    "example": "EMERGENCY"
+                },
+                "reason_of_referral": {
+                    "type": "string",
+                    "example": "Requires immediate cardiological intervention"
+                },
+                "target_dept_id": {
+                    "type": "string",
+                    "example": "23fdcea4-074f-4c6b-8fe8-400da55df997"
+                },
+                "target_hospital_id": {
+                    "description": "Routing Information",
+                    "type": "string",
+                    "example": "c9020345-5e41-42d6-9a66-c8d4557519ff"
+                },
+                "treatment_given_before_referral": {
+                    "type": "string",
+                    "example": "Aspirin 300mg"
+                },
+                "vitals": {
+                    "description": "Optional Extensions",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.VitalsDTO"
+                        }
+                    ]
                 }
             }
         },
@@ -3963,84 +4203,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.DepartmentResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.HospitalDepartmentResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "department": {
-                    "$ref": "#/definitions/handlers.DepartmentResponse"
-                },
-                "department_id": {
-                    "type": "string"
-                },
-                "hospital_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "standard_daily_limit": {
-                    "type": "integer"
-                }
-            }
-        },
-        "handlers.HospitalResponse": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "contact_phone": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "region": {
-                    "type": "string"
-                },
-                "tier_level": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
         "handlers.LinkDepartmentRequest": {
             "type": "object",
             "required": [
@@ -4180,50 +4342,6 @@ const docTemplate = `{
                         }
                     ],
                     "example": "MOH_ANALYST"
-                }
-            }
-        },
-        "handlers.UserResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "department_id": {
-                    "type": "string"
-                },
-                "department_name": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "hospital_id": {
-                    "type": "string"
-                },
-                "hospital_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "national_id": {
-                    "type": "string"
-                },
-                "role": {
-                    "$ref": "#/definitions/entity.UserRole"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         }

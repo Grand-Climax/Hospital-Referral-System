@@ -71,10 +71,10 @@ type Referral struct {
 
 	// Relationships
 	Patient         *Patient                 `gorm:"foreignKey:PatientID" json:"patient,omitempty"`
-	ReferralForm    *ReferralForm            `gorm:"foreignKey:ReferralID" json:"referral_form,omitempty"`
-	Diagnoses       []ReferralDiagnosis      `gorm:"foreignKey:ReferralID" json:"diagnoses,omitempty"`
-	Vitals          []Vital                  `gorm:"foreignKey:ReferralID" json:"vitals,omitempty"`
-	EmergencyDetail *ReferralEmergencyDetail `gorm:"foreignKey:ReferralID" json:"emergency_detail,omitempty"`
+	ReferralForm    *ReferralForm            `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"referral_form,omitempty"`
+	Diagnoses       []ReferralDiagnosis      `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"diagnoses,omitempty"`
+	Vitals          []Vital                  `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"vitals,omitempty"`
+	EmergencyDetail *ReferralEmergencyDetail `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"emergency_detail,omitempty"`
 }
 
 func (r *Referral) BeforeCreate(tx *gorm.DB) (err error) {

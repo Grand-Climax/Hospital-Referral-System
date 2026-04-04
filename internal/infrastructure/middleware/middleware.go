@@ -39,10 +39,8 @@ func ErrorHandlingMiddleware() gin.HandlerFunc {
 		}
 
 		c.JSON(status, gin.H{
-			"error": gin.H{
-				"message": err.Error(),
-				"status":  status,
-			},
+			"success": false,
+			"error":   err.Error(),
 		})
 	}
 }
@@ -51,10 +49,8 @@ func RecoveryMiddleware() gin.HandlerFunc {
 	return gin.CustomRecoveryWithWriter(gin.DefaultErrorWriter, func(c *gin.Context, recovered interface{}) {
 		log.Printf("panic recovered: %v", recovered)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"message": "internal server error",
-				"status":  http.StatusInternalServerError,
-			},
+			"success": false,
+			"error":   "internal server error",
 		})
 	})
 }
