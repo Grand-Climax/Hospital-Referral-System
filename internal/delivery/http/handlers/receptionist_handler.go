@@ -20,6 +20,19 @@ func NewReceptionistHandler(referralUC iusecase.ReferralUseCase) *ReceptionistHa
 	return &ReceptionistHandler{referralUC: referralUC}
 }
 
+// ListReferrals godoc
+// @Summary      List Referrals for Receptionist
+// @Description  Get a paginated list of referrals assigned to the receptionist's hospital.
+// @Tags         Receptionist Referrals
+// @Produce      json
+// @Param        limit query int false "Pagination limit" default(20)
+// @Param        offset query int false "Pagination offset" default(0)
+// @Param        status query string false "Filter by status"
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/receptionist/referrals [get]
 func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
@@ -72,6 +85,17 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 	})
 }
 
+// GetReferral godoc
+// @Summary      Get Referral Details for Receptionist
+// @Description  Get detailed information about a specific referral.
+// @Tags         Receptionist Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} entity.Referral
+// @Failure      400 {object} map[string]string
+// @Failure      403 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/receptionist/referrals/{id} [get]
 func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -95,6 +119,18 @@ func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 	c.JSON(http.StatusOK, ref)
 }
 
+// ConfirmAttendance godoc
+// @Summary      Confirm Referral Attendance
+// @Description  Confirm that the patient has attended their referral appointment.
+// @Tags         Receptionist Referrals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body map[string]string true "Status (key: status)"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/receptionist/referrals/{id}/confirm-attendance [post]
 func (h *ReceptionistHandler) ConfirmAttendance(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)

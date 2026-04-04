@@ -20,6 +20,19 @@ func NewSpecialistHandler(referralUC iusecase.ReferralUseCase) *SpecialistHandle
 	return &SpecialistHandler{referralUC: referralUC}
 }
 
+// ListReferrals godoc
+// @Summary      List Referrals for Specialist
+// @Description  Get a paginated list of referrals forwarded to the specialist's department.
+// @Tags         Specialist Referrals
+// @Produce      json
+// @Param        limit query int false "Pagination limit" default(20)
+// @Param        offset query int false "Pagination offset" default(0)
+// @Param        status query string false "Filter by status"
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals [get]
 func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
 	specialistID, _ := userIdVal.(uuid.UUID)
@@ -74,6 +87,17 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 	})
 }
 
+// GetReferral godoc
+// @Summary      Get Referral Details for Specialist
+// @Description  Get detailed information about a specific referral.
+// @Tags         Specialist Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} entity.Referral
+// @Failure      400 {object} map[string]string
+// @Failure      403 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id} [get]
 func (h *SpecialistHandler) GetReferral(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -96,6 +120,16 @@ func (h *SpecialistHandler) GetReferral(c *gin.Context) {
 	c.JSON(http.StatusOK, ref)
 }
 
+// Read godoc
+// @Summary      Mark Referral as Read
+// @Description  Acknowledge receipt and claim the referral for review by the specialist.
+// @Tags         Specialist Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/read [post]
 func (h *SpecialistHandler) Read(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -119,6 +153,18 @@ func (h *SpecialistHandler) Read(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "claimed for review"})
 }
 
+// Accept godoc
+// @Summary      Accept Referral
+// @Description  Accept an incoming referral and assign a severity score.
+// @Tags         Specialist Referrals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body map[string]float64 false "Severity Score (key: severity_score)"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/accept [post]
 func (h *SpecialistHandler) Accept(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -147,6 +193,18 @@ func (h *SpecialistHandler) Accept(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "referral accepted"})
 }
 
+// Reject godoc
+// @Summary      Reject Referral
+// @Description  Reject an incoming referral.
+// @Tags         Specialist Referrals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.RejectDTO true "Rejection Reason"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/reject [post]
 func (h *SpecialistHandler) Reject(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -176,6 +234,16 @@ func (h *SpecialistHandler) Reject(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "referral rejected"})
 }
 
+// RerunML godoc
+// @Summary      Rerun ML Prediction
+// @Description  Rerun the machine learning prediction for a specific referral.
+// @Tags         Specialist Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/rerun-ml [post]
 func (h *SpecialistHandler) RerunML(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)

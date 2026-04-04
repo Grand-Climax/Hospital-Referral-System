@@ -20,6 +20,19 @@ func NewDoctorHandler(referralUC iusecase.ReferralUseCase) *DoctorHandler {
 	return &DoctorHandler{referralUC: referralUC}
 }
 
+// ListReferrals godoc
+// @Summary      List Referrals for Doctor
+// @Description  Get a paginated list of referrals created by the authenticated doctor.
+// @Tags         Doctor Referrals
+// @Produce      json
+// @Param        limit query int false "Pagination limit" default(20)
+// @Param        offset query int false "Pagination offset" default(0)
+// @Param        status query string false "Filter by status"
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals [get]
 func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
 	doctorID, ok := userIdVal.(uuid.UUID)
@@ -68,6 +81,17 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 	})
 }
 
+// GetReferral godoc
+// @Summary      Get Referral Details for Doctor
+// @Description  Get detailed information about a specific referral created by the doctor.
+// @Tags         Doctor Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} entity.Referral
+// @Failure      400 {object} map[string]string
+// @Failure      403 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/{id} [get]
 func (h *DoctorHandler) GetReferral(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -89,6 +113,17 @@ func (h *DoctorHandler) GetReferral(c *gin.Context) {
 	c.JSON(http.StatusOK, ref)
 }
 
+// CreateOrSubmit godoc
+// @Summary      Create or Submit Referral
+// @Description  Create a new referral draft or submit it directly based on the status provided.
+// @Tags         Doctor Referrals
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.CreateReferralRequest true "Referral Details"
+// @Success      201 {object} entity.Referral
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals [post]
 func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
 	doctorID, _ := userIdVal.(uuid.UUID)
@@ -114,6 +149,18 @@ func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 	c.JSON(http.StatusCreated, ref)
 }
 
+// UpdateAndResubmit godoc
+// @Summary      Update and Resubmit Referral
+// @Description  Update a previously returned/draft referral and optionally resubmit it.
+// @Tags         Doctor Referrals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.CreateReferralRequest true "Updated Referral Details"
+// @Success      200 {object} entity.Referral
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/{id} [put]
 func (h *DoctorHandler) UpdateAndResubmit(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -140,6 +187,18 @@ func (h *DoctorHandler) UpdateAndResubmit(c *gin.Context) {
 	c.JSON(http.StatusOK, ref)
 }
 
+// Cancel godoc
+// @Summary      Cancel Referral
+// @Description  Cancel an active referral that has not yet been processed.
+// @Tags         Doctor Referrals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body map[string]string true "Cancellation Reason (key: reason)"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/{id}/cancel [post]
 func (h *DoctorHandler) Cancel(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)

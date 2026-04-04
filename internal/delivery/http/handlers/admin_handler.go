@@ -20,6 +20,19 @@ func NewAdminHandler(referralUC iusecase.ReferralUseCase) *AdminHandler {
 	return &AdminHandler{referralUC: referralUC}
 }
 
+// SystemAdminList godoc
+// @Summary      System Admin Global Listing
+// @Description  Get a global paginated list of all referrals with optional status filtering.
+// @Tags         Admin Referrals
+// @Produce      json
+// @Param        limit query int false "Pagination limit" default(20)
+// @Param        offset query int false "Pagination offset" default(0)
+// @Param        status query string false "Filter by status"
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/system-admin/referrals [get]
 func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -62,6 +75,18 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 	})
 }
 
+// HospitalAdminLogs godoc
+// @Summary      Get Referral Logs for Hospital
+// @Description  Get audit logs of all referral status transitions connected to the hospital.
+// @Tags         Admin Referrals
+// @Produce      json
+// @Param        limit query int false "Pagination limit" default(20)
+// @Param        offset query int false "Pagination offset" default(0)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /api/v1/hospital-admin/referrals-log [get]
 func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil

@@ -659,6 +659,343 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/doctor/referrals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of referrals created by the authenticated doctor.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Referrals"
+                ],
+                "summary": "List Referrals for Doctor",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new referral draft or submit it directly based on the status provided.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Referrals"
+                ],
+                "summary": "Create or Submit Referral",
+                "parameters": [
+                    {
+                        "description": "Referral Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateReferralRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/doctor/referrals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information about a specific referral created by the doctor.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Referrals"
+                ],
+                "summary": "Get Referral Details for Doctor",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a previously returned/draft referral and optionally resubmit it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Referrals"
+                ],
+                "summary": "Update and Resubmit Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated Referral Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateReferralRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/doctor/referrals/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel an active referral that has not yet been processed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor Referrals"
+                ],
+                "summary": "Cancel Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Cancellation Reason (key: reason)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/hospital-admin/referrals-log": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get audit logs of all referral status transitions connected to the hospital.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Referrals"
+                ],
+                "summary": "Get Referral Logs for Hospital",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/hospitals": {
             "get": {
                 "security": [
@@ -1102,6 +1439,331 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/liaison/referrals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of referrals forwarded to or managed by the liaison's hospital.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison Referrals"
+                ],
+                "summary": "List Referrals for Liaison",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/liaison/referrals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information about a specific referral.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison Referrals"
+                ],
+                "summary": "Get Referral Details for Liaison",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/liaison/referrals/{id}/forward": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Forward an approved referral to the specialists within the hospital.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison Referrals"
+                ],
+                "summary": "Forward Referral to Specialist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/liaison/referrals/{id}/read": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Acknowledge receipt and mark the referral as read by the liaison.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison Referrals"
+                ],
+                "summary": "Mark Referral as Read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/liaison/referrals/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reject an incoming referral.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison Referrals"
+                ],
+                "summary": "Reject Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection Reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RejectDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/liaison/referrals/{id}/revise": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a referral back to the draft stage to ask the sender for revisions.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison Referrals"
+                ],
+                "summary": "Request Referral Revision",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Revision Reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReviseDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/patients": {
             "post": {
                 "security": [
@@ -1268,6 +1930,184 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/referrals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of referrals assigned to the receptionist's hospital.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist Referrals"
+                ],
+                "summary": "List Referrals for Receptionist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/referrals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information about a specific referral.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist Referrals"
+                ],
+                "summary": "Get Referral Details for Receptionist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/referrals/{id}/confirm-attendance": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Confirm that the patient has attended their referral appointment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist Referrals"
+                ],
+                "summary": "Confirm Referral Attendance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status (key: status)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1514,6 +2354,399 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of referrals forwarded to the specialist's department.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist Referrals"
+                ],
+                "summary": "List Referrals for Specialist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information about a specific referral.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist Referrals"
+                ],
+                "summary": "Get Referral Details for Specialist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Accept an incoming referral and assign a severity score.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist Referrals"
+                ],
+                "summary": "Accept Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Severity Score (key: severity_score)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "number",
+                                "format": "float64"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/read": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Acknowledge receipt and claim the referral for review by the specialist.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist Referrals"
+                ],
+                "summary": "Mark Referral as Read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reject an incoming referral.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist Referrals"
+                ],
+                "summary": "Reject Referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection Reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RejectDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/rerun-ml": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Rerun the machine learning prediction for a specific referral.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist Referrals"
+                ],
+                "summary": "Rerun ML Prediction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/system-admin/referrals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a global paginated list of all referrals with optional status filtering.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Referrals"
+                ],
+                "summary": "System Admin Global Listing",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1992,6 +3225,283 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateReferralRequest": {
+            "type": "object",
+            "required": [
+                "liaison_officer_id",
+                "patient_id",
+                "target_dept_id",
+                "target_hospital_id"
+            ],
+            "properties": {
+                "accompanying_person_name": {
+                    "type": "string",
+                    "example": "Sarah Kebede"
+                },
+                "accompanying_person_phone": {
+                    "type": "string",
+                    "example": "+251922334455"
+                },
+                "clinical_summary": {
+                    "description": "Annex IV Clinical Data",
+                    "type": "string",
+                    "example": "Patient complains of severe chest pain for 2 hours"
+                },
+                "condition_at_referral": {
+                    "type": "string",
+                    "example": "UNSTABLE"
+                },
+                "diagnoses": {
+                    "description": "Diagnoses",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DiagnosisDTO"
+                    }
+                },
+                "emergency_detail": {
+                    "$ref": "#/definitions/dto.EmergencyDetailDTO"
+                },
+                "investigation_results": {
+                    "type": "string",
+                    "example": "ECG shows ST elevation"
+                },
+                "liaison_officer_id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "medication_on_transfer": {
+                    "type": "string",
+                    "example": "IV Nitroglycerin"
+                },
+                "mode_of_transport": {
+                    "type": "string",
+                    "example": "AMBULANCE"
+                },
+                "patient_history": {
+                    "type": "string",
+                    "example": "Hypertension diagnosed 5 years ago"
+                },
+                "patient_id": {
+                    "description": "Patient Logic",
+                    "type": "string",
+                    "example": "912b4375-2295-41bb-8ffd-c8318e9c051f"
+                },
+                "physical_examination_findings": {
+                    "type": "string",
+                    "example": "BP 180/110, HR 105"
+                },
+                "reason_for_referral_category": {
+                    "type": "string",
+                    "example": "EMERGENCY"
+                },
+                "reason_of_referral": {
+                    "type": "string",
+                    "example": "Requires immediate cardiological intervention"
+                },
+                "status": {
+                    "description": "Status tracking",
+                    "type": "string",
+                    "enum": [
+                        "DRAFT",
+                        "SUBMITTED"
+                    ],
+                    "example": "SUBMITTED"
+                },
+                "target_dept_id": {
+                    "type": "string",
+                    "example": "23fdcea4-074f-4c6b-8fe8-400da55df997"
+                },
+                "target_hospital_id": {
+                    "description": "Routing Information",
+                    "type": "string",
+                    "example": "c9020345-5e41-42d6-9a66-c8d4557519ff"
+                },
+                "treatment_given_before_referral": {
+                    "type": "string",
+                    "example": "Aspirin 300mg"
+                },
+                "vitals": {
+                    "description": "Optional Extensions",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.VitalsDTO"
+                        }
+                    ]
+                }
+            }
+        },
+        "dto.DiagnosisDTO": {
+            "type": "object",
+            "required": [
+                "diagnosis_certainty",
+                "icd_code"
+            ],
+            "properties": {
+                "diagnosis_certainty": {
+                    "type": "string",
+                    "enum": [
+                        "CONFIRMED",
+                        "SUSPECTED",
+                        "SYMPTOM_ONLY"
+                    ],
+                    "example": "SUSPECTED"
+                },
+                "icd_code": {
+                    "type": "string",
+                    "example": "I10"
+                },
+                "is_primary": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.EmergencyDetailDTO": {
+            "type": "object",
+            "required": [
+                "emergency_justification"
+            ],
+            "properties": {
+                "emergency_justification": {
+                    "type": "string",
+                    "example": "Patient requires immediate intubation and bypass surgery"
+                }
+            }
+        },
+        "dto.ListReferralResponse": {
+            "type": "object",
+            "properties": {
+                "condition_at_referral": {
+                    "type": "string"
+                },
+                "date": {
+                    "description": "formatted CreatedAt",
+                    "type": "string"
+                },
+                "department": {
+                    "type": "string"
+                },
+                "diagnosis": {
+                    "description": "Typically the primary diagnosis CodeInfo name",
+                    "type": "string"
+                },
+                "icd_code": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "patient_first_name": {
+                    "type": "string"
+                },
+                "patient_last_name": {
+                    "type": "string"
+                },
+                "patient_middle_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PaginatedReferralResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ListReferralResponse"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.RejectDTO": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "minLength": 5
+                }
+            }
+        },
+        "dto.ReviseDTO": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "minLength": 5
+                }
+            }
+        },
+        "dto.VitalsDTO": {
+            "type": "object",
+            "properties": {
+                "diastolic_bp": {
+                    "type": "integer",
+                    "maximum": 200,
+                    "minimum": 20
+                },
+                "gcs_score": {
+                    "type": "integer",
+                    "maximum": 15,
+                    "minimum": 3
+                },
+                "heart_rate": {
+                    "type": "integer",
+                    "maximum": 300,
+                    "minimum": 20
+                },
+                "respiratory_rate": {
+                    "type": "integer",
+                    "maximum": 60,
+                    "minimum": 4
+                },
+                "sp_o2": {
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "systolic_bp": {
+                    "type": "integer",
+                    "maximum": 300,
+                    "minimum": 40
+                },
+                "temperature": {
+                    "type": "number",
+                    "maximum": 45,
+                    "minimum": 25
+                }
+            }
+        },
+        "entity.DiagnosisCertainty": {
+            "type": "string",
+            "enum": [
+                "CONFIRMED",
+                "SUSPECTED",
+                "SYMPTOM_ONLY"
+            ],
+            "x-enum-varnames": [
+                "CertaintyConfirmed",
+                "CertaintySuspected",
+                "CertaintySymptomOnly"
+            ]
+        },
         "entity.HospitalTier": {
             "type": "string",
             "enum": [
@@ -2005,6 +3515,279 @@ const docTemplate = `{
                 "GeneralHosp",
                 "SpecializedHosp",
                 "TertiaryHosp"
+            ]
+        },
+        "entity.ICDCode": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.Patient": {
+            "type": "object",
+            "properties": {
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "home_region": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "sex": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.Referral": {
+            "type": "object",
+            "properties": {
+                "active_ml_prediction_id": {
+                    "description": "Triage priority",
+                    "type": "string"
+                },
+                "archived_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "Timestamps",
+                    "type": "string"
+                },
+                "diagnoses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ReferralDiagnosis"
+                    }
+                },
+                "emergency_detail": {
+                    "$ref": "#/definitions/entity.ReferralEmergencyDetail"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_archived": {
+                    "description": "Lifecycle",
+                    "type": "boolean"
+                },
+                "liaison_officer_id": {
+                    "type": "string"
+                },
+                "ml_last_error": {
+                    "type": "string"
+                },
+                "ml_retry_count": {
+                    "type": "integer"
+                },
+                "ml_severity_score": {
+                    "type": "number"
+                },
+                "ml_status": {
+                    "description": "Handle ML Failure",
+                    "type": "string"
+                },
+                "patient": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Patient"
+                        }
+                    ]
+                },
+                "patient_id": {
+                    "type": "string"
+                },
+                "referral_form": {
+                    "$ref": "#/definitions/entity.ReferralForm"
+                },
+                "referring_doctor_id": {
+                    "type": "string"
+                },
+                "rejection_reason": {
+                    "description": "Rejection and Revision",
+                    "type": "string"
+                },
+                "revision_reason": {
+                    "type": "string"
+                },
+                "sender_hospital_id": {
+                    "type": "string"
+                },
+                "specialist_id": {
+                    "description": "Specialist Assignment",
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/entity.ReferralStatus"
+                },
+                "target_dept_id": {
+                    "type": "string"
+                },
+                "target_hospital_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "vitals": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.Vital"
+                    }
+                },
+                "waiting_hours_weight": {
+                    "type": "number"
+                }
+            }
+        },
+        "entity.ReferralDiagnosis": {
+            "type": "object",
+            "properties": {
+                "code_info": {
+                    "description": "Relationship",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.ICDCode"
+                        }
+                    ]
+                },
+                "diagnosis_certainty": {
+                    "$ref": "#/definitions/entity.DiagnosisCertainty"
+                },
+                "icd_code": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_primary": {
+                    "type": "boolean"
+                },
+                "referral_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.ReferralEmergencyDetail": {
+            "type": "object",
+            "properties": {
+                "admitted_at": {
+                    "type": "string"
+                },
+                "emergency_justification": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.ReferralForm": {
+            "type": "object",
+            "properties": {
+                "accompanying_person_name": {
+                    "type": "string"
+                },
+                "accompanying_person_phone": {
+                    "type": "string"
+                },
+                "clinical_summary": {
+                    "type": "string"
+                },
+                "condition_at_referral": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "investigation_results": {
+                    "type": "string"
+                },
+                "medication_on_transfer": {
+                    "type": "string"
+                },
+                "mode_of_transport": {
+                    "type": "string"
+                },
+                "patient_history": {
+                    "type": "string"
+                },
+                "physical_examination_findings": {
+                    "type": "string"
+                },
+                "reason_for_referral_category": {
+                    "description": "TODO: Remove ReasonForReferralCategory in production phase. Kept temporarily as nullable.",
+                    "type": "string"
+                },
+                "reason_of_referral": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "treatment_given_before_referral": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.ReferralStatus": {
+            "type": "string",
+            "enum": [
+                "DRAFT",
+                "SUBMITTED",
+                "UNDER_LIAISON_REVIEW",
+                "FORWARDED",
+                "UNDER_SPECIALIST_REVIEW",
+                "ACCEPTED",
+                "SCHEDULED",
+                "ASSIGNED",
+                "COMPLETED",
+                "NEED_REVISION",
+                "CANCELLED",
+                "REJECTED_BY_LIAISON",
+                "REJECTED_BY_SPECIALIST",
+                "MISSED",
+                "RESCHEDULED"
+            ],
+            "x-enum-varnames": [
+                "StatusDraft",
+                "StatusSubmitted",
+                "StatusUnderLiaisonReview",
+                "StatusForwarded",
+                "StatusUnderSpecialistReview",
+                "StatusAccepted",
+                "StatusScheduled",
+                "StatusAssigned",
+                "StatusCompleted",
+                "StatusNeedRevision",
+                "StatusCancelled",
+                "StatusRejectedByLiaison",
+                "StatusRejectedBySpecialist",
+                "StatusMissed",
+                "StatusRescheduled"
             ]
         },
         "entity.UserRole": {
@@ -2029,6 +3812,41 @@ const docTemplate = `{
                 "RoleHospitalAdmin",
                 "RoleSystemSuperAdmin"
             ]
+        },
+        "entity.Vital": {
+            "type": "object",
+            "properties": {
+                "diastolic_bp": {
+                    "type": "integer"
+                },
+                "gcs_score": {
+                    "type": "integer"
+                },
+                "heart_rate": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "recorded_at": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "respiratory_rate": {
+                    "type": "integer"
+                },
+                "sp_o2": {
+                    "type": "number"
+                },
+                "systolic_bp": {
+                    "type": "integer"
+                },
+                "temperature": {
+                    "type": "number"
+                }
+            }
         },
         "handlers.AssignRoleRequest": {
             "type": "object",
