@@ -58,11 +58,11 @@ func TestReferenceEndpoints(t *testing.T) {
 	handler := handlers.NewReferenceHandler(mockUC)
 
 	router := gin.Default()
-	router.GET("/api/v1/references/hospitals", handler.GetHospitals)
-	router.GET("/api/v1/references/departments", handler.GetDepartments)
-	router.GET("/api/v1/references/icd-codes", handler.ListICDCodes)
-	router.GET("/api/v1/references/networked-hospitals", handler.GetNetworkedHospitals)
-	router.GET("/api/v1/references/hospitals/:id/departments", handler.GetHospitalDepartments)
+	router.GET("/api/v1/reference/hospitals", handler.GetHospitals)
+	router.GET("/api/v1/reference/departments", handler.GetDepartments)
+	router.GET("/api/v1/reference/icd-codes", handler.ListICDCodes)
+	router.GET("/api/v1/reference/networked-hospitals", handler.GetNetworkedHospitals)
+	router.GET("/api/v1/reference/hospitals/:id/departments", handler.GetHospitalDepartments)
 
 	t.Run("Get Global Hospitals List", func(t *testing.T) {
 		hosp := entity.Hospital{
@@ -73,7 +73,7 @@ func TestReferenceEndpoints(t *testing.T) {
 		}
 		mockUC.On("GetHospitals", mock.Anything, "").Return([]entity.Hospital{hosp}, nil)
 
-		req := httptest.NewRequest("GET", "/api/v1/references/hospitals", nil)
+		req := httptest.NewRequest("GET", "/api/v1/reference/hospitals", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -95,7 +95,7 @@ func TestReferenceEndpoints(t *testing.T) {
 		}
 		mockUC.On("ListICDCodes", mock.Anything).Return([]entity.ICDCode{icd}, nil)
 
-		req := httptest.NewRequest("GET", "/api/v1/references/icd-codes", nil)
+		req := httptest.NewRequest("GET", "/api/v1/reference/icd-codes", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -125,9 +125,9 @@ func TestReferenceEndpoints(t *testing.T) {
 			c.Set("hospID", &senderID)
 			c.Next()
 		})
-		testRouter.GET("/api/v1/references/networked-hospitals", handler.GetNetworkedHospitals)
+		testRouter.GET("/api/v1/reference/networked-hospitals", handler.GetNetworkedHospitals)
 
-		req := httptest.NewRequest("GET", "/api/v1/references/networked-hospitals", nil)
+		req := httptest.NewRequest("GET", "/api/v1/reference/networked-hospitals", nil)
 		w := httptest.NewRecorder()
 		testRouter.ServeHTTP(w, req)
 
@@ -150,7 +150,7 @@ func TestReferenceEndpoints(t *testing.T) {
 		hospitalID := uuid.New()
 		mockUC.On("GetHospitalDepartments", mock.Anything, hospitalID).Return([]entity.Department{dept}, nil)
 
-		req := httptest.NewRequest("GET", "/api/v1/references/hospitals/"+hospitalID.String()+"/departments", nil)
+		req := httptest.NewRequest("GET", "/api/v1/reference/hospitals/"+hospitalID.String()+"/departments", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
