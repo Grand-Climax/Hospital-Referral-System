@@ -149,7 +149,7 @@ func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID 
 	return ref, nil
 }
 
-func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
+func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*entity.Referral, error) {
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -159,15 +159,21 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 		return nil, errors.New("unauthorized: only the creator can update this draft/referral")
 	}
 
+	// Redundancy Check
+	if existing.Status == entity.StatusSubmitted || existing.Status == entity.StatusForwarded ||
+		existing.Status == entity.StatusUnderLiaisonReview || existing.Status == entity.StatusUnderSpecialistReview {
+		return nil, errors.New("referral is already submitted; please wait for review")
+	}
+
 	// Immutability Check
 	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedRevision {
 		return nil, errors.New("forbidden: referral is immutable in current state")
 	}
 
 	oldStatus := existing.Status
-	// If the user wants to jump strictly to submitted
-	nextStatus := entity.StatusDraft
-	if req.Status == string(entity.StatusSubmitted) {
+	// status fork: if submit is true, we move to SUBMITTED. Otherwise, we keep existing status (Draft/NeedRevision).
+	nextStatus := existing.Status
+	if submit {
 		nextStatus = entity.StatusSubmitted
 	}
 
@@ -239,6 +245,9 @@ func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.
 	if existing.ReferringDoctorID != doctorID {
 		return errors.New("unauthorized")
 	}
+	if existing.Status == entity.StatusCancelled {
+		return errors.New("referral is already cancelled")
+	}
 	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedRevision {
 		return errors.New("forbidden: cannot cancel once in active review pipeline")
 	}
@@ -251,6 +260,64 @@ func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.
 	}
 
 	return u.logStatusChange(ctx, id, doctorID, &oldStatus, entity.StatusCancelled, reason)
+}
+
+func (u *referralUseCase) GetDoctorDashboardStats(ctx context.Context, doctorID uuid.UUID) (*dto.DoctorDashboardStats, error) {
+	total, pending, accepted, critical, err := u.referralRepo.GetDoctorStats(ctx, doctorID)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.DoctorDashboardStats{
+		TotalReferrals: total,
+		Pending:        pending,
+		Accepted:       accepted,
+		Critical:       critical,
+	}, nil
+}
+
+func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorID uuid.UUID, limit int) ([]dto.ListReferralResponse, error) {
+	referrals, err := u.referralRepo.GetLatestPendingForDoctor(ctx, doctorID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	var responseData []dto.ListReferralResponse
+	for _, r := range referrals {
+		diag := ""
+		icd := ""
+		if len(r.Diagnoses) > 0 && r.Diagnoses[0].CodeInfo != nil {
+			diag = r.Diagnoses[0].CodeInfo.Description
+			icd = r.Diagnoses[0].ICDCode
+		}
+
+		patientNameFirst := ""
+		patientNameMiddle := ""
+		patientNameLast := ""
+		if r.Patient != nil {
+			patientNameFirst = r.Patient.FirstName
+			patientNameMiddle = r.Patient.MiddleName
+			patientNameLast = r.Patient.LastName
+		}
+
+		condition := ""
+		if r.ReferralForm != nil {
+			condition = r.ReferralForm.ConditionAtReferral
+		}
+
+		responseData = append(responseData, dto.ListReferralResponse{
+			ID:                  r.ID,
+			PatientFirstName:    patientNameFirst,
+			PatientMiddleName:   patientNameMiddle,
+			PatientLastName:     patientNameLast,
+			Department:          r.TargetDeptID.String(),
+			Date:                r.CreatedAt.Format("2006-01-02"),
+			Status:              string(r.Status),
+			ICDCode:             icd,
+			Diagnosis:           diag,
+			ConditionAtReferral: condition,
+		})
+	}
+	return responseData, nil
 }
 
 // ---------------------------------------------------------
@@ -280,6 +347,9 @@ func (u *referralUseCase) LiaisonRead(ctx context.Context, id, liaisonID, hospID
 	if ref.SenderHospitalID != hospID {
 		return errors.New("unauthorized")
 	}
+	if ref.Status == entity.StatusUnderLiaisonReview {
+		return errors.New("referral is already under liaison review")
+	}
 	if ref.Status != entity.StatusSubmitted {
 		return errors.New("invalid status transition: must be SUBMITTED")
 	}
@@ -301,6 +371,9 @@ func (u *referralUseCase) LiaisonForward(ctx context.Context, id, liaisonID, hos
 	if ref.SenderHospitalID != hospID {
 		return errors.New("unauthorized")
 	}
+	if ref.Status == entity.StatusForwarded {
+		return errors.New("referral is already forwarded to the target hospital")
+	}
 	if ref.Status != entity.StatusUnderLiaisonReview {
 		return errors.New("invalid status transition: must be UNDER_LIAISON_REVIEW")
 	}
@@ -321,6 +394,9 @@ func (u *referralUseCase) LiaisonReject(ctx context.Context, id, liaisonID, hosp
 	}
 	if ref.SenderHospitalID != hospID {
 		return errors.New("unauthorized")
+	}
+	if ref.Status == entity.StatusRejectedByLiaison {
+		return errors.New("referral is already rejected by the liaison")
 	}
 	if ref.Status != entity.StatusUnderLiaisonReview {
 		return errors.New("invalid status: must be UNDER_LIAISON_REVIEW")
@@ -346,6 +422,9 @@ func (u *referralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, hosp
 	}
 	if ref.SenderHospitalID != hospID {
 		return errors.New("unauthorized")
+	}
+	if ref.Status == entity.StatusNeedRevision {
+		return errors.New("referral is already pending revision by the creator")
 	}
 	if ref.Status != entity.StatusUnderLiaisonReview {
 		return errors.New("invalid status: must be UNDER_LIAISON_REVIEW")
@@ -391,6 +470,9 @@ func (u *referralUseCase) SpecialistRead(ctx context.Context, id, specialistID, 
 	if ref.TargetHospitalID != hospID {
 		return errors.New("unauthorized")
 	}
+	if ref.Status == entity.StatusUnderSpecialistReview {
+		return errors.New("referral is already under specialist review")
+	}
 	if ref.Status != entity.StatusForwarded {
 		return errors.New("invalid status: must be FORWARDED")
 	}
@@ -412,6 +494,9 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 	}
 	if ref.TargetHospitalID != hospID {
 		return errors.New("unauthorized")
+	}
+	if ref.Status == entity.StatusAccepted {
+		return errors.New("referral has already been accepted")
 	}
 	if ref.Status != entity.StatusUnderSpecialistReview {
 		return errors.New("invalid status: must be UNDER_SPECIALIST_REVIEW")
@@ -436,6 +521,9 @@ func (u *referralUseCase) SpecialistReject(ctx context.Context, id, specialistID
 	}
 	if ref.TargetHospitalID != hospID {
 		return errors.New("unauthorized")
+	}
+	if ref.Status == entity.StatusRejectedBySpecialist {
+		return errors.New("referral has already been rejected by the specialist")
 	}
 	if ref.Status != entity.StatusForwarded && ref.Status != entity.StatusUnderSpecialistReview {
 		return errors.New("invalid status: must be FORWARDED or UNDER_SPECIALIST_REVIEW")
@@ -495,21 +583,33 @@ func (u *referralUseCase) ConfirmAttendance(ctx context.Context, id, receptionis
 
 	switch status {
 	case string(entity.StatusAssigned):
+		if oldStatus == entity.StatusAssigned {
+			return errors.New("referral is already assigned")
+		}
 		if oldStatus != entity.StatusAccepted && oldStatus != entity.StatusScheduled && oldStatus != entity.StatusRescheduled {
 			return errors.New("invalid transition to ASSIGNED")
 		}
 		newStatus = entity.StatusAssigned
 	case string(entity.StatusMissed):
+		if oldStatus == entity.StatusMissed {
+			return errors.New("referral is already marked as missed")
+		}
 		if oldStatus != entity.StatusScheduled && oldStatus != entity.StatusRescheduled {
 			return errors.New("invalid transition to MISSED")
 		}
 		newStatus = entity.StatusMissed
 	case string(entity.StatusCompleted):
+		if oldStatus == entity.StatusCompleted {
+			return errors.New("referral is already completed")
+		}
 		if oldStatus != entity.StatusAssigned {
 			return errors.New("invalid transition: must be ASSIGNED to COMPLETE")
 		}
 		newStatus = entity.StatusCompleted
 	case string(entity.StatusScheduled):
+		if oldStatus == entity.StatusScheduled {
+			return errors.New("referral is already scheduled")
+		}
 		if oldStatus != entity.StatusAccepted {
 			return errors.New("invalid transition: must be ACCEPTED")
 		}

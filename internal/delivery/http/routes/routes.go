@@ -22,7 +22,11 @@ import (
 func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Health check successful",
+			"status":  "ok",
+		})
 	})
 
 	// Public Root Landing Page
@@ -135,14 +139,17 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			// -------------------------
 
 			// DOCTOR
-			doctorGroup := protected.Group("/doctor/referrals")
+			doctorGroup := protected.Group("/doctor")
 			doctorGroup.Use(middleware.RequireRole(entity.RoleReferringDoctor))
 			{
-				doctorGroup.GET("", doctorHandler.ListReferrals)
-				doctorGroup.POST("", doctorHandler.CreateOrSubmit)
-				doctorGroup.GET("/:id", doctorHandler.GetReferral)
-				doctorGroup.PUT("/:id/resubmit", doctorHandler.UpdateAndResubmit) // Serves updates or resubmits
-				doctorGroup.PUT("/:id/cancel", doctorHandler.Cancel)
+				doctorGroup.GET("/stats", doctorHandler.GetStats)
+				doctorGroup.GET("/latest-pending", doctorHandler.GetLatestPending)
+				doctorGroup.GET("/referrals", doctorHandler.ListReferrals)
+				doctorGroup.GET("/referrals/:id", doctorHandler.GetReferral)
+				doctorGroup.POST("/referrals", doctorHandler.CreateOrSubmit)
+				doctorGroup.POST("/referrals/:id/cancel", doctorHandler.Cancel)
+				doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateAndResubmit)
+				doctorGroup.PUT("/referrals/:id/submit", doctorHandler.UpdateAndResubmit)
 			}
 
 			// LIAISON
