@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
@@ -40,8 +41,8 @@ type UpdateUserRequest struct {
 	LastName     *string          `json:"last_name" example:"Analyst"`
 	NationalID   *string          `json:"national_id" example:"MOH-001"`
 	Role         *entity.UserRole `json:"role" example:"MOH_ANALYST"`
-	HospitalID   *string          `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
-	DepartmentID *string          `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	HospitalID   *string         `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
+	DepartmentID *string         `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
 	IsActive     *bool            `json:"is_active" example:"true"`
 }
 
@@ -101,7 +102,7 @@ func toUserResponse(u *entity.User) UserResponse {
 // @Accept       json
 // @Produce      json
 // @Param        body body CreateUserRequest true "User creation payload"
-// @Success      201 {object} UserResponse
+// @Success      201 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      409 {object} map[string]string
 // @Failure      500 {object} map[string]string
@@ -110,7 +111,7 @@ func toUserResponse(u *entity.User) UserResponse {
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -125,7 +126,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	if req.HospitalID != nil {
 		id, err := uuid.Parse(*req.HospitalID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital_id"})
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital_id"})
 			return
 		}
 		user.HospitalID = &id
@@ -133,7 +134,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	if req.DepartmentID != nil {
 		id, err := uuid.Parse(*req.DepartmentID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department_id"})
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid department_id"})
 			return
 		}
 		user.DepartmentID = &id
@@ -142,16 +143,16 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	if err := h.userUseCase.CreateUser(c.Request.Context(), user, req.Password); err != nil {
 		switch err {
 		case usecase.ErrEmailExists, usecase.ErrNationalIDExists:
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			c.JSON(http.StatusConflict, gin.H{"success": false, "error": err.Error()})
 		case usecase.ErrInvalidRole:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create user"})
 		}
 		return
 	}
 
-	c.JSON(http.StatusCreated, toUserResponse(user))
+	c.JSON(http.StatusCreated, dto.SuccessPayload(toUserResponse(user), "User created successfully"))
 }
 
 // ListUsers godoc
@@ -197,7 +198,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 
 	users, total, err := h.userUseCase.ListUsers(c.Request.Context(), filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list users"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to list users"})
 		return
 	}
 
@@ -207,9 +208,11 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":  resp,
-		"total": total,
-		"page":  filter.Page,
+		"success": true,
+		"message": "Users retrieved successfully",
+		"data":    resp,
+		"total":   total,
+		"page":    filter.Page,
 	})
 }
 
@@ -219,24 +222,24 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 // @Tags         Users
 // @Produce      json
 // @Param        id path string true "User ID"
-// @Success      200 {object} UserResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/users/{id} [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid user ID"})
 		return
 	}
 
 	user, err := h.userUseCase.GetUserByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "User not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, toUserResponse(user))
+	c.JSON(http.StatusOK, dto.SuccessPayload(toUserResponse(user), "User details retrieved successfully"))
 }
 
 // UpdateUser godoc
@@ -247,7 +250,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Produce      json
 // @Param        id   path string            true "User ID"
 // @Param        body body UpdateUserRequest  true "User update payload"
-// @Success      200 {object} UserResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
@@ -255,20 +258,20 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid user ID"})
 		return
 	}
 
 	var req UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	// Fetch existing user first
 	existing, err := h.userUseCase.GetUserByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "User not found"})
 		return
 	}
 
@@ -291,7 +294,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if req.HospitalID != nil {
 		hid, err := uuid.Parse(*req.HospitalID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital_id"})
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital_id"})
 			return
 		}
 		existing.HospitalID = &hid
@@ -299,7 +302,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if req.DepartmentID != nil {
 		did, err := uuid.Parse(*req.DepartmentID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department_id"})
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid department_id"})
 			return
 		}
 		existing.DepartmentID = &did
@@ -309,11 +312,11 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	if err := h.userUseCase.UpdateUser(c.Request.Context(), existing); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to update user"})
 		return
 	}
 
-	c.JSON(http.StatusOK, toUserResponse(existing))
+	c.JSON(http.StatusOK, dto.SuccessPayload(toUserResponse(existing), "User updated successfully"))
 }
 
 // DeleteUser godoc
@@ -322,23 +325,26 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Tags         Users
 // @Produce      json
 // @Param        id path string true "User ID"
-// @Success      200 {object} map[string]string
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid user ID"})
 		return
 	}
 
 	if err := h.userUseCase.DeleteUser(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "User not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "User deleted successfully",
+	})
 }
 
 // GetMyProfile godoc
@@ -346,29 +352,29 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 // @Description  Returns the profile of the currently authenticated user
 // @Tags         Users
 // @Produce      json
-// @Success      200 {object} UserResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      401 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/users/me [get]
 func (h *UserHandler) GetMyProfile(c *gin.Context) {
 	userIDVal, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "User not authenticated"})
 		return
 	}
 	userID, ok := userIDVal.(uuid.UUID)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID in context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Invalid user ID in context"})
 		return
 	}
 
 	user, err := h.userUseCase.GetMyProfile(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "User not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, toUserResponse(user))
+	c.JSON(http.StatusOK, dto.SuccessPayload(toUserResponse(user), "Profile retrieved successfully"))
 }
 
 // AssignRole godoc
@@ -379,7 +385,7 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 // @Produce      json
 // @Param        id   path string           true "User ID"
 // @Param        body body AssignRoleRequest true "Role assignment payload"
-// @Success      200 {object} map[string]string
+// @Success      200 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
@@ -387,27 +393,30 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 func (h *UserHandler) AssignRole(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid user ID"})
 		return
 	}
 
 	var req AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	if err := h.userUseCase.AssignRole(c.Request.Context(), id, req.Role); err != nil {
 		switch err {
 		case usecase.ErrUserNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "User not found"})
 		case usecase.ErrInvalidRole:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign role"})
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to assign role"})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Role assigned successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "User role assigned successfully",
+	})
 }

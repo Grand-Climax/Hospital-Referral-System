@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
@@ -88,7 +89,7 @@ func toHospitalDepartmentResponse(hd *entity.HospitalDepartment) HospitalDepartm
 // @Accept       json
 // @Produce      json
 // @Param        body body CreateDepartmentRequest true "Department creation payload"
-// @Success      201 {object} DepartmentResponse
+// @Success      201 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      500 {object} map[string]string
 // @Security     BearerAuth
@@ -96,7 +97,7 @@ func toHospitalDepartmentResponse(hd *entity.HospitalDepartment) HospitalDepartm
 func (h *DepartmentHandler) CreateDepartment(c *gin.Context) {
 	var req CreateDepartmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -106,11 +107,11 @@ func (h *DepartmentHandler) CreateDepartment(c *gin.Context) {
 	}
 
 	if err := h.deptUseCase.CreateDepartment(c.Request.Context(), dept); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create department"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create department"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, toDepartmentResponse(dept))
+	c.JSON(http.StatusCreated, dto.SuccessPayload(toDepartmentResponse(dept), "Department created successfully"))
 }
 
 // ListDepartments godoc
@@ -142,7 +143,7 @@ func (h *DepartmentHandler) ListDepartments(c *gin.Context) {
 
 	departments, total, err := h.deptUseCase.ListDepartments(c.Request.Context(), filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list departments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to list departments"})
 		return
 	}
 
@@ -152,9 +153,11 @@ func (h *DepartmentHandler) ListDepartments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":  resp,
-		"total": total,
-		"page":  filter.Page,
+		"success": true,
+		"message": "Departments retrieved successfully",
+		"data":    resp,
+		"total":   total,
+		"page":    filter.Page,
 	})
 }
 
@@ -164,24 +167,24 @@ func (h *DepartmentHandler) ListDepartments(c *gin.Context) {
 // @Tags         Departments
 // @Produce      json
 // @Param        id path string true "Department ID"
-// @Success      200 {object} DepartmentResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/departments/{id} [get]
 func (h *DepartmentHandler) GetDepartment(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid department ID"})
 		return
 	}
 
 	dept, err := h.deptUseCase.GetDepartmentByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Department not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Department not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, toDepartmentResponse(dept))
+	c.JSON(http.StatusOK, dto.SuccessPayload(toDepartmentResponse(dept), "Department details retrieved successfully"))
 }
 
 // UpdateDepartment godoc
@@ -192,7 +195,7 @@ func (h *DepartmentHandler) GetDepartment(c *gin.Context) {
 // @Produce      json
 // @Param        id   path string                  true "Department ID"
 // @Param        body body UpdateDepartmentRequest  true "Department update payload"
-// @Success      200 {object} DepartmentResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
@@ -200,19 +203,19 @@ func (h *DepartmentHandler) GetDepartment(c *gin.Context) {
 func (h *DepartmentHandler) UpdateDepartment(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid department ID"})
 		return
 	}
 
 	var req UpdateDepartmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	existing, err := h.deptUseCase.GetDepartmentByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Department not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Department not found"})
 		return
 	}
 
@@ -224,11 +227,11 @@ func (h *DepartmentHandler) UpdateDepartment(c *gin.Context) {
 	}
 
 	if err := h.deptUseCase.UpdateDepartment(c.Request.Context(), existing); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update department"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to update department"})
 		return
 	}
 
-	c.JSON(http.StatusOK, toDepartmentResponse(existing))
+	c.JSON(http.StatusOK, dto.SuccessPayload(toDepartmentResponse(existing), "Department updated successfully"))
 }
 
 // DeleteDepartment godoc
@@ -237,23 +240,26 @@ func (h *DepartmentHandler) UpdateDepartment(c *gin.Context) {
 // @Tags         Departments
 // @Produce      json
 // @Param        id path string true "Department ID"
-// @Success      200 {object} map[string]string
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/departments/{id} [delete]
 func (h *DepartmentHandler) DeleteDepartment(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid department ID"})
 		return
 	}
 
 	if err := h.deptUseCase.DeleteDepartment(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Department not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Department not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Department deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Department deleted successfully",
+	})
 }
 
 // LinkDepartmentToHospital godoc
@@ -264,7 +270,7 @@ func (h *DepartmentHandler) DeleteDepartment(c *gin.Context) {
 // @Produce      json
 // @Param        id   path string              true "Hospital ID"
 // @Param        body body LinkDepartmentRequest true "Link payload"
-// @Success      201 {object} map[string]string
+// @Success      201 {object} map[string]interface{}
 // @Failure      400 {object} map[string]string
 // @Failure      404 {object} map[string]string
 // @Failure      409 {object} map[string]string
@@ -273,37 +279,40 @@ func (h *DepartmentHandler) DeleteDepartment(c *gin.Context) {
 func (h *DepartmentHandler) LinkDepartmentToHospital(c *gin.Context) {
 	hospitalID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
 		return
 	}
 
 	var req LinkDepartmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	deptID, err := uuid.Parse(req.DepartmentID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid department_id"})
 		return
 	}
 
 	if err := h.deptUseCase.LinkDepartmentToHospital(c.Request.Context(), hospitalID, deptID, req.DailyLimit); err != nil {
 		switch err {
 		case usecase.ErrHospitalNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Hospital not found"})
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
 		case usecase.ErrDepartmentNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Department not found"})
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Department not found"})
 		case usecase.ErrHospitalDeptLinkExists:
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			c.JSON(http.StatusConflict, gin.H{"success": false, "error": err.Error()})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link department"})
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to link department"})
 		}
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Department linked to hospital successfully"})
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "Department linked to hospital successfully",
+	})
 }
 
 // UnlinkDepartmentFromHospital godoc
@@ -313,29 +322,32 @@ func (h *DepartmentHandler) LinkDepartmentToHospital(c *gin.Context) {
 // @Produce      json
 // @Param        id     path string true "Hospital ID"
 // @Param        deptId path string true "Department ID"
-// @Success      200 {object} map[string]string
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals/{id}/departments/{deptId} [delete]
 func (h *DepartmentHandler) UnlinkDepartmentFromHospital(c *gin.Context) {
 	hospitalID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
 		return
 	}
 
 	deptID, err := uuid.Parse(c.Param("deptId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid department ID"})
 		return
 	}
 
 	if err := h.deptUseCase.UnlinkDepartmentFromHospital(c.Request.Context(), hospitalID, deptID); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Department unlinked from hospital successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Department unlinked from hospital successfully",
+	})
 }
 
 // ListHospitalDepartments godoc
@@ -344,24 +356,24 @@ func (h *DepartmentHandler) UnlinkDepartmentFromHospital(c *gin.Context) {
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"
-// @Success      200 {array} HospitalDepartmentResponse
+// @Success      200 {object} map[string]interface{}
 // @Failure      404 {object} map[string]string
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals/{id}/departments [get]
 func (h *DepartmentHandler) ListHospitalDepartments(c *gin.Context) {
 	hospitalID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
 		return
 	}
 
 	links, err := h.deptUseCase.ListHospitalDepartments(c.Request.Context(), hospitalID)
 	if err != nil {
 		if err == usecase.ErrHospitalNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Hospital not found"})
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list hospital departments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to list hospital departments"})
 		return
 	}
 
@@ -370,5 +382,9 @@ func (h *DepartmentHandler) ListHospitalDepartments(c *gin.Context) {
 		resp = append(resp, toHospitalDepartmentResponse(&links[i]))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": resp})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Hospital departments retrieved successfully",
+		"data":    resp,
+	})
 }

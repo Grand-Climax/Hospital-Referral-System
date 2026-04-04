@@ -33,25 +33,26 @@ func NewNetworkHandler(uc iusecase.NetworkUseCase) *NetworkHandler {
 func (h *NetworkHandler) Create(c *gin.Context) {
 	var req dto.CreateNetworkRouteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request payload", "details": err.Error()})
 		return
 	}
 
 	route, err := h.networkUseCase.CreateRoute(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create network route", "details": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create network route", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Network route created successfully",
-		"data": dto.NetworkRouteResponse{
-			ID:                    route.ID,
-			SenderHospitalID:      route.SenderHospitalID,
-			ReceiverHospitalID:    route.ReceiverHospitalID,
-			ReferralType:          route.ReferralType,
-			RequiresAdminApproval: route.RequiresAdminApproval,
+	c.JSON(http.StatusCreated, dto.NetworkRouteResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Network route created successfully",
 		},
+		ID:                    route.ID,
+		SenderHospitalID:      route.SenderHospitalID,
+		ReceiverHospitalID:    route.ReceiverHospitalID,
+		ReferralType:          route.ReferralType,
+		RequiresAdminApproval: route.RequiresAdminApproval,
 	})
 }
 
@@ -72,17 +73,21 @@ func (h *NetworkHandler) List(c *gin.Context) {
 		if parsed, err := uuid.Parse(senderQuery); err == nil {
 			senderID = &parsed
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sender_hospital_id format"})
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid sender_hospital_id format"})
 			return
 		}
 	}
 
 	routes, err := h.networkUseCase.ListRoutes(c.Request.Context(), senderID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list network routes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to list network routes"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": routes})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Network routes retrieved successfully",
+		"data":    routes,
+	})
 }
 
 // Delete godoc
@@ -99,13 +104,16 @@ func (h *NetworkHandler) List(c *gin.Context) {
 func (h *NetworkHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid route ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid route ID format"})
 		return
 	}
 
 	if err := h.networkUseCase.DeleteRoute(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete route"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to delete route"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Network route deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Network route deleted successfully",
+	})
 }

@@ -38,20 +38,20 @@ func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
 	idStr := c.Param("id")
 	referralID, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Referral UUID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid Referral UUID format"})
 		return
 	}
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File upload required", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "File upload required", "details": err.Error()})
 		return
 	}
 
 	// Basic Ext/Type validation (could be expanded)
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if ext != ".pdf" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".dcm" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only PDF, Image, and DICOM formats are allowed."})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid file type. Only PDF, Image, and DICOM formats are allowed."})
 		return
 	}
 
@@ -61,13 +61,13 @@ func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
 
 	// Ensure directory exists
 	if err := os.MkdirAll(filepath.Dir(storagePath), 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create storage directory"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create storage directory"})
 		return
 	}
 
 	// Save to local disk (simulation for S3)
 	if err := c.SaveUploadedFile(file, storagePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file physically", "details": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to save file physically", "details": err.Error()})
 		return
 	}
 
@@ -76,12 +76,13 @@ func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
 	if err != nil {
 		// Cleanup physical file if DB fails
 		_ = os.Remove(storagePath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to map attachment to database", "details": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to map attachment to database", "details": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Attachment uploaded successfully",
+		"success": true,
+		"message": "File uploaded and attached to referral successfully",
 		"data":    attachment,
 	})
 }
@@ -101,18 +102,18 @@ func (h *AttachmentHandler) DownloadAttachment(c *gin.Context) {
 	idStr := c.Param("id")
 	attachmentID, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Attachment UUID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid Attachment UUID format"})
 		return
 	}
 
 	attachment, err := h.attachmentUC.GetAttachment(c.Request.Context(), attachmentID)
 	if err != nil || attachment == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Attachment reference not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Attachment reference not found"})
 		return
 	}
 
 	if _, err := os.Stat(attachment.StoragePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Physical file missing from storage"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Physical file missing from storage"})
 		return
 	}
 

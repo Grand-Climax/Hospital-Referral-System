@@ -31,6 +31,7 @@ const (
 	ActionOverrideQueue       ActionType = "OVERRIDE_QUEUE"
 	ActionGenerateReports     ActionType = "GENERATE_REPORTS"
 	ActionUpdatePatientStatus ActionType = "UPDATE_PATIENT_STATUS"
+	ActionCancelReferral      ActionType = "CANCEL_REFERRAL"
 )
 
 type AuditLog struct {

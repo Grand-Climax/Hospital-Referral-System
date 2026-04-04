@@ -40,7 +40,7 @@ func (h *LiaisonHandler) ListReferrals(c *gin.Context) {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user scopes"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid user scopes"})
 		return
 	}
 
@@ -57,7 +57,21 @@ func (h *LiaisonHandler) ListReferrals(c *gin.Context) {
 	referrals, total, err := h.referralUC.ListForLiaison(c.Request.Context(), hospID, limit, page, statusFilter)
 	if err != nil {
 		log.Printf("[LiaisonHandler.List] error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+			BaseResponse: dto.BaseResponse{
+				Success: false,
+				Message: "No referrals found for your hospital",
+			},
+			Data:     []dto.ListReferralResponse{},
+			Total:    0,
+			Page:     page,
+			PageSize: limit,
+		})
 		return
 	}
 
@@ -98,10 +112,14 @@ func (h *LiaisonHandler) ListReferrals(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
-		Data:     responseData,
-		Total:    total,
-		Page:     page,
-		PageSize: limit,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referrals retrieved successfully",
+		},
+		Data:         responseData,
+		Total:        total,
+		Page:         page,
+		PageSize:     limit,
 	})
 }
 
@@ -120,7 +138,7 @@ func (h *LiaisonHandler) GetReferral(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid id format"})
 		return
 	}
 
@@ -132,11 +150,11 @@ func (h *LiaisonHandler) GetReferral(c *gin.Context) {
 
 	ref, err := h.referralUC.GetDetailsForLiaison(c.Request.Context(), id, hospID)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, ref)
+	c.JSON(http.StatusOK, dto.SuccessPayload(ref, "Referral details retrieved successfully"))
 }
 
 // Read godoc
@@ -153,7 +171,7 @@ func (h *LiaisonHandler) Read(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
@@ -166,10 +184,13 @@ func (h *LiaisonHandler) Read(c *gin.Context) {
 	}
 
 	if err := h.referralUC.LiaisonRead(c.Request.Context(), id, liaisonID, hospID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "marked as read"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Referral marked as read",
+	})
 }
 
 // Forward godoc
@@ -186,7 +207,7 @@ func (h *LiaisonHandler) Forward(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
@@ -199,10 +220,13 @@ func (h *LiaisonHandler) Forward(c *gin.Context) {
 	}
 
 	if err := h.referralUC.LiaisonForward(c.Request.Context(), id, liaisonID, hospID, ""); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "forwarded to specialist"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Referral forwarded to specialist",
+	})
 }
 
 // Reject godoc
@@ -221,13 +245,13 @@ func (h *LiaisonHandler) Reject(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
 	var req dto.RejectDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -240,10 +264,13 @@ func (h *LiaisonHandler) Reject(c *gin.Context) {
 	}
 
 	if err := h.referralUC.LiaisonReject(c.Request.Context(), id, liaisonID, hospID, req.Reason); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "referral rejected"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Referral rejected",
+	})
 }
 
 // Revise godoc
@@ -262,13 +289,13 @@ func (h *LiaisonHandler) Revise(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
 		return
 	}
 
 	var req dto.ReviseDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -281,8 +308,11 @@ func (h *LiaisonHandler) Revise(c *gin.Context) {
 	}
 
 	if err := h.referralUC.LiaisonRevise(c.Request.Context(), id, liaisonID, hospID, req.Reason); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "referral sent back for revision"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Revision requested for referral",
+	})
 }
