@@ -1,138 +1,200 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
-	"Hospital-Referral-System/internal/domain/entity"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type SpecialistHandler struct {
-	specialistUseCase iusecase.SpecialistUseCase
+	referralUC iusecase.ReferralUseCase
 }
 
-func NewSpecialistHandler(uc iusecase.SpecialistUseCase) *SpecialistHandler {
-	return &SpecialistHandler{specialistUseCase: uc}
+func NewSpecialistHandler(referralUC iusecase.ReferralUseCase) *SpecialistHandler {
+	return &SpecialistHandler{referralUC: referralUC}
 }
 
-// Accept godoc
-// @Summary      Accept Referral (Specialist)
-// @Description  Transition referral from FORWARDED/RECEIVED to SPECIALIST_ASSIGNED.
-// @Tags         Specialist
-// @Produce      json
-// @Param        id path string true "Referral ID"
-// @Success      200 {object} dto.SpecialistActionResponse
-// @Failure      400 {object} map[string]string
-// @Failure      401 {object} map[string]string
-// @Failure      403 {object} map[string]string
-// @Failure      409 {object} map[string]string
-// @Security     BearerAuth
-// @Router       /api/v1/specialist/referrals/{id}/accept [post]
+func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
+	userIdVal, _ := c.Get("userID")
+	specialistID, _ := userIdVal.(uuid.UUID)
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+	if hospID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user scopes"})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	statusFilter := c.Query("status")
+
+	referrals, total, err := h.referralUC.ListForSpecialist(c.Request.Context(), hospID, specialistID, limit, offset, statusFilter)
+	if err != nil {
+		log.Printf("[SpecialistHandler.List] error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var responseData []dto.ListReferralResponse
+	for _, r := range referrals {
+		diag := ""
+		icd := ""
+		if len(r.Diagnoses) > 0 && r.Diagnoses[0].CodeInfo != nil {
+			diag = r.Diagnoses[0].CodeInfo.Description
+			icd = r.Diagnoses[0].ICDCode
+		}
+		responseData = append(responseData, dto.ListReferralResponse{
+			ID:                  r.ID,
+			PatientFirstName:    r.Patient.FirstName,
+			PatientMiddleName:   r.Patient.MiddleName,
+			PatientLastName:     r.Patient.LastName,
+			Department:          r.TargetDeptID.String(),
+			Date:                r.CreatedAt.Format("2006-01-02"),
+			Status:              string(r.Status),
+			ICDCode:             icd,
+			Diagnosis:           diag,
+			ConditionAtReferral: r.ReferralForm.ConditionAtReferral,
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+		Data:     responseData,
+		Total:    total,
+		Page:     offset/limit + 1,
+		PageSize: limit,
+	})
+}
+
+func (h *SpecialistHandler) GetReferral(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		return
+	}
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	ref, err := h.referralUC.GetDetailsForSpecialist(c.Request.Context(), id, hospID)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, ref)
+}
+
+func (h *SpecialistHandler) Read(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	specialistID, _ := userIdVal.(uuid.UUID)
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	if err := h.referralUC.SpecialistRead(c.Request.Context(), id, specialistID, hospID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "claimed for review"})
+}
+
 func (h *SpecialistHandler) Accept(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
 		return
 	}
 
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
+	var req struct {
+		SeverityScore *float64 `json:"severity_score,omitempty"`
 	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID context"})
-		return
+	_ = c.ShouldBindJSON(&req)
+
+	userIdVal, _ := c.Get("userID")
+	specialistID, _ := userIdVal.(uuid.UUID)
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
 	}
 
-	hospIDVal, exists := c.Get("hospID")
-	if !exists {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
+	if err := h.referralUC.SpecialistAccept(c.Request.Context(), id, specialistID, hospID, req.SeverityScore); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	hospIDPtr, valid := hospIDVal.(*uuid.UUID)
-	if !valid || hospIDPtr == nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
-		return
-	}
-
-	if err := h.specialistUseCase.AcceptReferral(c.Request.Context(), id, userID, *hospIDPtr); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Failed to accept referral", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.SpecialistActionResponse{
-		Message:    "Referral accepted successfully",
-		ReferralID: id.String(),
-		NewStatus:  string(entity.StatusSpecialistAssigned),
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "referral accepted"})
 }
 
-// Reject godoc
-// @Summary      Reject Referral (Specialist)
-// @Description  Transition referral back to UNDER_LIAISON_REVIEW at origin hospital. Reason required.
-// @Tags         Specialist
-// @Accept       json
-// @Produce      json
-// @Param        id path string true "Referral ID"
-// @Param        body body dto.SpecialistRejectRequest true "Reject Payload (reason required)"
-// @Success      200 {object} dto.SpecialistActionResponse
-// @Failure      400 {object} map[string]string
-// @Failure      401 {object} map[string]string
-// @Failure      403 {object} map[string]string
-// @Failure      409 {object} map[string]string
-// @Security     BearerAuth
-// @Router       /api/v1/specialist/referrals/{id}/reject [post]
 func (h *SpecialistHandler) Reject(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
 		return
 	}
 
-	var req dto.SpecialistRejectRequest
+	var req dto.RejectDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed, reason is required", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+	userIdVal, _ := c.Get("userID")
+	specialistID, _ := userIdVal.(uuid.UUID)
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	if err := h.referralUC.SpecialistReject(c.Request.Context(), id, specialistID, hospID, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID context"})
+	c.JSON(http.StatusOK, gin.H{"message": "referral rejected"})
+}
+
+func (h *SpecialistHandler) RerunML(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid format"})
 		return
 	}
 
-	hospIDVal, exists := c.Get("hospID")
-	if !exists {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
-		return
-	}
-	hospIDPtr, valid := hospIDVal.(*uuid.UUID)
-	if !valid || hospIDPtr == nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No hospital assigned to user"})
-		return
+	userIdVal, _ := c.Get("userID")
+	specialistID, _ := userIdVal.(uuid.UUID)
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
 	}
 
-	if err := h.specialistUseCase.RejectReferral(c.Request.Context(), id, userID, *hospIDPtr, req.Reason); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Failed to reject referral", "details": err.Error()})
+	if err := h.referralUC.SpecialistRerunML(c.Request.Context(), id, specialistID, hospID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, dto.SpecialistActionResponse{
-		Message:    "Referral rejected and returned to liaison review",
-		ReferralID: id.String(),
-		NewStatus:  string(entity.StatusUnderLiaisonReview),
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "ML triggered"})
 }
