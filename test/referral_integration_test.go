@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -42,8 +43,8 @@ func (m *MockReferralUseCase) GetDetailsForDoctor(ctx context.Context, id, docto
 	}
 	return nil, args.Error(1)
 }
-func (m *MockReferralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
-	args := m.Called(ctx, id, doctorID, req)
+func (m *MockReferralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*entity.Referral, error) {
+	args := m.Called(ctx, id, doctorID, req, submit)
 	if args.Get(0) != nil {
 		return args.Get(0).(*entity.Referral), args.Error(1)
 	}
@@ -139,6 +140,19 @@ func (m *MockReferralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospI
 	return args.Get(0).([]entity.ReferralStatusHistory), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockReferralUseCase) GetDoctorDashboardStats(ctx context.Context, doctorID uuid.UUID) (*dto.DoctorDashboardStats, error) {
+	args := m.Called(ctx, doctorID)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.DoctorDashboardStats), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorID uuid.UUID, limit int) ([]dto.ListReferralResponse, error) {
+	args := m.Called(ctx, doctorID, limit)
+	return args.Get(0).([]dto.ListReferralResponse), args.Error(1)
+}
+
 // --- DOCTOR TESTS ---
 func TestDoctorOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -153,6 +167,21 @@ func TestDoctorOperations(t *testing.T) {
 		c.Set("hospID", &hospID)
 		c.Next()
 	}, handler.CreateOrSubmit)
+
+	router.POST("/api/v1/doctor/referrals/:id/cancel", func(c *gin.Context) {
+		c.Set("userID", doctorID)
+		c.Next()
+	}, handler.Cancel)
+
+	router.PUT("/api/v1/doctor/referrals/:id", func(c *gin.Context) {
+		c.Set("userID", doctorID)
+		c.Next()
+	}, handler.UpdateAndResubmit)
+
+	router.PUT("/api/v1/doctor/referrals/:id/submit", func(c *gin.Context) {
+		c.Set("userID", doctorID)
+		c.Next()
+	}, handler.UpdateAndResubmit)
 
 	t.Run("Create Draft", func(t *testing.T) {
 		liaisonID := uuid.New()
@@ -172,6 +201,136 @@ func TestDoctorOperations(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
+		mockUC.AssertExpectations(t)
+	})
+
+	t.Run("Cancel Referral", func(t *testing.T) {
+		refID := uuid.New()
+		reason := "Patient decided not to proceed"
+		mockUC.On("CancelReferral", mock.Anything, refID, doctorID, reason).Return(nil)
+
+		payload := dto.CancelReferralRequest{Reason: reason}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/doctor/referrals/"+refID.String()+"/cancel", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUC.AssertExpectations(t)
+	})
+
+	t.Run("Cancel Already Cancelled", func(t *testing.T) {
+		refID := uuid.New()
+		reason := "Patient decided not to proceed"
+		mockUC.On("CancelReferral", mock.Anything, refID, doctorID, reason).Return(errors.New("referral is already cancelled"))
+
+		payload := dto.CancelReferralRequest{Reason: reason}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/doctor/referrals/"+refID.String()+"/cancel", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Equal(t, "referral is already cancelled", resp["error"])
+		mockUC.AssertExpectations(t)
+	})
+
+	t.Run("Create Default Submitted", func(t *testing.T) {
+		liaisonID := uuid.New()
+		reqPayload := dto.CreateReferralRequest{
+			// Status is missing
+			PatientID: uuid.New(),
+			TargetHospitalID: uuid.New(),
+			TargetDeptID: uuid.New(),
+			LiaisonOfficerID: &liaisonID,
+		}
+		// Expectation should have Status: "SUBMITTED"
+		expectedReq := reqPayload
+		expectedReq.Status = "SUBMITTED"
+		mockUC.On("CreateDraftOrSubmit", mock.Anything, doctorID, hospID, expectedReq).Return(&entity.Referral{ID: uuid.New()}, nil)
+
+		body, _ := json.Marshal(reqPayload)
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/doctor/referrals", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		mockUC.AssertExpectations(t)
+	})
+
+	t.Run("Update Draft Only", func(t *testing.T) {
+		refID := uuid.New()
+		liaisonID := uuid.New()
+		reqPayload := dto.UpdateReferralRequest{
+			PatientID: uuid.New(),
+			TargetHospitalID: uuid.New(),
+			TargetDeptID: uuid.New(),
+			LiaisonOfficerID: &liaisonID,
+			ClinicalSummary: "Updating draft details",
+		}
+		// In Draft mode, submit flag is false
+		mockUC.On("UpdateAndResubmit", mock.Anything, refID, doctorID, reqPayload, false).Return(&entity.Referral{ID: refID}, nil)
+
+		body, _ := json.Marshal(reqPayload)
+		req, _ := http.NewRequest(http.MethodPut, "/api/v1/doctor/referrals/"+refID.String(), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUC.AssertExpectations(t)
+	})
+
+	t.Run("Submit Update", func(t *testing.T) {
+		refID := uuid.New()
+		liaisonID := uuid.New()
+		reqPayload := dto.UpdateReferralRequest{
+			PatientID: uuid.New(),
+			TargetHospitalID: uuid.New(),
+			TargetDeptID: uuid.New(),
+			LiaisonOfficerID: &liaisonID,
+			ClinicalSummary: "Final submission",
+		}
+		// In Submit mode, submit flag is true
+		mockUC.On("UpdateAndResubmit", mock.Anything, refID, doctorID, reqPayload, true).Return(&entity.Referral{ID: refID}, nil)
+
+		body, _ := json.Marshal(reqPayload)
+		req, _ := http.NewRequest(http.MethodPut, "/api/v1/doctor/referrals/"+refID.String()+"/submit", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUC.AssertExpectations(t)
+	})
+
+	t.Run("Redundant Submission", func(t *testing.T) {
+		refID := uuid.New()
+		liaisonID := uuid.New()
+		reqPayload := dto.UpdateReferralRequest{
+			PatientID: uuid.New(),
+			TargetHospitalID: uuid.New(),
+			TargetDeptID: uuid.New(),
+			LiaisonOfficerID: &liaisonID,
+		}
+		
+		mockUC.On("UpdateAndResubmit", mock.Anything, refID, doctorID, reqPayload, true).Return(nil, errors.New("referral is already submitted; please wait for review"))
+
+		body, _ := json.Marshal(reqPayload)
+		req, _ := http.NewRequest(http.MethodPut, "/api/v1/doctor/referrals/"+refID.String()+"/submit", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Equal(t, "referral is already submitted; please wait for review", resp["error"])
 	})
 }
 

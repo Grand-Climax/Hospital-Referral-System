@@ -79,11 +79,13 @@ func TestReferenceEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string][]handlers.HospitalResponse
+		var resp struct {
+			Data []handlers.HospitalResponse `json:"data"`
+		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		hospitals := resp["data"]
+		hospitals := resp.Data
 		assert.Len(t, hospitals, 1)
 		assert.Equal(t, "Tikur Anbessa Specialized Hospital", hospitals[0].Name)
 	})
@@ -101,11 +103,13 @@ func TestReferenceEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string][]entity.ICDCode
+		var resp struct {
+			Data []entity.ICDCode `json:"data"`
+		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		codes := resp["data"]
+		codes := resp.Data
 		assert.Len(t, codes, 1)
 		assert.Equal(t, "A00", codes[0].Code)
 	})
@@ -133,11 +137,13 @@ func TestReferenceEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string][]handlers.HospitalResponse
+		var resp struct {
+			Data []handlers.HospitalResponse `json:"data"`
+		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		hospitals := resp["data"]
+		hospitals := resp.Data
 		assert.Len(t, hospitals, 1)
 		assert.Equal(t, "Addis Ababa General Hospital", hospitals[0].Name)
 	})
@@ -156,11 +162,13 @@ func TestReferenceEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string][]handlers.DepartmentResponse
+		var resp struct {
+			Data []handlers.DepartmentResponse `json:"data"`
+		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		depts := resp["data"]
+		depts := resp.Data
 		assert.Len(t, depts, 1)
 		assert.Equal(t, "Neurology", depts[0].Name)
 	})
