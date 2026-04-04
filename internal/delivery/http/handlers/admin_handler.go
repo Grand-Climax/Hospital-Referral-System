@@ -26,7 +26,7 @@ func NewAdminHandler(referralUC iusecase.ReferralUseCase) *AdminHandler {
 // @Tags         Admin Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
-// @Param        offset query int false "Pagination offset" default(0)
+// @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
 // @Success      200 {object} dto.PaginatedReferralResponse
 // @Failure      401 {object} map[string]string
@@ -35,10 +35,16 @@ func NewAdminHandler(referralUC iusecase.ReferralUseCase) *AdminHandler {
 // @Router       /api/v1/system-admin/referrals [get]
 func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if limit <= 0 {
+		limit = 20
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page <= 0 {
+		page = 1
+	}
 	statusFilter := c.Query("status")
 
-	referrals, total, err := h.referralUC.ListForSystemAdmin(c.Request.Context(), limit, offset, statusFilter)
+	referrals, total, err := h.referralUC.ListForSystemAdmin(c.Request.Context(), limit, page, statusFilter)
 	if err != nil {
 		log.Printf("[AdminHandler.SystemAdminList] error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -53,24 +59,38 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 			diag = r.Diagnoses[0].CodeInfo.Description
 			icd = r.Diagnoses[0].ICDCode
 		}
+		patientNameFirst := ""
+		patientNameMiddle := ""
+		patientNameLast := ""
+		if r.Patient != nil {
+			patientNameFirst = r.Patient.FirstName
+			patientNameMiddle = r.Patient.MiddleName
+			patientNameLast = r.Patient.LastName
+		}
+
+		condition := ""
+		if r.ReferralForm != nil {
+			condition = r.ReferralForm.ConditionAtReferral
+		}
+
 		responseData = append(responseData, dto.ListReferralResponse{
 			ID:                  r.ID,
-			PatientFirstName:    r.Patient.FirstName,
-			PatientMiddleName:   r.Patient.MiddleName,
-			PatientLastName:     r.Patient.LastName,
+			PatientFirstName:    patientNameFirst,
+			PatientMiddleName:   patientNameMiddle,
+			PatientLastName:     patientNameLast,
 			Department:          r.TargetDeptID.String(),
 			Date:                r.CreatedAt.Format("2006-01-02"),
 			Status:              string(r.Status),
 			ICDCode:             icd,
 			Diagnosis:           diag,
-			ConditionAtReferral: r.ReferralForm.ConditionAtReferral,
+			ConditionAtReferral: condition,
 		})
 	}
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
 		Data:     responseData,
 		Total:    total,
-		Page:     offset/limit + 1,
+		Page:     page,
 		PageSize: limit,
 	})
 }
@@ -81,7 +101,7 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 // @Tags         Admin Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
-// @Param        offset query int false "Pagination offset" default(0)
+// @Param        page query int false "Page number" default(1)
 // @Success      200 {object} map[string]interface{}
 // @Failure      401 {object} map[string]string
 // @Failure      500 {object} map[string]string
@@ -99,9 +119,15 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if limit <= 0 {
+		limit = 20
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page <= 0 {
+		page = 1
+	}
 
-	logs, total, err := h.referralUC.GetHospitalLogsForAdmin(c.Request.Context(), hospID, limit, offset)
+	logs, total, err := h.referralUC.GetHospitalLogsForAdmin(c.Request.Context(), hospID, limit, page)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -130,7 +156,7 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"data":      responseData,
 		"total":     total,
-		"page":      offset/limit + 1,
+		"page":      page,
 		"page_size": limit,
 	})
 }
