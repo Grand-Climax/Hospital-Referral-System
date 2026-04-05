@@ -29,8 +29,8 @@ func NewAdminHandler(referralUC iusecase.ReferralUseCase) *AdminHandler {
 // @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
 // @Success      200 {object} dto.PaginatedReferralResponse
-// @Failure      401 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/system-admin/referrals [get]
 func (h *AdminHandler) SystemAdminList(c *gin.Context) {
@@ -47,7 +47,10 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 	referrals, total, err := h.referralUC.ListForSystemAdmin(c.Request.Context(), limit, page, statusFilter)
 	if err != nil {
 		log.Printf("[AdminHandler.SystemAdminList] error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 		return
 	}
 
@@ -120,9 +123,9 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
-// @Success      200 {object} map[string]interface{}
-// @Failure      401 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Success      200 {object} dto.PaginatedLogResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/hospital-admin/referrals-log [get]
 func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
@@ -132,7 +135,10 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid user scopes"})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Success: false,
+			Error:   "invalid user scopes",
+		})
 		return
 	}
 
@@ -147,18 +153,23 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 
 	logs, total, err := h.referralUC.GetHospitalLogsForAdmin(c.Request.Context(), hospID, limit, page)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 		return
 	}
 
 	if total == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"success":   false,
-			"message":   "No referral logs found",
-			"data":      []dto.LogResponseDTO{},
-			"total":     0,
-			"page":      page,
-			"page_size": limit,
+		c.JSON(http.StatusOK, dto.PaginatedLogResponse{
+			BaseResponse: dto.BaseResponse{
+				Success: false,
+				Message: "No referral logs found",
+			},
+			Data:     []dto.LogResponseDTO{},
+			Total:    0,
+			Page:     page,
+			PageSize: limit,
 		})
 		return
 	}
@@ -182,12 +193,14 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
-		"message":   "Hospital referral logs retrieved successfully",
-		"data":      responseData,
-		"total":     total,
-		"page":      page,
-		"page_size": limit,
+	c.JSON(http.StatusOK, dto.PaginatedLogResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Hospital referral logs retrieved successfully",
+		},
+		Data:     responseData,
+		Total:    total,
+		Page:     page,
+		PageSize: limit,
 	})
 }

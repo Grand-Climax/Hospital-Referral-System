@@ -10,10 +10,15 @@ type CreateNetworkRouteRequest struct {
 }
 
 type NetworkRouteResponse struct {
-	BaseResponse
 	ID                    uuid.UUID `json:"id"`
 	SenderHospitalID      uuid.UUID `json:"sender_hospital_id"`
 	ReceiverHospitalID    uuid.UUID `json:"receiver_hospital_id"`
 	ReferralType          string    `json:"referral_type"`
 	RequiresAdminApproval bool      `json:"requires_admin_approval"`
+	BaseResponse
+}
+
+type NetworkRouteListResponse struct {
+	Data []NetworkRouteResponse `json:"data"`
+	BaseResponse
 }

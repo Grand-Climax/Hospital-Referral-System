@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/usecase"
 )
 
@@ -39,15 +40,18 @@ type LogoutRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        body body LoginRequest true "Login credentials"
-// @Success      200 {object} map[string]interface{} "Token pair"
-// @Failure      400 {object} map[string]string
-// @Failure      401 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Success      200 {object} dto.LoginResponse "Token pair"
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Router       /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request payload"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "Invalid request payload",
+		})
 		return
 	}
 
@@ -57,18 +61,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	tokenPair, err := h.authUseCase.Login(c.Request.Context(), req.Email, req.Password, ipAddress, userAgent)
 	if err != nil {
 		if err == usecase.ErrInvalidCredentials || err == usecase.ErrInactiveAccount {
-			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": err.Error()})
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Success: false,
+				Error:   err.Error(),
+			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to process login"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to process login",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":       true,
-		"message":       "Login successful",
-		"access_token":  tokenPair.AccessToken,
-		"refresh_token": tokenPair.RefreshToken,
+	c.JSON(http.StatusOK, dto.LoginResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Login successful",
+		},
 	})
 }
 
@@ -79,14 +91,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        body body RefreshRequest true "Refresh token"
-// @Success      200 {object} map[string]interface{} "New token pair"
-// @Failure      400 {object} map[string]string
-// @Failure      401 {object} map[string]string
+// @Success      200 {object} dto.RefreshResponse "New token pair"
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
 // @Router       /api/v1/auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request payload"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "Invalid request payload",
+		})
 		return
 	}
 
@@ -95,15 +110,20 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	tokenPair, err := h.authUseCase.Refresh(c.Request.Context(), req.RefreshToken, ipAddress, userAgent)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":       true,
-		"message":       "Token refreshed successfully",
-		"access_token":  tokenPair.AccessToken,
-		"refresh_token": tokenPair.RefreshToken,
+	c.JSON(http.StatusOK, dto.RefreshResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Token refreshed successfully",
+		},
 	})
 }
 
@@ -114,15 +134,18 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        body body LogoutRequest true "Refresh token to revoke"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req LogoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request payload"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "Invalid request payload",
+		})
 		return
 	}
 
@@ -135,12 +158,15 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	err := h.authUseCase.Logout(c.Request.Context(), accessToken, req.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to process logout"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to process logout",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Logged out successfully",
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Logged out successfully",
 	})
 }

@@ -122,7 +122,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 				patientGroup.POST("", patientHandler.CreatePatient)
 			}
 
-			// Sprint 4.1 & 4.2: Reference Dropdowns & Relational Networks
+			// Reference Dropdowns & Relational Networks
 			protected.GET("/reference/hospitals", refHandler.GetHospitals)
 			// Networked Dropdown uses X-Hospital-ID from Auth Token implicitly
 			protected.GET("/reference/networked-hospitals", refHandler.GetNetworkedHospitals)
@@ -156,12 +156,16 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			liaisonGroup := protected.Group("/liaison/referrals")
 			liaisonGroup.Use(middleware.RequireRole(entity.RoleLiaisonOfficer))
 			{
-				liaisonGroup.GET("", liaisonHandler.ListReferrals)
+				liaisonGroup.GET("/", liaisonHandler.ListOutgoing)
+				// Deprecated
+				// liaisonGroup.GET("/incoming", liaisonHandler.ListIncoming)
 				liaisonGroup.GET("/:id", liaisonHandler.GetReferral)
 				liaisonGroup.POST("/:id/read", liaisonHandler.Read)
 				liaisonGroup.POST("/:id/forward", liaisonHandler.Forward)
 				liaisonGroup.POST("/:id/reject", liaisonHandler.Reject)
 				liaisonGroup.POST("/:id/revise", liaisonHandler.Revise)
+				// Deprecated
+				// liaisonGroup.POST("/incoming/:id/unassign", liaisonHandler.UnassignSpecialist)
 			}
 
 			// SPECIALIST
@@ -173,6 +177,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 				specialistGroup.POST("/:id/read", specialistHandler.Read)
 				specialistGroup.POST("/:id/accept", specialistHandler.Accept)
 				specialistGroup.POST("/:id/reject", specialistHandler.Reject)
+				specialistGroup.POST("/:id/release", specialistHandler.Release)
 				specialistGroup.POST("/:id/rerun-ml", specialistHandler.RerunML)
 			}
 

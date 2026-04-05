@@ -19,6 +19,12 @@ import (
 // Writing is done asynchronously so it does not block the HTTP response.
 func AuditLogger(repo irepository.AuditLogRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Skip auditing for GET requests (List/Detail/Stats) to reduce log noise.
+		if c.Request.Method == "GET" {
+			c.Next()
+			return
+		}
+
 		// Process request first
 		c.Next()
 
