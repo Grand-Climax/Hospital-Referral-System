@@ -56,7 +56,11 @@ func (m *MockReferralUseCase) CancelReferral(ctx context.Context, id, doctorID u
 }
 
 // --- Liaison Actions ---
-func (m *MockReferralUseCase) ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (m *MockReferralUseCase) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, limit, page, statusFilter)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+func (m *MockReferralUseCase) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	args := m.Called(ctx, hospID, limit, page, statusFilter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
@@ -83,6 +87,10 @@ func (m *MockReferralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, 
 	args := m.Called(ctx, id, liaisonID, hospID, reason)
 	return args.Error(0)
 }
+func (m *MockReferralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error {
+	args := m.Called(ctx, id, liaisonID, hospID, reason)
+	return args.Error(0)
+}
 
 // --- Specialist Actions ---
 func (m *MockReferralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
@@ -105,6 +113,10 @@ func (m *MockReferralUseCase) SpecialistAccept(ctx context.Context, id, speciali
 	return args.Error(0)
 }
 func (m *MockReferralUseCase) SpecialistReject(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error {
+	args := m.Called(ctx, id, specialistID, hospID, reason)
+	return args.Error(0)
+}
+func (m *MockReferralUseCase) SpecialistRelease(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error {
 	args := m.Called(ctx, id, specialistID, hospID, reason)
 	return args.Error(0)
 }

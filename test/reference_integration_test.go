@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/delivery/http/handlers"
 	"Hospital-Referral-System/internal/domain/entity"
 )
@@ -80,7 +81,7 @@ func TestReferenceEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var resp struct {
-			Data []handlers.HospitalResponse `json:"data"`
+			Data []dto.HospitalResponse `json:"data"`
 		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
@@ -138,7 +139,7 @@ func TestReferenceEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var resp struct {
-			Data []handlers.HospitalResponse `json:"data"`
+			Data []dto.HospitalResponse `json:"data"`
 		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
@@ -163,7 +164,7 @@ func TestReferenceEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var resp struct {
-			Data []handlers.DepartmentResponse `json:"data"`
+			Data []dto.DepartmentResponse `json:"data"`
 		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
