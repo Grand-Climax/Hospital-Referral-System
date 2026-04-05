@@ -1,6 +1,9 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"Hospital-Referral-System/internal/domain/entity"
+	"github.com/google/uuid"
+)
 
 type CreateReferralRequest struct {
 	// Patient Logic
@@ -103,8 +106,8 @@ type ListReferralResponse struct {
 }
 
 type PaginatedReferralResponse struct {
-	BaseResponse
 	Data     []ListReferralResponse `json:"data"`
+	BaseResponse
 	Total    int64                  `json:"total"`
 	Page     int                    `json:"page"`
 	PageSize int                    `json:"page_size"`
@@ -131,4 +134,17 @@ type LogResponseDTO struct {
 	FromStatus  *string    `json:"from_status,omitempty"`
 	ToStatus    string     `json:"to_status"`
 	CreatedAt   string     `json:"created_at"`
+}
+
+type PaginatedLogResponse struct {
+	Data []LogResponseDTO `json:"data"`
+	BaseResponse
+	Total    int64 `json:"total"`
+	Page     int   `json:"page"`
+	PageSize int   `json:"page_size"`
+}
+
+type ReferralDetailResponse struct {
+	entity.Referral
+	BaseResponse
 }
