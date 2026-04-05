@@ -5,8 +5,13 @@ import (
 )
 
 type BaseResponse struct {
-	Success bool   `json:"success"`
+	Success bool   `json:"success" example:"true"`
 	Message string `json:"message,omitempty"`
+}
+
+type ErrorResponse struct {
+	Success bool   `json:"success" example:"false"`
+	Error   string `json:"error"`
 }
 
 // SuccessPayload helps "spread" a struct into a map with success: true

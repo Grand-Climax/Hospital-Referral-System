@@ -29,8 +29,8 @@ func NewReceptionistHandler(referralUC iusecase.ReferralUseCase) *ReceptionistHa
 // @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
 // @Success      200 {object} dto.PaginatedReferralResponse
-// @Failure      401 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/receptionist/referrals [get]
 func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
@@ -40,7 +40,10 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid user scopes"})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Success: false,
+			Error:   "invalid user scopes",
+		})
 		return
 	}
 
@@ -57,7 +60,10 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 	referrals, total, err := h.referralUC.ListForReceptionist(c.Request.Context(), hospID, limit, page, statusFilter)
 	if err != nil {
 		log.Printf("[ReceptionistHandler.List] error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 		return
 	}
 
@@ -129,16 +135,19 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 // @Tags         Receptionist Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
-// @Success      200 {object} entity.Referral
-// @Failure      400 {object} map[string]string
-// @Failure      403 {object} map[string]string
+// @Success      200 {object} dto.ReferralDetailResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/receptionist/referrals/{id} [get]
 func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "invalid id format",
+		})
 		return
 	}
 
@@ -150,11 +159,20 @@ func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 
 	ref, err := h.referralUC.GetDetailsForReceptionist(c.Request.Context(), id, hospID)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.SuccessPayload(ref, "Referral details retrieved successfully"))
+	c.JSON(http.StatusOK, dto.ReferralDetailResponse{
+		Referral: *ref,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referral details retrieved successfully",
+		},
+	})
 }
 
 // ConfirmAttendance godoc
@@ -165,15 +183,18 @@ func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Param        request body map[string]string true "Status (key: status)"
-// @Success      200 {object} map[string]string
-// @Failure      400 {object} map[string]string
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/receptionist/referrals/{id}/confirm-attendance [post]
 func (h *ReceptionistHandler) ConfirmAttendance(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid format"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "invalid format",
+		})
 		return
 	}
 
@@ -181,7 +202,10 @@ func (h *ReceptionistHandler) ConfirmAttendance(c *gin.Context) {
 		Status string `json:"status" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 		return
 	}
 
@@ -194,11 +218,14 @@ func (h *ReceptionistHandler) ConfirmAttendance(c *gin.Context) {
 	}
 
 	if err := h.referralUC.ConfirmAttendance(c.Request.Context(), id, receptionistID, hospID, req.Status); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Patient attendance confirmed successfully",
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Patient attendance confirmed successfully",
 	})
 }

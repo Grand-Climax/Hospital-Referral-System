@@ -40,20 +40,8 @@ type UpdateHospitalRequest struct {
 	IsActive     *bool                `json:"is_active" example:"true"`
 }
 
-type HospitalResponse struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	TierLevel    string `json:"tier_level"`
-	Region       string `json:"region"`
-	Address      string `json:"address,omitempty"`
-	ContactPhone string `json:"contact_phone,omitempty"`
-	IsActive     bool   `json:"is_active"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
-}
-
-func toHospitalResponse(h *entity.Hospital) HospitalResponse {
-	resp := HospitalResponse{
+func toHospitalResponse(h *entity.Hospital) dto.HospitalResponse {
+	resp := dto.HospitalResponse{
 		ID:        h.ID.String(),
 		Name:      h.Name,
 		TierLevel: string(h.TierLevel),
@@ -78,15 +66,15 @@ func toHospitalResponse(h *entity.Hospital) HospitalResponse {
 // @Accept       json
 // @Produce      json
 // @Param        body body CreateHospitalRequest true "Hospital creation payload"
-// @Success      201 {object} map[string]interface{}
-// @Failure      400 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Success      201 {object} dto.HospitalResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals [post]
 func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 	var req CreateHospitalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
@@ -99,11 +87,26 @@ func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 	}
 
 	if err := h.hospitalUseCase.CreateHospital(c.Request.Context(), hospital); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create hospital"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to create hospital",
+		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.SuccessPayload(toHospitalResponse(hospital), "Hospital created successfully"))
+	c.JSON(http.StatusCreated, dto.HospitalResponse{
+		ID:           hospital.ID.String(),
+		Name:         hospital.Name,
+		TierLevel:    string(hospital.TierLevel),
+		Region:       hospital.Region,
+		IsActive:     hospital.IsActive,
+		CreatedAt:    hospital.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:    hospital.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Hospital created successfully",
+		},
+	})
 }
 
 // ListHospitals godoc
@@ -117,7 +120,7 @@ func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 // @Param        region    query string false "Filter by region"
 // @Param        is_active query bool   false "Filter by active status"
 // @Param        search    query string false "Search by name"
-// @Success      200 {object} map[string]interface{}
+// @Success      200 {object} dto.HospitalListResponse
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals [get]
 func (h *HospitalHandler) ListHospitals(c *gin.Context) {
@@ -149,21 +152,26 @@ func (h *HospitalHandler) ListHospitals(c *gin.Context) {
 
 	hospitals, total, err := h.hospitalUseCase.ListHospitals(c.Request.Context(), filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to list hospitals"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to list hospitals",
+		})
 		return
 	}
 
-	var resp []HospitalResponse
+	var resp []dto.HospitalResponse
 	for i := range hospitals {
 		resp = append(resp, toHospitalResponse(&hospitals[i]))
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Hospitals retrieved successfully",
-		"data":    resp,
-		"total":   total,
-		"page":    filter.Page,
+	c.JSON(http.StatusOK, dto.HospitalListResponse{
+		Data:  resp,
+		Total: total,
+		Page:  filter.Page,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Hospitals retrieved successfully",
+		},
 	})
 }
 
@@ -173,24 +181,39 @@ func (h *HospitalHandler) ListHospitals(c *gin.Context) {
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"
-// @Success      200 {object} map[string]interface{}
-// @Failure      404 {object} map[string]string
+// @Success      200 {object} dto.HospitalResponse
+// @Failure      404 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals/{id} [get]
 func (h *HospitalHandler) GetHospital(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid hospital ID"})
 		return
 	}
 
 	hospital, err := h.hospitalUseCase.GetHospitalByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Success: false,
+			Error:   "Hospital not found",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.SuccessPayload(toHospitalResponse(hospital), "Hospital details retrieved successfully"))
+	c.JSON(http.StatusOK, dto.HospitalResponse{
+		ID:           hospital.ID.String(),
+		Name:         hospital.Name,
+		TierLevel:    string(hospital.TierLevel),
+		Region:       hospital.Region,
+		IsActive:     hospital.IsActive,
+		CreatedAt:    hospital.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:    hospital.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Hospital details retrieved successfully",
+		},
+	})
 }
 
 // UpdateHospital godoc
@@ -201,27 +224,30 @@ func (h *HospitalHandler) GetHospital(c *gin.Context) {
 // @Produce      json
 // @Param        id   path string               true "Hospital ID"
 // @Param        body body UpdateHospitalRequest  true "Hospital update payload"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} map[string]string
-// @Failure      404 {object} map[string]string
+// @Success      200 {object} dto.HospitalResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals/{id} [put]
 func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid hospital ID"})
 		return
 	}
 
 	var req UpdateHospitalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	existing, err := h.hospitalUseCase.GetHospitalByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Success: false,
+			Error:   "Hospital not found",
+		})
 		return
 	}
 
@@ -245,11 +271,26 @@ func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 	}
 
 	if err := h.hospitalUseCase.UpdateHospital(c.Request.Context(), existing); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to update hospital"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to update hospital",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.SuccessPayload(toHospitalResponse(existing), "Hospital updated successfully"))
+	c.JSON(http.StatusOK, dto.HospitalResponse{
+		ID:           existing.ID.String(),
+		Name:         existing.Name,
+		TierLevel:    string(existing.TierLevel),
+		Region:       existing.Region,
+		IsActive:     existing.IsActive,
+		CreatedAt:    existing.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:    existing.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Hospital updated successfully",
+		},
+	})
 }
 
 // DeleteHospital godoc
@@ -258,24 +299,30 @@ func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"
-// @Success      200 {object} map[string]interface{}
-// @Failure      404 {object} map[string]string
+// @Success      200 {object} dto.BaseResponse
+// @Failure      404 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/hospitals/{id} [delete]
 func (h *HospitalHandler) DeleteHospital(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid hospital ID"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "invalid hospital ID",
+		})
 		return
 	}
 
 	if err := h.hospitalUseCase.DeleteHospital(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Hospital not found"})
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Success: false,
+			Error:   "Hospital not found",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Hospital deleted successfully",
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Hospital deleted successfully",
 	})
 }

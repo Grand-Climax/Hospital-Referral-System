@@ -25,34 +25,40 @@ func NewNetworkHandler(uc iusecase.NetworkUseCase) *NetworkHandler {
 // @Accept       json
 // @Produce      json
 // @Param        body body dto.CreateNetworkRouteRequest true "Network routing rule payload"
-// @Success      201 {object} map[string]interface{}
-// @Failure      400 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Success      201 {object} dto.NetworkRouteResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/admin/network-routes [post]
 func (h *NetworkHandler) Create(c *gin.Context) {
 	var req dto.CreateNetworkRouteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request payload", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "Invalid request payload: " + err.Error(),
+		})
 		return
 	}
 
 	route, err := h.networkUseCase.CreateRoute(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create network route", "details": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to create network route: " + err.Error(),
+		})
 		return
 	}
 
 	c.JSON(http.StatusCreated, dto.NetworkRouteResponse{
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: "Network route created successfully",
-		},
 		ID:                    route.ID,
 		SenderHospitalID:      route.SenderHospitalID,
 		ReceiverHospitalID:    route.ReceiverHospitalID,
 		ReferralType:          route.ReferralType,
 		RequiresAdminApproval: route.RequiresAdminApproval,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Network route created successfully",
+		},
 	})
 }
 
@@ -62,9 +68,9 @@ func (h *NetworkHandler) Create(c *gin.Context) {
 // @Tags         Network Routes (Admin)
 // @Produce      json
 // @Param        sender_hospital_id query string false "Filter by Sender Hospital ID"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Success      200 {object} dto.NetworkRouteListResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/admin/network-routes [get]
 func (h *NetworkHandler) List(c *gin.Context) {
@@ -73,20 +79,43 @@ func (h *NetworkHandler) List(c *gin.Context) {
 		if parsed, err := uuid.Parse(senderQuery); err == nil {
 			senderID = &parsed
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid sender_hospital_id format"})
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Success: false,
+				Error:   "Invalid sender_hospital_id format",
+			})
 			return
 		}
 	}
 
 	routes, err := h.networkUseCase.ListRoutes(c.Request.Context(), senderID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to list network routes"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to list network routes",
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Network routes retrieved successfully",
-		"data":    routes,
+
+	var responseData []dto.NetworkRouteResponse
+	for _, r := range routes {
+		responseData = append(responseData, dto.NetworkRouteResponse{
+			ID:                    r.ID,
+			SenderHospitalID:      r.SenderHospitalID,
+			ReceiverHospitalID:    r.ReceiverHospitalID,
+			ReferralType:          r.ReferralType,
+			RequiresAdminApproval: r.RequiresAdminApproval,
+			BaseResponse: dto.BaseResponse{
+				Success: true,
+			},
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.NetworkRouteListResponse{
+		Data: responseData,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Network routes retrieved successfully",
+		},
 	})
 }
 
@@ -96,24 +125,30 @@ func (h *NetworkHandler) List(c *gin.Context) {
 // @Tags         Network Routes (Admin)
 // @Produce      json
 // @Param        id path string true "Route ID"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} map[string]string
-// @Failure      500 {object} map[string]string
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/admin/network-routes/{id} [delete]
 func (h *NetworkHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid route ID format"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "Invalid route ID format",
+		})
 		return
 	}
 
 	if err := h.networkUseCase.DeleteRoute(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to delete route"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to delete route",
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Network route deleted successfully",
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Network route deleted successfully",
 	})
 }

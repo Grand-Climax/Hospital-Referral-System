@@ -6,3 +6,13 @@ type DoctorDashboardStats struct {
 	Accepted       int64 `json:"accepted"`
 	Critical       int64 `json:"critical"`
 }
+
+type DoctorDashboardStatsResponse struct {
+	DoctorDashboardStats
+	BaseResponse
+}
+
+type LatestPendingReferralsResponse struct {
+	Data []ListReferralResponse `json:"data"`
+	BaseResponse
+}
