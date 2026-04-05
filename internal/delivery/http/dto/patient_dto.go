@@ -2,8 +2,6 @@ package dto
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // CreatePatientRequest is used for POST /api/v1/patients
@@ -24,13 +22,14 @@ type CreatePatientRequest struct {
 }
 
 type PatientResponse struct {
+	ID          string `json:"id"`
+	FirstName   string `json:"first_name"`
+	MiddleName  string    `json:"middle_name"`
+	LastName    string    `json:"last_name"`
+	NationalID  string    `json:"national_id,omitempty"`
+	Sex         string    `json:"sex"`
+	DateOfBirth string    `json:"date_of_birth"`
+	PhoneNumber string    `json:"phone_number"`
+	HomeRegion  string    `json:"home_region"`
 	BaseResponse
-	ID             uuid.UUID `json:"id"`
-	FirstName      string    `json:"first_name"`
-	MiddleName     string    `json:"middle_name"`
-	LastName       string    `json:"last_name"`
-	Sex            string    `json:"sex"`
-	DateOfBirth    string    `json:"date_of_birth"`
-	PhoneNumber    string    `json:"phone_number"`
-	HomeRegion     string    `json:"home_region"`
 }
