@@ -1,5 +1,37 @@
 basePath: /
 definitions:
+  dto.AttachmentResponse:
+    properties:
+      file_name:
+        type: string
+      file_type:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      referral:
+        allOf:
+        - $ref: '#/definitions/entity.Referral'
+        description: Relationships
+      referral_id:
+        type: string
+      storage_path:
+        type: string
+      success:
+        example: true
+        type: boolean
+      uploaded_at:
+        type: string
+    type: object
+  dto.BaseResponse:
+    properties:
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
   dto.CancelReferralRequest:
     properties:
       reason:
@@ -141,6 +173,40 @@ definitions:
     - target_dept_id
     - target_hospital_id
     type: object
+  dto.DepartmentListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.DepartmentResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.DepartmentResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      name:
+        type: string
+      success:
+        example: true
+        type: boolean
+      updated_at:
+        type: string
+    type: object
   dto.DiagnosisDTO:
     properties:
       diagnosis_certainty:
@@ -160,14 +226,19 @@ definitions:
     - diagnosis_certainty
     - icd_code
     type: object
-  dto.DoctorDashboardStats:
+  dto.DoctorDashboardStatsResponse:
     properties:
       accepted:
         type: integer
       critical:
         type: integer
+      message:
+        type: string
       pending:
         type: integer
+      success:
+        example: true
+        type: boolean
       total_referrals:
         type: integer
     type: object
@@ -178,6 +249,137 @@ definitions:
         type: string
     required:
     - emergency_justification
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  dto.HospitalDepartmentListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.HospitalDepartmentResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.HospitalDepartmentResponse:
+    properties:
+      created_at:
+        type: string
+      department:
+        $ref: '#/definitions/dto.DepartmentResponse'
+      department_id:
+        type: string
+      hospital_id:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      message:
+        type: string
+      standard_daily_limit:
+        type: integer
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.HospitalListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.HospitalResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.HospitalResponse:
+    properties:
+      address:
+        type: string
+      contact_phone:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      message:
+        type: string
+      name:
+        type: string
+      region:
+        type: string
+      success:
+        example: true
+        type: boolean
+      tier_level:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.ICDCodeListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/entity.ICDCode'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.LatestPendingReferralsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ListReferralResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.LiaisonItem:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+    type: object
+  dto.LiaisonListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.LiaisonItem'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   dto.ListReferralResponse:
     properties:
@@ -204,6 +406,83 @@ definitions:
       status:
         type: string
     type: object
+  dto.LogResponseDTO:
+    properties:
+      changed_by_id:
+        type: string
+      created_at:
+        type: string
+      from_status:
+        type: string
+      history_id:
+        type: string
+      referral_id:
+        type: string
+      role:
+        type: string
+      to_status:
+        type: string
+    type: object
+  dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      message:
+        type: string
+      refresh_token:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.NetworkRouteListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.NetworkRouteResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.NetworkRouteResponse:
+    properties:
+      id:
+        type: string
+      message:
+        type: string
+      receiver_hospital_id:
+        type: string
+      referral_type:
+        type: string
+      requires_admin_approval:
+        type: boolean
+      sender_hospital_id:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PaginatedLogResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.LogResponseDTO'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      page_size:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
   dto.PaginatedReferralResponse:
     properties:
       data:
@@ -217,9 +496,120 @@ definitions:
       page_size:
         type: integer
       success:
+        example: true
         type: boolean
       total:
         type: integer
+    type: object
+  dto.PatientResponse:
+    properties:
+      date_of_birth:
+        type: string
+      first_name:
+        type: string
+      home_region:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      message:
+        type: string
+      middle_name:
+        type: string
+      national_id:
+        type: string
+      phone_number:
+        type: string
+      sex:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.ReferralDetailResponse:
+    properties:
+      active_ml_prediction_id:
+        description: Triage priority
+        type: string
+      archived_at:
+        type: string
+      created_at:
+        description: Timestamps
+        type: string
+      diagnoses:
+        items:
+          $ref: '#/definitions/entity.ReferralDiagnosis'
+        type: array
+      emergency_detail:
+        $ref: '#/definitions/entity.ReferralEmergencyDetail'
+      id:
+        type: string
+      is_archived:
+        description: Lifecycle
+        type: boolean
+      liaison_officer_id:
+        type: string
+      message:
+        type: string
+      ml_last_error:
+        type: string
+      ml_retry_count:
+        type: integer
+      ml_severity_score:
+        type: number
+      ml_status:
+        description: Handle ML Failure
+        type: string
+      patient:
+        allOf:
+        - $ref: '#/definitions/entity.Patient'
+        description: Relationships
+      patient_id:
+        type: string
+      referral_form:
+        $ref: '#/definitions/entity.ReferralForm'
+      referring_doctor_id:
+        type: string
+      rejection_reason:
+        description: Rejection and Revision
+        type: string
+      revision_reason:
+        type: string
+      sender_hospital_id:
+        type: string
+      specialist_id:
+        description: Specialist Assignment
+        type: string
+      status:
+        $ref: '#/definitions/entity.ReferralStatus'
+      success:
+        example: true
+        type: boolean
+      target_dept_id:
+        type: string
+      target_hospital_id:
+        type: string
+      updated_at:
+        type: string
+      vitals:
+        items:
+          $ref: '#/definitions/entity.Vital'
+        type: array
+      waiting_hours_weight:
+        type: number
+    type: object
+  dto.RefreshResponse:
+    properties:
+      access_token:
+        type: string
+      message:
+        type: string
+      refresh_token:
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   dto.RejectDTO:
     properties:
@@ -308,6 +698,56 @@ definitions:
     - patient_id
     - target_dept_id
     - target_hospital_id
+    type: object
+  dto.UserListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.UserResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.UserResponse:
+    properties:
+      created_at:
+        type: string
+      department_id:
+        type: string
+      department_name:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      hospital_id:
+        type: string
+      hospital_name:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      message:
+        type: string
+      national_id:
+        type: string
+      role:
+        $ref: '#/definitions/entity.UserRole'
+      success:
+        example: true
+        type: boolean
+      updated_at:
+        type: string
     type: object
   dto.VitalsDTO:
     properties:
@@ -790,20 +1230,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.NetworkRouteListResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Network Routes
@@ -827,20 +1262,15 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.NetworkRouteResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create Network Route
@@ -862,20 +1292,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete Network Route
@@ -900,15 +1325,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Download Attachment
@@ -932,26 +1353,19 @@ paths:
         "200":
           description: Token pair
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.LoginResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: User login
       tags:
       - Auth
@@ -973,20 +1387,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: User logout
@@ -1010,20 +1419,15 @@ paths:
         "200":
           description: New token pair
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.RefreshResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Refresh token
       tags:
       - Auth
@@ -1051,8 +1455,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.DepartmentListResponse'
       security:
       - BearerAuth: []
       summary: List departments
@@ -1075,20 +1478,15 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.DepartmentResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new department
@@ -1109,14 +1507,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a department
@@ -1136,14 +1531,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.DepartmentResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get department by ID
@@ -1171,20 +1563,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.DepartmentResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a department
@@ -1206,9 +1593,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/dto.ListReferralResponse'
-            type: array
+            $ref: '#/definitions/dto.LatestPendingReferralsResponse'
       security:
       - BearerAuth: []
       summary: Get Latest Pending Referrals
@@ -1243,15 +1628,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Referrals for Doctor
@@ -1275,13 +1656,11 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/entity.Referral'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create or Submit Referral
@@ -1303,19 +1682,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.Referral'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Doctor
@@ -1345,13 +1720,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.Referral'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update (Draft) or Submit Referral
@@ -1381,15 +1754,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Cancel Referral
@@ -1420,13 +1789,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.Referral'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update (Draft) or Submit Referral
@@ -1442,7 +1809,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.DoctorDashboardStats'
+            $ref: '#/definitions/dto.DoctorDashboardStatsResponse'
       security:
       - BearerAuth: []
       summary: Get Doctor Dashboard Stats
@@ -1469,20 +1836,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.PaginatedLogResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Logs for Hospital
@@ -1524,8 +1886,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.HospitalListResponse'
       security:
       - BearerAuth: []
       summary: List hospitals
@@ -1548,20 +1909,15 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.HospitalResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new hospital
@@ -1582,14 +1938,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a hospital
@@ -1609,14 +1962,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.HospitalResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get hospital by ID
@@ -1644,20 +1994,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.HospitalResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a hospital
@@ -1678,14 +2023,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.HospitalDepartmentListResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List departments of a hospital
@@ -1713,26 +2055,19 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Link a department to a hospital
@@ -1758,14 +2093,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Unlink a department from a hospital
@@ -1773,8 +2105,8 @@ paths:
       - Hospitals
   /api/v1/liaison/referrals:
     get:
-      description: Get a paginated list of referrals forwarded to or managed by the
-        liaison's hospital.
+      description: Get a paginated list of referrals sent FROM the liaison's hospital
+        for review.
       parameters:
       - default: 20
         description: Pagination limit
@@ -1800,18 +2132,14 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List Referrals for Liaison
+      summary: List Outgoing Referrals for Liaison
       tags:
       - Liaison Referrals
   /api/v1/liaison/referrals/{id}:
@@ -1829,19 +2157,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.Referral'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Liaison
@@ -1928,15 +2252,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Reject Referral
@@ -1965,15 +2285,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Request Referral Revision
@@ -1998,20 +2314,15 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.PatientResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict - patient already exists
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create Patient
@@ -2040,20 +2351,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.PatientResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Lookup patient
@@ -2075,20 +2381,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.PatientResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get patient by National ID
@@ -2123,15 +2424,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Referrals for Receptionist
@@ -2152,19 +2449,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.Referral'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Receptionist
@@ -2195,15 +2488,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Confirm Referral Attendance
@@ -2219,8 +2508,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.DepartmentListResponse'
       security:
       - BearerAuth: []
       summary: Get Departments List
@@ -2241,8 +2529,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.HospitalListResponse'
       security:
       - BearerAuth: []
       summary: Get Hospitals List
@@ -2266,8 +2553,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.DepartmentListResponse'
       security:
       - BearerAuth: []
       summary: Get Hospital Departments
@@ -2288,8 +2574,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.ICDCodeListResponse'
       security:
       - BearerAuth: []
       summary: List all ICD-10 Codes
@@ -2305,20 +2590,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.LiaisonListResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Liaisons for Current Hospital
@@ -2335,8 +2615,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.HospitalListResponse'
       security:
       - BearerAuth: []
       summary: Get Networked Hospitals
@@ -2365,20 +2644,15 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.AttachmentResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Upload Referral Attachment
@@ -2387,7 +2661,7 @@ paths:
   /api/v1/specialist/referrals:
     get:
       description: Get a paginated list of referrals forwarded to the specialist's
-        department.
+        hospital.
       parameters:
       - default: 20
         description: Pagination limit
@@ -2413,15 +2687,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Referrals for Specialist
@@ -2442,19 +2712,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.Referral'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Specialist
@@ -2485,15 +2751,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Accept Referral
@@ -2514,15 +2776,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Mark Referral as Read
@@ -2551,18 +2809,48 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Reject Referral
+      tags:
+      - Specialist Referrals
+  /api/v1/specialist/referrals/{id}/release:
+    post:
+      consumes:
+      - application/json
+      description: Allows a specialist to unassign themselves from a referral, returning
+        it to the hospital pool.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reason for Release (Reason field reused)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RejectDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Release Referral (Unassign Self)
       tags:
       - Specialist Referrals
   /api/v1/specialist/referrals/{id}/rerun-ml:
@@ -2580,15 +2868,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Rerun ML Prediction
@@ -2623,15 +2907,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: System Admin Global Listing
@@ -2673,8 +2953,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.UserListResponse'
       security:
       - BearerAuth: []
       summary: List users
@@ -2697,26 +2976,19 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.UserResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new user
@@ -2737,14 +3009,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a user
@@ -2764,14 +3033,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.UserResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get user by ID
@@ -2799,20 +3065,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.UserResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a user
@@ -2841,20 +3102,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Assign role to user
@@ -2869,14 +3125,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.UserResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get current user's profile
