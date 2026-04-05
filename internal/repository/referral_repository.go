@@ -70,6 +70,7 @@ func (r *referralRepository) ListReferrals(ctx context.Context, filter map[strin
 	var referrals []entity.Referral
 	query := r.db.WithContext(ctx).
 		Preload("Patient").
+		Preload("ReferralForm").
 		Preload("Diagnoses").
 		Preload("Diagnoses.CodeInfo").
 		Preload("Vitals").
@@ -116,7 +117,7 @@ func (r *referralRepository) ListForSystemAdmin(ctx context.Context, limit, page
 		query = query.Where("status = ?", statusFilter)
 	}
 	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
-		Preload("Patient").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -140,11 +141,11 @@ func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UU
 		query = query.Where("status = ?", statusFilter)
 	}
 	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
-		Preload("Patient").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
 	offset := (page - 1) * limit
@@ -153,11 +154,39 @@ func (r *referralRepository) ListForLiaison(ctx context.Context, hospID uuid.UUI
 		query = query.Where("status = ?", statusFilter)
 	}
 	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
-		Preload("Patient").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.UUID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+	var referrals []entity.Referral
+	var count int64
+	offset := (page - 1) * limit
+
+	allowedStatuses := []entity.ReferralStatus{
+		entity.StatusForwarded,
+		entity.StatusUnderSpecialistReview,
+		entity.StatusAccepted,
+		entity.StatusScheduled,
+		entity.StatusAssigned,
+		entity.StatusCompleted,
+		entity.StatusRejectedBySpecialist,
+		entity.StatusMissed,
+		entity.StatusRescheduled,
+	}
+
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("target_hospital_id = ? AND status IN ?", hospID, allowedStatuses)
+
+	if statusFilter != "" {
+		query = query.Where("status = ?", statusFilter)
+	}
+	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	return referrals, count, err
+}
+
+func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
 	offset := (page - 1) * limit
@@ -167,14 +196,14 @@ func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.
 		entity.StatusRejectedBySpecialist, entity.StatusMissed, entity.StatusRescheduled,
 	}
 	
-	// Either they are in the allowed statuses, OR they were specifically rejected by this specialist
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
-		Where("target_hospital_id = ? AND (status IN ? OR (status = ? AND specialist_id = ?))", hospID, allowedStatuses, entity.StatusRejectedBySpecialist, specialistID)
+		Where("target_hospital_id = ? AND status IN ?", hospID, allowedStatuses)
+
 	if statusFilter != "" {
 		query = query.Where("status = ?", statusFilter)
 	}
 	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
-		Preload("Patient").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -192,7 +221,7 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 		query = query.Where("status = ?", statusFilter)
 	}
 	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
-		Preload("Patient").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 func (r *referralRepository) GetDoctorStats(ctx context.Context, doctorID uuid.UUID) (total, pending, accepted, critical int64, err error) {
