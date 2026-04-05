@@ -1,150 +1,148 @@
-# Hospital Referral Hub - Backend
+# 🏥 Hospital Referral Hub - Backend
 
-A digital platform for patient referrals in Ethiopian healthcare. This repository contains the backend service built with Go (Golang), utilizing PostgreSQL for persistent storage and Redis for session management and rate-limiting.
+[![Go Version](https://img.shields.io/badge/Go-1.20+-00ADD8?style=flat&logo=go)](https://golang.org/)
+[![Framework](https://img.shields.io/badge/Framework-Gin-008ECF?style=flat)](https://gin-gonic.com/)
+[![ORM](https://img.shields.io/badge/ORM-GORM-00ADD8?style=flat)](https://gorm.io/)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![Cache](https://img.shields.io/badge/Cache-Redis-DC382D?style=flat&logo=redis)](https://redis.io/)
 
----
-
-## 🚀 Current Implementation Status (Sprints 1-3)
-
-The backend is structured according to **Clean Architecture** principles and currently fully satisfies the goals up to Sprint 3:
-
-*   **Sprint 1**: 
-    *   Foundational project structure (`cmd`, `internal`, `pkg`, `config`, `docs`).
-    *   Docker configuration with multi-stage builds (`Dockerfile`, `.dockerignore`).
-    *   API routing setup (Gin framework) and basic middlewares (CORS, Logging, Recovery).
-*   **Sprint 2**: 
-    *   Core Database Schema designed and mapped via GORM (`users`, `hospitals`, `departments`, `referrals`, `referral_status_history`, `audit_logs`).
-    *   Role-Based capability model securely defined in `internal/pkg/auth/permissions.go` (The Permission Matrix).
-    *   Automated seeding script (`cmd/seeder`) to populate Ethiopian regional hospitals, departments, and 7 test user roles.
-*   **Sprint 3**: 
-    *   Secure Authentication: Login endpoint with `bcrypt` password verification, issuing JWT Access (15m) and Refresh Tokens (7d).
-    *   Session Management: Secure session mirroring to both PostgreSQL and Redis cache for lightning-fast validation.
-    *   RBAC Middleware: Requests are intercepted, JWTs parsed, and checked against the predefined Permission Matrix (`RequirePermission` middleware).
-    *   Rate Limiting (max 5 login requests/min/IP) and secure Logout (Access token Blacklisting in Redis).
+A mission-critical digital infrastructure for standardized patient referrals within the Ethiopian healthcare ecosystem. This backend service orchestrates complex referral workflows, enforces granular role-based security, and maintains an immutable audit trail of the patient journey.
 
 ---
 
-## 🛠️ Prerequisites
+## 🏗️ Core Architecture
 
-To run this project locally, you must have the following installed:
-1.  **Go** (1.20+ recommended)
-2.  **PostgreSQL** (Active database named `referral` or `hospital_referral`)
-3.  **Docker Desktop** (Required for easily running Redis)
+The system is built on **Clean Architecture** principles, ensuring a strict separation of concerns and high testability.
+
+- **Domain Layer**: Pure business entities and interface definitions.
+- **UseCase Layer**: Orchestration of business logic and state transitions.
+- **Repository Layer**: Data persistence (PostgreSQL) and caching (Redis) abstractions.
+- **Delivery Layer**: RESTful API implementation using the Gin framework.
+
+### State-Driven Workflows
+At its heart, the system manages a robust **Referral State Machine**:
+`PENDING` → `REVIEWING` → `ACCEPTED/REJECTED` → `COMPLETED`
 
 ---
 
-## Environment Setup
+## ✨ Key Features
 
-The application requires specific environment variables to connect to PostgreSQL, Redis, and secure the JWTs. 
+- **🔐 Granular RBAC**: 8+ distinct healthcare roles (Doctors, Specialists, Admins, Liaisons, etc.) with a strictly enforced permission matrix.
+- **⚡ Dual-Layer Auth**: JWT-based authentication with high-performance session mirroring in Redis for sub-millisecond validation.
+- **📂 State Machine & History**: Automated tracking of every status change with an attached audit log for medical accountability.
+- **📡 Multi-Hospital Networking**: Intelligent routing of referrals between Tertiary, General, and Primary healthcare tiers.
+- **💾 Attachment Handling**: Support for medical documents, images, and DICOM files linked to clinical cases.
+- **📊 Real-time Audit**: Immutable logs capturing WHO, WHAT, and WHEN for every critical system interaction.
 
-1. At the root of your project, create a file named `.env.local` (or copy the provided example):
+---
+
+## 🛠️ Technical Stack
+
+- **Lanuage**: Go (Golang) for high-concurrency performance.
+- **Framework**: [Gin Gonic](https://gin-gonic.com/) for high-performance HTTP routing.
+- **Persistence**: [PostgreSQL](https://www.postgresql.org/) managed via [GORM](https://gorm.io/).
+- **Caching**: [Redis](https://redis.io/) for session management, logout blacklisting, and rate limiting.
+- **Security**: JWT (Access/Refresh), Bcrypt for password hashing.
+- **Documentation**: [Swagger (Swag)](https://github.com/swaggo/swag) for automated OpenAPI-compliant documentation.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- **Go** (1.20+)
+- **PostgreSQL** (Active instance)
+- **Docker** (Recommended for Redis)
+
+### 2. Environment Configuration
+Configure your local environment by creating a `.env` file at the project root:
+
 ```bash
-cp .env.example .env.local
+# Database
+DATABASE_URL=postgres://user:password@localhost:5432/referral_db
+
+# Caching & Session
+REDIS_URL=localhost:6379
+
+# Security
+JWT_SECRET=your_super_secret_key_here
+PORT=8081
 ```
 
-2. Open `.env.local` and configure your keys. *Note: `.env.local` is ignored by git for security.*
+### 3. Infrastructure (Redis)
+Start the Redis container via Docker:
 
-**Available Keys Explained:**
-*   `DATABASE_URL`: Your PostgreSQL connection string. Must include your local postgres password and the exact database name you created.
-*   `REDIS_URL`: The host and mapped port of your Redis instance (usually `localhost:6379`).
-*   `JWT_SECRET`: A secure, secret string used to cryptographically sign your authentication tokens.
-*   `PORT`: The port the Go server will listen on (default `8081`).
-
----
-
-## 🐳 Running Redis via Docker
-
-The application completely relies on Redis for fast session lookups and rate-limiting. The easiest way to run Redis locally without installing it on your OS is through Docker.
-
-1. **Ensure Docker is Running**: Open Docker Desktop.
-2. **Start a Redis Container**: Open your terminal and run the following command to download the Redis image and run a container named `my-redis` mapped securely to port `6379`:
-    ```bash
-    docker run -d --name my-redis -p 6379:6379 redis
-    ```
-    *   `-d`: Runs the container in the background (detached).
-    *   `--name my-redis`: Names the container so you can easily reference it later.
-    *   `-p 6379:6379`: **Crucial Mapping**. This maps your computer's local port 6379 directly to the container's internal port 6379, allowing Go to connect to `localhost:6379`.
-3. **Verify it is running**: 
-    ```bash
-    docker ps
-    ```
-    You should see `my-redis` in the list with `0.0.0.0:6379->6379/tcp`.
+```bash
+docker run -d --name referral-redis -p 6379:6379 redis
+```
 
 ---
 
-## 🏃‍♂️ Running the Application
+## 🏃 Operation Commands
 
-Once your `.env.local` is configured, PostgreSQL is active, and the Docker Redis container is running:
+### 🧊 Database Seeding
+Populate the system with Ethiopian regional hospitals, departments, and pre-configured test roles:
 
-### 1. Seed the Database
-Before starting the server, you need to populate your PostgreSQL database with the required tables, hospitals, and test users.
 ```bash
 go run cmd/seeder/main.go
 ```
-*If successful, the terminal will print `Finished executing database seeders!`*
 
-### 2. Start the Server
-Start the Gin HTTP server:
+### 🔥 Start Server
+Launch the API server in debug mode:
+
 ```bash
 go run cmd/server/main.go
 ```
-*If successful, the terminal will show that it connected to the database, Redis, and is listening on `:8081`.*
 
 ---
 
-## 🔑 Test Users for Authentication
+## 🧪 Development & Quality
 
-The seeder creates users for all 7 roles with the default password: **`password123`**
-
-You can test the `/api/v1/auth/login` endpoint using an API client (like Postman) with these emails:
-*   `doc.primary@hospital.et` (Referring Doctor)
-*   `specialist.cardio@hospital.et` (Receiving Specialist)
-*   `head.cardio@hospital.et` (Department Head)
-*   `admin.specialized@hospital.et` (Hospital Admin)
-*   `superadmin@moh.gov.et` (System Super Admin)
-*   `analyst@moh.gov.et` (MoH Analyst)
-*   `liaison@moh.gov.et` (Regional Liaison Officer)
-*   `reception.primary@hospital.et` (Receptionist)
-
----
-
-## 📜 Clean Architecture Guide
-To maintain the integrity of this codebase, follow these rules when adding new features:
-1.  **Define Entities First** (`internal/domain/entity`): Put your core structs, enums, and database schema representations here.
-2.  **Define Repositories** (`internal/repository`): Create interfaces and Postgres implementations for database CRUD operations.
-3.  **Define UseCases** (`internal/usecase`): Business logic lives here. UseCases should only communicate with Repositories and external services, never directly with HTTP or Gin.
-4.  **Define Handlers** (`internal/delivery/http/handlers`): Attach HTTP routes to UseCases and handle JSON binding/responses.
-
----
-
-## 🧪 Running Tests
-
-The application contains professional Go unit and integration tests covering Authentication and the complex multi-step Referral State Machine. 
-
-Because this is a Clean Architecture project, we have isolated our integration layer into a dedicated `test/` directory.
-
-**Prerequisite:** Ensure your database is properly seeded (`go run cmd/seeder/main.go`) before running authentication integration tests, otherwise the superadmin credentials check will skip.
-
-To run the complete test suite (Auth Integration, Referral Logic, etc.), execute:
+### Integration Test Suite
+The project maintains a professional test suite covering complex State Machine transitions and Auth flows:
 
 ```bash
 go test ./test -v -count=1
 ```
 
-*   `./test` tells the Go compiler to specifically target and run all integration `_test.go` files we built inside the test module.
-*   `-v` turns on verbose logging so you can see exactly which authentication and routing tests PASS.
-*   `-count=1` actively bypasses Go's native test cache to guarantee the suite runs immediately against the live Database state.
+### API Exploration (Swagger)
+The live documentation is available at:
+**`http://localhost:8081/swagger/index.html`**
+
+To regenerate documentation:
+```bash
+swag init -g cmd/server/main.go --output docs/api
+```
 
 ---
 
-## 📖 API Documentation (Swagger)
+## 🔑 Pre-configured Test Accounts
 
-The project includes an embedded Swagger UI instance for complete exploration and testing of the live API endpoints. Swagger annotations are natively configured using actual Seed Data examples, providing realistic structural payloads.
+| Role | Email | Use Case |
+| :--- | :--- | :--- |
+| **Referring Doctor** | `doc.primary@hospital.et` | Initiate referrals |
+| **Specialist** | `specialist.cardio@hospital.et` | Review/Accept cases |
+| **Receptionist** | `reception.primary@hospital.et` | Confirm patient arrival |
+| **Liaison Officer** | `liaison@moh.gov.et` | Oversee regional routing |
+| **Hospital Admin** | `admin.specialized@hospital.et` | Manage hospital resources |
+| **MoH Analyst** | `analyst@moh.gov.et` | View global statistics |
+| **System Admin** | `superadmin@moh.gov.et` | Global configuration |
 
-You can access the generated Swagger documentation here once the server is running:
-- **`http://localhost:8081/swagger/index.html`**
+*Default password for all accounts: **`password123`***
 
-To regenerate or update the swagger definitions when you add new endpoints, run:
-```bash
-swag init -g cmd/server/main.go
+---
+
+## 📂 Repository Structure
+
+```text
+├── cmd/                # Entry points (server, seeder)
+├── internal/           # Private application code
+│   ├── delivery/       # HTTP handlers and routes
+│   ├── domain/         # Entities and interfaces
+│   ├── infrastructure/ # DB, Redis, Middleware
+│   ├── repository/     # Data persistence logic
+│   └── usecase/        # Business logic orchestration
+├── pkg/                # Reusable public packages
+├── docs/               # Auto-generated Swagger docs
+└── test/               # Integration & E2E tests
 ```
