@@ -20,12 +20,14 @@ type ReferralUseCase interface {
 	GetLatestPendingReferrals(ctx context.Context, doctorID uuid.UUID, limit int) ([]dto.ListReferralResponse, error)
 
 	// --- Liaison Actions ---
-	ListForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
+	ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
+	ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
 	GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error)
 	LiaisonRead(ctx context.Context, id, liaisonID, hospID uuid.UUID) error
 	LiaisonForward(ctx context.Context, id, liaisonID, hospID uuid.UUID, comment string) error
 	LiaisonReject(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
 	LiaisonRevise(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
+	LiaisonUnassignSpecialist(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
 
 	// --- Specialist Actions ---
 	ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error)
@@ -33,6 +35,7 @@ type ReferralUseCase interface {
 	SpecialistRead(ctx context.Context, id, specialistID, hospID uuid.UUID) error
 	SpecialistAccept(ctx context.Context, id, specialistID, hospID uuid.UUID, severityScore *float64) error
 	SpecialistReject(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error
+	SpecialistRelease(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error
 	SpecialistRerunML(ctx context.Context, id, specialistID, hospID uuid.UUID) error
 
 	// --- Receptionist Actions ---
