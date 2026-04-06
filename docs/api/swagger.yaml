@@ -1,10 +1,10 @@
 basePath: /
 definitions:
-  Hospital-Referral-System_internal_delivery_http_dto.AttachmentListResponse:
+  dto.AttachmentListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentResponse'
+          $ref: '#/definitions/dto.AttachmentResponse'
         type: array
       message:
         type: string
@@ -12,7 +12,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.AttachmentResponse:
+  dto.AttachmentResponse:
     properties:
       category:
         type: string
@@ -39,7 +39,7 @@ definitions:
       uploaded_at:
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.BaseResponse:
+  dto.BaseResponse:
     properties:
       message:
         type: string
@@ -47,22 +47,22 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.BulkAttachmentRequest:
+  dto.BulkAttachmentRequest:
     properties:
       attachments:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreateAttachmentRequest'
+          $ref: '#/definitions/dto.CreateAttachmentRequest'
         type: array
     required:
     - attachments
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.CancelReferralRequest:
+  dto.CancelReferralRequest:
     properties:
       reason:
         example: Patient decided not to proceed with the referral
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.CreateAttachmentRequest:
+  dto.CreateAttachmentRequest:
     properties:
       category:
         example: RADIOLOGY
@@ -88,7 +88,7 @@ definitions:
     - file_url
     - public_id
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.CreateNetworkRouteRequest:
+  dto.CreateNetworkRouteRequest:
     properties:
       receiver_hospital_id:
         type: string
@@ -104,7 +104,7 @@ definitions:
     - receiver_hospital_id
     - sender_hospital_id
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.CreatePatientRequest:
+  dto.CreatePatientRequest:
     properties:
       date_of_birth:
         type: string
@@ -146,7 +146,7 @@ definitions:
     - phone_number
     - sex
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.CreateReferralRequest:
+  dto.CreateReferralRequest:
     properties:
       accompanying_person_name:
         example: Sarah Kebede
@@ -156,7 +156,7 @@ definitions:
         type: string
       attachments:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreateAttachmentRequest'
+          $ref: '#/definitions/dto.CreateAttachmentRequest'
         type: array
       clinical_summary:
         description: Annex IV Clinical Data
@@ -168,10 +168,10 @@ definitions:
       diagnoses:
         description: Diagnoses
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DiagnosisDTO'
+          $ref: '#/definitions/dto.DiagnosisDTO'
         type: array
       emergency_detail:
-        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.EmergencyDetailDTO'
+        $ref: '#/definitions/dto.EmergencyDetailDTO'
       investigation_results:
         example: ECG shows ST elevation
         type: string
@@ -219,7 +219,7 @@ definitions:
         type: string
       vitals:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.VitalsDTO'
+        - $ref: '#/definitions/dto.VitalsDTO'
         description: Optional Extensions
     required:
     - liaison_officer_id
@@ -227,11 +227,11 @@ definitions:
     - target_dept_id
     - target_hospital_id
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse:
+  dto.DepartmentListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse'
+          $ref: '#/definitions/dto.DepartmentResponse'
         type: array
       message:
         type: string
@@ -243,7 +243,7 @@ definitions:
       total:
         type: integer
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse:
+  dto.DepartmentResponse:
     properties:
       created_at:
         type: string
@@ -261,7 +261,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.DiagnosisDTO:
+  dto.DiagnosisDTO:
     properties:
       diagnosis_certainty:
         enum:
@@ -280,7 +280,7 @@ definitions:
     - diagnosis_certainty
     - icd_code
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.DoctorDashboardStatsResponse:
+  dto.DoctorDashboardStatsResponse:
     properties:
       accepted:
         type: integer
@@ -296,7 +296,7 @@ definitions:
       total_referrals:
         type: integer
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.EmergencyDetailDTO:
+  dto.EmergencyDetailDTO:
     properties:
       emergency_justification:
         example: Patient requires immediate intubation and bypass surgery
@@ -304,7 +304,7 @@ definitions:
     required:
     - emergency_justification
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse:
+  dto.ErrorResponse:
     properties:
       error:
         type: string
@@ -312,11 +312,11 @@ definitions:
         example: false
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentListResponse:
+  dto.HospitalDepartmentListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentResponse'
+          $ref: '#/definitions/dto.HospitalDepartmentResponse'
         type: array
       message:
         type: string
@@ -324,12 +324,12 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentResponse:
+  dto.HospitalDepartmentResponse:
     properties:
       created_at:
         type: string
       department:
-        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse'
+        $ref: '#/definitions/dto.DepartmentResponse'
       department_id:
         type: string
       hospital_id:
@@ -346,11 +346,11 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse:
+  dto.HospitalListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse'
+          $ref: '#/definitions/dto.HospitalResponse'
         type: array
       message:
         type: string
@@ -362,7 +362,7 @@ definitions:
       total:
         type: integer
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse:
+  dto.HospitalResponse:
     properties:
       address:
         type: string
@@ -388,11 +388,11 @@ definitions:
       updated_at:
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.ICDCodeListResponse:
+  dto.ICDCodeListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ICDCode'
+          $ref: '#/definitions/entity.ICDCode'
         type: array
       message:
         type: string
@@ -400,11 +400,11 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.LatestPendingReferralsResponse:
+  dto.LatestPendingReferralsResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ListReferralResponse'
+          $ref: '#/definitions/dto.ListReferralResponse'
         type: array
       message:
         type: string
@@ -412,7 +412,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.LiaisonItem:
+  dto.LiaisonItem:
     properties:
       email:
         type: string
@@ -423,11 +423,11 @@ definitions:
       last_name:
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.LiaisonListResponse:
+  dto.LiaisonListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LiaisonItem'
+          $ref: '#/definitions/dto.LiaisonItem'
         type: array
       message:
         type: string
@@ -435,7 +435,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.ListReferralResponse:
+  dto.ListReferralResponse:
     properties:
       condition_at_referral:
         type: string
@@ -463,7 +463,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.LogResponseDTO:
+  dto.LogResponseDTO:
     properties:
       changed_by_id:
         type: string
@@ -480,7 +480,7 @@ definitions:
       to_status:
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.LoginResponse:
+  dto.LoginResponse:
     properties:
       access_token:
         type: string
@@ -492,11 +492,11 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteListResponse:
+  dto.NetworkRouteListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteResponse'
+          $ref: '#/definitions/dto.NetworkRouteResponse'
         type: array
       message:
         type: string
@@ -504,7 +504,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteResponse:
+  dto.NetworkRouteResponse:
     properties:
       id:
         type: string
@@ -522,11 +522,11 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.PaginatedLogResponse:
+  dto.PaginatedLogResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LogResponseDTO'
+          $ref: '#/definitions/dto.LogResponseDTO'
         type: array
       message:
         type: string
@@ -540,11 +540,11 @@ definitions:
       total:
         type: integer
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse:
+  dto.PaginatedReferralResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ListReferralResponse'
+          $ref: '#/definitions/dto.ListReferralResponse'
         type: array
       message:
         type: string
@@ -558,7 +558,7 @@ definitions:
       total:
         type: integer
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.PatientResponse:
+  dto.PatientResponse:
     properties:
       date_of_birth:
         type: string
@@ -584,7 +584,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse:
+  dto.ReferralDetailResponse:
     properties:
       active_ml_prediction_id:
         description: Triage priority
@@ -593,17 +593,17 @@ definitions:
         type: string
       attachments:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.Attachment'
+          $ref: '#/definitions/entity.Attachment'
         type: array
       created_at:
         description: Timestamps
         type: string
       diagnoses:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralDiagnosis'
+          $ref: '#/definitions/entity.ReferralDiagnosis'
         type: array
       emergency_detail:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralEmergencyDetail'
+        $ref: '#/definitions/entity.ReferralEmergencyDetail'
       id:
         type: string
       is_archived:
@@ -624,12 +624,12 @@ definitions:
         type: string
       patient:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.Patient'
+        - $ref: '#/definitions/entity.Patient'
         description: Relationships
       patient_id:
         type: string
       referral_form:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralForm'
+        $ref: '#/definitions/entity.ReferralForm'
       referring_doctor_id:
         type: string
       rejection_reason:
@@ -643,7 +643,7 @@ definitions:
         description: Specialist Assignment
         type: string
       status:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralStatus'
+        $ref: '#/definitions/entity.ReferralStatus'
       success:
         example: true
         type: boolean
@@ -655,12 +655,12 @@ definitions:
         type: string
       vitals:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.Vital'
+          $ref: '#/definitions/entity.Vital'
         type: array
       waiting_hours_weight:
         type: number
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.RefreshResponse:
+  dto.RefreshResponse:
     properties:
       access_token:
         type: string
@@ -672,7 +672,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.RejectDTO:
+  dto.RejectDTO:
     properties:
       reason:
         minLength: 5
@@ -680,7 +680,7 @@ definitions:
     required:
     - reason
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.ReviseDTO:
+  dto.ReviseDTO:
     properties:
       reason:
         minLength: 5
@@ -688,7 +688,7 @@ definitions:
     required:
     - reason
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.UpdateProfileImageRequest:
+  dto.UpdateProfileImageRequest:
     properties:
       image_url:
         example: https://res.cloudinary.com/...
@@ -700,7 +700,7 @@ definitions:
     - image_url
     - public_id
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.UpdateReferralRequest:
+  dto.UpdateReferralRequest:
     properties:
       accompanying_person_name:
         example: Sarah Kebede
@@ -710,7 +710,7 @@ definitions:
         type: string
       attachments:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreateAttachmentRequest'
+          $ref: '#/definitions/dto.CreateAttachmentRequest'
         type: array
       clinical_summary:
         description: Annex IV Clinical Data
@@ -722,10 +722,10 @@ definitions:
       diagnoses:
         description: Diagnoses
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DiagnosisDTO'
+          $ref: '#/definitions/dto.DiagnosisDTO'
         type: array
       emergency_detail:
-        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.EmergencyDetailDTO'
+        $ref: '#/definitions/dto.EmergencyDetailDTO'
       investigation_results:
         example: ECG shows ST elevation
         type: string
@@ -768,7 +768,7 @@ definitions:
         type: string
       vitals:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.VitalsDTO'
+        - $ref: '#/definitions/dto.VitalsDTO'
         description: Optional Extensions
     required:
     - liaison_officer_id
@@ -776,7 +776,7 @@ definitions:
     - target_dept_id
     - target_hospital_id
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.UploadSignatureResponse:
+  dto.UploadSignatureResponse:
     properties:
       api_key:
         type: string
@@ -794,11 +794,11 @@ definitions:
       timestamp:
         type: integer
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.UserListResponse:
+  dto.UserListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse'
+          $ref: '#/definitions/dto.UserResponse'
         type: array
       message:
         type: string
@@ -810,12 +810,12 @@ definitions:
       total:
         type: integer
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.UserResponse:
+  dto.UserResponse:
     properties:
       created_at:
         type: string
       department:
-        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse'
+        $ref: '#/definitions/dto.DepartmentResponse'
       department_id:
         type: string
       email:
@@ -823,7 +823,7 @@ definitions:
       first_name:
         type: string
       hospital:
-        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse'
+        $ref: '#/definitions/dto.HospitalResponse'
       hospital_id:
         type: string
       id:
@@ -841,14 +841,14 @@ definitions:
       profile_image_url:
         type: string
       role:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole'
+        $ref: '#/definitions/entity.UserRole'
       success:
         example: true
         type: boolean
       updated_at:
         type: string
     type: object
-  Hospital-Referral-System_internal_delivery_http_dto.VitalsDTO:
+  dto.VitalsDTO:
     properties:
       diastolic_bp:
         maximum: 200
@@ -879,7 +879,7 @@ definitions:
         minimum: 25
         type: number
     type: object
-  Hospital-Referral-System_internal_domain_entity.Attachment:
+  entity.Attachment:
     properties:
       category:
         type: string
@@ -895,7 +895,7 @@ definitions:
         type: object
       referral:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.Referral'
+        - $ref: '#/definitions/entity.Referral'
         description: Relationships
       referral_id:
         type: string
@@ -904,7 +904,7 @@ definitions:
       uploaded_at:
         type: string
     type: object
-  Hospital-Referral-System_internal_domain_entity.DiagnosisCertainty:
+  entity.DiagnosisCertainty:
     enum:
     - CONFIRMED
     - SUSPECTED
@@ -914,7 +914,7 @@ definitions:
     - CertaintyConfirmed
     - CertaintySuspected
     - CertaintySymptomOnly
-  Hospital-Referral-System_internal_domain_entity.HospitalTier:
+  entity.HospitalTier:
     enum:
     - PRIMARY
     - GENERAL
@@ -926,7 +926,7 @@ definitions:
     - GeneralHosp
     - SpecializedHosp
     - TertiaryHosp
-  Hospital-Referral-System_internal_domain_entity.ICDCode:
+  entity.ICDCode:
     properties:
       category:
         type: string
@@ -935,7 +935,7 @@ definitions:
       description:
         type: string
     type: object
-  Hospital-Referral-System_internal_domain_entity.Patient:
+  entity.Patient:
     properties:
       date_of_birth:
         type: string
@@ -954,7 +954,7 @@ definitions:
       sex:
         type: string
     type: object
-  Hospital-Referral-System_internal_domain_entity.Referral:
+  entity.Referral:
     properties:
       active_ml_prediction_id:
         description: Triage priority
@@ -963,17 +963,17 @@ definitions:
         type: string
       attachments:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.Attachment'
+          $ref: '#/definitions/entity.Attachment'
         type: array
       created_at:
         description: Timestamps
         type: string
       diagnoses:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralDiagnosis'
+          $ref: '#/definitions/entity.ReferralDiagnosis'
         type: array
       emergency_detail:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralEmergencyDetail'
+        $ref: '#/definitions/entity.ReferralEmergencyDetail'
       id:
         type: string
       is_archived:
@@ -992,12 +992,12 @@ definitions:
         type: string
       patient:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.Patient'
+        - $ref: '#/definitions/entity.Patient'
         description: Relationships
       patient_id:
         type: string
       referral_form:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralForm'
+        $ref: '#/definitions/entity.ReferralForm'
       referring_doctor_id:
         type: string
       rejection_reason:
@@ -1011,7 +1011,7 @@ definitions:
         description: Specialist Assignment
         type: string
       status:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralStatus'
+        $ref: '#/definitions/entity.ReferralStatus'
       target_dept_id:
         type: string
       target_hospital_id:
@@ -1020,19 +1020,19 @@ definitions:
         type: string
       vitals:
         items:
-          $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.Vital'
+          $ref: '#/definitions/entity.Vital'
         type: array
       waiting_hours_weight:
         type: number
     type: object
-  Hospital-Referral-System_internal_domain_entity.ReferralDiagnosis:
+  entity.ReferralDiagnosis:
     properties:
       code_info:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.ICDCode'
+        - $ref: '#/definitions/entity.ICDCode'
         description: Relationship
       diagnosis_certainty:
-        $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.DiagnosisCertainty'
+        $ref: '#/definitions/entity.DiagnosisCertainty'
       icd_code:
         type: string
       id:
@@ -1042,7 +1042,7 @@ definitions:
       referral_id:
         type: string
     type: object
-  Hospital-Referral-System_internal_domain_entity.ReferralEmergencyDetail:
+  entity.ReferralEmergencyDetail:
     properties:
       admitted_at:
         type: string
@@ -1053,7 +1053,7 @@ definitions:
       referral_id:
         type: string
     type: object
-  Hospital-Referral-System_internal_domain_entity.ReferralForm:
+  entity.ReferralForm:
     properties:
       accompanying_person_name:
         type: string
@@ -1086,7 +1086,7 @@ definitions:
       treatment_given_before_referral:
         type: string
     type: object
-  Hospital-Referral-System_internal_domain_entity.ReferralStatus:
+  entity.ReferralStatus:
     enum:
     - DRAFT
     - SUBMITTED
@@ -1120,7 +1120,7 @@ definitions:
     - StatusRejectedBySpecialist
     - StatusMissed
     - StatusRescheduled
-  Hospital-Referral-System_internal_domain_entity.UserRole:
+  entity.UserRole:
     enum:
     - REFERRING_DOCTOR
     - LIAISON_OFFICER
@@ -1140,7 +1140,7 @@ definitions:
     - RoleDeptHead
     - RoleHospitalAdmin
     - RoleSystemSuperAdmin
-  Hospital-Referral-System_internal_domain_entity.Vital:
+  entity.Vital:
     properties:
       diastolic_bp:
         type: integer
@@ -1163,16 +1163,16 @@ definitions:
       temperature:
         type: number
     type: object
-  internal_delivery_http_handlers.AssignRoleRequest:
+  handlers.AssignRoleRequest:
     properties:
       role:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole'
+        - $ref: '#/definitions/entity.UserRole'
         example: SYSTEM_SUPER_ADMIN
     required:
     - role
     type: object
-  internal_delivery_http_handlers.CreateDepartmentRequest:
+  handlers.CreateDepartmentRequest:
     properties:
       description:
         example: Heart and blood vessel diseases
@@ -1183,7 +1183,7 @@ definitions:
     required:
     - name
     type: object
-  internal_delivery_http_handlers.CreateHospitalRequest:
+  handlers.CreateHospitalRequest:
     properties:
       address:
         example: Churchill Road, Addis Ababa, Ethiopia
@@ -1199,14 +1199,14 @@ definitions:
         type: string
       tier_level:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.HospitalTier'
+        - $ref: '#/definitions/entity.HospitalTier'
         example: SPECIALIZED
     required:
     - name
     - region
     - tier_level
     type: object
-  internal_delivery_http_handlers.CreateUserRequest:
+  handlers.CreateUserRequest:
     properties:
       department_id:
         example: dfc2b777-a5d5-424b-911a-976b2e8d8614
@@ -1235,7 +1235,7 @@ definitions:
         type: string
       role:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole'
+        - $ref: '#/definitions/entity.UserRole'
         example: MOH_ANALYST
     required:
     - email
@@ -1245,7 +1245,7 @@ definitions:
     - password
     - role
     type: object
-  internal_delivery_http_handlers.LinkDepartmentRequest:
+  handlers.LinkDepartmentRequest:
     properties:
       daily_limit:
         example: 20
@@ -1256,7 +1256,7 @@ definitions:
     required:
     - department_id
     type: object
-  internal_delivery_http_handlers.LoginRequest:
+  handlers.LoginRequest:
     properties:
       email:
         example: superadmin@moh.gov.et
@@ -1268,21 +1268,21 @@ definitions:
     - email
     - password
     type: object
-  internal_delivery_http_handlers.LogoutRequest:
+  handlers.LogoutRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  internal_delivery_http_handlers.RefreshRequest:
+  handlers.RefreshRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  internal_delivery_http_handlers.UpdateDepartmentRequest:
+  handlers.UpdateDepartmentRequest:
     properties:
       description:
         example: Heart and blood vessel diseases
@@ -1291,7 +1291,7 @@ definitions:
         example: Cardiology
         type: string
     type: object
-  internal_delivery_http_handlers.UpdateHospitalRequest:
+  handlers.UpdateHospitalRequest:
     properties:
       address:
         example: Churchill Road, Addis Ababa, Ethiopia
@@ -1310,10 +1310,10 @@ definitions:
         type: string
       tier_level:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.HospitalTier'
+        - $ref: '#/definitions/entity.HospitalTier'
         example: SPECIALIZED
     type: object
-  internal_delivery_http_handlers.UpdateUserRequest:
+  handlers.UpdateUserRequest:
     properties:
       department_id:
         example: dfc2b777-a5d5-424b-911a-976b2e8d8614
@@ -1341,7 +1341,7 @@ definitions:
         type: string
       role:
         allOf:
-        - $ref: '#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole'
+        - $ref: '#/definitions/entity.UserRole'
         example: MOH_ANALYST
     type: object
 info:
@@ -1365,15 +1365,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteListResponse'
+            $ref: '#/definitions/dto.NetworkRouteListResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Network Routes
@@ -1390,22 +1390,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreateNetworkRouteRequest'
+          $ref: '#/definitions/dto.CreateNetworkRouteRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteResponse'
+            $ref: '#/definitions/dto.NetworkRouteResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create Network Route
@@ -1427,15 +1427,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete Network Route
@@ -1456,11 +1456,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentResponse'
+            $ref: '#/definitions/dto.AttachmentResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Attachment Details
@@ -1476,11 +1476,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UploadSignatureResponse'
+            $ref: '#/definitions/dto.UploadSignatureResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Secure Upload Signature
@@ -1497,26 +1497,26 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.LoginRequest'
+          $ref: '#/definitions/handlers.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Token pair
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LoginResponse'
+            $ref: '#/definitions/dto.LoginResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: User login
       tags:
       - Auth
@@ -1531,22 +1531,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.LogoutRequest'
+          $ref: '#/definitions/handlers.LogoutRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: User logout
@@ -1563,22 +1563,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.RefreshRequest'
+          $ref: '#/definitions/handlers.RefreshRequest'
       produces:
       - application/json
       responses:
         "200":
           description: New token pair
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RefreshResponse'
+            $ref: '#/definitions/dto.RefreshResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Refresh token
       tags:
       - Auth
@@ -1606,7 +1606,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse'
+            $ref: '#/definitions/dto.DepartmentListResponse'
       security:
       - BearerAuth: []
       summary: List departments
@@ -1622,22 +1622,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.CreateDepartmentRequest'
+          $ref: '#/definitions/handlers.CreateDepartmentRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse'
+            $ref: '#/definitions/dto.DepartmentResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new department
@@ -1658,11 +1658,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a department
@@ -1682,11 +1682,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse'
+            $ref: '#/definitions/dto.DepartmentResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get department by ID
@@ -1707,22 +1707,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.UpdateDepartmentRequest'
+          $ref: '#/definitions/handlers.UpdateDepartmentRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse'
+            $ref: '#/definitions/dto.DepartmentResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a department
@@ -1744,7 +1744,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LatestPendingReferralsResponse'
+            $ref: '#/definitions/dto.LatestPendingReferralsResponse'
       security:
       - BearerAuth: []
       summary: Get Latest Pending Referrals
@@ -1787,15 +1787,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse'
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Referrals for Doctor
@@ -1812,18 +1812,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreateReferralRequest'
+          $ref: '#/definitions/dto.CreateReferralRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create or Submit Referral
@@ -1845,15 +1845,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Doctor
@@ -1876,18 +1876,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UpdateReferralRequest'
+          $ref: '#/definitions/dto.UpdateReferralRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update (Draft) or Submit Referral
@@ -1909,15 +1909,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete All Attachments
@@ -1940,18 +1940,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CancelReferralRequest'
+          $ref: '#/definitions/dto.CancelReferralRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Cancel Referral
@@ -1975,18 +1975,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UpdateReferralRequest'
+          $ref: '#/definitions/dto.UpdateReferralRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update (Draft) or Submit Referral
@@ -2002,7 +2002,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DoctorDashboardStatsResponse'
+            $ref: '#/definitions/dto.DoctorDashboardStatsResponse'
       security:
       - BearerAuth: []
       summary: Get Doctor Dashboard Stats
@@ -2029,15 +2029,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedLogResponse'
+            $ref: '#/definitions/dto.PaginatedLogResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Logs for Hospital
@@ -2079,7 +2079,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse'
+            $ref: '#/definitions/dto.HospitalListResponse'
       security:
       - BearerAuth: []
       summary: List hospitals
@@ -2095,22 +2095,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.CreateHospitalRequest'
+          $ref: '#/definitions/handlers.CreateHospitalRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse'
+            $ref: '#/definitions/dto.HospitalResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new hospital
@@ -2131,11 +2131,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a hospital
@@ -2155,11 +2155,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse'
+            $ref: '#/definitions/dto.HospitalResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get hospital by ID
@@ -2180,22 +2180,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.UpdateHospitalRequest'
+          $ref: '#/definitions/handlers.UpdateHospitalRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse'
+            $ref: '#/definitions/dto.HospitalResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a hospital
@@ -2216,11 +2216,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentListResponse'
+            $ref: '#/definitions/dto.HospitalDepartmentListResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List departments of a hospital
@@ -2241,26 +2241,26 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.LinkDepartmentRequest'
+          $ref: '#/definitions/handlers.LinkDepartmentRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Link a department to a hospital
@@ -2286,11 +2286,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Unlink a department from a hospital
@@ -2321,15 +2321,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse'
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Outgoing Referrals for Liaison
@@ -2350,15 +2350,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Liaison
@@ -2438,18 +2438,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO'
+          $ref: '#/definitions/dto.RejectDTO'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Reject Referral
@@ -2471,18 +2471,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReviseDTO'
+          $ref: '#/definitions/dto.ReviseDTO'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Request Referral Revision
@@ -2500,22 +2500,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreatePatientRequest'
+          $ref: '#/definitions/dto.CreatePatientRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PatientResponse'
+            $ref: '#/definitions/dto.PatientResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict - patient already exists
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create Patient
@@ -2544,15 +2544,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PatientResponse'
+            $ref: '#/definitions/dto.PatientResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Lookup patient
@@ -2574,15 +2574,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PatientResponse'
+            $ref: '#/definitions/dto.PatientResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get patient by National ID
@@ -2625,15 +2625,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse'
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Referrals for Receptionist
@@ -2654,15 +2654,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Receptionist
@@ -2693,11 +2693,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Confirm Referral Attendance
@@ -2713,7 +2713,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse'
+            $ref: '#/definitions/dto.DepartmentListResponse'
       security:
       - BearerAuth: []
       summary: Get Departments List
@@ -2734,7 +2734,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse'
+            $ref: '#/definitions/dto.HospitalListResponse'
       security:
       - BearerAuth: []
       summary: Get Hospitals List
@@ -2758,7 +2758,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse'
+            $ref: '#/definitions/dto.DepartmentListResponse'
       security:
       - BearerAuth: []
       summary: Get Hospital Departments
@@ -2779,7 +2779,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ICDCodeListResponse'
+            $ref: '#/definitions/dto.ICDCodeListResponse'
       security:
       - BearerAuth: []
       summary: List all ICD-10 Codes
@@ -2795,15 +2795,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LiaisonListResponse'
+            $ref: '#/definitions/dto.LiaisonListResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Liaisons for Current Hospital
@@ -2820,7 +2820,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse'
+            $ref: '#/definitions/dto.HospitalListResponse'
       security:
       - BearerAuth: []
       summary: Get Networked Hospitals
@@ -2841,7 +2841,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentListResponse'
+            $ref: '#/definitions/dto.AttachmentListResponse'
       security:
       - BearerAuth: []
       summary: List Referral Attachments
@@ -2864,26 +2864,26 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BulkAttachmentRequest'
+          $ref: '#/definitions/dto.BulkAttachmentRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentListResponse'
+            $ref: '#/definitions/dto.AttachmentListResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Register Referral Attachments (Bulk)
@@ -2910,11 +2910,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete Attachment From Referral
@@ -2957,15 +2957,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse'
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List Referrals for Specialist
@@ -2986,15 +2986,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse'
+            $ref: '#/definitions/dto.ReferralDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Referral Details for Specialist
@@ -3025,11 +3025,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Accept Referral
@@ -3050,11 +3050,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Mark Referral as Read
@@ -3076,18 +3076,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO'
+          $ref: '#/definitions/dto.RejectDTO'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Reject Referral
@@ -3110,18 +3110,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO'
+          $ref: '#/definitions/dto.RejectDTO'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Release Referral (Unassign Self)
@@ -3142,11 +3142,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Rerun ML Prediction
@@ -3189,15 +3189,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse'
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: System Admin Global Listing
@@ -3250,15 +3250,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserListResponse'
+            $ref: '#/definitions/dto.UserListResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Global User List (System Admin Only)
@@ -3274,26 +3274,26 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.CreateUserRequest'
+          $ref: '#/definitions/handlers.CreateUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse'
+            $ref: '#/definitions/dto.UserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new user
@@ -3314,11 +3314,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a user
@@ -3339,22 +3339,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.UpdateUserRequest'
+          $ref: '#/definitions/handlers.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse'
+            $ref: '#/definitions/dto.UserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update a user
@@ -3375,11 +3375,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Moderate Profile Image
@@ -3401,22 +3401,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_delivery_http_handlers.AssignRoleRequest'
+          $ref: '#/definitions/handlers.AssignRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Assign role to user
@@ -3467,11 +3467,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserListResponse'
+            $ref: '#/definitions/dto.UserListResponse'
         "403":
           description: Forbidden for MOH Analysts
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List users (Hospital-Scoped)
@@ -3498,15 +3498,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse'
+            $ref: '#/definitions/dto.UserResponse'
         "403":
           description: Forbidden due to visibility restrictions
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get user by ID
@@ -3521,11 +3521,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse'
+            $ref: '#/definitions/dto.UserResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get current user's profile
@@ -3542,18 +3542,18 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UpdateProfileImageRequest'
+          $ref: '#/definitions/dto.UpdateProfileImageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update Profile Image
