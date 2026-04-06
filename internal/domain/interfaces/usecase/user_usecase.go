@@ -11,10 +11,12 @@ import (
 
 type UserUseCase interface {
 	CreateUser(ctx context.Context, user *entity.User, rawPassword string) error
-	GetUserByID(ctx context.Context, id uuid.UUID) (*entity.User, error)
+	GetUserByID(ctx context.Context, id, requesterID uuid.UUID) (*entity.User, error)
 	GetMyProfile(ctx context.Context, userID uuid.UUID) (*entity.User, error)
 	UpdateUser(ctx context.Context, user *entity.User) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
-	ListUsers(ctx context.Context, filter irepository.UserListFilter) ([]entity.User, int64, error)
+	ListUsers(ctx context.Context, filter irepository.UserListFilter, requesterID uuid.UUID) ([]entity.User, int64, error)
 	AssignRole(ctx context.Context, userID uuid.UUID, role entity.UserRole) error
+	DeleteProfileImage(ctx context.Context, userID uuid.UUID) error
+	ModerateProfileImage(ctx context.Context, userID, moderatorID uuid.UUID) error
 }
