@@ -25,11 +25,14 @@ type User struct {
 	NationalID   string         `gorm:"type:varchar(20);unique" json:"national_id"`
 	Email        string         `gorm:"type:varchar(255);unique;not null" json:"email"`
 	FirstName    string         `gorm:"type:varchar(100);not null" json:"first_name"`
+	MiddleName   string         `gorm:"type:varchar(100);not null;default:''" json:"middle_name"`
 	LastName     string         `gorm:"type:varchar(100);not null" json:"last_name"`
 	Role         UserRole       `gorm:"type:varchar(50);not null;index" json:"role"`
 	HospitalID   *uuid.UUID     `gorm:"type:uuid;index" json:"hospital_id,omitempty"`
 	DepartmentID *uuid.UUID     `gorm:"type:uuid" json:"department_id,omitempty"`
 	PasswordHash string         `gorm:"type:varchar(255);not null" json:"-"`
+	ProfileImageURL string      `gorm:"type:text" json:"profile_image_url"`
+	ProfileImagePublicID string `gorm:"type:varchar(255)" json:"-"`
 	IsActive     bool           `gorm:"default:true;index" json:"is_active"`
 	MFASecretEnc *string        `gorm:"type:text" json:"-"`
 	IsDeleted    bool           `gorm:"default:false" json:"-"`
