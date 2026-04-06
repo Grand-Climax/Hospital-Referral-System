@@ -2,27 +2,25 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"Hospital-Referral-System/config"
 	"Hospital-Referral-System/internal/infrastructure/seeder"
 )
 
 func main() {
-	if err := godotenv.Load(".env.local"); err != nil {
-		if err := godotenv.Load(); err != nil {
-			log.Println("No .env or .env.local file found. Using environment variables.")
-		}
-	}
+	cfg := config.LoadConfig()
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		// Provide a fallback for local testing if not set
-		dsn = "host=localhost user=postgres password=postgres dbname=hospital_referral port=5432 sslmode=disable TimeZone=Africa/Addis_Ababa"
+		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Africa/Addis_Ababa",
+			cfg.DB.Host, cfg.DB.User, cfg.DB.Password, cfg.DB.DB_Name, cfg.DB.Port, cfg.DB.SSLMode)
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
