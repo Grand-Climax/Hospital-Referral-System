@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	_ "Hospital-Referral-System/docs"
+	"Hospital-Referral-System/config"
 	"Hospital-Referral-System/internal/delivery/http/routes"
 	"Hospital-Referral-System/internal/infrastructure/middleware"
 )
@@ -26,15 +27,13 @@ import (
 // @description Enter your bearer token in the format **Bearer &lt;token&gt;**
 
 func main() {
-	if err := godotenv.Load(".env.local"); err != nil {
-		if err := godotenv.Load(); err != nil {
-			log.Println("No .env or .env.local file found. Using environment variables.")
-		}
-	}
+	cfg := config.LoadConfig()
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "host=localhost user=postgres password=postgres dbname=hospital_referral port=5432 sslmode=disable TimeZone=Africa/Addis_Ababa"
+		// Fallback to individual fields if DATABASE_URL is missing
+		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Africa/Addis_Ababa",
+			cfg.DB.Host, cfg.DB.User, cfg.DB.Password, cfg.DB.DB_Name, cfg.DB.Port, cfg.DB.SSLMode)
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -42,7 +41,7 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	redisAddr := os.Getenv("REDIS_URL")
+	redisAddr := cfg.RedisURL
 	if redisAddr == "" {
 		redisAddr = "localhost:6379"
 	}
@@ -73,10 +72,10 @@ func main() {
 		middleware.CORS(),
 	)
 
-	routes.Register(router, db, redisClient)
+	routes.Register(router, db, redisClient, cfg)
 
 	// Cloud Run injects the PORT dynamically. Fallback to 8081 for local dev.
-	port := os.Getenv("PORT")
+	port := cfg.Port
 	if port == "" {
 		port = "8081"
 	}
