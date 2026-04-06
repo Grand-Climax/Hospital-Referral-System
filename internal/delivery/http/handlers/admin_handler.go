@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
@@ -28,6 +29,9 @@ func NewAdminHandler(referralUC iusecase.ReferralUseCase) *AdminHandler {
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
+// @Param        region query string false "Filter by patient region"
+// @Param        patient_name query string false "Filter by patient name (any order)"
+// @Param        sort query string false "Sort order (asc/desc)"
 // @Success      200 {object} dto.PaginatedReferralResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
@@ -42,9 +46,25 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	statusFilter := c.Query("status")
 
-	referrals, total, err := h.referralUC.ListForSystemAdmin(c.Request.Context(), limit, page, statusFilter)
+	filter := irepository.ReferralFilter{
+		Status:      c.Query("status"),
+		Region:      c.Query("region"),
+		PatientName: c.Query("patient_name"),
+		Sort:        c.Query("sort"),
+		Limit:       limit,
+		Page:        page,
+	}
+
+	if filter.Status != "" && !h.referralUC.IsValidStatus(filter.Status) {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "forbidden: unknown or invalid referral status",
+		})
+		return
+	}
+
+	referrals, total, err := h.referralUC.ListForSystemAdmin(c.Request.Context(), filter)
 	if err != nil {
 		log.Printf("[AdminHandler.SystemAdminList] error: %v", err)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
@@ -68,41 +88,7 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 		return
 	}
 
-	var responseData []dto.ListReferralResponse
-	for _, r := range referrals {
-		diag := ""
-		icd := ""
-		if len(r.Diagnoses) > 0 && r.Diagnoses[0].CodeInfo != nil {
-			diag = r.Diagnoses[0].CodeInfo.Description
-			icd = r.Diagnoses[0].ICDCode
-		}
-		patientNameFirst := ""
-		patientNameMiddle := ""
-		patientNameLast := ""
-		if r.Patient != nil {
-			patientNameFirst = r.Patient.FirstName
-			patientNameMiddle = r.Patient.MiddleName
-			patientNameLast = r.Patient.LastName
-		}
-
-		condition := ""
-		if r.ReferralForm != nil {
-			condition = r.ReferralForm.ConditionAtReferral
-		}
-
-		responseData = append(responseData, dto.ListReferralResponse{
-			ID:                  r.ID,
-			PatientFirstName:    patientNameFirst,
-			PatientMiddleName:   patientNameMiddle,
-			PatientLastName:     patientNameLast,
-			Department:          r.TargetDeptID.String(),
-			Date:                r.CreatedAt.Format("2006-01-02"),
-			Status:              string(r.Status),
-			ICDCode:             icd,
-			Diagnosis:           diag,
-			ConditionAtReferral: condition,
-		})
-	}
+	responseData := toListReferralResponseSlice(referrals)
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
 		BaseResponse: dto.BaseResponse{

@@ -12,6 +12,7 @@ import (
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
@@ -31,6 +32,9 @@ func NewDoctorHandler(referralUC iusecase.ReferralUseCase) *DoctorHandler {
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
+// @Param        region query string false "Filter by patient region"
+// @Param        patient_name query string false "Filter by patient name (any order)"
+// @Param        sort query string false "Sort order (asc/desc)"
 // @Success      200 {object} dto.PaginatedReferralResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
@@ -55,9 +59,25 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	statusFilter := c.Query("status")
 
-	referrals, total, err := h.referralUC.ListForDoctor(c.Request.Context(), doctorID, limit, page, statusFilter)
+	filter := irepository.ReferralFilter{
+		Status:      c.Query("status"),
+		Region:      c.Query("region"),
+		PatientName: c.Query("patient_name"),
+		Sort:        c.Query("sort"),
+		Limit:       limit,
+		Page:        page,
+	}
+
+	if filter.Status != "" && !h.referralUC.IsValidStatus(filter.Status) {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "forbidden: unknown or invalid referral status",
+		})
+		return
+	}
+
+	referrals, total, err := h.referralUC.ListForDoctor(c.Request.Context(), doctorID, filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
@@ -77,41 +97,7 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 		return
 	}
 
-	var responseData []dto.ListReferralResponse
-	for _, r := range referrals {
-		diag := ""
-		icd := ""
-		if len(r.Diagnoses) > 0 && r.Diagnoses[0].CodeInfo != nil {
-			diag = r.Diagnoses[0].CodeInfo.Description
-			icd = r.Diagnoses[0].ICDCode
-		}
-		patientNameFirst := ""
-		patientNameMiddle := ""
-		patientNameLast := ""
-		if r.Patient != nil {
-			patientNameFirst = r.Patient.FirstName
-			patientNameMiddle = r.Patient.MiddleName
-			patientNameLast = r.Patient.LastName
-		}
-
-		condition := ""
-		if r.ReferralForm != nil {
-			condition = r.ReferralForm.ConditionAtReferral
-		}
-
-		responseData = append(responseData, dto.ListReferralResponse{
-			ID:                  r.ID,
-			PatientFirstName:    patientNameFirst,
-			PatientMiddleName:   patientNameMiddle,
-			PatientLastName:     patientNameLast,
-			Department:          r.TargetDeptID.String(),
-			Date:                r.CreatedAt.Format("2006-01-02"),
-			Status:              string(r.Status),
-			ICDCode:             icd,
-			Diagnosis:           diag,
-			ConditionAtReferral: condition,
-		})
-	}
+	responseData := toListReferralResponseSlice(referrals)
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
 		BaseResponse: dto.BaseResponse{
@@ -416,5 +402,41 @@ func (h *DoctorHandler) Cancel(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Message: "Referral cancelled successfully",
+	})
+}
+
+// DeleteAttachments godoc
+// @Summary      Delete All Attachments
+// @Description  Bulk delete all attachments associated with a referral. Restricted to DRAFT or NEED_REVISION status and the referring doctor.
+// @Tags         Doctor Referrals
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/{id}/attachments [delete]
+func (h *DoctorHandler) DeleteAttachments(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid id format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	doctorID, _ := userIdVal.(uuid.UUID)
+
+	if err := h.referralUC.DeleteAttachmentsByReferralID(c.Request.Context(), id, doctorID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "All attachments removed successfully",
 	})
 }
