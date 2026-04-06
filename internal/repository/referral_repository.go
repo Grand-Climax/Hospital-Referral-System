@@ -3,6 +3,9 @@ package repository
 import (
 	"context"
 
+	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -57,6 +60,7 @@ func (r *referralRepository) GetReferralByID(ctx context.Context, id uuid.UUID) 
 		Preload("Diagnoses.CodeInfo").
 		Preload("Vitals").
 		Preload("EmergencyDetail").
+		Preload("Attachments").
 		Where("id = ?", id).
 		First(&referral).Error
 	return &referral, err
@@ -108,15 +112,49 @@ func (r *referralRepository) ListReferrals(ctx context.Context, filter map[strin
 	return referrals, err
 }
 
-func (r *referralRepository) ListForSystemAdmin(ctx context.Context, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) applyFilter(query *gorm.DB, filter irepository.ReferralFilter) *gorm.DB {
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+
+	if filter.Region != "" {
+		// Case-insensitive region search using Joins to Patient
+		query = query.Joins("JOIN patients ON patients.id = referrals.patient_id").
+			Where("LOWER(patients.home_region) LIKE LOWER(?)", "%"+filter.Region+"%")
+	}
+
+	if filter.PatientName != "" {
+		// Split name into tokens to support any order (e.g., "Doe John" matches "John ... Doe")
+		tokens := strings.Fields(strings.ToLower(filter.PatientName))
+		// If region JOIN wasn't already added
+		if filter.Region == "" {
+			query = query.Joins("JOIN patients ON patients.id = referrals.patient_id")
+		}
+		for _, token := range tokens {
+			pattern := "%" + token + "%"
+			query = query.Where("(LOWER(patients.first_name) LIKE ? OR LOWER(patients.middle_name) LIKE ? OR LOWER(patients.last_name) LIKE ?)", pattern, pattern, pattern)
+		}
+	}
+
+	// Sorting
+	sortOrder := "desc"
+	if strings.ToLower(filter.Sort) == "asc" {
+		sortOrder = "asc"
+	}
+	query = query.Order(fmt.Sprintf("referrals.created_at %s", sortOrder))
+
+	return query
+}
+
+func (r *referralRepository) ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
-	offset := (page - 1) * limit
+	offset := (filter.Page - 1) * filter.Limit
+
 	query := r.db.WithContext(ctx).Model(&entity.Referral{})
-	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
-	}
-	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
+	query = r.applyFilter(query, filter)
+
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
@@ -132,36 +170,36 @@ func (r *referralRepository) GetHospitalLogsForAdmin(ctx context.Context, hospID
 	return logs, count, err
 }
 
-func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
-	offset := (page - 1) * limit
+	offset := (filter.Page - 1) * filter.Limit
+
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ?", doctorID)
-	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
-	}
-	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
+	query = r.applyFilter(query, filter)
+
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
-	offset := (page - 1) * limit
+	offset := (filter.Page - 1) * filter.Limit
+
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("sender_hospital_id = ? AND status != ?", hospID, entity.StatusDraft)
-	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
-	}
-	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
+	query = r.applyFilter(query, filter)
+
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
-	offset := (page - 1) * limit
+	offset := (filter.Page - 1) * filter.Limit
 
 	allowedStatuses := []entity.ReferralStatus{
 		entity.StatusForwarded,
@@ -178,49 +216,47 @@ func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID 
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("target_hospital_id = ? AND status IN ?", hospID, allowedStatuses)
 
-	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
-	}
-	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
+	query = r.applyFilter(query, filter)
+
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
-	offset := (page - 1) * limit
+	offset := (filter.Page - 1) * filter.Limit
 	allowedStatuses := []entity.ReferralStatus{
-		entity.StatusForwarded, entity.StatusUnderSpecialistReview, entity.StatusAccepted, 
-		entity.StatusScheduled, entity.StatusAssigned, entity.StatusCompleted, 
+		entity.StatusForwarded, entity.StatusUnderSpecialistReview, entity.StatusAccepted,
+		entity.StatusScheduled, entity.StatusAssigned, entity.StatusCompleted,
 		entity.StatusRejectedBySpecialist, entity.StatusMissed, entity.StatusRescheduled,
 	}
-	
+
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("target_hospital_id = ? AND status IN ?", hospID, allowedStatuses)
 
-	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
-	}
-	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
+	query = r.applyFilter(query, filter)
+
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
-func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
+func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
-	offset := (page - 1) * limit
+	offset := (filter.Page - 1) * filter.Limit
 	allowedStatuses := []entity.ReferralStatus{
-		entity.StatusAccepted, entity.StatusScheduled, entity.StatusAssigned, 
+		entity.StatusAccepted, entity.StatusScheduled, entity.StatusAssigned,
 		entity.StatusMissed, entity.StatusRescheduled,
 	}
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("target_hospital_id = ? AND status IN ?", hospID, allowedStatuses)
-	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
-	}
-	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").
+
+	query = r.applyFilter(query, filter)
+
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }

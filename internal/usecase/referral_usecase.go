@@ -13,17 +13,39 @@ import (
 )
 
 type referralUseCase struct {
-	referralRepo irepository.ReferralRepository
-	networkRepo  irepository.NetworkRepository
+	referralRepo   irepository.ReferralRepository
+	networkRepo    irepository.NetworkRepository
+	attachmentUseCase iusecase.AttachmentUseCase
 }
 
-func NewReferralUseCase(rRepo irepository.ReferralRepository, nRepo irepository.NetworkRepository) iusecase.ReferralUseCase {
-	return &referralUseCase{referralRepo: rRepo, networkRepo: nRepo}
+func NewReferralUseCase(rRepo irepository.ReferralRepository, nRepo irepository.NetworkRepository, aUC iusecase.AttachmentUseCase) iusecase.ReferralUseCase {
+	return &referralUseCase{referralRepo: rRepo, networkRepo: nRepo, attachmentUseCase: aUC}
 }
 
 // ---------------------------------------------------------
-// Helper for History Log Generation
+// Helper for History Log Generation & Status Validation
 // ---------------------------------------------------------
+func (u *referralUseCase) IsValidStatus(status string) bool {
+	validStatuses := map[entity.ReferralStatus]bool{
+		entity.StatusDraft:                 true,
+		entity.StatusSubmitted:             true,
+		entity.StatusUnderLiaisonReview:    true,
+		entity.StatusForwarded:             true,
+		entity.StatusUnderSpecialistReview: true,
+		entity.StatusAccepted:              true,
+		entity.StatusScheduled:              true,
+		entity.StatusAssigned:               true,
+		entity.StatusCompleted:             true,
+		entity.StatusNeedRevision:          true,
+		entity.StatusCancelled:             true,
+		entity.StatusRejectedByLiaison:    true,
+		entity.StatusRejectedBySpecialist: true,
+		entity.StatusMissed:               true,
+		entity.StatusRescheduled:          true,
+	}
+	return validStatuses[entity.ReferralStatus(status)]
+}
+
 func (u *referralUseCase) logStatusChange(ctx context.Context, id, userID uuid.UUID, from *entity.ReferralStatus, to entity.ReferralStatus, reason string) error {
 	var reasonPtr *string
 	if reason != "" {
@@ -110,6 +132,15 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 		}
 	}
 
+	// Bulk Attachments
+	if len(req.Attachments) > 10 {
+		return nil, errors.New("cannot add more than 10 attachments")
+	}
+	for _, a := range req.Attachments {
+		attachment := u.attachmentUseCase.PrepareAttachmentEntity(referral.ID, a.FileName, a.FileType, a.FileURL, a.PublicID, a.Category, a.FileSize)
+		referral.Attachments = append(referral.Attachments, *attachment)
+	}
+
 	// Validation constraints
 	if status == entity.StatusSubmitted {
 		if len(referral.Diagnoses) == 0 {
@@ -134,8 +165,11 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 	return referral, nil
 }
 
-func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForDoctor(ctx, doctorID, limit, page, statusFilter)
+func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListForDoctor(ctx, doctorID, filter)
 }
 
 func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error) {
@@ -219,6 +253,17 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 		existing.Vitals = nil
 	}
 
+	// Bulk Append New Attachments
+	if len(req.Attachments) > 0 {
+		if len(existing.Attachments)+len(req.Attachments) > 10 {
+			return nil, errors.New("total attachments cannot exceed 10")
+		}
+		for _, a := range req.Attachments {
+			att := u.attachmentUseCase.PrepareAttachmentEntity(existing.ID, a.FileName, a.FileType, a.FileURL, a.PublicID, a.Category, a.FileSize)
+			existing.Attachments = append(existing.Attachments, *att)
+		}
+	}
+
 	if nextStatus == entity.StatusSubmitted {
 		if len(existing.Diagnoses) == 0 {
 			return nil, errors.New("cannot submit: at least one diagnosis is required")
@@ -262,6 +307,33 @@ func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.
 	return u.logStatusChange(ctx, id, doctorID, &oldStatus, entity.StatusCancelled, reason)
 }
 
+func (u *referralUseCase) DeleteAttachmentsByReferralID(ctx context.Context, id, doctorID uuid.UUID) error {
+	existing, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if existing.ReferringDoctorID != doctorID {
+		return errors.New("unauthorized: only the referring doctor can manage attachments")
+	}
+
+	if existing.Status != entity.StatusDraft && existing.Status != entity.StatusNeedRevision {
+		return errors.New("forbidden: attachments can only be removed in DRAFT or NEED_REVISION status")
+	}
+
+	if len(existing.Attachments) == 0 {
+		return nil
+	}
+
+	for _, att := range existing.Attachments {
+		if err := u.attachmentUseCase.DeleteAttachment(ctx, att.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (u *referralUseCase) GetDoctorDashboardStats(ctx context.Context, doctorID uuid.UUID) (*dto.DoctorDashboardStats, error) {
 	total, pending, accepted, critical, err := u.referralRepo.GetDoctorStats(ctx, doctorID)
 	if err != nil {
@@ -293,10 +365,14 @@ func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorI
 		patientNameFirst := ""
 		patientNameMiddle := ""
 		patientNameLast := ""
+		patientRegion := ""
 		if r.Patient != nil {
 			patientNameFirst = r.Patient.FirstName
 			patientNameMiddle = r.Patient.MiddleName
 			patientNameLast = r.Patient.LastName
+			if r.Patient.HomeRegion != nil {
+				patientRegion = *r.Patient.HomeRegion
+			}
 		}
 
 		condition := ""
@@ -309,12 +385,14 @@ func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorI
 			PatientFirstName:    patientNameFirst,
 			PatientMiddleName:   patientNameMiddle,
 			PatientLastName:     patientNameLast,
+			PatientRegion:       patientRegion,
 			Department:          r.TargetDeptID.String(),
-			Date:                r.CreatedAt.Format("2006-01-02"),
 			Status:              string(r.Status),
 			ICDCode:             icd,
 			Diagnosis:           diag,
 			ConditionAtReferral: condition,
+			CreatedAt:           r.CreatedAt,
+			UpdatedAt:           r.UpdatedAt,
 		})
 	}
 	return responseData, nil
@@ -324,12 +402,18 @@ func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorI
 // Liaison Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListOutgoingForLiaison(ctx, hospID, limit, page, statusFilter)
+func (u *referralUseCase) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListOutgoingForLiaison(ctx, hospID, filter)
 }
 
-func (u *referralUseCase) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListIncomingForLiaison(ctx, hospID, limit, page, statusFilter)
+func (u *referralUseCase) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListIncomingForLiaison(ctx, hospID, filter)
 }
 
 func (u *referralUseCase) GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -503,8 +587,11 @@ func (u *referralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, lia
 // Specialist Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForSpecialist(ctx, hospID, limit, page, statusFilter)
+func (u *referralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListForSpecialist(ctx, hospID, filter)
 }
 
 func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -684,8 +771,11 @@ func (u *referralUseCase) SpecialistRerunML(ctx context.Context, id, specialistI
 // Receptionist Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForReceptionist(ctx, hospID, limit, page, statusFilter)
+func (u *referralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListForReceptionist(ctx, hospID, filter)
 }
 
 func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -777,8 +867,11 @@ func (u *referralUseCase) ConfirmAttendance(ctx context.Context, id, receptionis
 // Admin Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) ListForSystemAdmin(ctx context.Context, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	return u.referralRepo.ListForSystemAdmin(ctx, limit, page, statusFilter)
+func (u *referralUseCase) ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListForSystemAdmin(ctx, filter)
 }
 
 func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {

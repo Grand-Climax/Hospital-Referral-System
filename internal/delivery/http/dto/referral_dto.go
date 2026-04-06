@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"time"
+
 	"Hospital-Referral-System/internal/domain/entity"
 	"github.com/google/uuid"
 )
@@ -35,8 +37,9 @@ type CreateReferralRequest struct {
 	Status string `json:"status" binding:"omitempty,oneof=DRAFT SUBMITTED" example:"SUBMITTED"`
 
 	// Optional Extensions
-	Vitals          *VitalsDTO          `json:"vitals"`
-	EmergencyDetail *EmergencyDetailDTO `json:"emergency_detail"`
+	Vitals          *VitalsDTO                `json:"vitals"`
+	EmergencyDetail *EmergencyDetailDTO       `json:"emergency_detail"`
+	Attachments     []CreateAttachmentRequest `json:"attachments" binding:"omitempty,dive"`
 }
 
 type UpdateReferralRequest struct {
@@ -67,8 +70,9 @@ type UpdateReferralRequest struct {
 	Diagnoses []DiagnosisDTO `json:"diagnoses" binding:"omitempty,dive"`
 
 	// Optional Extensions
-	Vitals          *VitalsDTO          `json:"vitals"`
-	EmergencyDetail *EmergencyDetailDTO `json:"emergency_detail"`
+	Vitals          *VitalsDTO                `json:"vitals"`
+	EmergencyDetail *EmergencyDetailDTO       `json:"emergency_detail"`
+	Attachments     []CreateAttachmentRequest `json:"attachments" binding:"omitempty,dive"`
 }
 
 type DiagnosisDTO struct {
@@ -97,12 +101,14 @@ type ListReferralResponse struct {
 	PatientFirstName    string    `json:"patient_first_name"`
 	PatientMiddleName   string    `json:"patient_middle_name"`
 	PatientLastName     string    `json:"patient_last_name"`
+	PatientRegion       string    `json:"patient_region"`
 	Department          string    `json:"department"`
-	Date                string    `json:"date"` // formatted CreatedAt
 	Status              string    `json:"status"`
 	ICDCode             string    `json:"icd_code"`
 	Diagnosis           string    `json:"diagnosis"` // Typically the primary diagnosis CodeInfo name
 	ConditionAtReferral string    `json:"condition_at_referral"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 type PaginatedReferralResponse struct {
