@@ -17,6 +17,7 @@ import (
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/delivery/http/handlers"
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
 
 // MockReferralUseCase simulates business logic layer responses for isolated handler testing
@@ -32,8 +33,8 @@ func (m *MockReferralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID 
 	}
 	return nil, args.Error(1)
 }
-func (m *MockReferralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	args := m.Called(ctx, doctorID, limit, page, statusFilter)
+func (m *MockReferralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, doctorID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
 func (m *MockReferralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error) {
@@ -56,12 +57,12 @@ func (m *MockReferralUseCase) CancelReferral(ctx context.Context, id, doctorID u
 }
 
 // --- Liaison Actions ---
-func (m *MockReferralUseCase) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	args := m.Called(ctx, hospID, limit, page, statusFilter)
+func (m *MockReferralUseCase) ListOutgoingForLiaison(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
-func (m *MockReferralUseCase) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	args := m.Called(ctx, hospID, limit, page, statusFilter)
+func (m *MockReferralUseCase) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
 func (m *MockReferralUseCase) GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -93,8 +94,8 @@ func (m *MockReferralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id,
 }
 
 // --- Specialist Actions ---
-func (m *MockReferralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	args := m.Called(ctx, hospID, specialistID, limit, page, statusFilter)
+func (m *MockReferralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, specialistID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
 func (m *MockReferralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -126,8 +127,8 @@ func (m *MockReferralUseCase) SpecialistRerunML(ctx context.Context, id, special
 }
 
 // --- Receptionist Actions ---
-func (m *MockReferralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.UUID, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	args := m.Called(ctx, hospID, limit, page, statusFilter)
+func (m *MockReferralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
 func (m *MockReferralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -143,8 +144,8 @@ func (m *MockReferralUseCase) ConfirmAttendance(ctx context.Context, id, recepti
 }
 
 // --- Admin Actions ---
-func (m *MockReferralUseCase) ListForSystemAdmin(ctx context.Context, limit, page int, statusFilter string) ([]entity.Referral, int64, error) {
-	args := m.Called(ctx, limit, page, statusFilter)
+func (m *MockReferralUseCase) ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
 func (m *MockReferralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
@@ -163,6 +164,14 @@ func (m *MockReferralUseCase) GetDoctorDashboardStats(ctx context.Context, docto
 func (m *MockReferralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorID uuid.UUID, limit int) ([]dto.ListReferralResponse, error) {
 	args := m.Called(ctx, doctorID, limit)
 	return args.Get(0).([]dto.ListReferralResponse), args.Error(1)
+}
+func (m *MockReferralUseCase) DeleteAttachmentsByReferralID(ctx context.Context, id, doctorID uuid.UUID) error {
+	args := m.Called(ctx, id, doctorID)
+	return args.Error(0)
+}
+func (m *MockReferralUseCase) IsValidStatus(status string) bool {
+	args := m.Called(status)
+	return args.Bool(0)
 }
 
 // --- DOCTOR TESTS ---
@@ -446,7 +455,7 @@ func TestAdminOperations(t *testing.T) {
 	}, handler.HospitalAdminLogs)
 
 	t.Run("System Admin List", func(t *testing.T) {
-		mockUC.On("ListForSystemAdmin", mock.Anything, 20, 1, "").Return([]entity.Referral{}, int64(0), nil)
+		mockUC.On("ListForSystemAdmin", mock.Anything, irepository.ReferralFilter{Limit: 20, Page: 1}).Return([]entity.Referral{}, int64(0), nil)
 
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/system-admin/referrals", nil)
 		w := httptest.NewRecorder()
