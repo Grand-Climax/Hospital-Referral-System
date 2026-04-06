@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
@@ -52,9 +53,25 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	statusFilter := c.Query("status")
 
-	referrals, total, err := h.referralUC.ListOutgoingForLiaison(c.Request.Context(), hospID, limit, page, statusFilter)
+	filter := irepository.ReferralFilter{
+		Status:      c.Query("status"),
+		Region:      c.Query("region"),
+		PatientName: c.Query("patient_name"),
+		Sort:        c.Query("sort"),
+		Limit:       limit,
+		Page:        page,
+	}
+
+	if filter.Status != "" && !h.referralUC.IsValidStatus(filter.Status) {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "forbidden: unknown or invalid referral status",
+		})
+		return
+	}
+
+	referrals, total, err := h.referralUC.ListOutgoingForLiaison(c.Request.Context(), hospID, filter)
 	if err != nil {
 		log.Printf("[LiaisonHandler.ListOutgoing] error: %v", err)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
@@ -78,41 +95,7 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 		return
 	}
 
-	var responseData []dto.ListReferralResponse
-	for _, r := range referrals {
-		diag := ""
-		icd := ""
-		if len(r.Diagnoses) > 0 && r.Diagnoses[0].CodeInfo != nil {
-			diag = r.Diagnoses[0].CodeInfo.Description
-			icd = r.Diagnoses[0].ICDCode
-		}
-		patientNameFirst := ""
-		patientNameMiddle := ""
-		patientNameLast := ""
-		if r.Patient != nil {
-			patientNameFirst = r.Patient.FirstName
-			patientNameMiddle = r.Patient.MiddleName
-			patientNameLast = r.Patient.LastName
-		}
-
-		condition := ""
-		if r.ReferralForm != nil {
-			condition = r.ReferralForm.ConditionAtReferral
-		}
-
-		responseData = append(responseData, dto.ListReferralResponse{
-			ID:                  r.ID,
-			PatientFirstName:    patientNameFirst,
-			PatientMiddleName:   patientNameMiddle,
-			PatientLastName:     patientNameLast,
-			Department:          r.TargetDeptID.String(),
-			Date:                r.CreatedAt.Format("2006-01-02"),
-			Status:              string(r.Status),
-			ICDCode:             icd,
-			Diagnosis:           diag,
-			ConditionAtReferral: condition,
-		})
-	}
+	responseData := toListReferralResponseSlice(referrals)
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
 		BaseResponse: dto.BaseResponse{
@@ -161,9 +144,17 @@ func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	statusFilter := c.Query("status")
 
-	referrals, total, err := h.referralUC.ListIncomingForLiaison(c.Request.Context(), hospID, limit, page, statusFilter)
+	filter := irepository.ReferralFilter{
+		Status:      c.Query("status"),
+		Region:      c.Query("region"),
+		PatientName: c.Query("patient_name"),
+		Sort:        c.Query("sort"),
+		Limit:       limit,
+		Page:        page,
+	}
+
+	referrals, total, err := h.referralUC.ListIncomingForLiaison(c.Request.Context(), hospID, filter)
 	if err != nil {
 		log.Printf("[LiaisonHandler.ListIncoming] error: %v", err)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
@@ -198,10 +189,14 @@ func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 		patientNameFirst := ""
 		patientNameMiddle := ""
 		patientNameLast := ""
+		patientRegion := ""
 		if r.Patient != nil {
 			patientNameFirst = r.Patient.FirstName
 			patientNameMiddle = r.Patient.MiddleName
 			patientNameLast = r.Patient.LastName
+			if r.Patient.HomeRegion != nil {
+				patientRegion = *r.Patient.HomeRegion
+			}
 		}
 
 		condition := ""
@@ -214,12 +209,14 @@ func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 			PatientFirstName:    patientNameFirst,
 			PatientMiddleName:   patientNameMiddle,
 			PatientLastName:     patientNameLast,
+			PatientRegion:       patientRegion,
 			Department:          r.TargetDeptID.String(),
-			Date:                r.CreatedAt.Format("2006-01-02"),
 			Status:              string(r.Status),
 			ICDCode:             icd,
 			Diagnosis:           diag,
 			ConditionAtReferral: condition,
+			CreatedAt:           r.CreatedAt,
+			UpdatedAt:           r.UpdatedAt,
 		})
 	}
 
