@@ -10,16 +10,18 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
+	"Hospital-Referral-System/config"
 	"Hospital-Referral-System/internal/delivery/http/handlers"
 	"Hospital-Referral-System/internal/domain/entity"
 	"Hospital-Referral-System/internal/infrastructure/cache"
 	"Hospital-Referral-System/internal/infrastructure/middleware"
+	"Hospital-Referral-System/internal/infrastructure/storage"
 	"Hospital-Referral-System/internal/repository"
 	"Hospital-Referral-System/internal/usecase"
 )
 
 // Register attaches all HTTP routes to the provided router.
-func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
+func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg config.Config) {
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -41,6 +43,13 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 	tokenBlacklist := cache.NewRedisTokenBlacklist(redisClient)
 	sessionStore := cache.NewRedisSessionStore(redisClient)
 
+	// Storage
+	storageSvc, _ := storage.NewCloudinaryStorage(
+		cfg.Cloudinary.CloudName,
+		cfg.Cloudinary.APIKey,
+		cfg.Cloudinary.APISecret,
+	)
+
 	// ---- Dependency Injection (Repositories) ----
 	authRepo := repository.NewAuthRepository(db)
 	userRepo := repository.NewUserRepository(db)
@@ -55,14 +64,14 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 
 	// ---- Dependency Injection (Use Cases) ----
 	authUseCase := usecase.NewAuthUseCase(authRepo, tokenBlacklist, sessionStore)
-	userUseCase := usecase.NewUserUseCase(userRepo)
+	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc)
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, netRepo)
+	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, netRepo, attachmentUseCase)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo)
-	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo)
 
 	// ---- Dependency Injection (Handlers) ----
 	authHandler := handlers.NewAuthHandler(authUseCase)
@@ -148,6 +157,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 				doctorGroup.GET("/referrals/:id", doctorHandler.GetReferral)
 				doctorGroup.POST("/referrals", doctorHandler.CreateOrSubmit)
 				doctorGroup.POST("/referrals/:id/cancel", doctorHandler.Cancel)
+				doctorGroup.DELETE("/referrals/:id/attachments", doctorHandler.DeleteAttachments)
 				doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateAndResubmit)
 				doctorGroup.PUT("/referrals/:id/submit", doctorHandler.UpdateAndResubmit)
 			}
@@ -196,6 +206,19 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 			{
 				systemAdminGroup.GET("", adminHandler.SystemAdminList)
 			}
+			
+			// Global User Management (System Admin Only)
+			sysAdminUsersGroup := protected.Group("/system-admin/users")
+			sysAdminUsersGroup.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin))
+			{
+				sysAdminUsersGroup.GET("", userHandler.SystemAdminListUsers)
+				sysAdminUsersGroup.POST("", userHandler.CreateUser)
+				sysAdminUsersGroup.PUT("/:id", userHandler.UpdateUser)
+				sysAdminUsersGroup.DELETE("/:id", userHandler.DeleteUser)
+				sysAdminUsersGroup.PATCH("/:id/role", userHandler.AssignRole)
+				// Profile moderation (removal of inappropriate images)
+				sysAdminUsersGroup.DELETE("/:id/profile/image", userHandler.ModerateProfileImage)
+			}
 
 			hospitalAdminGroup := protected.Group("/hospital-admin")
 			hospitalAdminGroup.Use(middleware.RequireRole(entity.RoleHospitalAdmin))
@@ -203,27 +226,34 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client) {
 				hospitalAdminGroup.GET("/referrals-log", adminHandler.HospitalAdminLogs)
 			}
 			
-			// Attachments (Can be used by any authenticated role dealing with referrals)
+			// Attachments
 			attachmentGroup := protected.Group("/attachments")
 			{
-				attachmentGroup.POST("/referrals/:id", attachmentHandler.UploadAttachment)
-				attachmentGroup.GET("/:id/download", attachmentHandler.DownloadAttachment)
+				attachmentGroup.GET("/signature", attachmentHandler.GetUploadSignature)
+				attachmentGroup.GET("/:id", attachmentHandler.GetAttachment)
 			}
+			// Referral-specific attachments
+			protected.POST("/referrals/:id/attachments", attachmentHandler.UploadAttachment)
+			protected.GET("/referrals/:id/attachments", attachmentHandler.GetReferralAttachments)
+			protected.DELETE("/referrals/:id/attachments/:attachment_id", attachmentHandler.DeleteFromReferral)
 
 			// ---- User Management ----
-			// Profile – accessible by any authenticated user
-			protected.GET("/users/me", userHandler.GetMyProfile)
-
-			// Admin-only user CRUD
-			adminUsers := protected.Group("/users")
-			adminUsers.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin))
+			// Profile & Global Reference Lookup – accessible by clinical/hospital/analyst roles
+			userAccesses := protected.Group("/users")
+			userAccesses.Use(middleware.RequireRole(
+				entity.RoleSystemSuperAdmin,
+				entity.RoleHospitalAdmin,
+				entity.RoleReferringDoctor,
+				entity.RoleReceivingSpecialist,
+				entity.RoleLiaisonOfficer,
+				entity.RoleReceptionist,
+				entity.RoleMohAnalyst,
+			))
 			{
-				adminUsers.POST("", userHandler.CreateUser)
-				adminUsers.GET("", userHandler.ListUsers)
-				adminUsers.GET("/:id", userHandler.GetUser)
-				adminUsers.PUT("/:id", userHandler.UpdateUser)
-				adminUsers.DELETE("/:id", userHandler.DeleteUser)
-				adminUsers.PATCH("/:id/role", userHandler.AssignRole)
+				userAccesses.GET("/me", userHandler.GetMyProfile)
+				userAccesses.GET("", userHandler.ListUsers)
+				userAccesses.GET("/:id", userHandler.GetUser)
+				userAccesses.PUT("/profile/image", userHandler.UpdateProfileImage)
 			}
 
 			// ---- Hospital Management ----

@@ -11,8 +11,13 @@ type UserListFilter struct {
 	PageSize   int
 	Role       *entity.UserRole
 	HospitalID *string
+	DepartmentID *string
+	Email      *string
 	IsActive   *bool
-	Search     *string // searches first_name, last_name, email
+	Search     *string // searches first_name, last_name, email (legacy)
+	Name       *string // specific tokenized name search
+	ExcludeRoles []entity.UserRole
+	ExcludeOtherReceptionists *string // HospitalID to keep (others are excluded)
 }
 
 type UserRepository interface {

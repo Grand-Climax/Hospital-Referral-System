@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -63,12 +64,31 @@ func (r *userRepository) ListUsers(ctx context.Context, filter irepository.UserL
 	if filter.HospitalID != nil {
 		query = query.Where("hospital_id = ?", *filter.HospitalID)
 	}
+	if filter.DepartmentID != nil {
+		query = query.Where("department_id = ?", *filter.DepartmentID)
+	}
+	if filter.Email != nil {
+		query = query.Where("email ILIKE ?", "%"+*filter.Email+"%")
+	}
 	if filter.IsActive != nil {
 		query = query.Where("is_active = ?", *filter.IsActive)
+	}
+	if len(filter.ExcludeRoles) > 0 {
+		query = query.Where("role NOT IN ?", filter.ExcludeRoles)
+	}
+	if filter.ExcludeOtherReceptionists != nil {
+		query = query.Where("(role != ? OR hospital_id = ?)", entity.RoleReceptionist, *filter.ExcludeOtherReceptionists)
 	}
 	if filter.Search != nil && *filter.Search != "" {
 		search := "%" + *filter.Search + "%"
 		query = query.Where("(first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ?)", search, search, search)
+	}
+	if filter.Name != nil && *filter.Name != "" {
+		tokens := strings.Fields(*filter.Name)
+		for _, token := range tokens {
+			t := "%" + token + "%"
+			query = query.Where("(first_name ILIKE ? OR middle_name ILIKE ? OR last_name ILIKE ?)", t, t, t)
+		}
 	}
 
 	if err := query.Count(&total).Error; err != nil {

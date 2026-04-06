@@ -6,13 +6,15 @@ type UserResponse struct {
 	ID             string          `json:"id"`
 	Email          string          `json:"email"`
 	FirstName      string          `json:"first_name"`
+	MiddleName     string          `json:"middle_name"`
 	LastName       string          `json:"last_name"`
 	NationalID     string          `json:"national_id"`
 	Role           entity.UserRole `json:"role"`
 	HospitalID     *string         `json:"hospital_id,omitempty"`
 	DepartmentID   *string         `json:"department_id,omitempty"`
-	HospitalName   string          `json:"hospital_name,omitempty"`
-	DepartmentName string          `json:"department_name,omitempty"`
+	Hospital       *HospitalResponse `json:"hospital,omitempty"`
+	Department     *DepartmentResponse `json:"department,omitempty"`
+	ProfileImageURL string         `json:"profile_image_url,omitempty"`
 	IsActive       bool            `json:"is_active"`
 	CreatedAt      string          `json:"created_at"`
 	UpdatedAt      string          `json:"updated_at"`
@@ -24,4 +26,9 @@ type UserListResponse struct {
 	Total int64          `json:"total"`
 	Page  int            `json:"page"`
 	BaseResponse
+}
+
+type UpdateProfileImageRequest struct {
+	PublicID string `json:"public_id" binding:"required" example:"profiles/hosp_1/user_1/abc"`
+	ImageURL string `json:"image_url" binding:"required" example:"https://res.cloudinary.com/..."`
 }

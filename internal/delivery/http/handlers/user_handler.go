@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/pkg/utils"
 	"Hospital-Referral-System/internal/usecase"
 )
 
@@ -22,12 +24,21 @@ func NewUserHandler(userUseCase iusecase.UserUseCase) *UserHandler {
 	return &UserHandler{userUseCase: userUseCase}
 }
 
+func (h *UserHandler) getRequesterID(c *gin.Context) uuid.UUID {
+	id, exists := c.Get("userID")
+	if !exists {
+		return uuid.Nil
+	}
+	return id.(uuid.UUID)
+}
+
 // --- Request / Response DTOs ---
 
 type CreateUserRequest struct {
 	Email        string          `json:"email" binding:"required,email" example:"analyst@moh.gov.et"`
 	Password     string          `json:"password" binding:"required,min=8" example:"password123"`
-	FirstName    string          `json:"first_name" binding:"required" example:"MoH"`
+	FirstName    string          `json:"first_name" binding:"required" example:"Abebe"`
+	MiddleName   string          `json:"middle_name" binding:"required" example:"Kebede"`
 	LastName     string          `json:"last_name" binding:"required" example:"Analyst"`
 	NationalID   string          `json:"national_id" example:"MOH-001"`
 	Role         entity.UserRole `json:"role" binding:"required" example:"MOH_ANALYST"`
@@ -37,7 +48,8 @@ type CreateUserRequest struct {
 
 type UpdateUserRequest struct {
 	Email        *string          `json:"email" binding:"omitempty,email" example:"analyst@moh.gov.et"`
-	FirstName    *string          `json:"first_name" example:"MoH"`
+	FirstName    *string          `json:"first_name" example:"Abebe"`
+	MiddleName   *string          `json:"middle_name" example:"Kebede"`
 	LastName     *string          `json:"last_name" example:"Analyst"`
 	NationalID   *string          `json:"national_id" example:"MOH-001"`
 	Role         *entity.UserRole `json:"role" example:"MOH_ANALYST"`
@@ -52,29 +64,53 @@ type AssignRoleRequest struct {
 
 func toUserResponse(u *entity.User) dto.UserResponse {
 	resp := dto.UserResponse{
-		ID:         u.ID.String(),
-		Email:      u.Email,
-		FirstName:  u.FirstName,
-		LastName:   u.LastName,
-		NationalID: u.NationalID,
-		Role:       u.Role,
-		IsActive:   u.IsActive,
-		CreatedAt:  u.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:  u.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:              u.ID.String(),
+		Email:           u.Email,
+		FirstName:       u.FirstName,
+		MiddleName:      u.MiddleName,
+		LastName:        u.LastName,
+		NationalID:      u.NationalID,
+		Role:            u.Role,
+		IsActive:        u.IsActive,
+		ProfileImageURL: utils.OptimizeCloudinaryURL(u.ProfileImageURL),
+		CreatedAt:       u.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:       u.UpdatedAt.Format(time.RFC3339),
 	}
 	if u.HospitalID != nil {
 		s := u.HospitalID.String()
 		resp.HospitalID = &s
 	}
 	if u.Hospital != nil {
-		resp.HospitalName = u.Hospital.Name
+		resp.Hospital = &dto.HospitalResponse{
+			ID:           u.Hospital.ID.String(),
+			Name:         u.Hospital.Name,
+			TierLevel:    string(u.Hospital.TierLevel),
+			Region:       u.Hospital.Region,
+			IsActive:     u.Hospital.IsActive,
+			CreatedAt:    u.Hospital.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    u.Hospital.UpdatedAt.Format(time.RFC3339),
+		}
+		if u.Hospital.Address != nil {
+			resp.Hospital.Address = *u.Hospital.Address
+		}
+		if u.Hospital.ContactPhone != nil {
+			resp.Hospital.ContactPhone = *u.Hospital.ContactPhone
+		}
 	}
 	if u.DepartmentID != nil {
 		s := u.DepartmentID.String()
 		resp.DepartmentID = &s
 	}
 	if u.Department != nil {
-		resp.DepartmentName = u.Department.Name
+		resp.Department = &dto.DepartmentResponse{
+			ID:        u.Department.ID.String(),
+			Name:      u.Department.Name,
+			CreatedAt: u.Department.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: u.Department.UpdatedAt.Format(time.RFC3339),
+		}
+		if u.Department.Description != nil {
+			resp.Department.Description = *u.Department.Description
+		}
 	}
 	return resp
 }
@@ -82,7 +118,7 @@ func toUserResponse(u *entity.User) dto.UserResponse {
 // CreateUser godoc
 // @Summary      Create a new user
 // @Description  Admin-only endpoint to create a new user account
-// @Tags         Users
+// @Tags         SystemAdmin
 // @Accept       json
 // @Produce      json
 // @Param        body body CreateUserRequest true "User creation payload"
@@ -91,7 +127,7 @@ func toUserResponse(u *entity.User) dto.UserResponse {
 // @Failure      409 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/users [post]
+// @Router       /api/v1/system-admin/users [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -105,6 +141,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	user := &entity.User{
 		Email:      req.Email,
 		FirstName:  req.FirstName,
+		MiddleName: req.MiddleName,
 		LastName:   req.LastName,
 		NationalID: req.NationalID,
 		Role:       req.Role,
@@ -145,35 +182,33 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.UserResponse{
-		ID:             user.ID.String(),
-		Email:          user.Email,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		NationalID:     user.NationalID,
-		Role:           user.Role,
-		IsActive:       user.IsActive,
-		CreatedAt:      user.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:      user.UpdatedAt.Format("2006-01-02T15:04:05Z"),
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: "User created successfully",
-		},
-	})
+	resp := toUserResponse(user)
+	resp.BaseResponse = dto.BaseResponse{
+		Success: true,
+		Message: "User created successfully",
+	}
+
+	c.JSON(http.StatusCreated, resp)
 }
 
 // ListUsers godoc
-// @Summary      List users
-// @Description  Admin-only endpoint to list users with optional filters
+// @Summary      List users (Hospital-Scoped)
+// @Description  Retrieve a list of users within your own hospital.
+// @Description  - MOH Analysts: Strictly forbidden (returns empty list).
+// @Description  - Hospital Admins/Doctors/Specialists: See only users within their own hospital.
+// @Description  - Global Admins: Should use /system-admin/users for global discovery.
+// @Description  - Filtration: Supports tokenized name search (matches regardless of name part order).
 // @Tags         Users
 // @Produce      json
 // @Param        page      query int    false "Page number" default(1)
 // @Param        page_size query int    false "Page size"   default(20)
 // @Param        role      query string false "Filter by role"
-// @Param        hospital_id query string false "Filter by hospital ID"
+// @Param        name      query string false "Tokenized name search (e.g. 'Doe John')"
+// @Param        email     query string false "Filter by partial email"
+// @Param        dept_id   query string false "Filter by Department ID"
 // @Param        is_active query bool   false "Filter by active status"
-// @Param        search    query string false "Search by name or email"
 // @Success      200 {object} dto.UserListResponse
+// @Failure      403 {object} dto.ErrorResponse "Forbidden for MOH Analysts"
 // @Security     BearerAuth
 // @Router       /api/v1/users [get]
 func (h *UserHandler) ListUsers(c *gin.Context) {
@@ -192,18 +227,21 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 		r := entity.UserRole(role)
 		filter.Role = &r
 	}
-	if hospID := c.Query("hospital_id"); hospID != "" {
-		filter.HospitalID = &hospID
+	if deptID := c.Query("dept_id"); deptID != "" {
+		filter.DepartmentID = &deptID
+	}
+	if email := c.Query("email"); email != "" {
+		filter.Email = &email
 	}
 	if active := c.Query("is_active"); active != "" {
 		a := active == "true"
 		filter.IsActive = &a
 	}
-	if search := c.Query("search"); search != "" {
-		filter.Search = &search
+	if name := c.Query("name"); name != "" {
+		filter.Name = &name
 	}
 
-	users, total, err := h.userUseCase.ListUsers(c.Request.Context(), filter)
+	users, total, err := h.userUseCase.ListUsers(c.Request.Context(), filter, h.getRequesterID(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Success: false,
@@ -230,25 +268,28 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 
 // GetUser godoc
 // @Summary      Get user by ID
-// @Description  Admin-only endpoint to retrieve a user by their ID
+// @Description  Retrieve detailed profile of a user with nuanced visibility rules.
+// @Description  - System Admins: Can view any profile.
+// @Description  - Doctors/Specialists/Liaison/HospitalAdmins: Can view each other across different hospitals to facilitate referrals.
+// @Description  - Restriction: Clinical roles CANNOT view SystemAdmins or Receptionists from other hospitals.
+// @Description  - Receptionists: Can ONLY view users within their own hospital.
+// @Description  - MOH Analysts: Cannot view any user except their own (via /users/me).
 // @Tags         Users
 // @Produce      json
 // @Param        id path string true "User ID"
 // @Success      200 {object} dto.UserResponse
-// @Failure      404 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse "Forbidden due to visibility restrictions"
+// @Failure      404 {object} dto.ErrorResponse "User not found"
 // @Security     BearerAuth
 // @Router       /api/v1/users/{id} [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid user ID",
-		})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid user ID"})
 		return
 	}
 
-	user, err := h.userUseCase.GetUserByID(c.Request.Context(), id)
+	user, err := h.userUseCase.GetUserByID(c.Request.Context(), id, h.getRequesterID(c))
 	if err != nil {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{
 			Success: false,
@@ -257,27 +298,19 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.UserResponse{
-		ID:             user.ID.String(),
-		Email:          user.Email,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		NationalID:     user.NationalID,
-		Role:           user.Role,
-		IsActive:       user.IsActive,
-		CreatedAt:      user.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:      user.UpdatedAt.Format("2006-01-02T15:04:05Z"),
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: "User details retrieved successfully",
-		},
-	})
+	resp := toUserResponse(user)
+	resp.BaseResponse = dto.BaseResponse{
+		Success: true,
+		Message: "User details retrieved successfully",
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // UpdateUser godoc
 // @Summary      Update a user
 // @Description  Admin-only endpoint to update a user's information
-// @Tags         Users
+// @Tags         SystemAdmin
 // @Accept       json
 // @Produce      json
 // @Param        id   path string            true "User ID"
@@ -286,7 +319,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      404 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/users/{id} [put]
+// @Router       /api/v1/system-admin/users/{id} [put]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -307,7 +340,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	// Fetch existing user first
-	existing, err := h.userUseCase.GetUserByID(c.Request.Context(), id)
+	existing, err := h.userUseCase.GetUserByID(c.Request.Context(), id, h.getRequesterID(c))
 	if err != nil {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{
 			Success: false,
@@ -322,6 +355,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 	if req.FirstName != nil {
 		existing.FirstName = *req.FirstName
+	}
+	if req.MiddleName != nil {
+		existing.MiddleName = *req.MiddleName
 	}
 	if req.LastName != nil {
 		existing.LastName = *req.LastName
@@ -366,33 +402,25 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.UserResponse{
-		ID:             existing.ID.String(),
-		Email:          existing.Email,
-		FirstName:      existing.FirstName,
-		LastName:       existing.LastName,
-		NationalID:     existing.NationalID,
-		Role:           existing.Role,
-		IsActive:       existing.IsActive,
-		CreatedAt:      existing.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:      existing.UpdatedAt.Format("2006-01-02T15:04:05Z"),
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: "User updated successfully",
-		},
-	})
+	resp := toUserResponse(existing)
+	resp.BaseResponse = dto.BaseResponse{
+		Success: true,
+		Message: "User updated successfully",
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // DeleteUser godoc
 // @Summary      Delete a user
 // @Description  Admin-only endpoint to soft-delete a user
-// @Tags         Users
+// @Tags         SystemAdmin
 // @Produce      json
 // @Param        id path string true "User ID"
 // @Success      200 {object} dto.BaseResponse
 // @Failure      404 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/users/{id} [delete]
+// @Router       /api/v1/system-admin/users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -453,19 +481,89 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.UserResponse{
-		ID:             user.ID.String(),
-		Email:          user.Email,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		NationalID:     user.NationalID,
-		Role:           user.Role,
-		IsActive:       user.IsActive,
-		CreatedAt:      user.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:      user.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+	resp := toUserResponse(user)
+	resp.BaseResponse = dto.BaseResponse{
+		Success: true,
+		Message: "Profile retrieved successfully",
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// SystemAdminListUsers godoc
+// @Summary      Global User List (System Admin Only)
+// @Description  Administrative-only endpoint for global user discovery across all hospitals.
+// @Description  - Supports full tokenized search (matches name parts regardless of order).
+// @Description  - Supports hospital, department, and role-based filtration.
+// @Tags         SystemAdmin
+// @Produce      json
+// @Param        page      query int    false "Page number" default(1)
+// @Param        page_size query int    false "Page size"   default(20)
+// @Param        name      query string false "Tokenized name search"
+// @Param        email     query string false "Filter by email"
+// @Param        hospital_id query string false "Filter by Hospital ID"
+// @Param        dept_id   query string false "Filter by Department ID"
+// @Param        role      query string false "Filter by role"
+// @Param        is_active query bool   false "Filter by active status"
+// @Success      200 {object} dto.UserListResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/system-admin/users [get]
+func (h *UserHandler) SystemAdminListUsers(c *gin.Context) {
+	filter := irepository.UserListFilter{
+		Page:     1,
+		PageSize: 20,
+	}
+
+	if p, err := strconv.Atoi(c.Query("page")); err == nil {
+		filter.Page = p
+	}
+	if ps, err := strconv.Atoi(c.Query("page_size")); err == nil {
+		filter.PageSize = ps
+	}
+	if role := c.Query("role"); role != "" {
+		r := entity.UserRole(role)
+		filter.Role = &r
+	}
+	if hospID := c.Query("hospital_id"); hospID != "" {
+		filter.HospitalID = &hospID
+	}
+	if deptID := c.Query("dept_id"); deptID != "" {
+		filter.DepartmentID = &deptID
+	}
+	if email := c.Query("email"); email != "" {
+		filter.Email = &email
+	}
+	if active := c.Query("is_active"); active != "" {
+		a := active == "true"
+		filter.IsActive = &a
+	}
+	if name := c.Query("name"); name != "" {
+		filter.Name = &name
+	}
+
+	users, total, err := h.userUseCase.ListUsers(c.Request.Context(), filter, h.getRequesterID(c))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to list users",
+		})
+		return
+	}
+
+	var resp []dto.UserResponse
+	for i := range users {
+		resp = append(resp, toUserResponse(&users[i]))
+	}
+
+	c.JSON(http.StatusOK, dto.UserListResponse{
+		Data:  resp,
+		Total: total,
+		Page:  filter.Page,
 		BaseResponse: dto.BaseResponse{
 			Success: true,
-			Message: "Profile retrieved successfully",
+			Message: "Global user list retrieved successfully",
 		},
 	})
 }
@@ -473,7 +571,7 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 // AssignRole godoc
 // @Summary      Assign role to user
 // @Description  Admin-only endpoint to change a user's role
-// @Tags         Users
+// @Tags         SystemAdmin
 // @Accept       json
 // @Produce      json
 // @Param        id   path string           true "User ID"
@@ -482,7 +580,7 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      404 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/users/{id}/role [patch]
+// @Router       /api/v1/system-admin/users/{id}/role [patch]
 func (h *UserHandler) AssignRole(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -514,5 +612,73 @@ func (h *UserHandler) AssignRole(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Message: "User role assigned successfully",
+	})
+}
+
+// UpdateProfileImage godoc
+// @Summary      Update Profile Image
+// @Description  Update the current user's profile image with Cloudinary metadata
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.UpdateProfileImageRequest true "Profile image payload"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/users/profile/image [put]
+func (h *UserHandler) UpdateProfileImage(c *gin.Context) {
+	userID := h.getRequesterID(c)
+	var req dto.UpdateProfileImageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	user, err := h.userUseCase.GetMyProfile(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "User not found"})
+		return
+	}
+
+	user.ProfileImageURL = req.ImageURL
+	user.ProfileImagePublicID = req.PublicID
+
+	if err := h.userUseCase.UpdateUser(c.Request.Context(), user); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Profile image updated successfully",
+	})
+}
+
+// ModerateProfileImage godoc
+// @Summary      Moderate Profile Image
+// @Description  Remove a user's profile image (SystemAdmin or HospitalAdmin only)
+// @Tags         SystemAdmin
+// @Produce      json
+// @Param        id path string true "User ID to moderate"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/system-admin/users/{id}/profile/image [delete]
+func (h *UserHandler) ModerateProfileImage(c *gin.Context) {
+	moderatorID := h.getRequesterID(c)
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid user ID"})
+		return
+	}
+
+	if err := h.userUseCase.ModerateProfileImage(c.Request.Context(), userID, moderatorID); err != nil {
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Profile image removed by moderator",
 	})
 }
