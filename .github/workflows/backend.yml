@@ -19,31 +19,12 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.23'
+        go-version: '1.25'
 
     - name: Build
       run: go build -v ./...
 
     - name: Test
       run: go test -v ./...
-
-    - name: Docker build
-      run: docker build -t hospital-referral-system .
-
-    - name: Debug secrets length
-      run: |
-       echo "Username length: ${#DOCKER_USERNAME}"
-       echo "Password length: ${#DOCKER_PASSWORD}"
-      env:
-         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Log in to DockerHub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    - name: Push Docker Image
-      run: |
-          docker tag hospital-referral-system mennaye/hospital-referral-system:latest
-          docker push mennaye/hospital-referral-system:latest
 
     
