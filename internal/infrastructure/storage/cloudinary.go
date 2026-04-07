@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"time"
@@ -60,4 +62,31 @@ func (s *cloudinaryStorage) DeleteFile(ctx context.Context, publicID string) err
 		PublicID: publicID,
 	})
 	return err
+}
+func (s *cloudinaryStorage) VerifyWebhookSignature(headers map[string]string, body []byte) (bool, error) {
+	signature := headers["X-Cld-Signature"]
+	timestamp := headers["X-Cld-Timestamp"]
+
+	if signature == "" || timestamp == "" {
+		return false, fmt.Errorf("missing signature or timestamp")
+	}
+
+	// Cloudinary signature verification: SHA1(body + timestamp + secret)
+	toSign := string(body) + timestamp + s.apiSecret
+	hash := sha1.New()
+	hash.Write([]byte(toSign))
+	expectedSignature := hex.EncodeToString(hash.Sum(nil))
+
+	return expectedSignature == signature, nil
+}
+
+func (s *cloudinaryStorage) UploadFile(ctx context.Context, file interface{}, folder string) (string, string, error) {
+	uploadResult, err := s.client.Upload.Upload(ctx, file, uploader.UploadParams{
+		Folder: folder,
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("failed to upload file: %w", err)
+	}
+
+	return uploadResult.SecureURL, uploadResult.PublicID, nil
 }
