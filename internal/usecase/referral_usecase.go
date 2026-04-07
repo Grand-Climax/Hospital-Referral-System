@@ -64,7 +64,7 @@ func (u *referralUseCase) logStatusChange(ctx context.Context, id, userID uuid.U
 // Doctor Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*entity.Referral, error) {
+func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*dto.ReferralCreationResponse, error) {
 	// Verify Network
 	isValidRoute, err := u.networkRepo.VerifyNetworkPathway(ctx, senderHospitalID, req.TargetHospitalID)
 	if err != nil || !isValidRoute {
@@ -132,7 +132,7 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 		}
 	}
 
-	// Bulk Attachments
+	// Bulk Attachments (Backward compatibility / Sync)
 	if len(req.Attachments) > 10 {
 		return nil, errors.New("cannot add more than 10 attachments")
 	}
@@ -162,7 +162,17 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 		_ = u.logStatusChange(ctx, referral.ID, doctorID, &draftStatus, entity.StatusSubmitted, "")
 	}
 
-	return referral, nil
+	// Generate Upload Signature for Large Files (Hybrid Flow)
+	sig, _ := u.attachmentUseCase.GenerateSignature(senderHospitalID)
+
+	return &dto.ReferralCreationResponse{
+		Referral:        referral,
+		UploadSignature: sig,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referral created successfully",
+		},
+	}, nil
 }
 
 func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
@@ -183,7 +193,7 @@ func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID 
 	return ref, nil
 }
 
-func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*entity.Referral, error) {
+func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*dto.ReferralCreationResponse, error) {
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -279,7 +289,17 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 		_ = u.logStatusChange(ctx, existing.ID, doctorID, &oldStatus, nextStatus, "")
 	}
 
-	return existing, nil
+	// Generate Upload Signature
+	sig, _ := u.attachmentUseCase.GenerateSignature(existing.SenderHospitalID)
+
+	return &dto.ReferralCreationResponse{
+		Referral:        existing,
+		UploadSignature: sig,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referral updated successfully",
+		},
+	}, nil
 }
 
 func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.UUID, reason string) error {

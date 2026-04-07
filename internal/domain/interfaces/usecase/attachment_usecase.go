@@ -20,4 +20,6 @@ type AttachmentUseCase interface {
 	// New secure methods
 	AddAttachmentsToReferral(ctx context.Context, referralID, doctorID uuid.UUID, reqs []dto.CreateAttachmentRequest) ([]entity.Attachment, error)
 	DeleteAttachmentFromReferral(ctx context.Context, referralID, attachmentID, doctorID uuid.UUID) error
+	ProcessWebhookAttachment(ctx context.Context, payload map[string]interface{}) error
+	UploadAndAddAttachment(ctx context.Context, referralID, doctorID uuid.UUID, file interface{}, fileName, fileType, category string, fileSize int64) (*entity.Attachment, error)
 }
