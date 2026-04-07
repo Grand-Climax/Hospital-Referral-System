@@ -11,4 +11,5 @@ type AttachmentRepository interface {
 	CountByReferralID(ctx context.Context, referralID uuid.UUID) (int64, error)
 	GetByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.Attachment, error)
 	HardDelete(ctx context.Context, id uuid.UUID) error
+	FindByPublicID(ctx context.Context, publicID string) (*entity.Attachment, error)
 }
