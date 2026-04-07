@@ -210,6 +210,30 @@ func (u *userUseCase) ModerateProfileImage(ctx context.Context, userID, moderato
 	return u.DeleteProfileImage(ctx, userID)
 }
 
+func (u *userUseCase) UpdateProfileImage(ctx context.Context, userID uuid.UUID, file interface{}) error {
+	user, err := u.repo.FindByID(ctx, userID)
+	if err != nil || user.IsDeleted {
+		return ErrUserNotFound
+	}
+
+	// 1. Upload new image to "profile_images" folder
+	url, publicID, err := u.storage.UploadFile(ctx, file, "profile_images")
+	if err != nil {
+		return err
+	}
+
+	// 2. Delete old image if a PublicID exists
+	if user.ProfileImagePublicID != "" {
+		_ = u.storage.DeleteFile(ctx, user.ProfileImagePublicID)
+	}
+
+	// 3. Update user record
+	user.ProfileImageURL = url
+	user.ProfileImagePublicID = publicID
+
+	return u.repo.Update(ctx, user)
+}
+
 // canSeeTarget implements the row-level visibility matrix
 func (u *userUseCase) canSeeTarget(requester, target *entity.User) bool {
 	if requester.ID == target.ID {
