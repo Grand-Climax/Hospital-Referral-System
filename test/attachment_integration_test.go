@@ -30,9 +30,9 @@ func TestAttachmentEndpoints(t *testing.T) {
 	doctorID := uuid.New()
 
 	router := gin.Default()
-	// Mock auth middleware for "user_id"
+	// Mock auth middleware for "userID" (standardized across handlers)
 	router.Use(func(c *gin.Context) {
-		c.Set("user_id", doctorID.String())
+		c.Set("userID", doctorID)
 		c.Next()
 	})
 	router.POST("/api/v1/referrals/:id/attachments", handler.UploadAttachment)
