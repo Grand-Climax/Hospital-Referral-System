@@ -154,3 +154,9 @@ type ReferralDetailResponse struct {
 	entity.Referral
 	BaseResponse
 }
+
+type ReferralCreationResponse struct {
+	Referral        *entity.Referral        `json:"referral"`
+	UploadSignature map[string]interface{} `json:"upload_config"`
+	BaseResponse
+}

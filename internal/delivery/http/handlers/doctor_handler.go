@@ -233,13 +233,21 @@ func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
 }
 
 // CreateOrSubmit godoc
-// @Summary      Create or Submit Referral
-// @Description  Create a new referral draft or submit it directly based on the status provided.
+// @Summary      Create or Submit Referral (Hybrid Flow)
+// @Description  Step 1 of the Hybrid Flow. This creates a referral and returns a 'upload_signature'.
+// @Description
+// @Description  ### Frontend Integration (Hybrid Pattern):
+// @Description  1. **Reserve**: Call this endpoint with referral data. You receive a `referral` object and `upload_signature`.
+// @Description  2. **Direct Upload**: For large files (DICOM/PDF), upload directly to Cloudinary using the provided signature.
+// @Description     - **URL**: `https://api.cloudinary.com/v1_1/<cloud_name>/auto/upload`
+// @Description     - **Payload**: Include `file`, `api_key`, `timestamp`, `signature`, and `folder`.
+// @Description     - **REQUIRED Context**: You MUST include `context="referral_id=<referral.id>"` in the upload request. This links the file to the referral.
+// @Description  3. **Sync**: Cloudinary will notify the backend via webhook which automatically creates the Attachment records.
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
 // @Param        request body dto.CreateReferralRequest true "Referral Details"
-// @Success      201 {object} dto.ReferralDetailResponse
+// @Success      201 {object} dto.ReferralCreationResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/doctor/referrals [post]
@@ -286,24 +294,23 @@ func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 	if req.Status == string(entity.StatusSubmitted) {
 		msg = "New referral submitted for review (SUBMITTED)"
 	}
-	c.JSON(http.StatusCreated, dto.ReferralDetailResponse{
-		Referral: *ref,
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: msg,
-		},
-	})
+	ref.Message = msg
+	c.JSON(http.StatusCreated, ref)
 }
 
 // UpdateAndResubmit godoc
-// @Summary      Update (Draft) or Submit Referral
-// @Description  Allows updating a referral. Saving without the /submit suffix persists changes as a DRAFT. Adding /submit finalizes the referral and moves it to SUBMITTED status for liaison processing.
+// @Summary      Update (Draft) or Submit Referral (Hybrid Flow)
+// @Description  Step 1 for updates. Returns a new 'upload_signature' for adding more files.
+// @Description
+// @Description  ### Frontend Integration:
+// @Description  - See `POST /api/v1/doctor/referrals` documentation for detailed 3-step Hybrid Flow instructions.
+// @Description  - Remember to send `context="referral_id=<id>"` when uploading to Cloudinary to ensure the webhook syncs the file correctly.
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Param        request body dto.UpdateReferralRequest true "Updated Referral Details"
-// @Success      200 {object} dto.ReferralDetailResponse
+// @Success      200 {object} dto.ReferralCreationResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/doctor/referrals/{id} [put]
@@ -356,13 +363,8 @@ func (h *DoctorHandler) UpdateAndResubmit(c *gin.Context) {
 	if submit {
 		msg = "Referral submitted for review (SUBMITTED)"
 	}
-	c.JSON(http.StatusOK, dto.ReferralDetailResponse{
-		Referral: *ref,
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: msg,
-		},
-	})
+	ref.Message = msg
+	c.JSON(http.StatusOK, ref)
 }
 
 // Cancel godoc

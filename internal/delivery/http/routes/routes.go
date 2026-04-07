@@ -90,6 +90,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	netHandler := handlers.NewNetworkHandler(netUseCase)
 	patientHandler := handlers.NewPatientHandler(patientUseCase)
 	attachmentHandler := handlers.NewAttachmentHandler(attachmentUseCase)
+	webhookHandler := handlers.NewWebhookHandler(attachmentUseCase, storageSvc)
 
 	// ---- API v1 Routes ----
 	v1 := router.Group("/api/v1")
@@ -101,6 +102,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			authRoutes.POST("/refresh", authHandler.Refresh)
 			authRoutes.POST("/logout", authHandler.Logout)
 		}
+
+		// Webhooks (public but verified via Cloudinary signature)
+		v1.POST("/webhooks/cloudinary", webhookHandler.HandleCloudinaryWebhook)
 
 		// Protected routes (require authentication + audit logging)
 		protected := v1.Group("/")
@@ -216,8 +220,14 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				sysAdminUsersGroup.PUT("/:id", userHandler.UpdateUser)
 				sysAdminUsersGroup.DELETE("/:id", userHandler.DeleteUser)
 				sysAdminUsersGroup.PATCH("/:id/role", userHandler.AssignRole)
+			}
+
+			// Shared Admin Routes (SystemAdmin + HospitalAdmin)
+			sharedAdminGroup := protected.Group("/system-admin")
+			sharedAdminGroup.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin, entity.RoleHospitalAdmin))
+			{
 				// Profile moderation (removal of inappropriate images)
-				sysAdminUsersGroup.DELETE("/:id/profile/image", userHandler.ModerateProfileImage)
+				sharedAdminGroup.DELETE("/users/:id/profile/image", userHandler.ModerateProfileImage)
 			}
 
 			hospitalAdminGroup := protected.Group("/hospital-admin")
@@ -254,6 +264,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				userAccesses.GET("", userHandler.ListUsers)
 				userAccesses.GET("/:id", userHandler.GetUser)
 				userAccesses.PUT("/profile/image", userHandler.UpdateProfileImage)
+				userAccesses.DELETE("/profile/image", userHandler.DeleteMyProfileImage)
 			}
 
 			// ---- Hospital Management ----

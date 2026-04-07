@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -34,17 +35,22 @@ func toAttachmentResponse(a *entity.Attachment) dto.AttachmentResponse {
 }
 
 // UploadAttachment godoc
-// @Summary      Register Referral Attachments (Bulk)
-// @Description  Tie multiple Cloudinary-uploaded files explicitly to a referral with metadata extraction. Limited to Referral Doctors on Draft/NeedRevision referrals.
+// @Summary      Register Referral Attachments
+// @Description  Supports two modes:
+// @Description  1. **Bulk JSON**: Register multiple Cloudinary-uploaded files.
+// @Description  2. **Direct File**: Upload a single file (Max 20MB) directly via `multipart/form-data`.
+// @Description  Limited to Referral Doctors on Draft/NeedRevision referrals.
 // @Tags         Attachments
 // @Accept       json
+// @Accept       mpfd
 // @Produce      json
 // @Param        id   path string true "Referral ID"
-// @Param        body body dto.BulkAttachmentRequest true "Bulk attachment registration payload"
+// @Param        body body dto.BulkAttachmentRequest false "Bulk JSON payload"
+// @Param        file formData file false "Direct file upload"
+// @Param        category formData string false "Attachment category (e.g. LAB_REPORT, DICOM_XRAY)"
 // @Success      201 {object} dto.AttachmentListResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      403 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/referrals/{id}/attachments [post]
 func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
@@ -54,21 +60,59 @@ func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
 		return
 	}
 
-	userIDStr := c.GetString("user_id")
-	doctorID, _ := uuid.Parse(userIDStr)
+	userIDVal, _ := c.Get("userID")
+	doctorID, _ := userIDVal.(uuid.UUID)
 
+	contentType := c.Request.Header.Get("Content-Type")
+
+	// --- Mode 1: Multipart File Upload ---
+	if strings.Contains(contentType, "multipart/form-data") {
+		fileHeader, err := c.FormFile("file")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "File field is required for multipart upload"})
+			return
+		}
+
+		// 20MB Limit for direct-to-backend referral attachments
+		if fileHeader.Size > 20*1024*1024 {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "File size exceeds 20MB limit"})
+			return
+		}
+
+		category := c.PostForm("category")
+		file, err := fileHeader.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to open file"})
+			return
+		}
+		defer file.Close()
+
+		att, err := h.attachmentUC.UploadAndAddAttachment(c.Request.Context(), referralID, doctorID, file, fileHeader.Filename, fileHeader.Header.Get("Content-Type"), category, fileHeader.Size)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, dto.AttachmentListResponse{
+			Data: []dto.AttachmentResponse{toAttachmentResponse(att)},
+			BaseResponse: dto.BaseResponse{
+				Success: true,
+				Message: "Attachment uploaded and registered successfully",
+			},
+		})
+		return
+	}
+
+	// --- Mode 2: Bulk JSON Registration (Hybrid Pattern) ---
 	var req dto.BulkAttachmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid JSON or Multipart payload: " + err.Error()})
 		return
 	}
 
 	attachments, err := h.attachmentUC.AddAttachmentsToReferral(c.Request.Context(), referralID, doctorID, req.Attachments)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   "Failed to save attachments: " + err.Error(),
-		})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
@@ -137,8 +181,16 @@ func (h *AttachmentHandler) DeleteFromReferral(c *gin.Context) {
 		return
 	}
 
-	userIDStr := c.GetString("user_id")
-	doctorID, _ := uuid.Parse(userIDStr)
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "User ID not found in context"})
+		return
+	}
+	doctorID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Invalid user ID type"})
+		return
+	}
 
 	if err := h.attachmentUC.DeleteAttachmentFromReferral(c.Request.Context(), referralID, attachmentID, doctorID); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
@@ -161,18 +213,22 @@ func (h *AttachmentHandler) DeleteFromReferral(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/v1/attachments/signature [get]
 func (h *AttachmentHandler) GetUploadSignature(c *gin.Context) {
-	// 1. Identify Hospital (from user context)
-	// In a real app, you'd get this from the JWT claims or user record.
-	// For now, we'll try to find it or use a default if it's a doctor's request.
-	hospitalIDStr := c.GetString("hospital_id")
-	if hospitalIDStr == "" {
-		// Fallback for demo or if not set in middleware yet
-		// In production, this should always be available for authenticated staff
+	// 1. Identify Hospital (from user context set by middleware)
+	hospIdVal, exists := c.Get("hospID")
+	if !exists || hospIdVal == nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Hospital context missing"})
 		return
 	}
 
-	hospitalID, _ := uuid.Parse(hospitalIDStr)
+	var hospitalID uuid.UUID
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospitalID = hID
+	} else if hIDPtr, ok := hospIdVal.(*uuid.UUID); ok && hIDPtr != nil {
+		hospitalID = *hIDPtr
+	} else {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Invalid hospital context type"})
+		return
+	}
 
 	data, err := h.attachmentUC.GenerateSignature(hospitalID)
 	if err != nil {
