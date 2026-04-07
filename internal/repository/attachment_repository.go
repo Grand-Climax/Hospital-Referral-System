@@ -37,3 +37,15 @@ func (r *attachmentRepository) GetByReferralID(ctx context.Context, referralID u
 func (r *attachmentRepository) HardDelete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Unscoped().Delete(&entity.Attachment{}, "id = ?", id).Error
 }
+
+func (r *attachmentRepository) FindByPublicID(ctx context.Context, publicID string) (*entity.Attachment, error) {
+	var attachment entity.Attachment
+	err := r.db.WithContext(ctx).Where("public_id = ?", publicID).First(&attachment).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &attachment, nil
+}
