@@ -19,4 +19,5 @@ type UserUseCase interface {
 	AssignRole(ctx context.Context, userID uuid.UUID, role entity.UserRole) error
 	DeleteProfileImage(ctx context.Context, userID uuid.UUID) error
 	ModerateProfileImage(ctx context.Context, userID, moderatorID uuid.UUID) error
+	UpdateProfileImage(ctx context.Context, userID uuid.UUID, file interface{}) error
 }

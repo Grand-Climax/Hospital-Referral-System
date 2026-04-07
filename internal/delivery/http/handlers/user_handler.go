@@ -615,42 +615,91 @@ func (h *UserHandler) AssignRole(c *gin.Context) {
 	})
 }
 
-// UpdateProfileImage godoc
 // @Summary      Update Profile Image
-// @Description  Update the current user's profile image with Cloudinary metadata
+// @Description  Update the current user's profile image by uploading a file (Max 5MB: JPEG, PNG, WEBP)
 // @Tags         Users
-// @Accept       json
+// @Accept       mpfd
 // @Produce      json
-// @Param        body body dto.UpdateProfileImageRequest true "Profile image payload"
+// @Param        image formData file true "Profile image file"
 // @Success      200 {object} dto.BaseResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/users/profile/image [put]
 func (h *UserHandler) UpdateProfileImage(c *gin.Context) {
 	userID := h.getRequesterID(c)
-	var req dto.UpdateProfileImageRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
-		return
-	}
 
-	user, err := h.userUseCase.GetMyProfile(c.Request.Context(), userID)
+	fileHeader, err := c.FormFile("image")
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "User not found"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Profile image file is required"})
 		return
 	}
 
-	user.ProfileImageURL = req.ImageURL
-	user.ProfileImagePublicID = req.PublicID
+	// 1. Validate Size (Max 5MB)
+	if fileHeader.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Image size exceeds 5MB limit"})
+		return
+	}
 
-	if err := h.userUseCase.UpdateUser(c.Request.Context(), user); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+	// 2. Validate Format
+	file, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to read image file"})
+		return
+	}
+	defer file.Close()
+
+	buffer := make([]byte, 512)
+	if _, err := file.Read(buffer); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to read image header"})
+		return
+	}
+
+	contentType := http.DetectContentType(buffer)
+	allowedTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/webp": true,
+	}
+
+	if !allowedTypes[contentType] {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid image format. Allowed: JPEG, PNG, WEBP"})
+		return
+	}
+
+	// Reset file pointer after reading header
+	file, _ = fileHeader.Open()
+	defer file.Close()
+
+	if err := h.userUseCase.UpdateProfileImage(c.Request.Context(), userID, file); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to update profile image: " + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Message: "Profile image updated successfully",
+	})
+}
+
+// DeleteMyProfileImage godoc
+// @Summary      Delete own Profile Image
+// @Description  Remove the current user's profile image (unsets URL and PublicID)
+// @Tags         Users
+// @Produce      json
+// @Success      200 {object} dto.BaseResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/users/profile/image [delete]
+func (h *UserHandler) DeleteMyProfileImage(c *gin.Context) {
+	userID := h.getRequesterID(c)
+	if err := h.userUseCase.DeleteProfileImage(c.Request.Context(), userID); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Profile image removed successfully",
 	})
 }
 
