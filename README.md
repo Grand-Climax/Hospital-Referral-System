@@ -111,7 +111,7 @@ The live documentation is available at:
 
 To regenerate documentation:
 ```bash
-swag init -g cmd/server/main.go --output docs/api
+swag init -g cmd/server/main.go --output docs
 ```
 
 ---

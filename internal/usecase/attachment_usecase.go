@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"time"
+
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/pkg/utils"
@@ -16,6 +18,7 @@ import (
 	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"golang.org/x/sync/errgroup"
 )
 
 const AttachmentLimit = 10
@@ -78,11 +81,17 @@ func (u *attachmentUseCase) DeleteAttachment(ctx context.Context, id uuid.UUID) 
 	return u.repo.HardDelete(ctx, id)
 }
 
-func (u *attachmentUseCase) GenerateSignature(hospitalID uuid.UUID) (map[string]interface{}, error) {
-	params := map[string]interface{}{
-		"folder": "hospitals/" + hospitalID.String() + "/referrals",
+func (u *attachmentUseCase) GenerateSignature(referralID *uuid.UUID) (map[string]interface{}, uuid.UUID, error) {
+	targetID := uuid.New()
+	if referralID != nil && *referralID != uuid.Nil {
+		targetID = *referralID
 	}
-	return u.storage.GenerateUploadSignature(params)
+
+	params := map[string]interface{}{
+		"folder": "temp/" + targetID.String(),
+	}
+	sig, err := u.storage.GenerateUploadSignature(params)
+	return sig, targetID, err
 }
 
 func (u *attachmentUseCase) validateManagementAccess(ctx context.Context, referralID, doctorID uuid.UUID, newCount int) (*entity.Referral, error) {
@@ -129,22 +138,8 @@ func (u *attachmentUseCase) AddAttachmentsToReferral(ctx context.Context, referr
 
 		att := u.PrepareAttachmentEntity(referralID, req.FileName, req.FileType, req.FileURL, req.PublicID, req.Category, req.FileSize)
 		
-		// If it's a DICOM or PDF file with no metadata yet, try to fetch headers/trailers
-		isDicom := strings.Contains(strings.ToLower(req.FileType), "dicom") || strings.HasSuffix(strings.ToLower(req.FileName), ".dcm")
-		isPdf := strings.Contains(strings.ToLower(req.FileType), "pdf") || strings.HasSuffix(strings.ToLower(req.FileName), ".pdf")
-		
-		if isDicom || isPdf {
-			resp, err := http.Get(req.FileURL)
-			if err == nil {
-				defer resp.Body.Close()
-				// For DICOM/PDF, we limit the read to avoid huge bandwidth usage
-				limitReader := io.LimitReader(resp.Body, 256*1024)
-				medicalData, _ := utils.ExtractMetadata(limitReader, req.FileName, req.FileType, req.FileSize)
-				for k, v := range medicalData {
-					att.Metadata[k] = v
-				}
-			}
-		}
+		// Set verification status to PENDING initially. Metadata is extracted later by a Cron Job.
+		att.VerificationStatus = entity.VerificationPending
 
 		if err := u.repo.Create(ctx, att); err != nil {
 			return nil, err
@@ -156,32 +151,21 @@ func (u *attachmentUseCase) AddAttachmentsToReferral(ctx context.Context, referr
 }
 
 func (u *attachmentUseCase) UploadAndAddAttachment(ctx context.Context, referralID, doctorID uuid.UUID, file interface{}, fileName, fileType, category string, fileSize int64) (*entity.Attachment, error) {
-	referral, err := u.validateManagementAccess(ctx, referralID, doctorID, 1)
+	_, err := u.validateManagementAccess(ctx, referralID, doctorID, 1)
 	if err != nil {
 		return nil, err
 	}
 
-	// 1. Extract Metadata from stream before upload
-	metadata := make(map[string]interface{})
-	if seeker, ok := file.(io.ReadSeeker); ok {
-		extracted, _ := utils.ExtractMetadata(seeker, fileName, fileType, fileSize)
-		if extracted != nil {
-			metadata = extracted
-		}
-		// Reset stream for Cloudinary upload
-		_, _ = seeker.Seek(0, io.SeekStart)
-	}
-
-	// 2. Upload to Cloudinary
-	folder := fmt.Sprintf("hospitals/%s/referrals", referral.SenderHospitalID.String())
+	// 1. Upload to Cloudinary's temp folder immediately
+	folder := fmt.Sprintf("temp/%s", referralID.String())
 	url, publicID, err := u.storage.UploadFile(ctx, file, folder)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. Create and save
+	// 2. Create and save with PENDING status
 	att := u.PrepareAttachmentEntity(referralID, fileName, fileType, url, publicID, category, fileSize)
-	att.Metadata = metadata
+	att.VerificationStatus = entity.VerificationPending
 
 	if err := u.repo.Create(ctx, att); err != nil {
 		// Cleanup Cloudinary if DB save fails
@@ -220,81 +204,193 @@ func (u *attachmentUseCase) DeleteAttachmentFromReferral(ctx context.Context, re
 	return u.DeleteAttachment(ctx, attachmentID)
 }
 
-func (u *attachmentUseCase) ProcessWebhookAttachment(ctx context.Context, payload map[string]interface{}) error {
-	// 1. Extract context (Referral ID)
-	// Cloudinary context is usually in 'context' or 'custom_headers' depending on configuration
-	// We expect 'context' with 'referral_id' and 'category'
-	contextData, ok := payload["context"].(map[string]interface{})
-	if !ok {
-		return errors.New("missing context in webhook payload")
-	}
-
-	referralIDStr, _ := contextData["custom"].(map[string]interface{})["referral_id"].(string)
-	if referralIDStr == "" {
-		// This is likely a non-referral upload (e.g. Profile Picture)
-		// We return nil to tell Cloudinary we received the notification, but we're not interested in it.
-		return nil
-	}
-
-	referralID, err := uuid.Parse(referralIDStr)
+func (u *attachmentUseCase) VerifyPendingAttachments(ctx context.Context) error {
+	// Robustness: Process in manageable batches to avoid cron timeouts
+	const BatchSize = 20
+	pending, err := u.repo.GetPendingAttachmentsBatch(ctx, BatchSize)
 	if err != nil {
-		// Log error but return nil to stop Cloudinary retries for invalid context
-		return nil
+		return err
 	}
 
-	// 2. Extract basic file info
-	publicID, _ := payload["public_id"].(string)
-	fileURL, _ := payload["secure_url"].(string)
-	fileType, _ := payload["format"].(string)
-	fileSize := int64(payload["bytes"].(float64))
-	fileName, _ := payload["original_filename"].(string)
-	category, _ := contextData["category"].(string)
-
-	if fileName == "" {
-		fileName = publicID // Fallback
+	// Group by Referral for better batching and potential collective promotion
+	groups := make(map[uuid.UUID][]entity.Attachment)
+	for _, att := range pending {
+		groups[att.ReferralID] = append(groups[att.ReferralID], att)
 	}
 
-	// --- DE-DUPLICATION CHECK ---
-	existing, _ := u.repo.FindByPublicID(ctx, publicID)
-	if existing != nil {
-		// Log that we've already handled this file
-		return nil 
-	}
-
-	// 3. Create Attachment
-	att := u.PrepareAttachmentEntity(referralID, fileName, fileType, fileURL, publicID, category, fileSize)
-	
-	// 4. Handle Metadata
-	att.Metadata["cloudinary_raw"] = payload
-	
-	resourceType, _ := payload["resource_type"].(string)
-	
-	// Mode A: Standard Image Dimensions from Payload
-	if resourceType == "image" || strings.HasPrefix(fileType, "image/") {
-		if w, ok := payload["width"].(float64); ok {
-			att.Metadata["width"] = int(w)
+	for _, attachments := range groups {
+		// Parallelize within a single referral for faster processing
+		g, gCtx := errgroup.WithContext(ctx)
+		for _, att := range attachments {
+			a := att // capture loop var
+			g.Go(func() error {
+				_, err := u.VerifyAttachment(gCtx, a.ID)
+				return err
+			})
 		}
-		if h, ok := payload["height"].(float64); ok {
-			att.Metadata["height"] = int(h)
+		if err := g.Wait(); err != nil {
+			// Log and continue to next referral to ensure one failure doesn't block the whole job
+			continue 
 		}
 	}
 
-	// Mode B: Partial Download for DICOM/PDF Medical Metadata
-	isDicom := strings.Contains(strings.ToLower(fileType), "dicom") || strings.HasSuffix(strings.ToLower(fileName), ".dcm")
-	isPdf := strings.Contains(strings.ToLower(fileType), "pdf") || strings.HasSuffix(strings.ToLower(fileName), ".pdf")
+	return nil
+}
 
+func (u *attachmentUseCase) VerifyAttachment(ctx context.Context, id uuid.UUID) (*entity.Attachment, error) {
+	att, err := u.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if att.VerificationStatus != entity.VerificationPending {
+		return att, nil // Already processed
+	}
+
+	// 1. Get referral to ensure we can build the permanent hospital path
+	ref, err := u.referralRepo.GetReferralByID(ctx, att.ReferralID)
+	if err != nil {
+		return nil, fmt.Errorf("referral not found: %w", err)
+	}
+
+	isDicom := strings.Contains(strings.ToLower(att.FileType), "dicom") || strings.HasSuffix(strings.ToLower(att.FileName), ".dcm")
+	isPdf := strings.Contains(strings.ToLower(att.FileType), "pdf") || strings.HasSuffix(strings.ToLower(att.FileName), ".pdf")
+
+	metadata := make(map[string]interface{})
+	status := entity.VerificationVerified
+	var rejectionReason string
+
+	// 2. Verification constraint for DICOM/PDF headers
 	if isDicom || isPdf {
-		// Fetch only the first 256KB to extract dataset/trailer info
-		resp, err := http.Get(fileURL)
-		if err == nil {
+		resp, err := http.Get(att.StoragePath)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			status = entity.VerificationRejected
+			rejectionReason = "Failed to fetch file from storage"
+			if err != nil {
+				rejectionReason = fmt.Sprintf("Failed to fetch file: %v", err)
+			}
+			if resp != nil {
+				resp.Body.Close()
+			}
+		} else {
 			defer resp.Body.Close()
 			limitReader := io.LimitReader(resp.Body, 256*1024)
-			medicalData, _ := utils.ExtractMetadata(limitReader, fileName, fileType, fileSize)
-			for k, v := range medicalData {
-				att.Metadata[k] = v
+			medicalData, err := utils.ExtractMetadata(limitReader, att.FileName, att.FileType, att.FileSize)
+
+			// Basic validation constraint: if it claims to be DICOM but extraction fails
+			if err != nil {
+				status = entity.VerificationRejected
+				rejectionReason = fmt.Sprintf("Metadata extraction failed: %v", err)
+			} else {
+				for k, v := range medicalData {
+					metadata[k] = v
+				}
 			}
 		}
 	}
 
-	return u.repo.Create(ctx, att)
+	// 3. Promote (Rename) if Verified
+	var newStoragePath string
+	var newPublicID string
+	if status == entity.VerificationVerified {
+		// New path: hospitals/<sender_hosp>/referrals/<referral_id>/filename
+		newPublicIDRaw := fmt.Sprintf("hospitals/%s/referrals/%s/%s", ref.SenderHospitalID.String(), ref.ID.String(), att.FileName)
+		
+		newUrl, newId, renameErr := u.storage.RenameFile(ctx, att.PublicID, newPublicIDRaw)
+		if renameErr != nil {
+			return nil, fmt.Errorf("failed to promote file in Cloudinary: %w", renameErr)
+		}
+		newStoragePath = newUrl
+		newPublicID = newId
+	}
+
+	// 4. Update DB
+	var rejectedAt *time.Time
+	if status == entity.VerificationRejected {
+		now := time.Now()
+		rejectedAt = &now
+
+		// Update parent referral status to NEED_REVISION
+		revisionMessage := fmt.Sprintf("Attachment '%s' was rejected: %s", att.FileName, rejectionReason)
+		ref.Status = entity.StatusNeedRevision
+		ref.RevisionReason = &revisionMessage
+		
+		if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+			return nil, fmt.Errorf("failed to update referral status on attachment rejection: %w", err)
+		}
+	}
+
+	if err := u.repo.UpdateVerificationStatus(ctx, att.ID, status, metadata, newStoragePath, newPublicID, rejectionReason, rejectedAt); err != nil {
+		return nil, err
+	}
+
+	// Return updated entity
+	return u.repo.FindByID(ctx, id)
+}
+
+func (u *attachmentUseCase) VerifyReferralAttachments(ctx context.Context, referralID uuid.UUID) error {
+	attachments, err := u.repo.GetByReferralID(ctx, referralID)
+	if err != nil {
+		return err
+	}
+
+	g, gCtx := errgroup.WithContext(ctx)
+	for _, att := range attachments {
+		if att.VerificationStatus != entity.VerificationPending {
+			continue
+		}
+		a := att
+		g.Go(func() error {
+			_, err := u.VerifyAttachment(gCtx, a.ID)
+			return err
+		})
+	}
+	return g.Wait()
+}
+
+func (u *attachmentUseCase) CleanupTempAttachments(ctx context.Context) error {
+	// Folder-Centric Cleanup logic
+	folders, err := u.storage.ListFolders(ctx, "temp")
+	if err != nil {
+		return fmt.Errorf("failed to list temp folders: %w", err)
+	}
+
+	for _, folderPath := range folders {
+		// folderPath is "temp/<uuid>"
+		parts := strings.Split(folderPath, "/")
+		if len(parts) < 2 {
+			continue
+		}
+		folderID := parts[1]
+
+		// 1. Safety Check: Is it referenced in DB?
+		// We check for both clinical attachment records and existence of referral ID
+		count, err := u.repo.CountByPublicIDPrefix(ctx, folderPath)
+		if err != nil {
+			continue
+		}
+		
+		if count > 0 {
+			// Active attachments exist, do not clear
+			continue
+		}
+
+		// 2. Existence Check: Does the folder ID match a known referral?
+		// (Case where signature was generated but create-referral hasn't finished yet)
+		refUUID, pErr := uuid.Parse(folderID)
+		if pErr == nil {
+			_, rErr := u.referralRepo.GetReferralByID(ctx, refUUID)
+			if rErr == nil {
+				// Referral exists, keep for now
+				continue
+			}
+		}
+
+		// 3. Purge Orphan
+		// Piece-by-piece: Handles one orphan folder cleanup per pass if we wanted, 
+		// but here we loop through all for simplicity.
+		_ = u.storage.DeleteFilesByPrefix(ctx, folderPath+"/")
+	}
+
+	return nil
 }

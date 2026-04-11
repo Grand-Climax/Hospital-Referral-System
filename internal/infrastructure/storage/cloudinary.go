@@ -2,14 +2,13 @@ package storage
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"net/url"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api"
+	"github.com/cloudinary/cloudinary-go/v2/api/admin"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 )
@@ -63,21 +62,47 @@ func (s *cloudinaryStorage) DeleteFile(ctx context.Context, publicID string) err
 	})
 	return err
 }
-func (s *cloudinaryStorage) VerifyWebhookSignature(headers map[string]string, body []byte) (bool, error) {
-	signature := headers["X-Cld-Signature"]
-	timestamp := headers["X-Cld-Timestamp"]
-
-	if signature == "" || timestamp == "" {
-		return false, fmt.Errorf("missing signature or timestamp")
+func (s *cloudinaryStorage) RenameFile(ctx context.Context, oldPublicID string, newPublicID string) (string, string, error) {
+	renameResult, err := s.client.Upload.Rename(ctx, uploader.RenameParams{
+		FromPublicID: oldPublicID,
+		ToPublicID:   newPublicID,
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("failed to rename file: %w", err)
 	}
 
-	// Cloudinary signature verification: SHA1(body + timestamp + secret)
-	toSign := string(body) + timestamp + s.apiSecret
-	hash := sha1.New()
-	hash.Write([]byte(toSign))
-	expectedSignature := hex.EncodeToString(hash.Sum(nil))
+	return renameResult.SecureURL, renameResult.PublicID, nil
+}
 
-	return expectedSignature == signature, nil
+func (s *cloudinaryStorage) DeleteFilesByPrefix(ctx context.Context, prefix string) error {
+	if prefix == "" {
+		return fmt.Errorf("prefix is required")
+	}
+	_, err := s.client.Admin.DeleteAssetsByPrefix(ctx, admin.DeleteAssetsByPrefixParams{
+		Prefix: []string{prefix},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete assets by prefix %s: %w", prefix, err)
+	}
+	
+	// Try to delete the folder itself (fails if not empty, but good to clean up)
+	_, _ = s.client.Admin.DeleteFolder(ctx, admin.DeleteFolderParams{Folder: prefix})
+	return nil
+}
+
+func (s *cloudinaryStorage) ListFolders(ctx context.Context, prefix string) ([]string, error) {
+	resp, err := s.client.Admin.SubFolders(ctx, admin.SubFoldersParams{
+		Folder: prefix,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list subfolders for %s: %w", prefix, err)
+	}
+
+	var folders []string
+	for _, f := range resp.Folders {
+		folders = append(folders, f.Path)
+	}
+	return folders, nil
 }
 
 func (s *cloudinaryStorage) UploadFile(ctx context.Context, file interface{}, folder string) (string, string, error) {
