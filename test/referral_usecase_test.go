@@ -152,3 +152,82 @@ func TestSpecialistAccept_Ownership_DeniedOtherSpecialist(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "claimed by another specialist")
 }
+
+func TestLiaisonForward_BlockedByPending(t *testing.T) {
+	rRepo := new(MockReferralRepo)
+	nRepo := new(MockNetworkRepo)
+	aUC := new(MockAttachmentUseCase)
+	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+
+	liaisonID := uuid.New()
+	hospID := uuid.New()
+	refID := uuid.New()
+	existing := &entity.Referral{
+		ID:               refID,
+		LiaisonOfficerID: &liaisonID,
+		SenderHospitalID: hospID,
+		Status:           entity.StatusUnderLiaisonReview,
+		Attachments: []entity.Attachment{
+			{ID: uuid.New(), VerificationStatus: entity.VerificationPending},
+		},
+	}
+
+	rRepo.On("GetReferralByID", mock.Anything, refID).Return(existing, nil)
+
+	err := uc.LiaisonForward(context.Background(), refID, liaisonID, hospID, "Forwarding...")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "need to be confirmed")
+}
+
+func TestLiaisonForward_BlockedByRejected(t *testing.T) {
+	rRepo := new(MockReferralRepo)
+	nRepo := new(MockNetworkRepo)
+	aUC := new(MockAttachmentUseCase)
+	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+
+	liaisonID := uuid.New()
+	hospID := uuid.New()
+	refID := uuid.New()
+	existing := &entity.Referral{
+		ID:               refID,
+		LiaisonOfficerID: &liaisonID,
+		SenderHospitalID: hospID,
+		Status:           entity.StatusUnderLiaisonReview,
+		Attachments: []entity.Attachment{
+			{ID: uuid.New(), VerificationStatus: entity.VerificationRejected},
+		},
+	}
+
+	rRepo.On("GetReferralByID", mock.Anything, refID).Return(existing, nil)
+
+	err := uc.LiaisonForward(context.Background(), refID, liaisonID, hospID, "Forwarding...")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "requires revision")
+}
+
+func TestLiaisonForward_Success_Verified(t *testing.T) {
+	rRepo := new(MockReferralRepo)
+	nRepo := new(MockNetworkRepo)
+	aUC := new(MockAttachmentUseCase)
+	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+
+	liaisonID := uuid.New()
+	hospID := uuid.New()
+	refID := uuid.New()
+	existing := &entity.Referral{
+		ID:               refID,
+		LiaisonOfficerID: &liaisonID,
+		SenderHospitalID: hospID,
+		Status:           entity.StatusUnderLiaisonReview,
+		Attachments: []entity.Attachment{
+			{ID: uuid.New(), VerificationStatus: entity.VerificationVerified},
+		},
+	}
+
+	rRepo.On("GetReferralByID", mock.Anything, refID).Return(existing, nil)
+	rRepo.On("UpdateReferralTransaction", mock.Anything, mock.Anything).Return(nil)
+	rRepo.On("CreateStatusHistory", mock.Anything, mock.Anything).Return(nil)
+
+	err := uc.LiaisonForward(context.Background(), refID, liaisonID, hospID, "Forwarding...")
+	assert.NoError(t, err)
+}
