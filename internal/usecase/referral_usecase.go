@@ -100,7 +100,16 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 		status = entity.StatusSubmitted
 	}
 
+	// Handle Pre-minted ID
+	var refID uuid.UUID
+	if req.ID != nil {
+		refID = *req.ID
+	} else {
+		refID = uuid.New()
+	}
+
 	referral := &entity.Referral{
+		ID:                refID,
 		ReferringDoctorID: doctorID,
 		SenderHospitalID:  senderHospitalID,
 		TargetHospitalID:  req.TargetHospitalID,
@@ -162,12 +171,8 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 		_ = u.logStatusChange(ctx, referral.ID, doctorID, &draftStatus, entity.StatusSubmitted, "")
 	}
 
-	// Generate Upload Signature for Large Files (Hybrid Flow)
-	sig, _ := u.attachmentUseCase.GenerateSignature(senderHospitalID)
-
 	return &dto.ReferralCreationResponse{
-		Referral:        referral,
-		UploadSignature: sig,
+		Referral: referral,
 		BaseResponse: dto.BaseResponse{
 			Success: true,
 			Message: "Referral created successfully",
@@ -278,6 +283,9 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 		if len(existing.Diagnoses) == 0 {
 			return nil, errors.New("cannot submit: at least one diagnosis is required")
 		}
+		// Clear revision/rejection reasons as they are now addressed
+		existing.RevisionReason = nil
+		existing.RejectionReason = nil
 	}
 
 	existing.Status = nextStatus
@@ -289,12 +297,8 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 		_ = u.logStatusChange(ctx, existing.ID, doctorID, &oldStatus, nextStatus, "")
 	}
 
-	// Generate Upload Signature
-	sig, _ := u.attachmentUseCase.GenerateSignature(existing.SenderHospitalID)
-
 	return &dto.ReferralCreationResponse{
-		Referral:        existing,
-		UploadSignature: sig,
+		Referral: existing,
 		BaseResponse: dto.BaseResponse{
 			Success: true,
 			Message: "Referral updated successfully",
@@ -491,6 +495,16 @@ func (u *referralUseCase) LiaisonForward(ctx context.Context, id, liaisonID, hos
 		return errors.New("invalid referral status for forwarding")
 	}
 
+	// Gatekeeper: Ensure all attachments are confirmed and none are rejected
+	for _, att := range ref.Attachments {
+		if att.VerificationStatus == entity.VerificationPending {
+			return errors.New("referral attachments need to be confirmed before liaison action")
+		}
+		if att.VerificationStatus == entity.VerificationRejected {
+			return errors.New("referral has rejected attachments and requires revision by the doctor")
+		}
+	}
+
 	oldStatus := ref.Status
 	ref.Status = entity.StatusForwarded
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
@@ -519,6 +533,16 @@ func (u *referralUseCase) LiaisonReject(ctx context.Context, id, liaisonID, hosp
 
 	if ref.Status != entity.StatusSubmitted && ref.Status != entity.StatusUnderLiaisonReview {
 		return errors.New("invalid referral status for rejection; it must be in SUBMITTED or UNDER_LIAISON_REVIEW")
+	}
+
+	// Gatekeeper: Ensure all attachments are confirmed and none are rejected
+	for _, att := range ref.Attachments {
+		if att.VerificationStatus == entity.VerificationPending {
+			return errors.New("referral attachments need to be confirmed before liaison action")
+		}
+		if att.VerificationStatus == entity.VerificationRejected {
+			return errors.New("referral has rejected attachments and requires revision by the doctor")
+		}
 	}
 
 	oldStatus := ref.Status
@@ -551,6 +575,16 @@ func (u *referralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, hosp
 
 	if ref.Status != entity.StatusSubmitted && ref.Status != entity.StatusUnderLiaisonReview {
 		return errors.New("invalid referral status for revision; it must be in SUBMITTED or UNDER_LIAISON_REVIEW")
+	}
+
+	// Gatekeeper: Ensure all attachments are confirmed and none are rejected
+	for _, att := range ref.Attachments {
+		if att.VerificationStatus == entity.VerificationPending {
+			return errors.New("referral attachments need to be confirmed before liaison action")
+		}
+		if att.VerificationStatus == entity.VerificationRejected {
+			return errors.New("referral has rejected attachments and requires revision by the doctor")
+		}
 	}
 
 	oldStatus := ref.Status

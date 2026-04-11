@@ -42,12 +42,12 @@ func TestDoctorOperations(t *testing.T) {
 	router.PUT("/api/v1/doctor/referrals/:id", func(c *gin.Context) {
 		c.Set("userID", doctorID)
 		c.Next()
-	}, handler.UpdateAndResubmit)
+	}, handler.UpdateDraft)
 
 	router.PUT("/api/v1/doctor/referrals/:id/submit", func(c *gin.Context) {
 		c.Set("userID", doctorID)
 		c.Next()
-	}, handler.UpdateAndResubmit)
+	}, handler.SubmitReferral)
 
 	t.Run("Create Draft", func(t *testing.T) {
 		liaisonID := uuid.New()

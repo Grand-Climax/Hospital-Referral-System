@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -48,4 +49,38 @@ func (r *attachmentRepository) FindByPublicID(ctx context.Context, publicID stri
 		return nil, err
 	}
 	return &attachment, nil
+}
+
+func (r *attachmentRepository) GetPendingAttachments(ctx context.Context) ([]entity.Attachment, error) {
+	var attachments []entity.Attachment
+	err := r.db.WithContext(ctx).Where("verification_status = ?", entity.VerificationPending).Find(&attachments).Error
+	return attachments, err
+}
+
+func (r *attachmentRepository) GetPendingAttachmentsBatch(ctx context.Context, limit int) ([]entity.Attachment, error) {
+	var attachments []entity.Attachment
+	err := r.db.WithContext(ctx).Where("verification_status = ?", entity.VerificationPending).Limit(limit).Find(&attachments).Error
+	return attachments, err
+}
+
+func (r *attachmentRepository) UpdateVerificationStatus(ctx context.Context, id uuid.UUID, status string, metadata map[string]interface{}, storagePath string, publicID string, rejectionReason string, rejectedAt *time.Time) error {
+	updates := map[string]interface{}{
+		"verification_status": status,
+		"metadata":            metadata,
+		"rejection_reason":    rejectionReason,
+		"rejected_at":         rejectedAt,
+	}
+	if storagePath != "" {
+		updates["storage_path"] = storagePath
+	}
+	if publicID != "" {
+		updates["public_id"] = publicID
+	}
+	return r.db.WithContext(ctx).Model(&entity.Attachment{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *attachmentRepository) CountByPublicIDPrefix(ctx context.Context, prefix string) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&entity.Attachment{}).Where("public_id LIKE ?", prefix+"%").Count(&count).Error
+	return count, err
 }

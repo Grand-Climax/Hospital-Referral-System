@@ -15,16 +15,22 @@ definitions:
   dto.AttachmentResponse:
     properties:
       category:
+        example: RADIOLOGY
         type: string
       file_name:
+        example: xray_chest.dcm
         type: string
       file_size:
+        example: 4587210
         type: integer
       file_type:
+        example: application/dicom
         type: string
       file_url:
+        example: https://res.cloudinary.com/...
         type: string
       id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       message:
         type: string
@@ -32,11 +38,21 @@ definitions:
         additionalProperties: true
         type: object
       referral_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      rejected_at:
+        example: "2026-04-11T19:55:00Z"
+        type: string
+      rejection_message:
+        example: Metadata extraction failed
         type: string
       success:
         example: true
         type: boolean
       uploaded_at:
+        type: string
+      verification_status:
+        example: VERIFIED
         type: string
     type: object
   dto.BaseResponse:
@@ -172,6 +188,10 @@ definitions:
         type: array
       emergency_detail:
         $ref: '#/definitions/dto.EmergencyDetailDTO'
+      id:
+        description: Pre-minted ID (Optional)
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
       investigation_results:
         example: ECG shows ST elevation
         type: string
@@ -593,9 +613,6 @@ definitions:
       success:
         example: true
         type: boolean
-      upload_config:
-        additionalProperties: true
-        type: object
     type: object
   dto.ReferralDetailResponse:
     properties:
@@ -780,12 +797,18 @@ definitions:
   dto.UploadSignatureResponse:
     properties:
       api_key:
+        example: "123456789"
         type: string
       cloud_name:
+        example: hospital-system
         type: string
       folder:
+        example: temp/550e8400-e29b-41d4-a716-446655440000
         type: string
       message:
+        type: string
+      referral_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       signature:
         type: string
@@ -793,6 +816,7 @@ definitions:
         example: true
         type: boolean
       timestamp:
+        example: 1649684700
         type: integer
     type: object
   dto.UserListResponse:
@@ -900,9 +924,18 @@ definitions:
         description: Relationships
       referral_id:
         type: string
+      rejected_at:
+        example: "2026-04-11T19:55:00Z"
+        type: string
+      rejection_message:
+        example: Metadata extraction failed
+        type: string
       storage_path:
         type: string
       uploaded_at:
+        type: string
+      verification:
+        example: VERIFIED
         type: string
     type: object
   entity.DiagnosisCertainty:
@@ -1467,10 +1500,47 @@ paths:
       summary: Get Attachment Details
       tags:
       - Attachments
+  /api/v1/attachments/{id}/verify:
+    post:
+      description: |-
+        Immediately triggers metadata extraction and folder promotion for a specific attachment.
+        - Verified files are moved from `temp/` to permanent hospital storage.
+        - Failed files are marked as REJECTED and trigger NEED_REVISION on the referral.
+      parameters:
+      - description: Attachment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AttachmentListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Manual Verification & Promotion
+      tags:
+      - Attachments
   /api/v1/attachments/signature:
     get:
-      description: Request a cryptographic signature from the backend to upload files
-        directly to Cloudinary.
+      description: |-
+        The first step in creating/updating a referral with attachments.
+        1. Generates a unique **Pre-Minted Referral ID**.
+        2. Provides a cryptographic signature for Cloudinary.
+        3. Frontend MUST upload files to the folder path: `temp/{referral_id}/`.
+        4. Use the returned `referral_id` when calling the Referral Creation API.
+      parameters:
+      - description: Existing Referral ID (for updates)
+        in: query
+        name: referral_id
+        type: string
       produces:
       - application/json
       responses:
@@ -1484,7 +1554,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get Secure Upload Signature
+      summary: Get Secure Upload Signature (Pre-Minted Flow)
       tags:
       - Attachments
   /api/v1/auth/login:
@@ -1583,6 +1653,44 @@ paths:
       summary: Refresh token
       tags:
       - Auth
+  /api/v1/cron/cleanup-temp:
+    post:
+      description: |-
+        Internal endpoint triggered by GCP Cloud Scheduler.
+        Deletes empty temp folders in Cloudinary to keep the storage clean.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Cleanup Temporary Folders
+      tags:
+      - Cron
+  /api/v1/cron/verify-attachments:
+    post:
+      description: |-
+        Internal endpoint triggered by GCP Cloud Scheduler.
+        Extracts metadata from PENDING attachments and promotes valid files to permanent storage.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Batch Verification Cron
+      tags:
+      - Cron
   /api/v1/departments:
     get:
       description: List departments with optional search
@@ -1806,17 +1914,18 @@ paths:
       consumes:
       - application/json
       description: |-
-        Step 1 of the Hybrid Flow. This creates a referral and returns a 'upload_signature'.
+        Finalizes a referral that was initiated via the `signature` endpoint.
 
-        ### Frontend Integration (Hybrid Pattern):
-        1. **Reserve**: Call this endpoint with referral data. You receive a `referral` object and `upload_signature`.
-        2. **Direct Upload**: For large files (DICOM/PDF), upload directly to Cloudinary using the provided signature.
-        - **URL**: `https://api.cloudinary.com/v1_1/<cloud_name>/auto/upload`
-        - **Payload**: Include `file`, `api_key`, `timestamp`, `signature`, and `folder`.
-        - **REQUIRED Context**: You MUST include `context="referral_id=<referral.id>"` in the upload request. This links the file to the referral.
-        3. **Sync**: Cloudinary will notify the backend via webhook which automatically creates the Attachment records.
+        ### Hybrid-Upload Flow:
+        1. **Aquire ID**: Call `/api/v1/attachments/signature` to get a `referral_id`.
+        2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that `referral_id` as context.
+        3. **Finalize**: Call this endpoint with the same `id` to register the referral.
+
+        ### Status Guide:
+        - Use `status=DRAFT` to save information without entering the review pipeline.
+        - Use `status=SUBMITTED` to officially send the referral to the hospital Liaison.
       parameters:
-      - description: Referral Details
+      - description: Referral Details (Include pre-minted referral_id)
         in: body
         name: request
         required: true
@@ -1835,7 +1944,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create or Submit Referral (Hybrid Flow)
+      summary: Create or Submit Referral (Pre-Minted Architecture)
       tags:
       - Doctor Referrals
   /api/v1/doctor/referrals/{id}:
@@ -1872,11 +1981,8 @@ paths:
       consumes:
       - application/json
       description: |-
-        Step 1 for updates. Returns a new 'upload_signature' for adding more files.
-
-        ### Frontend Integration:
-        - See `POST /api/v1/doctor/referrals` documentation for detailed 3-step Hybrid Flow instructions.
-        - Remember to send `context="referral_id=<id>"` when uploading to Cloudinary to ensure the webhook syncs the file correctly.
+        Updates existing clinical data or forms for a referral in DRAFT or NEED_REVISION status.
+        This endpoint does NOT submit the referral for review.
       parameters:
       - description: Referral ID
         in: path
@@ -1902,7 +2008,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update (Draft) or Submit Referral (Hybrid Flow)
+      summary: Update Referral Draft
       tags:
       - Doctor Referrals
   /api/v1/doctor/referrals/{id}/attachments:
@@ -1974,18 +2080,15 @@ paths:
       consumes:
       - application/json
       description: |-
-        Step 1 for updates. Returns a new 'upload_signature' for adding more files.
-
-        ### Frontend Integration:
-        - See `POST /api/v1/doctor/referrals` documentation for detailed 3-step Hybrid Flow instructions.
-        - Remember to send `context="referral_id=<id>"` when uploading to Cloudinary to ensure the webhook syncs the file correctly.
+        Finalizes and submits an existing draft (or a referral needing revision) into the hospital review pipeline.
+        Once submitted, the referral status becomes SUBMITTED and it becomes visible to Liaisons.
       parameters:
       - description: Referral ID
         in: path
         name: id
         required: true
         type: string
-      - description: Updated Referral Details
+      - description: Submission Details
         in: body
         name: request
         required: true
@@ -2004,7 +2107,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update (Draft) or Submit Referral (Hybrid Flow)
+      summary: Submit Referral for Review
       tags:
       - Doctor Referrals
   /api/v1/doctor/stats:
@@ -2381,7 +2484,9 @@ paths:
       - Liaison Referrals
   /api/v1/liaison/referrals/{id}/forward:
     post:
-      description: Forward an approved referral to the specialists within the hospital.
+      description: |-
+        Forward an approved referral to the specialists within the hospital.
+        **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
       parameters:
       - description: Referral ID
         in: path
@@ -2394,15 +2499,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Forward Referral to Specialist
@@ -2441,7 +2542,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Reject an incoming referral.
+      description: |-
+        Reject an incoming referral.
+        **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
       parameters:
       - description: Referral ID
         in: path
@@ -2474,7 +2577,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Send a referral back to the draft stage to ask the sender for revisions.
+      description: |-
+        Send a referral back to the draft stage to ask the sender for revisions.
+        **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
       parameters:
       - description: Referral ID
         in: path
@@ -2867,26 +2972,28 @@ paths:
       - application/json
       - multipart/form-data
       description: |-
-        Supports two modes:
-        1. **Bulk JSON**: Register multiple Cloudinary-uploaded files.
-        2. **Direct File**: Upload a single file (Max 20MB) directly via `multipart/form-data`.
-        Limited to Referral Doctors on Draft/NeedRevision referrals.
+        Supports two modes for associating clinical data with a referral:
+        1. **Hybrid/Bulk JSON**: Register multiple files already uploaded to Cloudinary.
+        - Requires the `referral_id` pre-minted from the `/attachments/signature` endpoint.
+        - Files MUST be at the `temp/{referral_id}/` path in Cloudinary.
+        2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.
+        Strictly restricted to the Referring Doctor. Allowed only when status is DRAFT or NEED_REVISION.
       parameters:
-      - description: Referral ID
+      - description: Referral ID (Pre-minted or Existing)
         in: path
         name: id
         required: true
         type: string
-      - description: Bulk JSON payload
+      - description: Bulk JSON payload for Hybrid Flow
         in: body
         name: body
         schema:
           $ref: '#/definitions/dto.BulkAttachmentRequest'
-      - description: Direct file upload
+      - description: Direct file upload payload
         in: formData
         name: file
         type: file
-      - description: Attachment category (e.g. LAB_REPORT, DICOM_XRAY)
+      - description: Category (e.g. RADIOLOGY, LAB_REPORT, DICOM_XRAY)
         in: formData
         name: category
         type: string
@@ -2907,7 +3014,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Register Referral Attachments
+      summary: Register or Upload Referral Attachments
       tags:
       - Attachments
   /api/v1/referrals/{id}/attachments/{attachment_id}:
@@ -2939,6 +3046,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete Attachment From Referral
+      tags:
+      - Attachments
+  /api/v1/referrals/{id}/verify-attachments:
+    post:
+      description: |-
+        Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.
+        Ensures the system moves the referral out of PENDING states before Liaison review.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Verify All Referral Attachments
       tags:
       - Attachments
   /api/v1/specialist/referrals:
@@ -3598,26 +3732,6 @@ paths:
       summary: Update Profile Image
       tags:
       - Users
-  /api/v1/webhooks/cloudinary:
-    post:
-      consumes:
-      - application/json
-      description: Endpoint for Cloudinary to notify the backend about successful
-        direct uploads. Signature verification is required.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.BaseResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Handle Cloudinary Upload Notifications
-      tags:
-      - Webhooks
 securityDefinitions:
   BearerAuth:
     description: Enter your bearer token in the format **Bearer &lt;token&gt;**
