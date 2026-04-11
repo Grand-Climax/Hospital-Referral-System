@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -233,20 +232,21 @@ func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
 }
 
 // CreateOrSubmit godoc
-// @Summary      Create or Submit Referral (Hybrid Flow)
-// @Description  Step 1 of the Hybrid Flow. This creates a referral and returns a 'upload_signature'.
+// @Summary      Create or Submit Referral (Pre-Minted Architecture)
+// @Description  Finalizes a referral that was initiated via the `signature` endpoint.
 // @Description
-// @Description  ### Frontend Integration (Hybrid Pattern):
-// @Description  1. **Reserve**: Call this endpoint with referral data. You receive a `referral` object and `upload_signature`.
-// @Description  2. **Direct Upload**: For large files (DICOM/PDF), upload directly to Cloudinary using the provided signature.
-// @Description     - **URL**: `https://api.cloudinary.com/v1_1/<cloud_name>/auto/upload`
-// @Description     - **Payload**: Include `file`, `api_key`, `timestamp`, `signature`, and `folder`.
-// @Description     - **REQUIRED Context**: You MUST include `context="referral_id=<referral.id>"` in the upload request. This links the file to the referral.
-// @Description  3. **Sync**: Cloudinary will notify the backend via webhook which automatically creates the Attachment records.
+// @Description  ### Hybrid-Upload Flow:
+// @Description  1. **Aquire ID**: Call `/api/v1/attachments/signature` to get a `referral_id`.
+// @Description  2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that `referral_id` as context.
+// @Description  3. **Finalize**: Call this endpoint with the same `id` to register the referral.
+// @Description
+// @Description  ### Status Guide:
+// @Description  - Use `status=DRAFT` to save information without entering the review pipeline.
+// @Description  - Use `status=SUBMITTED` to officially send the referral to the hospital Liaison.
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
-// @Param        request body dto.CreateReferralRequest true "Referral Details"
+// @Param        request body dto.CreateReferralRequest true "Referral Details (Include pre-minted referral_id)"
 // @Success      201 {object} dto.ReferralCreationResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
@@ -298,13 +298,10 @@ func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 	c.JSON(http.StatusCreated, ref)
 }
 
-// UpdateAndResubmit godoc
-// @Summary      Update (Draft) or Submit Referral (Hybrid Flow)
-// @Description  Step 1 for updates. Returns a new 'upload_signature' for adding more files.
-// @Description
-// @Description  ### Frontend Integration:
-// @Description  - See `POST /api/v1/doctor/referrals` documentation for detailed 3-step Hybrid Flow instructions.
-// @Description  - Remember to send `context="referral_id=<id>"` when uploading to Cloudinary to ensure the webhook syncs the file correctly.
+// UpdateDraft godoc
+// @Summary      Update Referral Draft
+// @Description  Updates existing clinical data or forms for a referral in DRAFT or NEED_REVISION status.
+// @Description  This endpoint does NOT submit the referral for review.
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
@@ -314,8 +311,28 @@ func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/doctor/referrals/{id} [put]
+func (h *DoctorHandler) UpdateDraft(c *gin.Context) {
+	h.handleUpdate(c, false)
+}
+
+// SubmitReferral godoc
+// @Summary      Submit Referral for Review
+// @Description  Finalizes and submits an existing draft (or a referral needing revision) into the hospital review pipeline.
+// @Description  Once submitted, the referral status becomes SUBMITTED and it becomes visible to Liaisons.
+// @Tags         Doctor Referrals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.UpdateReferralRequest true "Submission Details"
+// @Success      200 {object} dto.ReferralCreationResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
 // @Router       /api/v1/doctor/referrals/{id}/submit [put]
-func (h *DoctorHandler) UpdateAndResubmit(c *gin.Context) {
+func (h *DoctorHandler) SubmitReferral(c *gin.Context) {
+	h.handleUpdate(c, true)
+}
+
+func (h *DoctorHandler) handleUpdate(c *gin.Context, submit bool) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
@@ -338,7 +355,7 @@ func (h *DoctorHandler) UpdateAndResubmit(c *gin.Context) {
 	if _, exists := rawBody["status"]; exists {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Success: false,
-			Error:   "status field is not allowed in update; use the specific route to submit",
+			Error:   "status field is not allowed in manually in update; use the /submit route to finalize",
 		})
 		return
 	}
@@ -347,21 +364,15 @@ func (h *DoctorHandler) UpdateAndResubmit(c *gin.Context) {
 	var req dto.UpdateReferralRequest
 	_ = json.Unmarshal(jsonData, &req)
 
-	submit := false
-	fullPath := c.FullPath()
-	if strings.HasSuffix(fullPath, "/submit") {
-		submit = true
-	}
-
 	ref, err := h.referralUC.UpdateAndResubmit(c.Request.Context(), id, doctorID, req, submit)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	msg := "Referral draft changes saved (DRAFT)"
+	msg := "Referral details updated successfully"
 	if submit {
-		msg = "Referral submitted for review (SUBMITTED)"
+		msg = "Referral officially submitted for review"
 	}
 	ref.Message = msg
 	c.JSON(http.StatusOK, ref)

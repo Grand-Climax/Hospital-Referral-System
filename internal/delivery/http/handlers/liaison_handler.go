@@ -320,11 +320,12 @@ func (h *LiaisonHandler) Read(c *gin.Context) {
 // Forward godoc
 // @Summary      Forward Referral to Specialist
 // @Description  Forward an approved referral to the specialists within the hospital.
+// @Description  **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
 // @Tags         Liaison Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
-// @Success      200 {object} map[string]string
-// @Failure      400 {object} map[string]string
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/liaison/referrals/{id}/forward [post]
 func (h *LiaisonHandler) Forward(c *gin.Context) {
@@ -359,6 +360,7 @@ func (h *LiaisonHandler) Forward(c *gin.Context) {
 // Reject godoc
 // @Summary      Reject Referral
 // @Description  Reject an incoming referral.
+// @Description  **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
 // @Tags         Liaison Referrals
 // @Accept       json
 // @Produce      json
@@ -406,6 +408,7 @@ func (h *LiaisonHandler) Reject(c *gin.Context) {
 // Revise godoc
 // @Summary      Request Referral Revision
 // @Description  Send a referral back to the draft stage to ask the sender for revisions.
+// @Description  **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
 // @Tags         Liaison Referrals
 // @Accept       json
 // @Produce      json

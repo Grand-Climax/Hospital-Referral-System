@@ -162,14 +162,22 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Request a cryptographic signature from the backend to upload files directly to Cloudinary.",
+                "description": "The first step in creating/updating a referral with attachments.\n1. Generates a unique **Pre-Minted Referral ID**.\n2. Provides a cryptographic signature for Cloudinary.\n3. Frontend MUST upload files to the folder path: ` + "`" + `temp/{referral_id}/` + "`" + `.\n4. Use the returned ` + "`" + `referral_id` + "`" + ` when calling the Referral Creation API.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Attachments"
                 ],
-                "summary": "Get Secure Upload Signature",
+                "summary": "Get Secure Upload Signature (Pre-Minted Flow)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Existing Referral ID (for updates)",
+                        "name": "referral_id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -219,6 +227,46 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/attachments/{id}/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Immediately triggers metadata extraction and folder promotion for a specific attachment.\n- Verified files are moved from ` + "`" + `temp/` + "`" + ` to permanent hospital storage.\n- Failed files are marked as REJECTED and trigger NEED_REVISION on the referral.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Manual Verification \u0026 Promotion",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Attachment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AttachmentListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -368,6 +416,58 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cron/cleanup-temp": {
+            "post": {
+                "description": "Internal endpoint triggered by GCP Cloud Scheduler.\nDeletes empty temp folders in Cloudinary to keep the storage clean.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cron"
+                ],
+                "summary": "Cleanup Temporary Folders",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cron/verify-attachments": {
+            "post": {
+                "description": "Internal endpoint triggered by GCP Cloud Scheduler.\nExtracts metadata from PENDING attachments and promotes valid files to permanent storage.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cron"
+                ],
+                "summary": "Batch Verification Cron",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -721,7 +821,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Step 1 of the Hybrid Flow. This creates a referral and returns a 'upload_signature'.\n\n### Frontend Integration (Hybrid Pattern):\n1. **Reserve**: Call this endpoint with referral data. You receive a ` + "`" + `referral` + "`" + ` object and ` + "`" + `upload_signature` + "`" + `.\n2. **Direct Upload**: For large files (DICOM/PDF), upload directly to Cloudinary using the provided signature.\n- **URL**: ` + "`" + `https://api.cloudinary.com/v1_1/\u003ccloud_name\u003e/auto/upload` + "`" + `\n- **Payload**: Include ` + "`" + `file` + "`" + `, ` + "`" + `api_key` + "`" + `, ` + "`" + `timestamp` + "`" + `, ` + "`" + `signature` + "`" + `, and ` + "`" + `folder` + "`" + `.\n- **REQUIRED Context**: You MUST include ` + "`" + `context=\"referral_id=\u003creferral.id\u003e\"` + "`" + ` in the upload request. This links the file to the referral.\n3. **Sync**: Cloudinary will notify the backend via webhook which automatically creates the Attachment records.",
+                "description": "Finalizes a referral that was initiated via the ` + "`" + `signature` + "`" + ` endpoint.\n\n### Hybrid-Upload Flow:\n1. **Aquire ID**: Call ` + "`" + `/api/v1/attachments/signature` + "`" + ` to get a ` + "`" + `referral_id` + "`" + `.\n2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that ` + "`" + `referral_id` + "`" + ` as context.\n3. **Finalize**: Call this endpoint with the same ` + "`" + `id` + "`" + ` to register the referral.\n\n### Status Guide:\n- Use ` + "`" + `status=DRAFT` + "`" + ` to save information without entering the review pipeline.\n- Use ` + "`" + `status=SUBMITTED` + "`" + ` to officially send the referral to the hospital Liaison.",
                 "consumes": [
                     "application/json"
                 ],
@@ -731,10 +831,10 @@ const docTemplate = `{
                 "tags": [
                     "Doctor Referrals"
                 ],
-                "summary": "Create or Submit Referral (Hybrid Flow)",
+                "summary": "Create or Submit Referral (Pre-Minted Architecture)",
                 "parameters": [
                     {
-                        "description": "Referral Details",
+                        "description": "Referral Details (Include pre-minted referral_id)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -810,7 +910,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Step 1 for updates. Returns a new 'upload_signature' for adding more files.\n\n### Frontend Integration:\n- See ` + "`" + `POST /api/v1/doctor/referrals` + "`" + ` documentation for detailed 3-step Hybrid Flow instructions.\n- Remember to send ` + "`" + `context=\"referral_id=\u003cid\u003e\"` + "`" + ` when uploading to Cloudinary to ensure the webhook syncs the file correctly.",
+                "description": "Updates existing clinical data or forms for a referral in DRAFT or NEED_REVISION status.\nThis endpoint does NOT submit the referral for review.",
                 "consumes": [
                     "application/json"
                 ],
@@ -820,7 +920,7 @@ const docTemplate = `{
                 "tags": [
                     "Doctor Referrals"
                 ],
-                "summary": "Update (Draft) or Submit Referral (Hybrid Flow)",
+                "summary": "Update Referral Draft",
                 "parameters": [
                     {
                         "type": "string",
@@ -960,7 +1060,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Step 1 for updates. Returns a new 'upload_signature' for adding more files.\n\n### Frontend Integration:\n- See ` + "`" + `POST /api/v1/doctor/referrals` + "`" + ` documentation for detailed 3-step Hybrid Flow instructions.\n- Remember to send ` + "`" + `context=\"referral_id=\u003cid\u003e\"` + "`" + ` when uploading to Cloudinary to ensure the webhook syncs the file correctly.",
+                "description": "Finalizes and submits an existing draft (or a referral needing revision) into the hospital review pipeline.\nOnce submitted, the referral status becomes SUBMITTED and it becomes visible to Liaisons.",
                 "consumes": [
                     "application/json"
                 ],
@@ -970,7 +1070,7 @@ const docTemplate = `{
                 "tags": [
                     "Doctor Referrals"
                 ],
-                "summary": "Update (Draft) or Submit Referral (Hybrid Flow)",
+                "summary": "Submit Referral for Review",
                 "parameters": [
                     {
                         "type": "string",
@@ -980,7 +1080,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Updated Referral Details",
+                        "description": "Submission Details",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1592,7 +1692,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Forward an approved referral to the specialists within the hospital.",
+                "description": "Forward an approved referral to the specialists within the hospital.\n**GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.",
                 "produces": [
                     "application/json"
                 ],
@@ -1613,19 +1713,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -1684,7 +1778,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Reject an incoming referral.",
+                "description": "Reject an incoming referral.\n**GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1736,7 +1830,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Send a referral back to the draft stage to ask the sender for revisions.",
+                "description": "Send a referral back to the draft stage to ask the sender for revisions.\n**GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2341,7 +2435,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Supports two modes:\n1. **Bulk JSON**: Register multiple Cloudinary-uploaded files.\n2. **Direct File**: Upload a single file (Max 20MB) directly via ` + "`" + `multipart/form-data` + "`" + `.\nLimited to Referral Doctors on Draft/NeedRevision referrals.",
+                "description": "Supports two modes for associating clinical data with a referral:\n1. **Hybrid/Bulk JSON**: Register multiple files already uploaded to Cloudinary.\n- Requires the ` + "`" + `referral_id` + "`" + ` pre-minted from the ` + "`" + `/attachments/signature` + "`" + ` endpoint.\n- Files MUST be at the ` + "`" + `temp/{referral_id}/` + "`" + ` path in Cloudinary.\n2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.\nStrictly restricted to the Referring Doctor. Allowed only when status is DRAFT or NEED_REVISION.",
                 "consumes": [
                     "application/json",
                     "multipart/form-data"
@@ -2352,17 +2446,17 @@ const docTemplate = `{
                 "tags": [
                     "Attachments"
                 ],
-                "summary": "Register Referral Attachments",
+                "summary": "Register or Upload Referral Attachments",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Referral ID",
+                        "description": "Referral ID (Pre-minted or Existing)",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Bulk JSON payload",
+                        "description": "Bulk JSON payload for Hybrid Flow",
                         "name": "body",
                         "in": "body",
                         "schema": {
@@ -2371,13 +2465,13 @@ const docTemplate = `{
                     },
                     {
                         "type": "file",
-                        "description": "Direct file upload",
+                        "description": "Direct file upload payload",
                         "name": "file",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "Attachment category (e.g. LAB_REPORT, DICOM_XRAY)",
+                        "description": "Category (e.g. RADIOLOGY, LAB_REPORT, DICOM_XRAY)",
                         "name": "category",
                         "in": "formData"
                     }
@@ -2444,6 +2538,46 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/verify-attachments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.\nEnsures the system moves the referral out of PENDING states before Liaison review.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Verify All Referral Attachments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -3453,35 +3587,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/api/v1/webhooks/cloudinary": {
-            "post": {
-                "description": "Endpoint for Cloudinary to notify the backend about successful direct uploads. Signature verification is required.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Webhooks"
-                ],
-                "summary": "Handle Cloudinary Upload Notifications",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -3507,22 +3612,28 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "category": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "RADIOLOGY"
                 },
                 "file_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "xray_chest.dcm"
                 },
                 "file_size": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 4587210
                 },
                 "file_type": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "application/dicom"
                 },
                 "file_url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://res.cloudinary.com/..."
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "message": {
                     "type": "string"
@@ -3532,7 +3643,16 @@ const docTemplate = `{
                     "additionalProperties": true
                 },
                 "referral_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "rejected_at": {
+                    "type": "string",
+                    "example": "2026-04-11T19:55:00Z"
+                },
+                "rejection_message": {
+                    "type": "string",
+                    "example": "Metadata extraction failed"
                 },
                 "success": {
                     "type": "boolean",
@@ -3540,6 +3660,10 @@ const docTemplate = `{
                 },
                 "uploaded_at": {
                     "type": "string"
+                },
+                "verification_status": {
+                    "type": "string",
+                    "example": "VERIFIED"
                 }
             }
         },
@@ -3731,6 +3855,11 @@ const docTemplate = `{
                 },
                 "emergency_detail": {
                     "$ref": "#/definitions/dto.EmergencyDetailDTO"
+                },
+                "id": {
+                    "description": "Pre-minted ID (Optional)",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "investigation_results": {
                     "type": "string",
@@ -4347,10 +4476,6 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": true
-                },
-                "upload_config": {
-                    "type": "object",
-                    "additionalProperties": true
                 }
             }
         },
@@ -4615,16 +4740,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "api_key": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123456789"
                 },
                 "cloud_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "hospital-system"
                 },
                 "folder": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "temp/550e8400-e29b-41d4-a716-446655440000"
                 },
                 "message": {
                     "type": "string"
+                },
+                "referral_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "signature": {
                     "type": "string"
@@ -4634,7 +4766,8 @@ const docTemplate = `{
                     "example": true
                 },
                 "timestamp": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1649684700
                 }
             }
         },
@@ -4791,11 +4924,23 @@ const docTemplate = `{
                 "referral_id": {
                     "type": "string"
                 },
+                "rejected_at": {
+                    "type": "string",
+                    "example": "2026-04-11T19:55:00Z"
+                },
+                "rejection_message": {
+                    "type": "string",
+                    "example": "Metadata extraction failed"
+                },
                 "storage_path": {
                     "type": "string"
                 },
                 "uploaded_at": {
                     "type": "string"
+                },
+                "verification": {
+                    "type": "string",
+                    "example": "VERIFIED"
                 }
             }
         },

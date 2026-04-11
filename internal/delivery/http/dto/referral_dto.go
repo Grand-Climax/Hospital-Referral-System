@@ -8,6 +8,9 @@ import (
 )
 
 type CreateReferralRequest struct {
+	// Pre-minted ID (Optional)
+	ID *uuid.UUID `json:"id" binding:"omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+
 	// Patient Logic
 	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"912b4375-2295-41bb-8ffd-c8318e9c051f"`
 
@@ -156,7 +159,6 @@ type ReferralDetailResponse struct {
 }
 
 type ReferralCreationResponse struct {
-	Referral        *entity.Referral        `json:"referral"`
-	UploadSignature map[string]interface{} `json:"upload_config"`
+	Referral *entity.Referral `json:"referral"`
 	BaseResponse
 }

@@ -90,7 +90,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	netHandler := handlers.NewNetworkHandler(netUseCase)
 	patientHandler := handlers.NewPatientHandler(patientUseCase)
 	attachmentHandler := handlers.NewAttachmentHandler(attachmentUseCase)
-	webhookHandler := handlers.NewWebhookHandler(attachmentUseCase, storageSvc)
 
 	// ---- API v1 Routes ----
 	v1 := router.Group("/api/v1")
@@ -103,8 +102,13 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			authRoutes.POST("/logout", authHandler.Logout)
 		}
 
-		// Webhooks (public but verified via Cloudinary signature)
-		v1.POST("/webhooks/cloudinary", webhookHandler.HandleCloudinaryWebhook)
+		// Internal Cron Scheduler Routes (Protected by GCP OIDC in production)
+		cronHandler := handlers.NewCronHandler(attachmentUseCase)
+		cronRoutes := v1.Group("/internal/cron")
+		{
+			cronRoutes.POST("/validate-attachments", cronHandler.ValidateAttachments)
+			cronRoutes.POST("/cleanup-temp", cronHandler.CleanupTemp)
+		}
 
 		// Protected routes (require authentication + audit logging)
 		protected := v1.Group("/")
@@ -162,8 +166,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				doctorGroup.POST("/referrals", doctorHandler.CreateOrSubmit)
 				doctorGroup.POST("/referrals/:id/cancel", doctorHandler.Cancel)
 				doctorGroup.DELETE("/referrals/:id/attachments", doctorHandler.DeleteAttachments)
-				doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateAndResubmit)
-				doctorGroup.PUT("/referrals/:id/submit", doctorHandler.UpdateAndResubmit)
+				doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateDraft)
+				doctorGroup.PUT("/referrals/:id/submit", doctorHandler.SubmitReferral)
 			}
 
 			// LIAISON
@@ -241,9 +245,11 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			{
 				attachmentGroup.GET("/signature", attachmentHandler.GetUploadSignature)
 				attachmentGroup.GET("/:id", attachmentHandler.GetAttachment)
+				attachmentGroup.POST("/:id/verify", attachmentHandler.ManualVerifyAttachment)
 			}
 			// Referral-specific attachments
 			protected.POST("/referrals/:id/attachments", attachmentHandler.UploadAttachment)
+			protected.POST("/referrals/:id/verify-attachments", attachmentHandler.ManualVerifyReferralAttachments)
 			protected.GET("/referrals/:id/attachments", attachmentHandler.GetReferralAttachments)
 			protected.DELETE("/referrals/:id/attachments/:attachment_id", attachmentHandler.DeleteFromReferral)
 
