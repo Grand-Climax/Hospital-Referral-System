@@ -4752,7 +4752,8 @@
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "signature": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "a92425642..."
                 },
                 "success": {
                     "type": "boolean",

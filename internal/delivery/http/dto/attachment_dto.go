@@ -39,7 +39,7 @@ type AttachmentListResponse struct {
 type UploadSignatureResponse struct {
 	BaseResponse
 	ReferralID string `json:"referral_id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	Signature  string `json:"signature" example:"a92425642...`
+	Signature  string `json:"signature" example:"a92425642..."`
 	Timestamp  int64  `json:"timestamp" example:"1649684700"`
 	APIKey     string `json:"api_key" example:"123456789"`
 	CloudName  string `json:"cloud_name" example:"hospital-system"`
