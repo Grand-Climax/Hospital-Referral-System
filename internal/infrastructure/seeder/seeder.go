@@ -34,6 +34,7 @@ func SeedReferenceData(ctx context.Context, db *gorm.DB) error {
 		&entity.Vital{},
 		&entity.ReferralEmergencyDetail{},
 		&entity.ReferralStatusHistory{},
+		&entity.StaffReplacementLog{},
 		&entity.Attachment{},
 		&entity.AuditLog{},
 	)
@@ -174,7 +175,7 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 		}
 	}
 
-			// Cardiology is pinned to a stable UUID in data.go — use it directly
+	// Cardiology is pinned to a stable UUID in data.go — use it directly
 	cardiologyID := uuid.MustParse("dfc2b777-a5d5-424b-911a-976b2e8d8614")
 
 	// helper: creates a user pinned to a hospital, optionally with a department

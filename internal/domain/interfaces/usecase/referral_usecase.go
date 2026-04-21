@@ -1,4 +1,4 @@
-package usecase
+package interfaces
 
 import (
 	"context"
@@ -48,6 +48,7 @@ type ReferralUseCase interface {
 	// --- Admin Actions ---
 	ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error)
 	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
+	GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 
 	// --- Helpers ---
 	IsValidStatus(status string) bool
