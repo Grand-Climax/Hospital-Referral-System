@@ -166,7 +166,21 @@ func (r *referralRepository) GetHospitalLogsForAdmin(ctx context.Context, hospID
 	query := r.db.WithContext(ctx).Model(&entity.ReferralStatusHistory{}).
 		Joins("JOIN referrals ON referral_status_histories.referral_id = referrals.id").
 		Where("referrals.sender_hospital_id = ? OR referrals.target_hospital_id = ?", hospID, hospID)
-	err := query.Count(&count).Limit(limit).Offset(offset).Order("created_at desc").Find(&logs).Error
+	err := query.Count(&count).Limit(limit).Offset(offset).Order("referral_status_histories.changed_at desc").Find(&logs).Error
+	return logs, count, err
+}
+
+func (r *referralRepository) GetReferralStatusHistoryForHospital(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
+	var logs []entity.ReferralStatusHistory
+	var count int64
+	offset := (page - 1) * limit
+
+	query := r.db.WithContext(ctx).Model(&entity.ReferralStatusHistory{}).
+		Joins("JOIN referrals ON referral_status_histories.referral_id = referrals.id").
+		Where("referral_status_histories.referral_id = ?", referralID).
+		Where("referrals.sender_hospital_id = ? OR referrals.target_hospital_id = ?", hospID, hospID)
+
+	err := query.Count(&count).Limit(limit).Offset(offset).Order("referral_status_histories.changed_at desc").Find(&logs).Error
 	return logs, count, err
 }
 
@@ -268,7 +282,7 @@ func (r *referralRepository) GetDoctorStats(ctx context.Context, doctorID uuid.U
 
 	// Pending
 	pendingStatuses := []entity.ReferralStatus{
-		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded, 
+		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded,
 		entity.StatusUnderSpecialistReview, entity.StatusNeedRevision,
 	}
 	if err := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ? AND status IN ?", doctorID, pendingStatuses).Count(&pending).Error; err != nil {
@@ -300,7 +314,7 @@ func (r *referralRepository) GetDoctorStats(ctx context.Context, doctorID uuid.U
 func (r *referralRepository) GetLatestPendingForDoctor(ctx context.Context, doctorID uuid.UUID, limit int) ([]entity.Referral, error) {
 	var referrals []entity.Referral
 	pendingStatuses := []entity.ReferralStatus{
-		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded, 
+		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded,
 		entity.StatusUnderSpecialistReview, entity.StatusNeedRevision,
 	}
 	err := r.db.WithContext(ctx).Model(&entity.Referral{}).

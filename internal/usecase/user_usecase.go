@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -14,10 +15,15 @@ import (
 )
 
 var (
-	ErrUserNotFound     = errors.New("user not found")
-	ErrEmailExists      = errors.New("a user with this email already exists")
-	ErrNationalIDExists = errors.New("a user with this national ID already exists")
-	ErrInvalidRole      = errors.New("invalid user role")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrEmailExists         = errors.New("a user with this email already exists")
+	ErrNationalIDExists    = errors.New("a user with this national ID already exists")
+	ErrInvalidRole         = errors.New("invalid user role")
+	ErrInvalidDepartment   = errors.New("invalid department_id")
+	ErrForbiddenStaffScope = errors.New("forbidden: hospital admin can only manage staff in their own hospital")
+	ErrInvalidAdminScope   = errors.New("forbidden: hospital admin must belong to a hospital")
+	ErrCannotManageUser    = errors.New("forbidden: this user cannot be managed by hospital admin")
+	ErrCannotManageSelf    = errors.New("forbidden: hospital admin cannot perform this operation on their own account")
 )
 
 type userUseCase struct {
@@ -36,7 +42,17 @@ var validRoles = map[entity.UserRole]bool{
 	entity.RoleReceptionist:        true,
 	entity.RoleMohAnalyst:          true,
 	entity.RoleDeptHead:            true,
+	entity.RoleHospitalAdmin:       true,
 	entity.RoleSystemSuperAdmin:    true,
+}
+
+var hospitalAdminManageableRoles = map[entity.UserRole]bool{
+	entity.RoleReferringDoctor:     true,
+	entity.RoleLiaisonOfficer:      true,
+	entity.RoleReceivingSpecialist: true,
+	entity.RoleReceptionist:        true,
+	entity.RoleDeptHead:            true,
+	entity.RoleHospitalAdmin:       true,
 }
 
 func (u *userUseCase) CreateUser(ctx context.Context, user *entity.User, rawPassword string) error {
@@ -68,7 +84,14 @@ func (u *userUseCase) CreateUser(ctx context.Context, user *entity.User, rawPass
 	user.IsActive = true
 	user.IsDeleted = false
 
-	return u.repo.Create(ctx, user)
+	if err := u.repo.Create(ctx, user); err != nil {
+		// Normalize DB FK errors into a client-facing validation error.
+		if strings.Contains(err.Error(), "fk_users_department") {
+			return ErrInvalidDepartment
+		}
+		return err
+	}
+	return nil
 }
 
 func (u *userUseCase) GetUserByID(ctx context.Context, id, requesterID uuid.UUID) (*entity.User, error) {
@@ -232,6 +255,176 @@ func (u *userUseCase) UpdateProfileImage(ctx context.Context, userID uuid.UUID, 
 	user.ProfileImagePublicID = publicID
 
 	return u.repo.Update(ctx, user)
+}
+
+func (u *userUseCase) hospitalAdminContext(ctx context.Context, adminID uuid.UUID) (*entity.User, uuid.UUID, error) {
+	admin, err := u.repo.FindByID(ctx, adminID)
+	if err != nil || admin.IsDeleted {
+		return nil, uuid.Nil, ErrUserNotFound
+	}
+	if admin.Role != entity.RoleHospitalAdmin {
+		return nil, uuid.Nil, ErrForbiddenStaffScope
+	}
+	if admin.HospitalID == nil {
+		return nil, uuid.Nil, ErrInvalidAdminScope
+	}
+	return admin, *admin.HospitalID, nil
+}
+
+func (u *userUseCase) validateHospitalAdminTarget(admin *entity.User, target *entity.User) error {
+	if target.IsDeleted {
+		return ErrUserNotFound
+	}
+	if admin.ID == target.ID {
+		return ErrCannotManageSelf
+	}
+	if target.HospitalID == nil || admin.HospitalID == nil || *target.HospitalID != *admin.HospitalID {
+		return ErrForbiddenStaffScope
+	}
+	if !hospitalAdminManageableRoles[target.Role] {
+		return ErrCannotManageUser
+	}
+	return nil
+}
+
+func (u *userUseCase) HospitalAdminCreateStaff(ctx context.Context, adminID uuid.UUID, user *entity.User, rawPassword string) error {
+	_, adminHospID, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return err
+	}
+	if !hospitalAdminManageableRoles[user.Role] {
+		return ErrInvalidRole
+	}
+
+	// Enforce strict same-hospital creation.
+	user.HospitalID = &adminHospID
+	return u.CreateUser(ctx, user, rawPassword)
+}
+
+func (u *userUseCase) HospitalAdminListStaff(ctx context.Context, adminID uuid.UUID, filter irepository.UserListFilter) ([]entity.User, int64, error) {
+	_, adminHospID, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	hospStr := adminHospID.String()
+	filter.HospitalID = &hospStr
+	filter.ExcludeRoles = []entity.UserRole{entity.RoleSystemSuperAdmin, entity.RoleMohAnalyst}
+	users, _, err := u.repo.ListUsers(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Defensive filtering in case repository exclusion rules change.
+	filtered := make([]entity.User, 0, len(users))
+	for _, usr := range users {
+		if usr.HospitalID == nil || *usr.HospitalID != adminHospID {
+			continue
+		}
+		if !hospitalAdminManageableRoles[usr.Role] {
+			continue
+		}
+		filtered = append(filtered, usr)
+	}
+	return filtered, int64(len(filtered)), nil
+}
+
+func (u *userUseCase) HospitalAdminGetStaffByID(ctx context.Context, adminID, staffID uuid.UUID) (*entity.User, error) {
+	admin, _, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return nil, err
+	}
+	target, err := u.repo.FindByID(ctx, staffID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	if err := u.validateHospitalAdminTarget(admin, target); err != nil {
+		return nil, err
+	}
+	return target, nil
+}
+
+func (u *userUseCase) HospitalAdminChangeStaffRole(ctx context.Context, adminID, staffID uuid.UUID, role entity.UserRole) error {
+	if !hospitalAdminManageableRoles[role] {
+		return ErrInvalidRole
+	}
+
+	admin, _, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return err
+	}
+	target, err := u.repo.FindByID(ctx, staffID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+	if err := u.validateHospitalAdminTarget(admin, target); err != nil {
+		return err
+	}
+
+	target.Role = role
+	return u.repo.Update(ctx, target)
+}
+
+func (u *userUseCase) HospitalAdminSoftDeleteStaff(ctx context.Context, adminID, staffID uuid.UUID) error {
+	admin, _, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return err
+	}
+	target, err := u.repo.FindByID(ctx, staffID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+	if err := u.validateHospitalAdminTarget(admin, target); err != nil {
+		return err
+	}
+
+	target.IsDeleted = true
+	target.IsActive = false
+	return u.repo.Update(ctx, target)
+}
+
+func (u *userUseCase) HospitalAdminReplaceStaff(ctx context.Context, adminID, staffID uuid.UUID, input iusecase.HospitalAdminReplacementInput) error {
+	admin, adminHospID, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return err
+	}
+	target, err := u.repo.FindByID(ctx, staffID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+	if err := u.validateHospitalAdminTarget(admin, target); err != nil {
+		return err
+	}
+
+	if existing, err := u.repo.FindByEmail(ctx, input.Email); err == nil && existing != nil && existing.ID != target.ID {
+		return ErrEmailExists
+	}
+
+	hash, err := auth.HashPassword(input.Password)
+	if err != nil {
+		return err
+	}
+
+	oldEmail := target.Email
+	target.FirstName = input.FirstName
+	target.MiddleName = input.MiddleName
+	target.LastName = input.LastName
+	target.Email = input.Email
+	target.PasswordHash = hash
+
+	if err := u.repo.Update(ctx, target); err != nil {
+		return err
+	}
+
+	return u.repo.CreateStaffReplacementLog(ctx, &entity.StaffReplacementLog{
+		HospitalID:        adminHospID,
+		UserID:            target.ID,
+		RoleAtReplacement: target.Role,
+		OldEmail:          oldEmail,
+		NewEmail:          target.Email,
+		Reason:            input.Reason,
+		ReplacedByAdminID: admin.ID,
+	})
 }
 
 // canSeeTarget implements the row-level visibility matrix

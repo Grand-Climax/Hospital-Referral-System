@@ -13,8 +13,8 @@ import (
 )
 
 type referralUseCase struct {
-	referralRepo   irepository.ReferralRepository
-	networkRepo    irepository.NetworkRepository
+	referralRepo      irepository.ReferralRepository
+	networkRepo       irepository.NetworkRepository
 	attachmentUseCase iusecase.AttachmentUseCase
 }
 
@@ -33,15 +33,15 @@ func (u *referralUseCase) IsValidStatus(status string) bool {
 		entity.StatusForwarded:             true,
 		entity.StatusUnderSpecialistReview: true,
 		entity.StatusAccepted:              true,
-		entity.StatusScheduled:              true,
-		entity.StatusAssigned:               true,
+		entity.StatusScheduled:             true,
+		entity.StatusAssigned:              true,
 		entity.StatusCompleted:             true,
 		entity.StatusNeedRevision:          true,
 		entity.StatusCancelled:             true,
-		entity.StatusRejectedByLiaison:    true,
-		entity.StatusRejectedBySpecialist: true,
-		entity.StatusMissed:               true,
-		entity.StatusRescheduled:          true,
+		entity.StatusRejectedByLiaison:     true,
+		entity.StatusRejectedBySpecialist:  true,
+		entity.StatusMissed:                true,
+		entity.StatusRescheduled:           true,
 	}
 	return validStatuses[entity.ReferralStatus(status)]
 }
@@ -323,7 +323,7 @@ func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.
 
 	oldStatus := existing.Status
 	existing.Status = entity.StatusCancelled
-	
+
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, existing); err != nil {
 		return err
 	}
@@ -659,15 +659,15 @@ func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospI
 
 	// Status constraint: same as ListForSpecialist
 	allowedStatuses := map[entity.ReferralStatus]bool{
-		entity.StatusForwarded:              true,
-		entity.StatusUnderSpecialistReview:  true,
-		entity.StatusAccepted:               true,
-		entity.StatusScheduled:              true,
-		entity.StatusAssigned:               true,
-		entity.StatusCompleted:              true,
-		entity.StatusRejectedBySpecialist:   true,
-		entity.StatusMissed:                 true,
-		entity.StatusRescheduled:            true,
+		entity.StatusForwarded:             true,
+		entity.StatusUnderSpecialistReview: true,
+		entity.StatusAccepted:              true,
+		entity.StatusScheduled:             true,
+		entity.StatusAssigned:              true,
+		entity.StatusCompleted:             true,
+		entity.StatusRejectedBySpecialist:  true,
+		entity.StatusMissed:                true,
+		entity.StatusRescheduled:           true,
 	}
 
 	if !allowedStatuses[ref.Status] {
@@ -930,4 +930,8 @@ func (u *referralUseCase) ListForSystemAdmin(ctx context.Context, filter ireposi
 
 func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
 	return u.referralRepo.GetHospitalLogsForAdmin(ctx, hospID, limit, page)
+}
+
+func (u *referralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
+	return u.referralRepo.GetReferralStatusHistoryForHospital(ctx, hospID, referralID, limit, page)
 }

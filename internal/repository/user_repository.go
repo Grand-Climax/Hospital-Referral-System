@@ -111,3 +111,7 @@ func (r *userRepository) ListUsers(ctx context.Context, filter irepository.UserL
 
 	return users, total, nil
 }
+
+func (r *userRepository) CreateStaffReplacementLog(ctx context.Context, log *entity.StaffReplacementLog) error {
+	return r.db.WithContext(ctx).Create(log).Error
+}
