@@ -332,6 +332,81 @@ definitions:
         example: false
         type: boolean
     type: object
+  dto.HospitalAdminChangeRoleRequest:
+    properties:
+      role:
+        allOf:
+        - $ref: '#/definitions/entity.UserRole'
+        example: RECEIVING_SPECIALIST
+    required:
+    - role
+    type: object
+  dto.HospitalAdminCreateStaffRequest:
+    properties:
+      department_id:
+        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        type: string
+      email:
+        example: staff@hospital.et
+        type: string
+      first_name:
+        example: Abebe
+        type: string
+      last_name:
+        example: Molla
+        type: string
+      middle_name:
+        example: Kebede
+        type: string
+      national_id:
+        example: ETH-0001
+        type: string
+      password:
+        example: password123
+        minLength: 8
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/entity.UserRole'
+        example: LIAISON_OFFICER
+    required:
+    - email
+    - first_name
+    - last_name
+    - middle_name
+    - password
+    - role
+    type: object
+  dto.HospitalAdminReplaceStaffRequest:
+    properties:
+      email:
+        example: replacement@hospital.et
+        type: string
+      first_name:
+        example: Abebe
+        type: string
+      last_name:
+        example: Molla
+        type: string
+      middle_name:
+        example: Kebede
+        type: string
+      password:
+        example: newStrongPass123
+        minLength: 8
+        type: string
+      reason:
+        example: Staff transition and account continuity
+        minLength: 5
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - middle_name
+    - password
+    - reason
+    type: object
   dto.HospitalDepartmentListResponse:
     properties:
       data:
@@ -2162,6 +2237,286 @@ paths:
       summary: Get Referral Logs for Hospital
       tags:
       - Admin Referrals
+  /api/v1/hospital-admin/referrals/{id}/status-history:
+    get:
+      description: Read-only status history for a referral linked to the admin's hospital.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedLogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get referral status history (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff:
+    get:
+      description: List staff users scoped to the admin's hospital.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by role
+        in: query
+        name: role
+        type: string
+      - description: Filter by name
+        in: query
+        name: name
+        type: string
+      - description: Filter by email
+        in: query
+        name: email
+        type: string
+      - description: Filter by department ID
+        in: query
+        name: dept_id
+        type: string
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserListResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List staff (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+    post:
+      consumes:
+      - application/json
+      description: Create a new staff user in the current hospital scope.
+      parameters:
+      - description: Staff creation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminCreateStaffRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create staff (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff/{id}:
+    delete:
+      description: Soft delete a staff user within the same hospital scope.
+      parameters:
+      - description: Staff user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Soft delete staff (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+    get:
+      description: Get a staff profile scoped to the admin's hospital.
+      parameters:
+      - description: Staff user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get staff by ID (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff/{id}/replace:
+    post:
+      consumes:
+      - application/json
+      description: In-place replacement updates identity and password while keeping
+        the same user ID.
+      parameters:
+      - description: Staff user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Replacement payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminReplaceStaffRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Replace staff in-place (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff/{id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Update the role of a staff user within the same hospital scope.
+      parameters:
+      - description: Staff user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role change payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminChangeRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change staff role (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
   /api/v1/hospitals:
     get:
       description: List hospitals with optional filters
@@ -3172,7 +3527,6 @@ paths:
         name: request
         schema:
           additionalProperties:
-            format: float64
             type: number
           type: object
       produces:
