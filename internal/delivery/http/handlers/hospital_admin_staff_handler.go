@@ -72,7 +72,7 @@ func mapHospitalAdminStaffError(err error) int {
 // CreateStaff godoc
 // @Summary      Create staff (Hospital Admin)
 // @Description  Create a new staff user in the current hospital scope.
-// @Tags         HospitalAdmin Staff
+// @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
 // @Param        body body dto.HospitalAdminCreateStaffRequest true "Staff creation payload"
@@ -124,7 +124,7 @@ func (h *HospitalAdminStaffHandler) CreateStaff(c *gin.Context) {
 // ListStaff godoc
 // @Summary      List staff (Hospital Admin)
 // @Description  List staff users scoped to the admin's hospital.
-// @Tags         HospitalAdmin Staff
+// @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        page query int false "Page number" default(1)
 // @Param        page_size query int false "Page size" default(20)
@@ -190,7 +190,7 @@ func (h *HospitalAdminStaffHandler) ListStaff(c *gin.Context) {
 // GetStaff godoc
 // @Summary      Get staff by ID (Hospital Admin)
 // @Description  Get a staff profile scoped to the admin's hospital.
-// @Tags         HospitalAdmin Staff
+// @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        id path string true "Staff user ID"
 // @Success      200 {object} dto.UserResponse
@@ -224,7 +224,7 @@ func (h *HospitalAdminStaffHandler) GetStaff(c *gin.Context) {
 // ChangeStaffRole godoc
 // @Summary      Change staff role (Hospital Admin)
 // @Description  Update the role of a staff user within the same hospital scope.
-// @Tags         HospitalAdmin Staff
+// @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -263,7 +263,7 @@ func (h *HospitalAdminStaffHandler) ChangeStaffRole(c *gin.Context) {
 // DeleteStaff godoc
 // @Summary      Soft delete staff (Hospital Admin)
 // @Description  Soft delete a staff user within the same hospital scope.
-// @Tags         HospitalAdmin Staff
+// @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        id path string true "Staff user ID"
 // @Success      200 {object} dto.BaseResponse
@@ -294,7 +294,7 @@ func (h *HospitalAdminStaffHandler) DeleteStaff(c *gin.Context) {
 // ReplaceStaff godoc
 // @Summary      Replace staff in-place (Hospital Admin)
 // @Description  In-place replacement updates identity and password while keeping the same user ID.
-// @Tags         HospitalAdmin Staff
+// @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -342,7 +342,7 @@ func (h *HospitalAdminStaffHandler) ReplaceStaff(c *gin.Context) {
 // GetReferralStatusHistory godoc
 // @Summary      Get referral status history (Hospital Admin)
 // @Description  Read-only status history for a referral linked to the admin's hospital.
-// @Tags         HospitalAdmin Staff
+// @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Param        limit query int false "Pagination limit" default(20)
