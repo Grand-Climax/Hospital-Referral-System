@@ -78,13 +78,14 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	userHandler := handlers.NewUserHandler(userUseCase)
 	hospitalHandler := handlers.NewHospitalHandler(hospitalUseCase)
 	departmentHandler := handlers.NewDepartmentHandler(departmentUseCase)
-	
+
 	// Role-Based State Machine Handlers
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase)
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase)
 	adminHandler := handlers.NewAdminHandler(referralUseCase)
+	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
 
 	refHandler := handlers.NewReferenceHandler(refUseCase)
 	netHandler := handlers.NewNetworkHandler(netUseCase)
@@ -125,7 +126,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				adminGroup.GET("", netHandler.List)
 				adminGroup.DELETE("/:id", netHandler.Delete)
 			}
-			
+
 			// Patient Identity Routes
 			patientGroup := protected.Group("/patients")
 			patientGroup.Use(middleware.RequireRole(
@@ -214,7 +215,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			{
 				systemAdminGroup.GET("", adminHandler.SystemAdminList)
 			}
-			
+
 			// Global User Management (System Admin Only)
 			sysAdminUsersGroup := protected.Group("/system-admin/users")
 			sysAdminUsersGroup.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin))
@@ -238,8 +239,15 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			hospitalAdminGroup.Use(middleware.RequireRole(entity.RoleHospitalAdmin))
 			{
 				hospitalAdminGroup.GET("/referrals-log", adminHandler.HospitalAdminLogs)
+				hospitalAdminGroup.POST("/staff", hospitalAdminStaffHandler.CreateStaff)
+				hospitalAdminGroup.GET("/staff", hospitalAdminStaffHandler.ListStaff)
+				hospitalAdminGroup.GET("/staff/:id", hospitalAdminStaffHandler.GetStaff)
+				hospitalAdminGroup.PATCH("/staff/:id/role", hospitalAdminStaffHandler.ChangeStaffRole)
+				hospitalAdminGroup.DELETE("/staff/:id", hospitalAdminStaffHandler.DeleteStaff)
+				hospitalAdminGroup.POST("/staff/:id/replace", hospitalAdminStaffHandler.ReplaceStaff)
+				hospitalAdminGroup.GET("/referrals/:id/status-history", hospitalAdminStaffHandler.GetReferralStatusHistory)
 			}
-			
+
 			// Attachments
 			attachmentGroup := protected.Group("/attachments")
 			{

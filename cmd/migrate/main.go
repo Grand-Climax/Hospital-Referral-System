@@ -45,6 +45,7 @@ func main() {
 		&entity.Vital{},
 		&entity.ReferralEmergencyDetail{},
 		&entity.ReferralStatusHistory{},
+		&entity.StaffReplacementLog{},
 		&entity.Attachment{},
 		&entity.AuditLog{},
 	)
