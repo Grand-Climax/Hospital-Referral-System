@@ -1,4 +1,4 @@
-package repository
+package interfaces
 
 import (
 	"context"
@@ -7,16 +7,16 @@ import (
 )
 
 type UserListFilter struct {
-	Page       int
-	PageSize   int
-	Role       *entity.UserRole
-	HospitalID *string
-	DepartmentID *string
-	Email      *string
-	IsActive   *bool
-	Search     *string // searches first_name, last_name, email (legacy)
-	Name       *string // specific tokenized name search
-	ExcludeRoles []entity.UserRole
+	Page                      int
+	PageSize                  int
+	Role                      *entity.UserRole
+	HospitalID                *string
+	DepartmentID              *string
+	Email                     *string
+	IsActive                  *bool
+	Search                    *string // searches first_name, last_name, email (legacy)
+	Name                      *string // specific tokenized name search
+	ExcludeRoles              []entity.UserRole
 	ExcludeOtherReceptionists *string // HospitalID to keep (others are excluded)
 }
 
@@ -25,4 +25,5 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*entity.User, error)
 	FindByNationalID(ctx context.Context, nationalID string) (*entity.User, error)
 	ListUsers(ctx context.Context, filter UserListFilter) ([]entity.User, int64, error)
+	CreateStaffReplacementLog(ctx context.Context, log *entity.StaffReplacementLog) error
 }

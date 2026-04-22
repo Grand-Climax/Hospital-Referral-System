@@ -69,6 +69,11 @@ func (m *MockUserRepo) ListUsers(ctx context.Context, filter irepository.UserLis
 	return args.Get(0).([]entity.User), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockUserRepo) CreateStaffReplacementLog(ctx context.Context, log *entity.StaffReplacementLog) error {
+	args := m.Called(ctx, log)
+	return args.Error(0)
+}
+
 // ---------------------------------------------------------------------------
 // Mock: ReferralRepository
 // ---------------------------------------------------------------------------
@@ -117,6 +122,11 @@ func (m *MockReferralRepo) ListForSystemAdmin(ctx context.Context, filter irepos
 
 func (m *MockReferralRepo) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
 	args := m.Called(ctx, hospID, limit, page)
+	return args.Get(0).([]entity.ReferralStatusHistory), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralRepo) GetReferralStatusHistoryForHospital(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
+	args := m.Called(ctx, hospID, referralID, limit, page)
 	return args.Get(0).([]entity.ReferralStatusHistory), args.Get(1).(int64), args.Error(2)
 }
 
@@ -352,6 +362,11 @@ func (m *MockReferralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospI
 	return args.Get(0).([]entity.ReferralStatusHistory), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockReferralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
+	args := m.Called(ctx, hospID, referralID, limit, page)
+	return args.Get(0).([]entity.ReferralStatusHistory), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *MockReferralUseCase) IsValidStatus(status string) bool {
 	args := m.Called(status)
 	return args.Bool(0)
@@ -494,7 +509,9 @@ func (m *MockAttachmentRepo) Create(ctx context.Context, a *entity.Attachment) e
 
 func (m *MockAttachmentRepo) FindByID(ctx context.Context, id uuid.UUID) (*entity.Attachment, error) {
 	args := m.Called(ctx, id)
-	if args.Get(0) == nil { return nil, args.Error(1) }
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*entity.Attachment), args.Error(1)
 }
 
@@ -529,7 +546,9 @@ func (m *MockAttachmentRepo) CountByReferralID(ctx context.Context, referralID u
 
 func (m *MockAttachmentRepo) FindByPublicID(ctx context.Context, publicID string) (*entity.Attachment, error) {
 	args := m.Called(ctx, publicID)
-	if args.Get(0) == nil { return nil, args.Error(1) }
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*entity.Attachment), args.Error(1)
 }
 

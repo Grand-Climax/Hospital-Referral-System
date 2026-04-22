@@ -174,7 +174,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		switch err {
 		case usecase.ErrEmailExists, usecase.ErrNationalIDExists:
 			c.JSON(http.StatusConflict, dto.ErrorResponse{Success: false, Error: err.Error()})
-		case usecase.ErrInvalidRole:
+		case usecase.ErrInvalidRole, usecase.ErrInvalidDepartment:
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		default:
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to create user"})

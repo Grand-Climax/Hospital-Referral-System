@@ -11,6 +11,7 @@ import (
 
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/usecase"
 )
 
@@ -286,4 +287,100 @@ func TestCreateUser_RequesterNotFound_OnList(t *testing.T) {
 	_, _, err := uc.ListUsers(context.Background(), irepository.UserListFilter{}, uuid.New())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unauthorized")
+}
+
+func TestHospitalAdminCreateStaff_ScopesToAdminHospital(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := usecase.NewUserUseCase(repo, svc)
+
+	adminHosp := hospitalID()
+	admin := newUser(entity.RoleHospitalAdmin, adminHosp)
+	newStaff := &entity.User{
+		Email:      "new.staff@hospital.et",
+		FirstName:  "New",
+		MiddleName: "Staff",
+		LastName:   "User",
+		Role:       entity.RoleLiaisonOfficer,
+	}
+
+	repo.On("FindByID", mock.Anything, admin.ID).Return(admin, nil)
+	repo.On("FindByEmail", mock.Anything, newStaff.Email).Return(nil, errors.New("not found"))
+	repo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.HospitalID != nil && *u.HospitalID == *adminHosp && u.Role == entity.RoleLiaisonOfficer
+	})).Return(nil)
+
+	err := uc.HospitalAdminCreateStaff(context.Background(), admin.ID, newStaff, "password123")
+	assert.NoError(t, err)
+}
+
+func TestHospitalAdminChangeRole_DeniesCrossHospital(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := usecase.NewUserUseCase(repo, svc)
+
+	adminHosp := hospitalID()
+	otherHosp := hospitalID()
+	admin := newUser(entity.RoleHospitalAdmin, adminHosp)
+	target := newUser(entity.RoleReceptionist, otherHosp)
+
+	repo.On("FindByID", mock.Anything, admin.ID).Return(admin, nil)
+	repo.On("FindByID", mock.Anything, target.ID).Return(target, nil)
+
+	err := uc.HospitalAdminChangeStaffRole(context.Background(), admin.ID, target.ID, entity.RoleLiaisonOfficer)
+	assert.ErrorIs(t, err, usecase.ErrForbiddenStaffScope)
+}
+
+func TestHospitalAdminSoftDeleteStaff_SetsSoftDeleteFlags(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := usecase.NewUserUseCase(repo, svc)
+
+	adminHosp := hospitalID()
+	admin := newUser(entity.RoleHospitalAdmin, adminHosp)
+	target := newUser(entity.RoleLiaisonOfficer, adminHosp)
+
+	repo.On("FindByID", mock.Anything, admin.ID).Return(admin, nil)
+	repo.On("FindByID", mock.Anything, target.ID).Return(target, nil)
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == target.ID && u.IsDeleted && !u.IsActive
+	})).Return(nil)
+
+	err := uc.HospitalAdminSoftDeleteStaff(context.Background(), admin.ID, target.ID)
+	assert.NoError(t, err)
+}
+
+func TestHospitalAdminReplaceStaff_InPlaceAndLogged(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := usecase.NewUserUseCase(repo, svc)
+
+	adminHosp := hospitalID()
+	admin := newUser(entity.RoleHospitalAdmin, adminHosp)
+	target := newUser(entity.RoleLiaisonOfficer, adminHosp)
+	target.Email = "old@hospital.et"
+
+	repo.On("FindByID", mock.Anything, admin.ID).Return(admin, nil)
+	repo.On("FindByID", mock.Anything, target.ID).Return(target, nil)
+	repo.On("FindByEmail", mock.Anything, "new@hospital.et").Return(nil, errors.New("not found"))
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == target.ID && u.Email == "new@hospital.et" && u.PasswordHash != ""
+	})).Return(nil)
+	repo.On("CreateStaffReplacementLog", mock.Anything, mock.MatchedBy(func(l *entity.StaffReplacementLog) bool {
+		return l.UserID == target.ID &&
+			l.HospitalID == *adminHosp &&
+			l.OldEmail == "old@hospital.et" &&
+			l.NewEmail == "new@hospital.et" &&
+			l.Reason == "staff transition"
+	})).Return(nil)
+
+	err := uc.HospitalAdminReplaceStaff(context.Background(), admin.ID, target.ID, iusecase.HospitalAdminReplacementInput{
+		FirstName:  "New",
+		MiddleName: "Middle",
+		LastName:   "Name",
+		Email:      "new@hospital.et",
+		Password:   "newStrongPass123",
+		Reason:     "staff transition",
+	})
+	assert.NoError(t, err)
 }

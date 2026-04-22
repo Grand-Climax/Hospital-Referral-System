@@ -10,7 +10,7 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2/api"
 	"github.com/cloudinary/cloudinary-go/v2/api/admin"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
-	"Hospital-Referral-System/internal/domain/interfaces/infrastructure"
+	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 )
 
 type cloudinaryStorage struct {
@@ -19,7 +19,7 @@ type cloudinaryStorage struct {
 	apiSecret string
 }
 
-func NewCloudinaryStorage(cloudName, apiKey, apiSecret string) (infrastructure.StorageService, error) {
+func NewCloudinaryStorage(cloudName, apiKey, apiSecret string) (iinfra.StorageService, error) {
 	if cloudName == "" || apiKey == "" || apiSecret == "" {
 		return nil, fmt.Errorf("cloudinary credentials are required")
 	}
