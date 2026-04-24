@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,10 +16,14 @@ import (
 
 type ReceptionistHandler struct {
 	referralUC iusecase.ReferralUseCase
+	triageUC   iusecase.TriageUseCase
 }
 
-func NewReceptionistHandler(referralUC iusecase.ReferralUseCase) *ReceptionistHandler {
-	return &ReceptionistHandler{referralUC: referralUC}
+func NewReceptionistHandler(referralUC iusecase.ReferralUseCase, triageUC iusecase.TriageUseCase) *ReceptionistHandler {
+	return &ReceptionistHandler{
+		referralUC: referralUC,
+		triageUC:   triageUC,
+	}
 }
 
 // ListReferrals godoc
@@ -213,5 +218,31 @@ func (h *ReceptionistHandler) ConfirmAttendance(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Message: "Patient attendance confirmed successfully",
+	})
+}
+
+func (h *ReceptionistHandler) GetReceptionSchedule(c *gin.Context) {
+	hospIDVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIDVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	deptIDStr := c.Query("dept_id")
+	deptID, _ := uuid.Parse(deptIDStr)
+
+	// 48-hour logic
+	start := time.Now()
+	end := start.AddDate(0, 0, 2)
+
+	schedules, err := h.triageUC.ListScheduledInRange(c.Request.Context(), hospID, deptID, start, end)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    schedules,
 	})
 }

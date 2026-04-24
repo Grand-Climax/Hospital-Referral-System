@@ -15,4 +15,8 @@ type HospitalUseCase interface {
 	UpdateHospital(ctx context.Context, hospital *entity.Hospital) error
 	DeleteHospital(ctx context.Context, id uuid.UUID) error
 	ListHospitals(ctx context.Context, filter irepository.HospitalListFilter) ([]entity.Hospital, int64, error)
+
+	// Admin Logic absorbed from legacy AdminUseCase
+	UpdateSystemConfig(ctx context.Context, userID uuid.UUID, req map[string]string) error
+	GetSystemConfigs(ctx context.Context) (map[string]string, error)
 }
