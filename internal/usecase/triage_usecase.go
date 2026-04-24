@@ -150,6 +150,63 @@ func (u *triageUseCase) ReviewTriage(ctx context.Context, referralID, userID uui
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, &referralID, nil, req)
 }
 
+func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
+	if score < 0 || score > 100 {
+		return errors.New("severity score must be between 0 and 100")
+	}
+
+	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. Deactivate old active predictions
+		if err := tx.Model(&entity.MLPrediction{}).
+			Where("referral_id = ? AND is_active = ?", referralID, true).
+			Update("is_active", false).Error; err != nil {
+			return err
+		}
+
+		// 2. Create new overridden prediction
+		newPred := &entity.MLPrediction{
+			ReferralID:            referralID,
+			TriggerReason:         "MANUAL",
+			OutputScore:           score,
+			IsOverridden:          true,
+			OverriddenScore:       &score,
+			OverriddenBy:          &userID,
+			OverrideJustification: &justification,
+			IsActive:              true,
+		}
+		if err := tx.Create(newPred).Error; err != nil {
+			return err
+		}
+
+		// 3. Update Referral
+		if err := tx.Model(&entity.Referral{}).
+			Where("id = ?", referralID).
+			Updates(map[string]interface{}{
+				"ml_severity_score": score,
+				"triage_status":     "OVERRIDDEN",
+			}).Error; err != nil {
+			return err
+		}
+
+		// 4. Recalculate TriageQueue composite score
+		queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
+		if err == nil && queue != nil {
+			// Using the logic from CalculateCompositeScore but we are in a transaction
+			// We can call CalculateCompositeScore if it doesn't create its own transaction
+			newComposite, _ := u.CalculateCompositeScore(ctx, referralID)
+			queue.CompositeScore = newComposite
+			if err := tx.Save(queue).Error; err != nil {
+				return err
+			}
+		}
+
+		return u.auditRepo.LogWithContext(ctx, userID, "OVERRIDE_ML_SCORE", &referralID, nil, map[string]interface{}{
+			"score":         score,
+			"justification": justification,
+		})
+	})
+}
+
 func (u *triageUseCase) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
 	return u.triageRepo.ListScheduledInRange(ctx, hospitalID, deptID, start, end)
 }
