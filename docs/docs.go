@@ -3175,7 +3175,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number"
+                                "type": "number",
+                                "format": "float64"
                             }
                         }
                     }
@@ -5116,6 +5117,9 @@ const docTemplate = `{
                 "target_hospital_id": {
                     "type": "string"
                 },
+                "triage_status": {
+                    "$ref": "#/definitions/entity.TriageStatus"
+                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -5528,6 +5532,9 @@ const docTemplate = `{
         "entity.Patient": {
             "type": "object",
             "properties": {
+                "allow_sms": {
+                    "type": "boolean"
+                },
                 "date_of_birth": {
                     "type": "string"
                 },
@@ -5645,6 +5652,9 @@ const docTemplate = `{
                 },
                 "target_hospital_id": {
                     "type": "string"
+                },
+                "triage_status": {
+                    "$ref": "#/definitions/entity.TriageStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -5770,7 +5780,11 @@ const docTemplate = `{
                 "REJECTED_BY_LIAISON",
                 "REJECTED_BY_SPECIALIST",
                 "MISSED",
-                "RESCHEDULED"
+                "RESCHEDULED",
+                "REDIRECTED",
+                "ADMITTED",
+                "REJECTED_AFTER_SEND",
+                "DECEASED"
             ],
             "x-enum-varnames": [
                 "StatusDraft",
@@ -5787,7 +5801,24 @@ const docTemplate = `{
                 "StatusRejectedByLiaison",
                 "StatusRejectedBySpecialist",
                 "StatusMissed",
-                "StatusRescheduled"
+                "StatusRescheduled",
+                "StatusRedirected",
+                "StatusAdmitted",
+                "StatusRejectedAfterSend",
+                "StatusDeceased"
+            ]
+        },
+        "entity.TriageStatus": {
+            "type": "string",
+            "enum": [
+                "AUTO_SCORED",
+                "REVIEWED",
+                "OVERRIDDEN"
+            ],
+            "x-enum-varnames": [
+                "TriageAutoScored",
+                "TriageReviewed",
+                "TriageOverridden"
             ]
         },
         "entity.UserRole": {

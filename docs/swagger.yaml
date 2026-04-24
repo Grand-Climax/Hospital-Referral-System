@@ -756,6 +756,8 @@ definitions:
         type: string
       target_hospital_id:
         type: string
+      triage_status:
+        $ref: '#/definitions/entity.TriageStatus'
       updated_at:
         type: string
       vitals:
@@ -1047,6 +1049,8 @@ definitions:
     type: object
   entity.Patient:
     properties:
+      allow_sms:
+        type: boolean
       date_of_birth:
         type: string
       first_name:
@@ -1126,6 +1130,8 @@ definitions:
         type: string
       target_hospital_id:
         type: string
+      triage_status:
+        $ref: '#/definitions/entity.TriageStatus'
       updated_at:
         type: string
       vitals:
@@ -1213,6 +1219,10 @@ definitions:
     - REJECTED_BY_SPECIALIST
     - MISSED
     - RESCHEDULED
+    - REDIRECTED
+    - ADMITTED
+    - REJECTED_AFTER_SEND
+    - DECEASED
     type: string
     x-enum-varnames:
     - StatusDraft
@@ -1230,6 +1240,20 @@ definitions:
     - StatusRejectedBySpecialist
     - StatusMissed
     - StatusRescheduled
+    - StatusRedirected
+    - StatusAdmitted
+    - StatusRejectedAfterSend
+    - StatusDeceased
+  entity.TriageStatus:
+    enum:
+    - AUTO_SCORED
+    - REVIEWED
+    - OVERRIDDEN
+    type: string
+    x-enum-varnames:
+    - TriageAutoScored
+    - TriageReviewed
+    - TriageOverridden
   entity.UserRole:
     enum:
     - REFERRING_DOCTOR
@@ -3527,6 +3551,7 @@ paths:
         name: request
         schema:
           additionalProperties:
+            format: float64
             type: number
           type: object
       produces:
