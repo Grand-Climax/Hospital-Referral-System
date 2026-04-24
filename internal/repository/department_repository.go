@@ -83,3 +83,12 @@ func (r *departmentRepository) FindHospitalDepartment(ctx context.Context, hospi
 	}
 	return &link, nil
 }
+
+func (r *departmentRepository) FindHospitalDepartmentByID(ctx context.Context, id uuid.UUID) (*entity.HospitalDepartment, error) {
+	var link entity.HospitalDepartment
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&link).Error
+	if err != nil {
+		return nil, err
+	}
+	return &link, nil
+}

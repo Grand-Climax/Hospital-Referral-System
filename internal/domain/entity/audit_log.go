@@ -32,6 +32,7 @@ const (
 	ActionGenerateReports     ActionType = "GENERATE_REPORTS"
 	ActionUpdatePatientStatus ActionType = "UPDATE_PATIENT_STATUS"
 	ActionCancelReferral      ActionType = "CANCEL_REFERRAL"
+	ActionUpdateSystemConfig  ActionType = "UPDATE_SYSTEM_CONFIG"
 )
 
 type AuditLog struct {
