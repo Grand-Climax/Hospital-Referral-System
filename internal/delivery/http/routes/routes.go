@@ -104,7 +104,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Role-Based State Machine Handlers
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase)
-	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase)
+	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, triageUseCase)
 	adminHandler := handlers.NewAdminHandler(referralUseCase)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
@@ -240,11 +240,13 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				specialistGroup.POST("/:id/rerun-ml", specialistHandler.RerunML)
 
 				// Triage & Scheduling
-				specialistGroup.GET("/triage-queue", triageHandler.ListForTriage)
+				specialistGroup.GET("/triage-queue", specialistHandler.GetTriageQueue)
+				specialistGroup.POST("/:id/triage-severity", specialistHandler.SetManualSeverity)
 				specialistGroup.POST("/:id/triage-review", triageHandler.Review)
 				specialistGroup.GET("/capacity", schedHandler.GetCapacity)
 				specialistGroup.POST("/:id/schedule", schedHandler.Schedule)
-				specialistGroup.POST("/:id/manual-emergency-schedule", specialistHandler.ManualEmergencySchedule)
+				specialistGroup.POST("/:id/emergency-schedule", specialistHandler.ManualEmergencySchedule)
+				specialistGroup.POST("/:id/manual-emergency-schedule", specialistHandler.ManualEmergencySchedule) // Deprecated alias
 			}
 
 			// RECEPTIONIST

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,12 +17,14 @@ import (
 type SpecialistHandler struct {
 	referralUC iusecase.ReferralUseCase
 	schedUC    iusecase.SchedulingUseCase
+	triageUC   iusecase.TriageUseCase
 }
 
-func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase) *SpecialistHandler {
+func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase) *SpecialistHandler {
 	return &SpecialistHandler{
 		referralUC: referralUC,
 		schedUC:    schedUC,
+		triageUC:   triageUC,
 	}
 }
 
@@ -385,25 +388,79 @@ func (h *SpecialistHandler) Release(c *gin.Context) {
 func (h *SpecialistHandler) ManualEmergencySchedule(c *gin.Context) {
 	referralID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: "invalid referral ID"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral ID"})
 		return
 	}
 
-	userID, _ := uuid.Parse(c.GetString("user_id"))
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
 
-	var req struct {
-		Date          string `json:"date" binding:"required"`
-		Justification string `json:"justification" binding:"required"`
-	}
+	var req dto.ManualEmergencyScheduleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	if err := h.schedUC.ManualEmergencySchedule(c.Request.Context(), referralID, req.Date, req.Justification, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+	date, err := time.Parse("2006-01-02", req.AppointmentDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid date format, use YYYY-MM-DD"})
+		return
+	}
+
+	if err := h.schedUC.ManualEmergencySchedule(c.Request.Context(), referralID, date, req.Justification, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Emergency appointment scheduled successfully"})
+}
+
+func (h *SpecialistHandler) SetManualSeverity(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral ID"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	var req dto.SetManualSeverityRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if err := h.triageUC.SetManualSeverity(c.Request.Context(), referralID, userID, req.Score, req.Justification); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Severity score overridden successfully"})
+}
+
+func (h *SpecialistHandler) GetTriageQueue(c *gin.Context) {
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	offset := (page - 1) * limit
+
+	queues, total, err := h.triageUC.ListForTriage(c.Request.Context(), hospID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    queues,
+		"total":   total,
+		"page":    page,
+		"limit":   limit,
+	})
 }
