@@ -240,7 +240,8 @@ func TestSpecialistOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
 	mockSched := new(MockSchedulingUseCase)
-	handler := handlers.NewSpecialistHandler(mockUC, mockSched)
+	mockTriage := new(MockTriageUseCase)
+	handler := handlers.NewSpecialistHandler(mockUC, mockSched, mockTriage)
 	specialistID := uuid.New()
 	hospID := uuid.New()
 

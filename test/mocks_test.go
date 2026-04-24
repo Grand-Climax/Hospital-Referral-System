@@ -714,7 +714,7 @@ func (m *MockSchedulingUseCase) ScheduleAppointment(ctx context.Context, referra
 	return m.Called(ctx, referralID, userID, req).Error(0)
 }
 
-func (m *MockSchedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate string, justification string, userID uuid.UUID) error {
+func (m *MockSchedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) error {
 	return m.Called(ctx, referralID, appointmentDate, justification, userID).Error(0)
 }
 
@@ -755,4 +755,8 @@ func (m *MockTriageUseCase) ReviewTriage(ctx context.Context, referralID, userID
 func (m *MockTriageUseCase) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
 	args := m.Called(ctx, hospitalID, deptID, start, end)
 	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageUseCase) SetManualSeverity(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
+	return m.Called(ctx, referralID, userID, score, justification).Error(0)
 }
