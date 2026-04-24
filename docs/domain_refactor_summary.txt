@@ -1,0 +1,80 @@
+================================================================================
+ HOSPITAL REFERRAL SYSTEM — DOMAIN CONSOLIDATION SUMMARY
+================================================================================
+Generated: 2026-04-22
+Context  : Domain Architecture Refactoring (Removing admin_workflow)
+================================================================================
+
+1. ENTITY MAPPINGS
+--------------------------------------------------------------------------------
+Entity: SystemConfig
+- Domain: Hospital
+- Purpose: Key-Value store for system-wide configuration (e.g., aging_factor).
+- Location: internal/domain/entity/hospital.go (shared with Hospital concerns)
+
+Entity: CapacityOverride
+- Domain: Scheduling
+- Purpose: Temporary capacity exceptions for a specific department and date.
+- Fields: DeptID, TargetDate, NewLimit, Reason, SetByID, IsActive.
+- Location: internal/domain/entity/capacity_override.go
+
+Entity: Hospital
+- Domain: Hospital
+- Purpose: Core hospital data.
+- Location: internal/domain/entity/hospital.go
+
+
+2. USECASE MAPPINGS
+--------------------------------------------------------------------------------
+UseCase: HospitalUseCase
+- Interface: iusecase.HospitalUseCase
+- Methods:
+    - Create/Get/Update/DeleteHospital
+    - UpdateSystemConfig(userID, map[string]string) error
+    - GetSystemConfigs() (map[string]string, error)
+- Role Required (Configs): SystemSuperAdmin
+
+UseCase: SchedulingUseCase
+- Interface: iusecase.SchedulingUseCase
+- Methods:
+    - GetCapacityStatus
+    - ScheduleAppointment
+    - ValidateCapacity
+    - ManageCapacityOverride(hospitalID, userID, date, newLimit, notes) error
+- Role Required (Override): HospitalAdmin, SystemSuperAdmin
+
+
+3. REPOSITORY MAPPINGS
+--------------------------------------------------------------------------------
+Repository: SystemConfigRepository
+- Interface: irepository.SystemConfigRepository
+- Implementation: systemConfigRepository
+- Location: internal/repository/hospital_repository.go
+- Pattern: Embeds *BaseRepository[entity.SystemConfig]
+
+Repository: CapacityOverrideRepository
+- Interface: irepository.CapacityOverrideRepository
+- Implementation: capacityOverrideRepository
+- Location: internal/repository/hospital_repository.go (consolidated for infrastructure simplicity)
+- Pattern: Embeds *BaseRepository[entity.CapacityOverride]
+
+
+4. ENDPOINT ROLE ASSIGNMENTS (POST-REFACTOR)
+--------------------------------------------------------------------------------
+Endpoint: POST /api/v1/hospitals
+- Handler: HospitalHandler.CreateHospital
+- Role: SystemSuperAdmin
+
+Endpoint: PUT /api/v1/hospitals/:id/system-configs
+- Handler: (To be implemented in HospitalHandler)
+- UseCase: HospitalUseCase.UpdateSystemConfig
+- Role: SystemSuperAdmin (Restricted to system-wide settings)
+
+Endpoint: POST /api/v1/scheduling/capacity-override
+- Handler: (To be implemented in SchedulingHandler)
+- UseCase: SchedulingUseCase.ManageCapacityOverride
+- Role: HospitalAdmin (For their hospital), SystemSuperAdmin (Global)
+
+================================================================================
+ END OF SUMMARY
+================================================================================
