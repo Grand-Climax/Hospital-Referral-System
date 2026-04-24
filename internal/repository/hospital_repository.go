@@ -61,3 +61,35 @@ func (r *hospitalRepository) ListHospitals(ctx context.Context, filter ireposito
 
 	return hospitals, total, nil
 }
+
+// systemConfigRepository manages system-wide key-value configuration.
+type systemConfigRepository struct {
+	*BaseRepository[entity.SystemConfig]
+	db *gorm.DB
+}
+
+func NewSystemConfigRepository(db *gorm.DB) irepository.SystemConfigRepository {
+	return &systemConfigRepository{
+		BaseRepository: NewBaseRepository[entity.SystemConfig](db),
+		db:             db,
+	}
+}
+
+func (r *systemConfigRepository) GetByKey(ctx context.Context, key string) (*entity.SystemConfig, error) {
+	var cfg entity.SystemConfig
+	err := r.db.WithContext(ctx).Where("key = ?", key).First(&cfg).Error
+	return &cfg, err
+}
+
+func (r *systemConfigRepository) GetAll(ctx context.Context) ([]entity.SystemConfig, error) {
+	var cfgs []entity.SystemConfig
+	err := r.db.WithContext(ctx).Find(&cfgs).Error
+	return cfgs, err
+}
+
+func (r *systemConfigRepository) Update(ctx context.Context, cfg *entity.SystemConfig) error {
+	return r.db.WithContext(ctx).
+		Model(&entity.SystemConfig{}).
+		Where("key = ?", cfg.Key).
+		Update("value", cfg.Value).Error
+}
