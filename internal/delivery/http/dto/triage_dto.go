@@ -30,3 +30,13 @@ type TriageReviewRequest struct {
 	CompositeScore *float64 `json:"composite_score"`
 	Reason         string   `json:"reason"`
 }
+
+type SetManualSeverityRequest struct {
+	Score         float64 `json:"score" binding:"required,min=0,max=100"`
+	Justification string  `json:"justification" binding:"required"`
+}
+
+type ManualEmergencyScheduleRequest struct {
+	AppointmentDate string `json:"appointment_date" binding:"required"`
+	Justification   string `json:"justification" binding:"required"`
+}
