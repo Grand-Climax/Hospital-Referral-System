@@ -15,10 +15,14 @@ import (
 
 type SpecialistHandler struct {
 	referralUC iusecase.ReferralUseCase
+	schedUC    iusecase.SchedulingUseCase
 }
 
-func NewSpecialistHandler(referralUC iusecase.ReferralUseCase) *SpecialistHandler {
-	return &SpecialistHandler{referralUC: referralUC}
+func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase) *SpecialistHandler {
+	return &SpecialistHandler{
+		referralUC: referralUC,
+		schedUC:    schedUC,
+	}
 }
 
 // ListReferrals godoc
@@ -376,4 +380,30 @@ func (h *SpecialistHandler) Release(c *gin.Context) {
 		Success: true,
 		Message: "Referral successfully released back to the hospital pool",
 	})
+}
+
+func (h *SpecialistHandler) ManualEmergencySchedule(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: "invalid referral ID"})
+		return
+	}
+
+	userID, _ := uuid.Parse(c.GetString("user_id"))
+
+	var req struct {
+		Date          string `json:"date" binding:"required"`
+		Justification string `json:"justification" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	if err := h.schedUC.ManualEmergencySchedule(c.Request.Context(), referralID, req.Date, req.Justification, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Emergency appointment scheduled successfully"})
 }

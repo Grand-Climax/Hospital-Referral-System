@@ -16,11 +16,21 @@ var (
 )
 
 type hospitalUseCase struct {
-	repo irepository.HospitalRepository
+	repo       irepository.HospitalRepository
+	configRepo irepository.SystemConfigRepository
+	auditRepo  irepository.AuditLogRepository
 }
 
-func NewHospitalUseCase(repo irepository.HospitalRepository) iusecase.HospitalUseCase {
-	return &hospitalUseCase{repo: repo}
+func NewHospitalUseCase(
+	repo irepository.HospitalRepository,
+	configRepo irepository.SystemConfigRepository,
+	auditRepo irepository.AuditLogRepository,
+) iusecase.HospitalUseCase {
+	return &hospitalUseCase{
+		repo:       repo,
+		configRepo: configRepo,
+		auditRepo:  auditRepo,
+	}
 }
 
 func (u *hospitalUseCase) CreateHospital(ctx context.Context, hospital *entity.Hospital) error {
@@ -64,4 +74,29 @@ func (u *hospitalUseCase) DeleteHospital(ctx context.Context, id uuid.UUID) erro
 
 func (u *hospitalUseCase) ListHospitals(ctx context.Context, filter irepository.HospitalListFilter) ([]entity.Hospital, int64, error) {
 	return u.repo.ListHospitals(ctx, filter)
+}
+
+func (u *hospitalUseCase) UpdateSystemConfig(ctx context.Context, userID uuid.UUID, req map[string]string) error {
+	for k, v := range req {
+		cfg := &entity.SystemConfig{
+			Key:   k,
+			Value: v,
+		}
+		if err := u.configRepo.Update(ctx, cfg); err != nil {
+			return err
+		}
+	}
+	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionUpdateSystemConfig, nil, nil, req)
+}
+
+func (u *hospitalUseCase) GetSystemConfigs(ctx context.Context) (map[string]string, error) {
+	cfgs, err := u.configRepo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]string)
+	for _, c := range cfgs {
+		res[c.Key] = c.Value
+	}
+	return res, nil
 }
