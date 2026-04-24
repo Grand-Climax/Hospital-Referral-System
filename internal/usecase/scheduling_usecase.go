@@ -148,10 +148,20 @@ func (u *schedulingUseCase) ManageCapacityOverride(ctx context.Context, hospital
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, nil, nil, override)
 }
 
-func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate string, justification string, userID uuid.UUID) error {
-	d, err := time.Parse("2006-01-02", appointmentDate)
+func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
 		return err
+	}
+
+	// 1. Eligibility Check: Critical condition or explicit emergency intent
+	isCritical := false
+	if ref.ReferralForm != nil && ref.ReferralForm.ConditionAtReferral == "critical" {
+		isCritical = true
+	}
+
+	if !isCritical && justification == "" {
+		return errors.New("manual emergency schedule requires a critical condition or explicit justification")
 	}
 
 	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
@@ -159,52 +169,45 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		return err
 	}
 
-	// Look up hospital_id from hospital_departments (dept_id in queue refers to hospital_department link)
-	hospDept, err := u.deptRepo.FindHospitalDepartmentByID(ctx, queue.DeptID)
+	// 2. Capacity Check: Allow overbooking up to (max_slots + overbook_limit)
+	hospDept, err := u.deptRepo.FindHospitalDepartment(ctx, ref.TargetHospitalID, ref.TargetDeptID)
 	if err != nil {
 		return err
 	}
 
-	hospID := hospDept.HospitalID
-	dept := hospDept
-
-	// Always ensure row exists
-	sched, err := u.scheduleRepo.GetOrCreate(ctx, hospID, queue.DeptID, d, dept.StandardDailyLimit)
+	sched, err := u.scheduleRepo.GetOrCreate(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate, hospDept.StandardDailyLimit)
 	if err != nil {
 		return err
 	}
 
-	// Rule: Overbooking allowed (up to max + overbook)
 	if sched.BookedSlots >= (sched.MaxSlots + sched.OverbookLimit) {
 		return errors.New("even overbook capacity is full for this date")
 	}
 
 	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Increment BookedSlots
-		sched.BookedSlots++
-		if err := tx.Save(sched).Error; err != nil {
+		// 3. Increment BookedSlots
+		if err := u.scheduleRepo.IncrementBookedSlots(ctx, sched.ID, sched.Version); err != nil {
 			return err
 		}
 
-		// Update TriageQueue
-		queue.AppointmentDate = &d
+		// 4. Update TriageQueue
+		queue.AppointmentDate = &appointmentDate
 		queue.QueueStatus = entity.QueueScheduled
 		reschedReason := "EMERGENCY_MANUAL"
-		queue.RescheduleReason = &reschedReason 
+		queue.RescheduleReason = &reschedReason
 		if err := tx.Save(queue).Error; err != nil {
 			return err
 		}
 
-		// Referral record status update (optional but consistent)
-		err := tx.Model(&entity.Referral{}).Where("id = ?", referralID).Update("status", entity.StatusScheduled).Error
-		if err != nil {
+		// 5. Update Referral Status
+		ref.Status = entity.StatusScheduled
+		if err := tx.Save(ref).Error; err != nil {
 			return err
 		}
 
-		return u.auditRepo.LogWithContext(ctx, userID, "MANUAL_EMERGENCY_SCHEDULE", nil, nil, map[string]interface{}{
-			"referral_id": referralID,
-			"date":        appointmentDate,
-			"note":        justification,
+		return u.auditRepo.LogWithContext(ctx, userID, "MANUAL_EMERGENCY_SCHEDULE", &referralID, nil, map[string]interface{}{
+			"appointment_date": appointmentDate.Format("2006-01-02"),
+			"justification":    justification,
 		})
 	})
 }
