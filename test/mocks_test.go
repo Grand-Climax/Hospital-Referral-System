@@ -110,6 +110,34 @@ func (m *MockReferralRepo) ListReferrals(ctx context.Context, filter map[string]
 	return args.Get(0).([]entity.Referral), args.Error(1)
 }
 
+func (m *MockReferralRepo) Create(ctx context.Context, referral *entity.Referral) error {
+	args := m.Called(ctx, referral)
+	return args.Error(0)
+}
+
+func (m *MockReferralRepo) Update(ctx context.Context, referral *entity.Referral) error {
+	args := m.Called(ctx, referral)
+	return args.Error(0)
+}
+
+func (m *MockReferralRepo) Delete(ctx context.Context, id interface{}) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockReferralRepo) FindByID(ctx context.Context, id interface{}) (*entity.Referral, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Referral), args.Error(1)
+}
+
+func (m *MockReferralRepo) FindAll(ctx context.Context) ([]entity.Referral, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.Referral), args.Error(1)
+}
+
 func (m *MockReferralRepo) CreateStatusHistory(ctx context.Context, history *entity.ReferralStatusHistory) error {
 	args := m.Called(ctx, history)
 	return args.Error(0)
@@ -179,6 +207,27 @@ func (m *MockReferralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID,
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*dto.ReferralCreationResponse), args.Error(1)
+}
+
+func (m *MockReferralUseCase) AddClinicalUpdate(ctx context.Context, referralID, userID uuid.UUID, req dto.ClinicalUpdateRequest) (*dto.ClinicalUpdateResponse, error) {
+	args := m.Called(ctx, referralID, userID, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.ClinicalUpdateResponse), args.Error(1)
+}
+
+func (m *MockReferralUseCase) RecordOutcome(ctx context.Context, referralID, userID uuid.UUID, req dto.ReferralOutcomeRequest) (*dto.ReferralOutcomeResponse, error) {
+	args := m.Called(ctx, referralID, userID, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.ReferralOutcomeResponse), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetClinicalHistory(ctx context.Context, referralID uuid.UUID) ([]dto.ClinicalUpdateResponse, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).([]dto.ClinicalUpdateResponse), args.Error(1)
 }
 
 // ---------------------------------------------------------------------------
@@ -567,4 +616,143 @@ func (m *MockAttachmentRepo) Delete(ctx context.Context, id uuid.UUID) error {
 func (m *MockAttachmentRepo) FindAll(ctx context.Context) ([]entity.Attachment, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]entity.Attachment), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: ClinicalUpdateRepository
+// ---------------------------------------------------------------------------
+
+type MockClinicalUpdateRepo struct {
+	mock.Mock
+}
+
+func (m *MockClinicalUpdateRepo) Create(ctx context.Context, cu *entity.ClinicalUpdate) error {
+	return m.Called(ctx, cu).Error(0)
+}
+
+func (m *MockClinicalUpdateRepo) FindByID(ctx context.Context, id interface{}) (*entity.ClinicalUpdate, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ClinicalUpdate), args.Error(1)
+}
+
+func (m *MockClinicalUpdateRepo) FindAll(ctx context.Context) ([]entity.ClinicalUpdate, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.ClinicalUpdate), args.Error(1)
+}
+
+func (m *MockClinicalUpdateRepo) Update(ctx context.Context, cu *entity.ClinicalUpdate) error {
+	return m.Called(ctx, cu).Error(0)
+}
+
+func (m *MockClinicalUpdateRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockClinicalUpdateRepo) ListByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.ClinicalUpdate, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).([]entity.ClinicalUpdate), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: ReferralOutcomeRepository
+// ---------------------------------------------------------------------------
+
+type MockReferralOutcomeRepo struct {
+	mock.Mock
+}
+
+func (m *MockReferralOutcomeRepo) Create(ctx context.Context, o *entity.ReferralOutcome) error {
+	return m.Called(ctx, o).Error(0)
+}
+
+func (m *MockReferralOutcomeRepo) FindByID(ctx context.Context, id interface{}) (*entity.ReferralOutcome, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralOutcome), args.Error(1)
+}
+
+func (m *MockReferralOutcomeRepo) FindAll(ctx context.Context) ([]entity.ReferralOutcome, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.ReferralOutcome), args.Error(1)
+}
+
+func (m *MockReferralOutcomeRepo) Update(ctx context.Context, o *entity.ReferralOutcome) error {
+	return m.Called(ctx, o).Error(0)
+}
+
+func (m *MockReferralOutcomeRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockReferralOutcomeRepo) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralOutcome, error) {
+	args := m.Called(ctx, referralID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralOutcome), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: SchedulingUseCase
+// ---------------------------------------------------------------------------
+
+type MockSchedulingUseCase struct {
+	mock.Mock
+}
+
+func (m *MockSchedulingUseCase) GetCapacityStatus(ctx context.Context, hospitalID, deptID uuid.UUID, dateRangeDays int) ([]dto.CapacityStatusResponse, error) {
+	args := m.Called(ctx, hospitalID, deptID, dateRangeDays)
+	return args.Get(0).([]dto.CapacityStatusResponse), args.Error(1)
+}
+
+func (m *MockSchedulingUseCase) ScheduleAppointment(ctx context.Context, referralID, userID uuid.UUID, req dto.SchedulingRequest) error {
+	return m.Called(ctx, referralID, userID, req).Error(0)
+}
+
+func (m *MockSchedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate string, justification string, userID uuid.UUID) error {
+	return m.Called(ctx, referralID, appointmentDate, justification, userID).Error(0)
+}
+
+func (m *MockSchedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, deptID, userID uuid.UUID) (*dto.BatchScheduleResult, error) {
+	args := m.Called(ctx, hospitalID, deptID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: TriageUseCase
+// ---------------------------------------------------------------------------
+
+type MockTriageUseCase struct {
+	mock.Mock
+}
+
+func (m *MockTriageUseCase) LandInQueue(ctx context.Context, referralID uuid.UUID) error {
+	return m.Called(ctx, referralID).Error(0)
+}
+
+func (m *MockTriageUseCase) CalculateCompositeScore(ctx context.Context, referralID uuid.UUID) (float64, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockTriageUseCase) ListForTriage(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]dto.TriageListResponse, int64, error) {
+	args := m.Called(ctx, hospitalID, limit, offset)
+	return args.Get(0).([]dto.TriageListResponse), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockTriageUseCase) ReviewTriage(ctx context.Context, referralID, userID uuid.UUID, req dto.TriageReviewRequest) error {
+	return m.Called(ctx, referralID, userID, req).Error(0)
+}
+
+func (m *MockTriageUseCase) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID, start, end)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
 }

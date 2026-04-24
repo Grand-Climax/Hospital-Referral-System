@@ -18,9 +18,11 @@ import (
 
 func TestCancelReferral_Ownership_Success(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	doctorID := uuid.New()
 	refID := uuid.New()
@@ -41,9 +43,11 @@ func TestCancelReferral_Ownership_Success(t *testing.T) {
 
 func TestCancelReferral_Forbidden_NotOwner(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	doctorID := uuid.New()
 	otherDoctorID := uuid.New()
@@ -63,9 +67,11 @@ func TestCancelReferral_Forbidden_NotOwner(t *testing.T) {
 
 func TestCancelReferral_Forbidden_ActivePipeline(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	doctorID := uuid.New()
 	refID := uuid.New()
@@ -84,9 +90,11 @@ func TestCancelReferral_Forbidden_ActivePipeline(t *testing.T) {
 
 func TestDeleteAttachments_Ownership_Success(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	doctorID := uuid.New()
 	refID := uuid.New()
@@ -110,9 +118,11 @@ func TestDeleteAttachments_Ownership_Success(t *testing.T) {
 
 func TestDeleteAttachments_Forbidden_WrongStatus(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	doctorID := uuid.New()
 	refID := uuid.New()
@@ -131,9 +141,11 @@ func TestDeleteAttachments_Forbidden_WrongStatus(t *testing.T) {
 
 func TestSpecialistAccept_Ownership_DeniedOtherSpecialist(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	hospID := uuid.New()
 	specA := uuid.New()
@@ -155,9 +167,11 @@ func TestSpecialistAccept_Ownership_DeniedOtherSpecialist(t *testing.T) {
 
 func TestLiaisonForward_BlockedByPending(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	liaisonID := uuid.New()
 	hospID := uuid.New()
@@ -181,9 +195,11 @@ func TestLiaisonForward_BlockedByPending(t *testing.T) {
 
 func TestLiaisonForward_BlockedByRejected(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	liaisonID := uuid.New()
 	hospID := uuid.New()
@@ -207,9 +223,11 @@ func TestLiaisonForward_BlockedByRejected(t *testing.T) {
 
 func TestLiaisonForward_Success_Verified(t *testing.T) {
 	rRepo := new(MockReferralRepo)
+	cRepo := new(MockClinicalUpdateRepo)
+	oRepo := new(MockReferralOutcomeRepo)
 	nRepo := new(MockNetworkRepo)
 	aUC := new(MockAttachmentUseCase)
-	uc := usecase.NewReferralUseCase(rRepo, nRepo, aUC)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, aUC)
 
 	liaisonID := uuid.New()
 	hospID := uuid.New()

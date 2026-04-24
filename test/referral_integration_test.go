@@ -239,7 +239,8 @@ func TestLiaisonOperations(t *testing.T) {
 func TestSpecialistOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	handler := handlers.NewSpecialistHandler(mockUC)
+	mockSched := new(MockSchedulingUseCase)
+	handler := handlers.NewSpecialistHandler(mockUC, mockSched)
 	specialistID := uuid.New()
 	hospID := uuid.New()
 
@@ -267,7 +268,8 @@ func TestSpecialistOperations(t *testing.T) {
 func TestReceptionistOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	handler := handlers.NewReceptionistHandler(mockUC)
+	mockTriage := new(MockTriageUseCase)
+	handler := handlers.NewReceptionistHandler(mockUC, mockTriage)
 	receptionistID := uuid.New()
 	hospID := uuid.New()
 
