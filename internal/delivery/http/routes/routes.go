@@ -90,7 +90,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 
 	// Workflow Use Cases
 	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo)
-	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, auditLogRepo)
+	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo)
 	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, auditLogRepo)
 	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, smsClient)
 	capacityManagementUseCase := usecase.NewCapacityManagementUseCase(scheduleRepo, overrideRepo, departmentRepo, auditLogRepo)
@@ -108,7 +108,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, triageUseCase)
 	adminHandler := handlers.NewAdminHandler(referralUseCase)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
-	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase)
+	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase)
 
 	refHandler := handlers.NewReferenceHandler(refUseCase)
 	netHandler := handlers.NewNetworkHandler(netUseCase)
@@ -312,7 +312,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				// Daily Schedule
 				deptHeadGroup.GET("/schedule", deptHeadHandler.GetSchedule)
 				deptHeadGroup.PUT("/schedule/:id/max-slots", deptHeadHandler.UpdateMaxSlots)
-				deptHeadGroup.POST("/schedule/batch", schedHandler.BatchSchedule)
+				deptHeadGroup.POST("/schedule/batch", deptHeadHandler.BatchSchedule)
 			}
 
 			// Attachments

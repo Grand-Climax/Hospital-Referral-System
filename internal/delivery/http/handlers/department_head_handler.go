@@ -15,10 +15,40 @@ import (
 
 type DepartmentHeadHandler struct {
 	capacityUC iusecase.CapacityManagementUseCase
+	schedUC    iusecase.SchedulingUseCase
 }
 
-func NewDepartmentHeadHandler(capacityUC iusecase.CapacityManagementUseCase) *DepartmentHeadHandler {
-	return &DepartmentHeadHandler{capacityUC: capacityUC}
+func NewDepartmentHeadHandler(capacityUC iusecase.CapacityManagementUseCase, schedUC iusecase.SchedulingUseCase) *DepartmentHeadHandler {
+	return &DepartmentHeadHandler{
+		capacityUC: capacityUC,
+		schedUC:    schedUC,
+	}
+}
+
+func (h *DepartmentHeadHandler) BatchSchedule(c *gin.Context) {
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+	deptIdVal, _ := c.Get("deptID")
+	deptID := uuid.Nil
+	if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
+		deptID = *dID
+	}
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	result, err := h.schedUC.BatchSchedule(c.Request.Context(), hospID, deptID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    result,
+	})
 }
 
 func (h *DepartmentHeadHandler) ListOverrides(c *gin.Context) {
