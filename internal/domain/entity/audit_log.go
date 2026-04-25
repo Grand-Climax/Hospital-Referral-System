@@ -33,6 +33,10 @@ const (
 	ActionUpdatePatientStatus ActionType = "UPDATE_PATIENT_STATUS"
 	ActionCancelReferral      ActionType = "CANCEL_REFERRAL"
 	ActionUpdateSystemConfig  ActionType = "UPDATE_SYSTEM_CONFIG"
+	ActionConfirmArrival      ActionType = "CONFIRM_ARRIVAL"
+	ActionAssignDoctor        ActionType = "ASSIGN_DOCTOR"
+	ActionWalkInRegistered    ActionType = "WALK_IN_REGISTERED"
+	ActionMarkMissed          ActionType = "MARK_MISSED"
 )
 
 type AuditLog struct {
