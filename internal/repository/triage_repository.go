@@ -55,7 +55,7 @@ func (r *triageRepository) ListForTriage(ctx context.Context, hospitalID uuid.UU
 	var queues []entity.TriageQueue
 	var count int64
 	query := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
-		Where("dept_id IN (SELECT id FROM hospital_departments WHERE hospital_id = ?)", hospitalID)
+		Where("hospital_id = ?", hospitalID)
 	if err := query.Count(&count).Error; err != nil {
 		return nil, 0, err
 	}
@@ -68,7 +68,7 @@ func (r *triageRepository) ListScheduledInRange(ctx context.Context, hospitalID,
 	err := r.db.WithContext(ctx).
 		Preload("Referral").
 		Preload("Referral.Patient").
-		Where("dept_id = ? AND queue_status = 'SCHEDULED' AND appointment_date >= ? AND appointment_date <= ?", deptID, start, end).
+		Where("hospital_id = ? AND department_id = ? AND queue_status = 'SCHEDULED' AND appointment_date >= ? AND appointment_date <= ?", hospitalID, deptID, start, end).
 		Order("appointment_date asc").
 		Find(&queues).Error
 	return queues, err
@@ -77,7 +77,16 @@ func (r *triageRepository) ListScheduledInRange(ctx context.Context, hospitalID,
 func (r *triageRepository) GetWaitingByDept(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.TriageQueue, error) {
 	var queues []entity.TriageQueue
 	err := r.db.WithContext(ctx).
-		Where("dept_id = ? AND queue_status = 'WAITING'", deptID).
+		Where("hospital_id = ? AND department_id = ? AND queue_status = 'WAITING'", hospitalID, deptID).
+		Order("composite_score desc").
+		Find(&queues).Error
+	return queues, err
+}
+
+func (r *triageRepository) FindWaitingByHospitalAndDept(ctx context.Context, hospitalID, departmentID uuid.UUID) ([]entity.TriageQueue, error) {
+	var queues []entity.TriageQueue
+	err := r.db.WithContext(ctx).
+		Where("hospital_id = ? AND department_id = ? AND queue_status = 'WAITING'", hospitalID, departmentID).
 		Order("composite_score desc").
 		Find(&queues).Error
 	return queues, err

@@ -27,7 +27,7 @@ func NewDailyScheduleRepository(db *gorm.DB) irepository.DailyScheduleRepository
 func (r *dailyScheduleRepository) GetByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (*entity.DailySchedule, error) {
 	var schedule entity.DailySchedule
 	err := r.db.WithContext(ctx).
-		Where("hospital_id = ? AND dept_id = ? AND schedule_date = ?", hospitalID, deptID, date.Format("2006-01-02")).
+		Where("hospital_id = ? AND department_id = ? AND schedule_date = ?", hospitalID, deptID, date.Format("2006-01-02")).
 		First(&schedule).Error
 	return &schedule, err
 }
@@ -37,7 +37,7 @@ func (r *dailyScheduleRepository) GetOrCreate(ctx context.Context, hospitalID, d
 	dateStr := date.Format("2006-01-02")
 	
 	err := r.db.WithContext(ctx).
-		Where("hospital_id = ? AND dept_id = ? AND schedule_date = ?", hospitalID, deptID, dateStr).
+		Where("hospital_id = ? AND department_id = ? AND schedule_date = ?", hospitalID, deptID, dateStr).
 		First(&schedule).Error
 	
 	if err == nil {
@@ -50,7 +50,7 @@ func (r *dailyScheduleRepository) GetOrCreate(ctx context.Context, hospitalID, d
 
 	schedule = entity.DailySchedule{
 		HospitalID:    hospitalID,
-		DeptID:        deptID,
+		DepartmentID:  deptID,
 		ScheduleDate:  date,
 		MaxSlots:      defaultMaxSlots,
 		OverbookLimit: 2,
@@ -80,10 +80,10 @@ func (r *dailyScheduleRepository) IncrementBookedSlots(ctx context.Context, id u
 	return nil
 }
 
-func (r *dailyScheduleRepository) FindByDeptAndDateRange(ctx context.Context, deptID uuid.UUID, start, end time.Time) ([]entity.DailySchedule, error) {
+func (r *dailyScheduleRepository) FindByDeptAndDateRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.DailySchedule, error) {
 	var schedules []entity.DailySchedule
 	err := r.db.WithContext(ctx).
-		Where("dept_id = ? AND schedule_date BETWEEN ? AND ?", deptID, start.Format("2006-01-02"), end.Format("2006-01-02")).
+		Where("hospital_id = ? AND department_id = ? AND schedule_date BETWEEN ? AND ?", hospitalID, deptID, start.Format("2006-01-02"), end.Format("2006-01-02")).
 		Order("schedule_date ASC").
 		Find(&schedules).Error
 	return schedules, err
