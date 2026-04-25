@@ -269,25 +269,25 @@ func TestSpecialistOperations(t *testing.T) {
 func TestReceptionistOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	mockTriage := new(MockTriageUseCase)
-	handler := handlers.NewReceptionistHandler(mockUC, mockTriage)
+	mockArrival := new(MockArrivalUseCase)
+	handler := handlers.NewReceptionistHandler(mockUC, mockArrival)
 	receptionistID := uuid.New()
 	hospID := uuid.New()
+	deptID := uuid.New()
 
 	router := gin.Default()
-	router.POST("/api/v1/receptionist/referrals/:id/confirm-attendance", func(c *gin.Context) {
+	router.POST("/api/v1/receptionist/:id/arrive", func(c *gin.Context) {
 		c.Set("userID", receptionistID)
 		c.Set("hospID", &hospID)
+		c.Set("deptID", &deptID)
 		c.Next()
-	}, handler.ConfirmAttendance)
+	}, handler.ConfirmArrival)
 
-	t.Run("Confirm Attendance", func(t *testing.T) {
-		refID := uuid.New()
-		mockUC.On("ConfirmAttendance", mock.Anything, refID, receptionistID, hospID, "ASSIGNED").Return(nil)
+	t.Run("Confirm Arrival", func(t *testing.T) {
+		queueID := uuid.New()
+		mockArrival.On("ConfirmArrival", mock.Anything, queueID, receptionistID).Return(nil)
 
-		payload := map[string]string{"status": "ASSIGNED"}
-		body, _ := json.Marshal(payload)
-		req, _ := http.NewRequest(http.MethodPost, "/api/v1/receptionist/referrals/"+refID.String()+"/confirm-attendance", bytes.NewBuffer(body))
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/receptionist/"+queueID.String()+"/arrive", nil)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)

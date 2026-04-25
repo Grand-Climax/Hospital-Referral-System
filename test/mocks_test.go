@@ -760,3 +760,38 @@ func (m *MockTriageUseCase) ListScheduledInRange(ctx context.Context, hospitalID
 func (m *MockTriageUseCase) SetManualSeverity(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
 	return m.Called(ctx, referralID, userID, score, justification).Error(0)
 }
+// ---------------------------------------------------------------------------
+// Mock: ArrivalUseCase
+// ---------------------------------------------------------------------------
+
+type MockArrivalUseCase struct {
+	mock.Mock
+}
+
+func (m *MockArrivalUseCase) GetTodayAndTomorrowSchedule(ctx context.Context, hospitalID, deptID uuid.UUID) ([]*entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockArrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID) error {
+	return m.Called(ctx, queueID, userID).Error(0)
+}
+
+func (m *MockArrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID) error {
+	return m.Called(ctx, queueID, doctorID, userID).Error(0)
+}
+
+func (m *MockArrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUID, hospitalID uuid.UUID, deptID uuid.UUID, userID uuid.UUID) (*entity.TriageQueue, error) {
+	args := m.Called(ctx, referralID, hospitalID, deptID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockArrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
+	return m.Called(ctx, queueID, missReason, userID).Error(0)
+}
