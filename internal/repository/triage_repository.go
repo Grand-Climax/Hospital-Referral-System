@@ -91,3 +91,26 @@ func (r *triageRepository) FindWaitingByHospitalAndDept(ctx context.Context, hos
 		Find(&queues).Error
 	return queues, err
 }
+
+func (r *triageRepository) FindScheduledByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, startDate, endDate time.Time) ([]*entity.TriageQueue, error) {
+	var queues []*entity.TriageQueue
+	err := r.db.WithContext(ctx).
+		Preload("Referral").
+		Preload("Referral.Patient").
+		Where("hospital_id = ? AND department_id = ? AND queue_status = 'SCHEDULED' AND appointment_date BETWEEN ? AND ?", hospitalID, deptID, startDate.Format("2006-01-02"), endDate.Format("2006-01-02")).
+		Order("appointment_date asc").
+		Find(&queues).Error
+	return queues, err
+}
+
+func (r *triageRepository) FindByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
+	var queues []*entity.TriageQueue
+	var count int64
+	query := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Where("hospital_id = ? AND department_id = ?", hospitalID, deptID)
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+	err := query.Limit(limit).Offset(offset).Find(&queues).Error
+	return queues, count, err
+}
