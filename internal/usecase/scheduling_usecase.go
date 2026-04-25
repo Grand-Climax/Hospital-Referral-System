@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,7 @@ type schedulingUseCase struct {
 	scheduleRepo irepository.DailyScheduleRepository
 	overrideRepo irepository.CapacityOverrideRepository
 	deptRepo     irepository.DepartmentRepository
+	configRepo   irepository.SystemConfigRepository
 	auditRepo    irepository.AuditLogRepository
 }
 
@@ -31,6 +33,7 @@ func NewSchedulingUseCase(
 	sRepo irepository.DailyScheduleRepository,
 	ovRepo irepository.CapacityOverrideRepository,
 	deptRepo irepository.DepartmentRepository,
+	configRepo irepository.SystemConfigRepository,
 	auditRepo irepository.AuditLogRepository,
 ) iusecase.SchedulingUseCase {
 	return &schedulingUseCase{
@@ -40,6 +43,7 @@ func NewSchedulingUseCase(
 		scheduleRepo: sRepo,
 		overrideRepo: ovRepo,
 		deptRepo:     deptRepo,
+		configRepo:   configRepo,
 		auditRepo:    auditRepo,
 	}
 }
@@ -212,19 +216,32 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 	})
 }
 
-func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, deptID, userID uuid.UUID) (*dto.BatchScheduleResult, error) {
-	waiting, err := u.triageRepo.GetWaitingByDept(ctx, hospitalID, deptID)
+func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, departmentID, userID uuid.UUID) (*dto.BatchScheduleResult, error) {
+	waiting, err := u.triageRepo.FindWaitingByHospitalAndDept(ctx, hospitalID, departmentID)
 	if err != nil {
 		return nil, err
 	}
 
-	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID)
+	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, departmentID)
 	if err != nil {
 		return nil, err
 	}
 
-	const bufferDays = 2 // As requested
-	const horizonDays = 14
+	// Load configuration
+	bufferDays := 2
+	if cfg, err := u.configRepo.GetByKey(ctx, "buffer_days"); err == nil {
+		if val, err := strconv.Atoi(cfg.Value); err == nil {
+			bufferDays = val
+		}
+	}
+
+	horizonDays := 30
+	if cfg, err := u.configRepo.GetByKey(ctx, "max_horizon_days"); err == nil {
+		if val, err := strconv.Atoi(cfg.Value); err == nil {
+			horizonDays = val
+		}
+	}
+
 	startDate := time.Now().AddDate(0, 0, bufferDays)
 
 	result := &dto.BatchScheduleResult{
@@ -233,13 +250,11 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, deptI
 	}
 
 	for _, q := range waiting {
-		scheduled := false
 		// Look for earliest slot
 		for i := 0; i < horizonDays; i++ {
 			targetDate := startDate.AddDate(0, 0, i)
 			
-			// Use GetOrCreate to ensure row exists
-			sched, err := u.scheduleRepo.GetOrCreate(ctx, hospitalID, deptID, targetDate, dept.StandardDailyLimit)
+			sched, err := u.scheduleRepo.GetOrCreate(ctx, hospitalID, departmentID, targetDate, dept.StandardDailyLimit)
 			if err != nil {
 				continue
 			}
@@ -247,10 +262,8 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, deptI
 			// Batch rule: No overbooking
 			if sched.BookedSlots < sched.MaxSlots {
 				err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					// Refresh with lock or hope optimistic versioning suffices
-					// Using tx.Save on sched should check version if properly implemented
-					sched.BookedSlots++
-					if err := tx.Save(sched).Error; err != nil {
+					// Use pessimistic or optimistic locking? Repository uses versioning.
+					if err := u.scheduleRepo.IncrementBookedSlots(ctx, sched.ID, sched.Version); err != nil {
 						return err
 					}
 
@@ -266,17 +279,17 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, deptI
 				if err == nil {
 					result.ScheduledCount++
 					result.WaitingCount--
-					scheduled = true
 					break
 				}
 			}
 		}
-		if !scheduled {
-			// Stay in waiting list
-		}
 	}
 
-	u.auditRepo.LogWithContext(ctx, userID, "BATCH_SCHEDULE_RUN", nil, nil, result)
+	u.auditRepo.LogWithContext(ctx, userID, "BATCH_SCHEDULE_RUN", nil, nil, map[string]interface{}{
+		"hospital_id":   hospitalID,
+		"department_id": departmentID,
+		"result":        result,
+	})
 	return result, nil
 }
 

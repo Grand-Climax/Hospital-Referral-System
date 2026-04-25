@@ -35,7 +35,7 @@ func NewCapacityManagementUseCase(
 }
 
 func (u *capacityManagementUseCase) GetSchedule(ctx context.Context, hospitalID, deptID uuid.UUID, startDate, endDate time.Time) ([]entity.DailySchedule, error) {
-	return u.scheduleRepo.FindByDeptAndDateRange(ctx, deptID, startDate, endDate)
+	return u.scheduleRepo.FindByDeptAndDateRange(ctx, hospitalID, deptID, startDate, endDate)
 }
 
 func (u *capacityManagementUseCase) GetOverrides(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.CapacityOverride, error) {
@@ -48,13 +48,13 @@ func (u *capacityManagementUseCase) CreateOverride(ctx context.Context, hospital
 	}
 
 	override := &entity.CapacityOverride{
-		HospitalID: hospitalID,
-		DeptID:     deptID,
-		TargetDate: date,
-		NewLimit:   newLimit,
-		Reason:     &reason,
-		IsActive:   true,
-		SetByID:    userID,
+		HospitalID:   hospitalID,
+		DepartmentID: deptID,
+		TargetDate:   date,
+		NewLimit:     newLimit,
+		Reason:       &reason,
+		IsActive:     true,
+		SetByID:      userID,
 	}
 
 	if err := u.overrideRepo.Create(ctx, override); err != nil {
@@ -95,7 +95,7 @@ func (u *capacityManagementUseCase) UpdateOverride(ctx context.Context, override
 	}
 
 	// Synchronize DailySchedule
-	sched, err := u.scheduleRepo.GetByDeptAndDate(ctx, override.HospitalID, override.DeptID, override.TargetDate)
+	sched, err := u.scheduleRepo.GetByDeptAndDate(ctx, override.HospitalID, override.DepartmentID, override.TargetDate)
 	if err == nil {
 		sched.MaxSlots = newLimit
 		_ = u.scheduleRepo.Update(ctx, sched)
@@ -116,9 +116,9 @@ func (u *capacityManagementUseCase) DeleteOverride(ctx context.Context, override
 	}
 
 	// Revert DailySchedule to standard limit
-	dept, err := u.deptRepo.FindHospitalDepartment(ctx, override.HospitalID, override.DeptID)
+	dept, err := u.deptRepo.FindHospitalDepartment(ctx, override.HospitalID, override.DepartmentID)
 	if err == nil {
-		sched, err := u.scheduleRepo.GetByDeptAndDate(ctx, override.HospitalID, override.DeptID, override.TargetDate)
+		sched, err := u.scheduleRepo.GetByDeptAndDate(ctx, override.HospitalID, override.DepartmentID, override.TargetDate)
 		if err == nil {
 			sched.MaxSlots = dept.StandardDailyLimit
 			_ = u.scheduleRepo.Update(ctx, sched)
@@ -142,11 +142,11 @@ func (u *capacityManagementUseCase) UpdateMaxSlots(ctx context.Context, schedule
 	_ = oldSlots // could be used for audit
 
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionUpdateSystemConfig, nil, nil, map[string]interface{}{
-		"schedule_id": scheduleID,
-		"hospital_id": sched.HospitalID,
-		"dept_id":     sched.DeptID,
-		"date":        sched.ScheduleDate,
-		"new_slots":   maxSlots,
+		"schedule_id":   scheduleID,
+		"hospital_id":   sched.HospitalID,
+		"department_id": sched.DepartmentID,
+		"date":          sched.ScheduleDate,
+		"new_slots":     maxSlots,
 	})
 }
 
