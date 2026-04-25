@@ -72,6 +72,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	outcomeRepo := repository.NewReferralOutcomeRepository(db)
 	overrideRepo := repository.NewCapacityOverrideRepository(db)
 	configRepo := repository.NewSystemConfigRepository(db)
+	referralAccessRepo := repository.NewReferralAccessRepository(db)
 
 	// Infrastructure Clients
 	smsClient := sms.NewAfroMessageClient()
@@ -91,7 +92,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Workflow Use Cases
 	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo)
 	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo)
-	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, auditLogRepo)
+	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo)
 	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, smsClient)
 	capacityManagementUseCase := usecase.NewCapacityManagementUseCase(scheduleRepo, overrideRepo, departmentRepo, auditLogRepo)
 
@@ -105,7 +106,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase)
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase)
-	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, triageUseCase)
+	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase)
 	adminHandler := handlers.NewAdminHandler(referralUseCase)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase)
@@ -118,7 +119,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Workflow Handlers
 	triageHandler := handlers.NewTriageHandler(triageUseCase)
 	schedHandler := handlers.NewSchedulingHandler(schedUseCase)
-	arrivalHandler := handlers.NewArrivalHandler(arrivalUseCase)
 	clinicalHandler := handlers.NewClinicalHandler(referralUseCase)
 	notifHandler := handlers.NewNotificationHandler(notifUseCase)
 
@@ -255,9 +255,11 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			{
 				receptionistGroup.GET("", receptionistHandler.ListReferrals)
 				receptionistGroup.GET("/:id", receptionistHandler.GetReferral)
-				receptionistGroup.POST("/:id/confirm-attendance", receptionistHandler.ConfirmAttendance)
-				receptionistGroup.POST("/:id/confirm-arrival", arrivalHandler.ConfirmArrival)
-				receptionistGroup.GET("/schedule", receptionistHandler.GetReceptionSchedule)
+				receptionistGroup.GET("/schedule", receptionistHandler.GetSchedule)
+				receptionistGroup.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
+				receptionistGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
+				receptionistGroup.POST("/walk-in", receptionistHandler.RegisterWalkIn)
+				receptionistGroup.POST("/:id/miss", receptionistHandler.MarkMissed)
 			}
 
 			// ADMINS
