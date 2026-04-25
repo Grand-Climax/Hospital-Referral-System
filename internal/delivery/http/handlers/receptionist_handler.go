@@ -1,69 +1,59 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
+	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 type ReceptionistHandler struct {
 	referralUC iusecase.ReferralUseCase
-	triageUC   iusecase.TriageUseCase
+	arrivalUC  iusecase.ArrivalUseCase
 }
 
-func NewReceptionistHandler(referralUC iusecase.ReferralUseCase, triageUC iusecase.TriageUseCase) *ReceptionistHandler {
+func NewReceptionistHandler(referralUC iusecase.ReferralUseCase, arrivalUC iusecase.ArrivalUseCase) *ReceptionistHandler {
 	return &ReceptionistHandler{
 		referralUC: referralUC,
-		triageUC:   triageUC,
+		arrivalUC:  arrivalUC,
 	}
 }
 
-// ListReferrals godoc
-// @Summary      List Referrals for Receptionist
-// @Description  Get a paginated list of referrals assigned to the receptionist's hospital.
-// @Tags         Receptionist Referrals
-// @Produce      json
-// @Param        limit query int false "Pagination limit" default(20)
-// @Param        page query int false "Page number" default(1)
-// @Param        status query string false "Filter by status"
-// @Param        region query string false "Filter by patient region"
-// @Param        patient_name query string false "Filter by patient name (any order)"
-// @Param        sort query string false "Sort order (asc/desc)"
-// @Success      200 {object} dto.PaginatedReferralResponse
-// @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.ErrorResponse
-// @Security     BearerAuth
-// @Router       /api/v1/receptionist/referrals [get]
-func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
+func (h *ReceptionistHandler) getHospitalAndDept(c *gin.Context) (uuid.UUID, uuid.UUID) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
 	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
+	} else if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
 	}
+
+	deptIdVal, _ := c.Get("deptID")
+	deptID := uuid.Nil
+	if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
+		deptID = *dID
+	} else if dID, ok := deptIdVal.(uuid.UUID); ok {
+		deptID = dID
+	}
+
+	return hospID, deptID
+}
+
+func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
+	hospID, _ := h.getHospitalAndDept(c)
 	if hospID == uuid.Nil {
-		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid user scopes",
-		})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid hospital scope"})
 		return
 	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if limit <= 0 {
-		limit = 20
-	}
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page <= 0 {
-		page = 1
-	}
 
 	filter := irepository.ReferralFilter{
 		Status:      c.Query("status"),
@@ -74,170 +64,51 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 		Page:        page,
 	}
 
-	if filter.Status != "" && !h.referralUC.IsValidStatus(filter.Status) {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "forbidden: unknown or invalid referral status",
-		})
-		return
-	}
-
 	referrals, total, err := h.referralUC.ListForReceptionist(c.Request.Context(), hospID, filter)
 	if err != nil {
-		log.Printf("[ReceptionistHandler.List] error: %v", err)
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
-
-	if total == 0 {
-		c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
-			BaseResponse: dto.BaseResponse{
-				Success: false,
-				Message: "No referrals found for your hospital",
-			},
-			Data:     []dto.ListReferralResponse{},
-			Total:    0,
-			Page:     page,
-			PageSize: limit,
-		})
-		return
-	}
-
-	responseData := toListReferralResponseSlice(referrals)
 
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: "Referrals retrieved successfully",
-		},
-		Data:         responseData,
+		BaseResponse: dto.BaseResponse{Success: true, Message: "Referrals retrieved successfully"},
+		Data:         toListReferralResponseSlice(referrals),
 		Total:        total,
 		Page:         page,
 		PageSize:     limit,
 	})
 }
 
-// GetReferral godoc
-// @Summary      Get Referral Details for Receptionist
-// @Description  Get detailed information about a specific referral.
-// @Tags         Receptionist Referrals
-// @Produce      json
-// @Param        id path string true "Referral ID"
-// @Success      200 {object} dto.ReferralDetailResponse
-// @Failure      400 {object} dto.ErrorResponse
-// @Failure      403 {object} dto.ErrorResponse
-// @Security     BearerAuth
-// @Router       /api/v1/receptionist/referrals/{id} [get]
 func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid id format",
-		})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid id format"})
 		return
 	}
 
-	hospIdVal, _ := c.Get("hospID")
-	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
-		hospID = *hID
-	}
-
+	hospID, _ := h.getHospitalAndDept(c)
 	ref, err := h.referralUC.GetDetailsForReceptionist(c.Request.Context(), id, hospID)
 	if err != nil {
-		c.JSON(http.StatusForbidden, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, dto.ReferralDetailResponse{
 		Referral: *ref,
-		BaseResponse: dto.BaseResponse{
-			Success: true,
-			Message: "Referral details retrieved successfully",
-		},
+		BaseResponse: dto.BaseResponse{Success: true, Message: "Referral details retrieved successfully"},
 	})
 }
 
-// ConfirmAttendance godoc
-// @Summary      Confirm Referral Attendance
-// @Description  Confirm that the patient has attended their referral appointment.
-// @Tags         Receptionist Referrals
-// @Accept       json
-// @Produce      json
-// @Param        id path string true "Referral ID"
-// @Param        request body map[string]string true "Status (key: status)"
-// @Success      200 {object} dto.BaseResponse
-// @Failure      400 {object} dto.ErrorResponse
-// @Security     BearerAuth
-// @Router       /api/v1/receptionist/referrals/{id}/confirm-attendance [post]
-func (h *ReceptionistHandler) ConfirmAttendance(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+func (h *ReceptionistHandler) GetSchedule(c *gin.Context) {
+	hospID, deptID := h.getHospitalAndDept(c)
+	if hospID == uuid.Nil || deptID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid user scopes (hospital/department missing)"})
+		return
+	}
+
+	schedules, err := h.arrivalUC.GetTodayAndTomorrowSchedule(c.Request.Context(), hospID, deptID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid format",
-		})
-		return
-	}
-
-	var req struct {
-		Status string `json:"status" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	userIdVal, _ := c.Get("userID")
-	receptionistID, _ := userIdVal.(uuid.UUID)
-	hospIdVal, _ := c.Get("hospID")
-	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
-		hospID = *hID
-	}
-
-	if err := h.referralUC.ConfirmAttendance(c.Request.Context(), id, receptionistID, hospID, req.Status); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
-		return
-	}
-	c.JSON(http.StatusOK, dto.BaseResponse{
-		Success: true,
-		Message: "Patient attendance confirmed successfully",
-	})
-}
-
-func (h *ReceptionistHandler) GetReceptionSchedule(c *gin.Context) {
-	hospIDVal, _ := c.Get("hospID")
-	hospID := uuid.Nil
-	if hID, ok := hospIDVal.(*uuid.UUID); ok && hID != nil {
-		hospID = *hID
-	}
-
-	deptIDStr := c.Query("dept_id")
-	deptID, _ := uuid.Parse(deptIDStr)
-
-	// 48-hour logic
-	start := time.Now()
-	end := start.AddDate(0, 0, 2)
-
-	schedules, err := h.triageUC.ListScheduledInRange(c.Request.Context(), hospID, deptID, start, end)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
@@ -245,4 +116,94 @@ func (h *ReceptionistHandler) GetReceptionSchedule(c *gin.Context) {
 		"success": true,
 		"data":    schedules,
 	})
+}
+
+func (h *ReceptionistHandler) ConfirmArrival(c *gin.Context) {
+	queueID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid queue id format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	if err := h.arrivalUC.ConfirmArrival(c.Request.Context(), queueID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Patient arrival confirmed"})
+}
+
+func (h *ReceptionistHandler) AssignDoctor(c *gin.Context) {
+	queueID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid queue id format"})
+		return
+	}
+
+	var req dto.AssignDoctorRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	if err := h.arrivalUC.AssignDoctor(c.Request.Context(), queueID, req.DoctorID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Doctor assigned successfully"})
+}
+
+func (h *ReceptionistHandler) RegisterWalkIn(c *gin.Context) {
+	var req dto.WalkInRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	hospID, deptID := h.getHospitalAndDept(c)
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	queue, err := h.arrivalUC.RegisterWalkIn(c.Request.Context(), req.ReferralID, hospID, deptID, userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Walk-in registered successfully",
+		"data":    queue,
+	})
+}
+
+func (h *ReceptionistHandler) MarkMissed(c *gin.Context) {
+	queueID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid queue id format"})
+		return
+	}
+
+	var req dto.MarkMissedRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	if err := h.arrivalUC.MarkMissed(c.Request.Context(), queueID, entity.MissReason(req.MissReason), userID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Patient marked as missed"})
 }
