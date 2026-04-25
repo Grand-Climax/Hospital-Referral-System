@@ -9,7 +9,9 @@ import (
 )
 
 type ArrivalUseCase interface {
-	MarkExpected(ctx context.Context, referralID uuid.UUID) error
-	ConfirmArrival(ctx context.Context, referralID, receptionistID uuid.UUID) error
-	UpdateArrivalStatus(ctx context.Context, referralID uuid.UUID, status entity.ArrivalStatus) error
+	GetTodayAndTomorrowSchedule(ctx context.Context, hospitalID, deptID uuid.UUID) ([]*entity.TriageQueue, error)
+	ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID) error
+	AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID) error
+	RegisterWalkIn(ctx context.Context, referralID uuid.UUID, hospitalID uuid.UUID, deptID uuid.UUID, userID uuid.UUID) (*entity.TriageQueue, error)
+	MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error
 }
