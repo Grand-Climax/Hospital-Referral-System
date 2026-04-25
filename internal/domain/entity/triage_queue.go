@@ -36,21 +36,27 @@ const (
 )
 
 type TriageQueue struct {
-	ID                uuid.UUID     `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	ReferralID        uuid.UUID     `gorm:"type:uuid;not null;uniqueIndex:idx_ref_date" json:"referral_id"`
-	DeptID            uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_dept_score" json:"dept_id"`
-	AppointmentDate   *time.Time     `gorm:"type:date;uniqueIndex:idx_ref_date;index:idx_triage_dept_score" json:"appointment_date,omitempty"`
-	CompositeScore    float64       `gorm:"type:numeric(5,2);not null;index:idx_triage_dept_score,priority:desc" json:"composite_score"`
-	AssignedAt        time.Time     `gorm:"default:now()" json:"assigned_at"`
-	ArrivalStatus     ArrivalStatus `gorm:"type:arrivalstatus;not null;default:'EXPECTED';index:idx_triage_date_status" json:"arrival_status"`
-	ArrivedAt         *time.Time    `json:"arrived_at,omitempty"`
-	MarkedBy          *uuid.UUID    `gorm:"type:uuid" json:"marked_by,omitempty"`
-	MissReason        *MissReason   `gorm:"type:missreason" json:"miss_reason,omitempty"`
-	AssignedDoctorID  *uuid.UUID    `gorm:"type:uuid;index" json:"assigned_doctor_id,omitempty"`
-	DoctorAssignedAt  *time.Time    `json:"doctor_assigned_at,omitempty"`
-	QueueStatus       QueueStatus   `gorm:"type:queuestatus;default:'WAITING'" json:"queue_status"`
-	ArrivalBoost      int           `gorm:"default:0" json:"arrival_boost"`
-	RescheduleReason  *string       `gorm:"type:varchar(50)" json:"reschedule_reason,omitempty"`
+	ID               uuid.UUID     `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	ReferralID       uuid.UUID     `gorm:"type:uuid;not null;uniqueIndex:idx_ref_date" json:"referral_id"`
+	HospitalID       uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept_status,priority:1" json:"hospital_id"`
+	DepartmentID     uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept_status,priority:2" json:"department_id"`
+	DeptID           uuid.UUID     `gorm:"type:uuid;not null" json:"dept_id"` // Deprecated link
+	AppointmentDate  *time.Time     `gorm:"type:date;uniqueIndex:idx_ref_date;index:idx_triage_dept_score" json:"appointment_date,omitempty"`
+	CompositeScore   float64       `gorm:"type:numeric(5,2);not null;index:idx_triage_dept_score,priority:desc" json:"composite_score"`
+	AssignedAt       time.Time     `gorm:"default:now()" json:"assigned_at"`
+	ArrivalStatus    ArrivalStatus `gorm:"type:arrivalstatus;not null;default:'EXPECTED';index:idx_triage_date_status" json:"arrival_status"`
+	ArrivedAt        *time.Time    `json:"arrived_at,omitempty"`
+	MarkedBy         *uuid.UUID    `gorm:"type:uuid" json:"marked_by,omitempty"`
+	MissReason       *MissReason   `gorm:"type:missreason" json:"miss_reason,omitempty"`
+	AssignedDoctorID *uuid.UUID    `gorm:"type:uuid;index" json:"assigned_doctor_id,omitempty"`
+	DoctorAssignedAt *time.Time    `json:"doctor_assigned_at,omitempty"`
+	QueueStatus      QueueStatus   `gorm:"type:queuestatus;default:'WAITING';index:idx_triage_hosp_dept_status,priority:3" json:"queue_status"`
+	ArrivalBoost     int           `gorm:"default:0" json:"arrival_boost"`
+	RescheduleReason *string       `gorm:"type:varchar(50)" json:"reschedule_reason,omitempty"`
+
+	Hospital   *Hospital   `gorm:"foreignKey:HospitalID" json:"hospital,omitempty"`
+	Department *Department `gorm:"foreignKey:DepartmentID" json:"department,omitempty"`
+	Referral   *Referral   `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
 }
 
 func (tq *TriageQueue) BeforeCreate(tx *gorm.DB) (err error) {
