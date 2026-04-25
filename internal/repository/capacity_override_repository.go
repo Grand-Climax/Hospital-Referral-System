@@ -26,7 +26,7 @@ func NewCapacityOverrideRepository(db *gorm.DB) irepository.CapacityOverrideRepo
 func (r *capacityOverrideRepository) GetActive(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (*entity.CapacityOverride, error) {
 	var override entity.CapacityOverride
 	err := r.db.WithContext(ctx).
-		Where("hospital_id = ? AND dept_id = ? AND target_date = ? AND is_active = ?", hospitalID, deptID, date.Format("2006-01-02"), true).
+		Where("hospital_id = ? AND department_id = ? AND target_date = ? AND is_active = ?", hospitalID, deptID, date.Format("2006-01-02"), true).
 		First(&override).Error
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (r *capacityOverrideRepository) GetActive(ctx context.Context, hospitalID, 
 func (r *capacityOverrideRepository) ListByDept(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.CapacityOverride, error) {
 	var overrides []entity.CapacityOverride
 	err := r.db.WithContext(ctx).
-		Where("hospital_id = ? AND dept_id = ? AND is_active = ?", hospitalID, deptID, true).
+		Where("hospital_id = ? AND department_id = ? AND is_active = ?", hospitalID, deptID, true).
 		Order("target_date DESC").
 		Find(&overrides).Error
 	return overrides, err
