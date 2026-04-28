@@ -10,7 +10,7 @@ import (
 type ClinicalUpdate struct {
 	ID             uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	ReferralID     uuid.UUID `gorm:"type:uuid;not null;index" json:"referral_id"`
-	UpdatedByID    uuid.UUID `gorm:"type:uuid;not null" json:"updated_by_id"`
+	UpdatedByID    uuid.UUID `gorm:"column:updated_by;type:uuid;not null" json:"updated_by_id"`
 	UpdateReason   string    `gorm:"type:varchar(100);not null" json:"update_reason"` // e.g., 'MISSED_APPOINTMENT_RE_EVALUATION','CONDITION_CHANGE','SPECIALIST_NOTE'
 	ClinicalNotes  string    `gorm:"type:text;not null" json:"clinical_notes"`
 	CreatedAt      time.Time `gorm:"default:now();index" json:"created_at"`

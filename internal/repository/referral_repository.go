@@ -65,6 +65,8 @@ func (r *referralRepository) GetReferralByID(ctx context.Context, id uuid.UUID) 
 		Preload("Vitals").
 		Preload("EmergencyDetail").
 		Preload("Attachments").
+		Preload("ReceiverHospital").
+		Preload("TargetDepartment").
 		Where("id = ?", id).
 		First(&referral).Error
 	return &referral, err
@@ -397,8 +399,30 @@ func NewReferralAccessRepository(db *gorm.DB) irepository.ReferralAccessReposito
 	}
 }
 
-func (r *referralAccessRepository) GetAccess(ctx context.Context, referralID, doctorID uuid.UUID) (*entity.ReferralAccess, error) {
+func (r *referralAccessRepository) GetAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error) {
 	var access entity.ReferralAccess
-	err := r.db.WithContext(ctx).Where("referral_id = ? AND doctor_id = ?", referralID, doctorID).First(&access).Error
+	err := r.db.WithContext(ctx).Where("referral_id = ? AND user_id = ? AND revoked_at IS NULL", referralID, userID).First(&access).Error
 	return &access, err
+}
+
+func (r *referralAccessRepository) CheckAccess(ctx context.Context, referralID, userID uuid.UUID) (bool, error) {
+	// 1. Check if user is the referring doctor or assigned specialist
+	var ref entity.Referral
+	if err := r.db.WithContext(ctx).Select("id, referring_doctor_id, specialist_id").Where("id = ?", referralID).First(&ref).Error; err != nil {
+		return false, err
+	}
+
+	if ref.ReferringDoctorID == userID || (ref.SpecialistID != nil && *ref.SpecialistID == userID) {
+		return true, nil
+	}
+
+	// 2. Check for explicit active access grant
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.ReferralAccess{}).
+		Where("referral_id = ? AND user_id = ? AND revoked_at IS NULL", referralID, userID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

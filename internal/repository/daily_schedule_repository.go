@@ -48,9 +48,13 @@ func (r *dailyScheduleRepository) GetOrCreate(ctx context.Context, hospitalID, d
 		return nil, err
 	}
 
+	var hospDept entity.HospitalDepartment
+	r.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).First(&hospDept)
+
 	schedule = entity.DailySchedule{
 		HospitalID:    hospitalID,
 		DepartmentID:  deptID,
+		DeptID:        hospDept.ID,
 		ScheduleDate:  date,
 		MaxSlots:      defaultMaxSlots,
 		OverbookLimit: 2,

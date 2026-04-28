@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -18,6 +19,7 @@ type referralUseCase struct {
 	outcomeRepo       irepository.ReferralOutcomeRepository
 	networkRepo       irepository.NetworkRepository
 	attachmentUseCase iusecase.AttachmentUseCase
+	notifUC           iusecase.NotificationUseCase
 }
 
 func NewReferralUseCase(
@@ -26,6 +28,7 @@ func NewReferralUseCase(
 	oRepo irepository.ReferralOutcomeRepository,
 	nRepo irepository.NetworkRepository,
 	aUC iusecase.AttachmentUseCase,
+	notifUC iusecase.NotificationUseCase,
 ) iusecase.ReferralUseCase {
 	return &referralUseCase{
 		referralRepo:      rRepo,
@@ -33,6 +36,7 @@ func NewReferralUseCase(
 		outcomeRepo:       oRepo,
 		networkRepo:       nRepo,
 		attachmentUseCase: aUC,
+		notifUC:           notifUC,
 	}
 }
 
@@ -735,6 +739,11 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 		return errors.New("referral is claimed by another specialist")
 	}
 
+	// Severity gate: a manual severity score must have been set before acceptance
+	if severityScore == nil && ref.MLSeverityScore == nil {
+		return errors.New("severity score must be set before accepting a referral; use the triage-severity endpoint first")
+	}
+
 	oldStatus := ref.Status
 	ref.Status = entity.StatusAccepted
 	if severityScore != nil {
@@ -753,7 +762,24 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 		ToStatus:    entity.StatusAccepted,
 		Reason:      &reason,
 	}
-	return u.referralRepo.CreateStatusHistory(ctx, history)
+
+	if err := u.referralRepo.CreateStatusHistory(ctx, history); err != nil {
+		return err
+	}
+
+	// Queue Notification
+	hospitalName := "the hospital"
+	deptName := "the department"
+	if ref.ReceiverHospital != nil {
+		hospitalName = ref.ReceiverHospital.Name
+	}
+	if ref.TargetDepartment != nil {
+		deptName = ref.TargetDepartment.Name
+	}
+	message := fmt.Sprintf("Your referral to %s, %s has been accepted. Please wait for your appointment date.", hospitalName, deptName)
+	_ = u.notifUC.QueueNotification(ctx, id, entity.NotificationType("ACCEPTANCE"), message)
+
+	return nil
 }
 
 func (u *referralUseCase) SpecialistReject(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error {
@@ -950,76 +976,3 @@ func (u *referralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx context.C
 	return u.referralRepo.GetReferralStatusHistoryForHospital(ctx, hospID, referralID, limit, page)
 }
 
-// ---------------------------------------------------------
-// Clinical & Outcome Actions
-// ---------------------------------------------------------
-
-func (u *referralUseCase) AddClinicalUpdate(ctx context.Context, referralID, userID uuid.UUID, req dto.ClinicalUpdateRequest) (*dto.ClinicalUpdateResponse, error) {
-	update := &entity.ClinicalUpdate{
-		ReferralID:     referralID,
-		UpdatedByID:    userID,
-		UpdateReason:   "GENERAL_UPDATE",
-		ClinicalNotes:  req.Summary,
-		RequiresReview: req.RequiresReview,
-	}
-
-	if err := u.clinicalRepo.Create(ctx, update); err != nil {
-		return nil, err
-	}
-
-	return &dto.ClinicalUpdateResponse{
-		ID:             update.ID,
-		ReferralID:     update.ReferralID,
-		UpdatedByID:    update.UpdatedByID,
-		Summary:        update.ClinicalNotes,
-		RequiresReview: update.RequiresReview,
-		CreatedAt:      update.CreatedAt,
-	}, nil
-}
-
-func (u *referralUseCase) RecordOutcome(ctx context.Context, referralID, userID uuid.UUID, req dto.ReferralOutcomeRequest) (*dto.ReferralOutcomeResponse, error) {
-	outcome := &entity.ReferralOutcome{
-		ReferralID:   referralID,
-		Outcome:      req.OutcomeType,
-		OutcomeNotes: &req.FinalSummary,
-		RecordedByID: userID,
-	}
-
-	if err := u.outcomeRepo.Create(ctx, outcome); err != nil {
-		return nil, err
-	}
-
-	ref, _ := u.referralRepo.GetReferralByID(ctx, referralID)
-	if ref != nil {
-		ref.Status = entity.StatusCompleted
-		_ = u.referralRepo.UpdateReferralTransaction(ctx, ref)
-	}
-
-	return &dto.ReferralOutcomeResponse{
-		ID:           outcome.ID,
-		ReferralID:   outcome.ReferralID,
-		OutcomeType:  outcome.Outcome,
-		FinalSummary: *outcome.OutcomeNotes,
-		CreatedAt:    outcome.RecordedAt,
-	}, nil
-}
-
-func (u *referralUseCase) GetClinicalHistory(ctx context.Context, referralID uuid.UUID) ([]dto.ClinicalUpdateResponse, error) {
-	updates, err := u.clinicalRepo.ListByReferralID(ctx, referralID)
-	if err != nil {
-		return nil, err
-	}
-
-	var resp []dto.ClinicalUpdateResponse
-	for _, up := range updates {
-		resp = append(resp, dto.ClinicalUpdateResponse{
-			ID:             up.ID,
-			ReferralID:     up.ReferralID,
-			UpdatedByID:    up.UpdatedByID,
-			Summary:        up.ClinicalNotes,
-			RequiresReview: up.RequiresReview,
-			CreatedAt:      up.CreatedAt,
-		})
-	}
-	return resp, nil
-}

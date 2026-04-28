@@ -90,13 +90,5 @@ func (u *hospitalUseCase) UpdateSystemConfig(ctx context.Context, userID uuid.UU
 }
 
 func (u *hospitalUseCase) GetSystemConfigs(ctx context.Context) (map[string]string, error) {
-	cfgs, err := u.configRepo.GetAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-	res := make(map[string]string)
-	for _, c := range cfgs {
-		res[c.Key] = c.Value
-	}
-	return res, nil
+	return u.configRepo.GetAll(ctx)
 }

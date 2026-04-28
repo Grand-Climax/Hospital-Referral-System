@@ -23,8 +23,9 @@ type DailyScheduleListResponse struct {
 }
 
 type BatchScheduleResult struct {
-	ScheduledCount int `json:"scheduled_count"`
-	WaitingCount   int `json:"waiting_count"`
+	ScheduledCount int    `json:"scheduled_count"`
+	WaitingCount   int    `json:"waiting_count"`
+	Message        string `json:"message,omitempty"`
 }
 
 type UpdateMaxSlotsRequest struct {

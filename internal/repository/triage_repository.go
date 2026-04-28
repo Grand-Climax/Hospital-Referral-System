@@ -38,7 +38,7 @@ func (r *triageRepository) GetByReferralID(ctx context.Context, referralID uuid.
 func (r *triageRepository) GetByHospitalAndStatus(ctx context.Context, hospitalID uuid.UUID, status entity.QueueStatus) ([]entity.TriageQueue, error) {
 	var queues []entity.TriageQueue
 	err := r.db.WithContext(ctx).
-		Where("dept_id IN (SELECT id FROM hospital_departments WHERE hospital_id = ?) AND queue_status = ?", hospitalID, status).
+		Where("hospital_id = ? AND queue_status = ?", hospitalID, status).
 		Find(&queues).Error
 	return queues, err
 }
@@ -113,4 +113,21 @@ func (r *triageRepository) FindByHospitalAndDept(ctx context.Context, hospitalID
 	}
 	err := query.Limit(limit).Offset(offset).Find(&queues).Error
 	return queues, count, err
+}
+
+func (r *triageRepository) FindAppointmentsForReminders(ctx context.Context, date time.Time) ([]*entity.TriageQueue, error) {
+	var queues []*entity.TriageQueue
+	err := r.db.WithContext(ctx).
+		Preload("Referral").
+		Preload("Referral.Patient").
+		Where("appointment_date = ? AND arrival_status = 'EXPECTED'", date.Format("2006-01-02")).
+		Find(&queues).Error
+	return queues, err
+}
+
+func (r *triageRepository) IncrementWaitingWeights(ctx context.Context) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Where("appointment_date IS NULL AND arrival_status = ?", entity.ArrivalExpected).
+		Update("waiting_hours_weight", gorm.Expr("waiting_hours_weight + 1"))
+	return result.RowsAffected, result.Error
 }

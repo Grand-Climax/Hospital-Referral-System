@@ -50,9 +50,16 @@ func (u *triageUseCase) LandInQueue(ctx context.Context, referralID uuid.UUID) e
 	}
 
 	queue := &entity.TriageQueue{
-		ReferralID:  referralID,
-		DeptID:      ref.TargetDeptID,
-		QueueStatus: entity.QueueWaiting,
+		ReferralID:   referralID,
+		DeptID:       ref.TargetDeptID,
+		HospitalID:   ref.TargetHospitalID,
+		DepartmentID: ref.TargetDeptID,
+		QueueStatus:  entity.QueueWaiting,
+	}
+
+	var hospDept entity.HospitalDepartment
+	if err := u.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", ref.TargetHospitalID, ref.TargetDeptID).First(&hospDept).Error; err == nil {
+		queue.DeptID = hospDept.ID
 	}
 
 	score, _ := u.CalculateCompositeScore(ctx, referralID)
@@ -114,6 +121,7 @@ func (u *triageUseCase) ListForTriage(ctx context.Context, hospitalID uuid.UUID,
 			name = fmt.Sprintf("%s %s", ref.Patient.FirstName, ref.Patient.LastName)
 		}
 		resp = append(resp, dto.TriageListResponse{
+			QueueID:         q.ID,
 			ReferralID:      q.ReferralID,
 			PatientName:     name,
 			TargetDept:      ref.TargetDeptID.String(),
@@ -167,7 +175,10 @@ func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userI
 		newPred := &entity.MLPrediction{
 			ReferralID:            referralID,
 			TriggerReason:         "MANUAL",
+			InputFeatures:         []byte("{}"),
 			OutputScore:           score,
+			ConfidenceLevel:       nil,
+			ModelVersion:          "manual-v1",
 			IsOverridden:          true,
 			OverriddenScore:       &score,
 			OverriddenBy:          &userID,
@@ -200,7 +211,7 @@ func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userI
 			}
 		}
 
-		return u.auditRepo.LogWithContext(ctx, userID, "OVERRIDE_ML_SCORE", &referralID, nil, map[string]interface{}{
+		return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideMLScore, &referralID, nil, map[string]interface{}{
 			"score":         score,
 			"justification": justification,
 		})

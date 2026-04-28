@@ -255,6 +255,7 @@ func TestSpecialistOperations(t *testing.T) {
 	t.Run("Accept Referral", func(t *testing.T) {
 		refID := uuid.New()
 		mockUC.On("SpecialistAccept", mock.Anything, refID, specialistID, hospID, (*float64)(nil)).Return(nil)
+		mockTriage.On("LandInQueue", mock.Anything, refID).Return(nil)
 
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/specialist/referrals/"+refID.String()+"/accept", bytes.NewBuffer([]byte("{}")))
 		req.Header.Set("Content-Type", "application/json")

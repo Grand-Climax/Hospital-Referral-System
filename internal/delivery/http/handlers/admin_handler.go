@@ -24,6 +24,11 @@ func NewAdminHandler(referralUC iusecase.ReferralUseCase) *AdminHandler {
 // SystemAdminList godoc
 // @Summary      System Admin Global Listing
 // @Description  Get a global paginated list of all referrals with optional status filtering.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Visibility:** Global access to all referrals in the database.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 403 Forbidden (not super admin)
 // @Tags         Admin Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -105,6 +110,11 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 // HospitalAdminLogs godoc
 // @Summary      Get Referral Logs for Hospital
 // @Description  Get audit logs of all referral status transitions connected to the hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Prerequisites:** Admin must belong to a hospital.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 403 Forbidden (wrong hospital)
 // @Tags         Admin Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)

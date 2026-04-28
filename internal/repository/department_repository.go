@@ -76,6 +76,8 @@ func (r *departmentRepository) ListHospitalDepartments(ctx context.Context, hosp
 func (r *departmentRepository) FindHospitalDepartment(ctx context.Context, hospitalID, departmentID uuid.UUID) (*entity.HospitalDepartment, error) {
 	var link entity.HospitalDepartment
 	err := r.db.WithContext(ctx).
+		Preload("Hospital").
+		Preload("Department").
 		Where("hospital_id = ? AND department_id = ?", hospitalID, departmentID).
 		First(&link).Error
 	if err != nil {

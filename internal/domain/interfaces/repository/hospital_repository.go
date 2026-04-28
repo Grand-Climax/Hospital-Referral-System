@@ -27,8 +27,10 @@ type HospitalRepository interface {
 type SystemConfigRepository interface {
 	BaseRepository[entity.SystemConfig]
 	GetByKey(ctx context.Context, key string) (*entity.SystemConfig, error)
-	GetAll(ctx context.Context) ([]entity.SystemConfig, error)
+	GetAll(ctx context.Context) (map[string]string, error)
 	Update(ctx context.Context, cfg *entity.SystemConfig) error
+	BulkUpdate(ctx context.Context, updates map[string]string) error
+	GetBool(ctx context.Context, key string, defaultValue bool) (bool, error)
 }
 
 // CapacityOverrideRepository manages temporary capacity override records

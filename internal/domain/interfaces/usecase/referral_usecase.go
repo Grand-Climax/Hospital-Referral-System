@@ -50,10 +50,6 @@ type ReferralUseCase interface {
 	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 	GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 
-	// --- Clinical & Outcome Actions ---
-	AddClinicalUpdate(ctx context.Context, referralID, userID uuid.UUID, req dto.ClinicalUpdateRequest) (*dto.ClinicalUpdateResponse, error)
-	RecordOutcome(ctx context.Context, referralID, userID uuid.UUID, req dto.ReferralOutcomeRequest) (*dto.ReferralOutcomeResponse, error)
-	GetClinicalHistory(ctx context.Context, referralID uuid.UUID) ([]dto.ClinicalUpdateResponse, error)
 
 	// --- Helpers ---
 	IsValidStatus(status string) bool

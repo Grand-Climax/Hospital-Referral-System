@@ -59,5 +59,6 @@ type ReferralRedirectionRepository interface {
 type ReferralAccessRepository interface {
 	BaseRepository[entity.ReferralAccess]
 	Create(ctx context.Context, access *entity.ReferralAccess) error
-	GetAccess(ctx context.Context, referralID, doctorID uuid.UUID) (*entity.ReferralAccess, error)
+	GetAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error)
+	CheckAccess(ctx context.Context, referralID, userID uuid.UUID) (bool, error)
 }
