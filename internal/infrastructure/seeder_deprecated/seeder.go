@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
@@ -175,8 +174,11 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 		}
 	}
 
-	// Cardiology is pinned to a stable UUID in data.go — use it directly
-	cardiologyID := uuid.MustParse("dfc2b777-a5d5-424b-911a-976b2e8d8614")
+	// Fetch Cardiology ID from DB to be safe
+	var cardioDept entity.Department
+	if err := db.WithContext(ctx).Where("name = ?", "Cardiology").First(&cardioDept).Error; err != nil {
+		log.Printf("Warning: Cardiology department not found, users might fail: %v", err)
+	}
 
 	// helper: creates a user pinned to a hospital, optionally with a department
 	seedHospUsers := func(hospName string, templates []hospitalUserTemplate) {
@@ -187,18 +189,31 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 		}
 
 		for _, tmpl := range templates {
-			user := entity.User{
-				NationalID:   tmpl.NationalID,
-				Email:        tmpl.Email,
-				FirstName:    tmpl.FirstName,
-				LastName:     tmpl.LastName,
-				Role:         tmpl.Role,
-				HospitalID:   &hosp.ID,
-				DepartmentID: tmpl.DepartmentID, // directly from template (*uuid.UUID, nil if not set)
-				PasswordHash: defaultHash,
+			deptId := tmpl.DepartmentID
+			if tmpl.Email != "" && tmpl.DepartmentID != nil {
+				// If it's a cardio user, use the fetched ID
+				deptId = &cardioDept.ID
 			}
-			if err := db.WithContext(ctx).Where("email = ?", user.Email).FirstOrCreate(&user).Error; err != nil {
-				log.Printf("Warning: failed to seed user %s: %v", user.Email, err)
+
+			var existing entity.User
+			if err := db.WithContext(ctx).Where("email = ?", tmpl.Email).First(&existing).Error; err != nil {
+				if err == gorm.ErrRecordNotFound {
+					user := entity.User{
+						NationalID:   tmpl.NationalID,
+						Email:        tmpl.Email,
+						FirstName:    tmpl.FirstName,
+						LastName:     tmpl.LastName,
+						Role:         tmpl.Role,
+						HospitalID:   &hosp.ID,
+						DepartmentID: deptId,
+						PasswordHash: defaultHash,
+					}
+					if err := db.WithContext(ctx).Create(&user).Error; err != nil {
+						log.Printf("Error seeding user %s: %v", tmpl.Email, err)
+					} else {
+						log.Printf("Seeded user: %s", tmpl.Email)
+					}
+				}
 			}
 		}
 	}

@@ -23,7 +23,12 @@ func NewLiaisonHandler(referralUC iusecase.ReferralUseCase) *LiaisonHandler {
 
 // ListOutgoing godoc
 // @Summary      List Outgoing Referrals for Liaison
-// @Description  Get a paginated list of referrals sent FROM the liaison's hospital for review.
+// @Description  Get a paginated list of referrals sent FROM the liaison's hospital.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** Must be a liaison at the sender hospital.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Liaison Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -37,7 +42,9 @@ func NewLiaisonHandler(referralUC iusecase.ReferralUseCase) *LiaisonHandler {
 func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
@@ -128,7 +135,9 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
@@ -234,7 +243,12 @@ func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 
 // GetReferral godoc
 // @Summary      Get Referral Details for Liaison
-// @Description  Get detailed information about a specific referral.
+// @Description  Get detailed information about an outgoing referral.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** Referral must be SUBMITTED or later (cannot view DRAFT).
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid ID format
+// @Description  - 403 Forbidden (DRAFT status or wrong hospital)
 // @Tags         Liaison Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -256,7 +270,9 @@ func (h *LiaisonHandler) GetReferral(c *gin.Context) {
 
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 
@@ -281,6 +297,12 @@ func (h *LiaisonHandler) GetReferral(c *gin.Context) {
 // Read godoc
 // @Summary      Mark Referral as Read
 // @Description  Acknowledge receipt and mark the referral as read by the liaison.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** referral.status must be SUBMITTED.
+// @Description  **State Transition:** SUBMITTED → UNDER_LIAISON_REVIEW.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid format
+// @Description  - 403 (not sender hospital)
 // @Tags         Liaison Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -297,10 +319,18 @@ func (h *LiaisonHandler) Read(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	liaisonID, _ := userIdVal.(uuid.UUID)
+	liaisonID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		liaisonID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		liaisonID = *uID
+	}
+
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 
@@ -319,8 +349,15 @@ func (h *LiaisonHandler) Read(c *gin.Context) {
 
 // Forward godoc
 // @Summary      Forward Referral to Specialist
-// @Description  Forward an approved referral to the specialists within the hospital.
-// @Description  **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
+// @Description  Forward the referral to specialists at the target hospital.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED.
+// @Description  **State Transition:** → FORWARDED.
+// @Description  **Gatekeepers:** Attachment verification (not PENDING/REJECTED).
+// @Description  **Common Errors:**
+// @Description  - 400 invalid format
+// @Description  - 403 (wrong hospital)
+// @Description  - 422 (attachments not verified)
 // @Tags         Liaison Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -337,10 +374,18 @@ func (h *LiaisonHandler) Forward(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	liaisonID, _ := userIdVal.(uuid.UUID)
+	liaisonID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		liaisonID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		liaisonID = *uID
+	}
+
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 
@@ -359,8 +404,13 @@ func (h *LiaisonHandler) Forward(c *gin.Context) {
 
 // Reject godoc
 // @Summary      Reject Referral
-// @Description  Reject an incoming referral.
-// @Description  **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
+// @Description  Reject the referral back to the referring doctor.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW.
+// @Description  **State Transition:** → REJECTED_BY_LIAISON.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid format
+// @Description  - 403 (wrong hospital)
 // @Tags         Liaison Referrals
 // @Accept       json
 // @Produce      json
@@ -385,10 +435,18 @@ func (h *LiaisonHandler) Reject(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	liaisonID, _ := userIdVal.(uuid.UUID)
+	liaisonID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		liaisonID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		liaisonID = *uID
+	}
+
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 
@@ -407,8 +465,13 @@ func (h *LiaisonHandler) Reject(c *gin.Context) {
 
 // Revise godoc
 // @Summary      Request Referral Revision
-// @Description  Send a referral back to the draft stage to ask the sender for revisions.
-// @Description  **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
+// @Description  Send a referral back to the doctor for additional information or clarification.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW.
+// @Description  **State Transition:** → NEED_REVISION.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid format
+// @Description  - 403 (wrong hospital)
 // @Tags         Liaison Referrals
 // @Accept       json
 // @Produce      json
@@ -433,10 +496,18 @@ func (h *LiaisonHandler) Revise(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	liaisonID, _ := userIdVal.(uuid.UUID)
+	liaisonID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		liaisonID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		liaisonID = *uID
+	}
+
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 

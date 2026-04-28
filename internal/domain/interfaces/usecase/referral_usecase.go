@@ -50,6 +50,7 @@ type ReferralUseCase interface {
 	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 	GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 
+
 	// --- Helpers ---
 	IsValidStatus(status string) bool
 }

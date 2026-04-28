@@ -239,7 +239,9 @@ func TestLiaisonOperations(t *testing.T) {
 func TestSpecialistOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	handler := handlers.NewSpecialistHandler(mockUC)
+	mockSched := new(MockSchedulingUseCase)
+	mockTriage := new(MockTriageUseCase)
+	handler := handlers.NewSpecialistHandler(mockUC, mockSched, mockTriage)
 	specialistID := uuid.New()
 	hospID := uuid.New()
 
@@ -253,6 +255,7 @@ func TestSpecialistOperations(t *testing.T) {
 	t.Run("Accept Referral", func(t *testing.T) {
 		refID := uuid.New()
 		mockUC.On("SpecialistAccept", mock.Anything, refID, specialistID, hospID, (*float64)(nil)).Return(nil)
+		mockTriage.On("LandInQueue", mock.Anything, refID).Return(nil)
 
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/specialist/referrals/"+refID.String()+"/accept", bytes.NewBuffer([]byte("{}")))
 		req.Header.Set("Content-Type", "application/json")
@@ -267,24 +270,25 @@ func TestSpecialistOperations(t *testing.T) {
 func TestReceptionistOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	handler := handlers.NewReceptionistHandler(mockUC)
+	mockArrival := new(MockArrivalUseCase)
+	handler := handlers.NewReceptionistHandler(mockUC, mockArrival)
 	receptionistID := uuid.New()
 	hospID := uuid.New()
+	deptID := uuid.New()
 
 	router := gin.Default()
-	router.POST("/api/v1/receptionist/referrals/:id/confirm-attendance", func(c *gin.Context) {
+	router.POST("/api/v1/receptionist/:id/arrive", func(c *gin.Context) {
 		c.Set("userID", receptionistID)
 		c.Set("hospID", &hospID)
+		c.Set("deptID", &deptID)
 		c.Next()
-	}, handler.ConfirmAttendance)
+	}, handler.ConfirmArrival)
 
-	t.Run("Confirm Attendance", func(t *testing.T) {
-		refID := uuid.New()
-		mockUC.On("ConfirmAttendance", mock.Anything, refID, receptionistID, hospID, "ASSIGNED").Return(nil)
+	t.Run("Confirm Arrival", func(t *testing.T) {
+		queueID := uuid.New()
+		mockArrival.On("ConfirmArrival", mock.Anything, queueID, receptionistID).Return(nil)
 
-		payload := map[string]string{"status": "ASSIGNED"}
-		body, _ := json.Marshal(payload)
-		req, _ := http.NewRequest(http.MethodPost, "/api/v1/receptionist/referrals/"+refID.String()+"/confirm-attendance", bytes.NewBuffer(body))
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/receptionist/"+queueID.String()+"/arrive", nil)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)

@@ -23,7 +23,11 @@ func NewPatientHandler(patientUC iusecase.PatientUseCase) *PatientHandler {
 
 // GetByNationalID godoc
 // @Summary      Get patient by National ID
-// @Description  Lookup patient data by plain text National ID
+// @Description  Lookup patient data by plain text National ID.
+// @Description  **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid format
+// @Description  - 404 Not Found
 // @Tags         Patients
 // @Produce      json
 // @Param        id path string true "National ID" default(NAT-12345)
@@ -64,7 +68,11 @@ func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 
 // LookupPatient godoc
 // @Summary      Lookup patient
-// @Description  Intelligent secure search by strictly providing National ID OR (Phone + First Name). Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+// @Description  Intelligent secure search by strictly providing National ID OR (Phone + First Name).
+// @Description  **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid query parameters
+// @Description  - 404 Not Found
 // @Tags         Patients
 // @Produce      json
 // @Param        national_id query string false "National ID"
@@ -110,7 +118,12 @@ func (h *PatientHandler) LookupPatient(c *gin.Context) {
 
 // CreatePatient godoc
 // @Summary      Create Patient
-// @Description  Explicitly create a new patient record. Validates uniqueness covering National ID or Phone+Name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+// @Description  Explicitly create a new patient record. Validates uniqueness covering National ID or Phone+Name.
+// @Description  **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+// @Description  **Gatekeepers:** Duplicate check on (NationalID) or (Phone + FirstName).
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 409 Conflict (patient already exists)
 // @Tags         Patients
 // @Accept       json
 // @Produce      json

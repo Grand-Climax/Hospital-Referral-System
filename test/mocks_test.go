@@ -110,6 +110,34 @@ func (m *MockReferralRepo) ListReferrals(ctx context.Context, filter map[string]
 	return args.Get(0).([]entity.Referral), args.Error(1)
 }
 
+func (m *MockReferralRepo) Create(ctx context.Context, referral *entity.Referral) error {
+	args := m.Called(ctx, referral)
+	return args.Error(0)
+}
+
+func (m *MockReferralRepo) Update(ctx context.Context, referral *entity.Referral) error {
+	args := m.Called(ctx, referral)
+	return args.Error(0)
+}
+
+func (m *MockReferralRepo) Delete(ctx context.Context, id interface{}) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockReferralRepo) FindByID(ctx context.Context, id interface{}) (*entity.Referral, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Referral), args.Error(1)
+}
+
+func (m *MockReferralRepo) FindAll(ctx context.Context) ([]entity.Referral, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.Referral), args.Error(1)
+}
+
 func (m *MockReferralRepo) CreateStatusHistory(ctx context.Context, history *entity.ReferralStatusHistory) error {
 	args := m.Called(ctx, history)
 	return args.Error(0)
@@ -567,4 +595,572 @@ func (m *MockAttachmentRepo) Delete(ctx context.Context, id uuid.UUID) error {
 func (m *MockAttachmentRepo) FindAll(ctx context.Context) ([]entity.Attachment, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]entity.Attachment), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: TriageQueueRepository
+// ---------------------------------------------------------------------------
+
+type MockTriageQueueRepo struct {
+	mock.Mock
+}
+
+func (m *MockTriageQueueRepo) Create(ctx context.Context, queue *entity.TriageQueue) error {
+	args := m.Called(ctx, queue)
+	return args.Error(0)
+}
+
+func (m *MockTriageQueueRepo) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.TriageQueue, error) {
+	args := m.Called(ctx, referralID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) GetByHospitalAndStatus(ctx context.Context, hospitalID uuid.UUID, status entity.QueueStatus) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, status)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) Update(ctx context.Context, queue *entity.TriageQueue) error {
+	args := m.Called(ctx, queue)
+	return args.Error(0)
+}
+
+func (m *MockTriageQueueRepo) DeleteByReferralID(ctx context.Context, referralID uuid.UUID) error {
+	args := m.Called(ctx, referralID)
+	return args.Error(0)
+}
+
+func (m *MockTriageQueueRepo) ListForTriage(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]entity.TriageQueue, int64, error) {
+	args := m.Called(ctx, hospitalID, limit, offset)
+	return args.Get(0).([]entity.TriageQueue), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockTriageQueueRepo) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID, start, end)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) GetWaitingByDept(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) FindWaitingByHospitalAndDept(ctx context.Context, hospitalID, departmentID uuid.UUID) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, departmentID)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) FindScheduledByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, startDate, endDate time.Time) ([]*entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID, startDate, endDate)
+	return args.Get(0).([]*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) FindByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
+	args := m.Called(ctx, hospitalID, deptID, limit, offset)
+	return args.Get(0).([]*entity.TriageQueue), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockTriageQueueRepo) FindAppointmentsForReminders(ctx context.Context, date time.Time) ([]*entity.TriageQueue, error) {
+	args := m.Called(ctx, date)
+	return args.Get(0).([]*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) IncrementWaitingWeights(ctx context.Context) (int64, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) FindAll(ctx context.Context) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) FindByID(ctx context.Context, id interface{}) (*entity.TriageQueue, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) Delete(ctx context.Context, id interface{}) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: ClinicalUpdateRepository
+// ---------------------------------------------------------------------------
+
+type MockClinicalUpdateRepo struct {
+	mock.Mock
+}
+
+func (m *MockClinicalUpdateRepo) Create(ctx context.Context, cu *entity.ClinicalUpdate) error {
+	return m.Called(ctx, cu).Error(0)
+}
+
+func (m *MockClinicalUpdateRepo) FindByID(ctx context.Context, id interface{}) (*entity.ClinicalUpdate, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ClinicalUpdate), args.Error(1)
+}
+
+func (m *MockClinicalUpdateRepo) FindAll(ctx context.Context) ([]entity.ClinicalUpdate, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.ClinicalUpdate), args.Error(1)
+}
+
+func (m *MockClinicalUpdateRepo) Update(ctx context.Context, cu *entity.ClinicalUpdate) error {
+	return m.Called(ctx, cu).Error(0)
+}
+
+func (m *MockClinicalUpdateRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockClinicalUpdateRepo) ListByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.ClinicalUpdate, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).([]entity.ClinicalUpdate), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: ReferralOutcomeRepository
+// ---------------------------------------------------------------------------
+
+type MockReferralOutcomeRepo struct {
+	mock.Mock
+}
+
+func (m *MockReferralOutcomeRepo) Create(ctx context.Context, o *entity.ReferralOutcome) error {
+	return m.Called(ctx, o).Error(0)
+}
+
+func (m *MockReferralOutcomeRepo) FindByID(ctx context.Context, id interface{}) (*entity.ReferralOutcome, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralOutcome), args.Error(1)
+}
+
+func (m *MockReferralOutcomeRepo) FindAll(ctx context.Context) ([]entity.ReferralOutcome, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.ReferralOutcome), args.Error(1)
+}
+
+func (m *MockReferralOutcomeRepo) Update(ctx context.Context, o *entity.ReferralOutcome) error {
+	return m.Called(ctx, o).Error(0)
+}
+
+func (m *MockReferralOutcomeRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockReferralOutcomeRepo) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralOutcome, error) {
+	args := m.Called(ctx, referralID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralOutcome), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: SchedulingUseCase
+// ---------------------------------------------------------------------------
+
+type MockSchedulingUseCase struct {
+	mock.Mock
+}
+
+func (m *MockSchedulingUseCase) GetCapacityStatus(ctx context.Context, hospitalID, deptID uuid.UUID, dateRangeDays int) ([]dto.CapacityStatusResponse, error) {
+	args := m.Called(ctx, hospitalID, deptID, dateRangeDays)
+	return args.Get(0).([]dto.CapacityStatusResponse), args.Error(1)
+}
+
+func (m *MockSchedulingUseCase) ScheduleAppointment(ctx context.Context, referralID, userID uuid.UUID, req dto.SchedulingRequest) error {
+	return m.Called(ctx, referralID, userID, req).Error(0)
+}
+
+func (m *MockSchedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) error {
+	return m.Called(ctx, referralID, appointmentDate, justification, userID).Error(0)
+}
+
+func (m *MockSchedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, deptID, userID uuid.UUID, sendNotifications bool) (*dto.BatchScheduleResult, error) {
+	args := m.Called(ctx, hospitalID, deptID, userID, sendNotifications)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: TriageUseCase
+// ---------------------------------------------------------------------------
+
+type MockTriageUseCase struct {
+	mock.Mock
+}
+
+func (m *MockTriageUseCase) LandInQueue(ctx context.Context, referralID uuid.UUID) error {
+	return m.Called(ctx, referralID).Error(0)
+}
+
+func (m *MockTriageUseCase) CalculateCompositeScore(ctx context.Context, referralID uuid.UUID) (float64, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockTriageUseCase) ListForTriage(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]dto.TriageListResponse, int64, error) {
+	args := m.Called(ctx, hospitalID, limit, offset)
+	return args.Get(0).([]dto.TriageListResponse), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockTriageUseCase) ReviewTriage(ctx context.Context, referralID, userID uuid.UUID, req dto.TriageReviewRequest) error {
+	return m.Called(ctx, referralID, userID, req).Error(0)
+}
+
+func (m *MockTriageUseCase) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID, start, end)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageUseCase) SetManualSeverity(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
+	return m.Called(ctx, referralID, userID, score, justification).Error(0)
+}
+// ---------------------------------------------------------------------------
+// Mock: ArrivalUseCase
+// ---------------------------------------------------------------------------
+
+type MockArrivalUseCase struct {
+	mock.Mock
+}
+
+func (m *MockArrivalUseCase) GetTodayAndTomorrowSchedule(ctx context.Context, hospitalID, deptID uuid.UUID) ([]*entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockArrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID) error {
+	return m.Called(ctx, queueID, userID).Error(0)
+}
+
+func (m *MockArrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID) error {
+	return m.Called(ctx, queueID, doctorID, userID).Error(0)
+}
+
+func (m *MockArrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUID, hospitalID uuid.UUID, deptID uuid.UUID, userID uuid.UUID) (*entity.TriageQueue, error) {
+	args := m.Called(ctx, referralID, hospitalID, deptID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockArrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
+	return m.Called(ctx, queueID, missReason, userID).Error(0)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: ClinicalUseCase
+// ---------------------------------------------------------------------------
+
+type MockClinicalUseCase struct {
+	mock.Mock
+}
+
+func (m *MockClinicalUseCase) AddClinicalUpdate(ctx context.Context, referralID, userID uuid.UUID, req dto.AddClinicalUpdateRequest) error {
+	return m.Called(ctx, referralID, userID, req).Error(0)
+}
+
+func (m *MockClinicalUseCase) RecordOutcome(ctx context.Context, referralID, userID uuid.UUID, req dto.RecordOutcomeRequest) error {
+	return m.Called(ctx, referralID, userID, req).Error(0)
+}
+
+func (m *MockClinicalUseCase) GetClinicalHistory(ctx context.Context, referralID, userID uuid.UUID) ([]entity.ClinicalUpdate, error) {
+	args := m.Called(ctx, referralID, userID)
+	return args.Get(0).([]entity.ClinicalUpdate), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: CapacityManagementUseCase
+// ---------------------------------------------------------------------------
+
+type MockCapacityManagementUseCase struct {
+	mock.Mock
+}
+
+func (m *MockCapacityManagementUseCase) GetSchedule(ctx context.Context, hospitalID, deptID uuid.UUID, startDate, endDate time.Time) ([]entity.DailySchedule, error) {
+	args := m.Called(ctx, hospitalID, deptID, startDate, endDate)
+	return args.Get(0).([]entity.DailySchedule), args.Error(1)
+}
+
+func (m *MockCapacityManagementUseCase) GetOverrides(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.CapacityOverride, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	return args.Get(0).([]entity.CapacityOverride), args.Error(1)
+}
+
+func (m *MockCapacityManagementUseCase) CreateOverride(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time, newLimit int, reason string, userID uuid.UUID) error {
+	return m.Called(ctx, hospitalID, deptID, date, newLimit, reason, userID).Error(0)
+}
+
+func (m *MockCapacityManagementUseCase) UpdateOverride(ctx context.Context, overrideID uuid.UUID, newLimit int, reason string, userID uuid.UUID) error {
+	return m.Called(ctx, overrideID, newLimit, reason, userID).Error(0)
+}
+
+func (m *MockCapacityManagementUseCase) DeleteOverride(ctx context.Context, overrideID, userID uuid.UUID) error {
+	return m.Called(ctx, overrideID, userID).Error(0)
+}
+
+func (m *MockCapacityManagementUseCase) UpdateMaxSlots(ctx context.Context, scheduleID uuid.UUID, maxSlots int, userID uuid.UUID) error {
+	return m.Called(ctx, scheduleID, maxSlots, userID).Error(0)
+}
+
+func (m *MockCapacityManagementUseCase) ExtendSchedules(ctx context.Context) error {
+	return m.Called(ctx).Error(0)
+}
+
+func (m *MockCapacityManagementUseCase) BatchSchedule(ctx context.Context, hospitalID, deptID, userID uuid.UUID) (*dto.BatchScheduleResult, error) {
+	args := m.Called(ctx, hospitalID, deptID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: NotificationRepository
+// ---------------------------------------------------------------------------
+
+type MockNotificationRepo struct {
+	mock.Mock
+}
+
+func (m *MockNotificationRepo) Create(ctx context.Context, n *entity.Notification) error {
+	return m.Called(ctx, n).Error(0)
+}
+
+func (m *MockNotificationRepo) FindByID(ctx context.Context, id uuid.UUID) (*entity.Notification, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Notification), args.Error(1)
+}
+
+func (m *MockNotificationRepo) GetQueued(ctx context.Context, limit int) ([]entity.Notification, error) {
+	args := m.Called(ctx, limit)
+	return args.Get(0).([]entity.Notification), args.Error(1)
+}
+
+func (m *MockNotificationRepo) GetQueuedByFilter(ctx context.Context, hospitalID, deptID *uuid.UUID, limit int) ([]entity.Notification, error) {
+	args := m.Called(ctx, hospitalID, deptID, limit)
+	return args.Get(0).([]entity.Notification), args.Error(1)
+}
+
+func (m *MockNotificationRepo) GetSent(ctx context.Context, limit int) ([]entity.Notification, error) {
+	args := m.Called(ctx, limit)
+	return args.Get(0).([]entity.Notification), args.Error(1)
+}
+
+func (m *MockNotificationRepo) UpdateDelivery(ctx context.Context, id uuid.UUID, status entity.DeliveryStatus, messageID *string) error {
+	return m.Called(ctx, id, status, messageID).Error(0)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: NotificationUseCase
+// ---------------------------------------------------------------------------
+
+type MockNotificationUseCase struct {
+	mock.Mock
+}
+
+func (m *MockNotificationUseCase) QueueNotification(ctx context.Context, referralID uuid.UUID, notifType entity.NotificationType, message string) error {
+	return m.Called(ctx, referralID, notifType, message).Error(0)
+}
+
+func (m *MockNotificationUseCase) TriggerManualSend(ctx context.Context, hospitalID, deptID *uuid.UUID) (*dto.NotificationSendSummary, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.NotificationSendSummary), args.Error(1)
+}
+
+func (m *MockNotificationUseCase) UpdateStatus(ctx context.Context) (*dto.NotificationStatusSummary, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.NotificationStatusSummary), args.Error(1)
+}
+
+func (m *MockNotificationUseCase) ResendNotification(ctx context.Context, id uuid.UUID) (*entity.Notification, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Notification), args.Error(1)
+}
+
+func (m *MockNotificationUseCase) QueueReminders(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockNotificationUseCase) HandleSMSWebhook(ctx context.Context, messageID, status string) error {
+	return m.Called(ctx, messageID, status).Error(0)
+}
+
+func (m *MockNotificationUseCase) ListNotifications(ctx context.Context, filter irepository.NotificationListFilter) ([]entity.Notification, int64, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]entity.Notification), args.Get(1).(int64), args.Error(2)
+}
+// ---------------------------------------------------------------------------
+// Mock: DailyWeightUseCase
+// ---------------------------------------------------------------------------
+
+type MockDailyWeightUseCase struct {
+	mock.Mock
+}
+
+func (m *MockDailyWeightUseCase) Execute(ctx context.Context, userID uuid.UUID) (string, error) {
+	args := m.Called(ctx, userID)
+	return args.String(0), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: SystemConfigRepository
+// ---------------------------------------------------------------------------
+
+type MockSystemConfigRepo struct {
+	mock.Mock
+}
+
+func (m *MockSystemConfigRepo) Create(ctx context.Context, cfg *entity.SystemConfig) error {
+	return m.Called(ctx, cfg).Error(0)
+}
+
+func (m *MockSystemConfigRepo) FindByID(ctx context.Context, id interface{}) (*entity.SystemConfig, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.SystemConfig), args.Error(1)
+}
+
+func (m *MockSystemConfigRepo) FindAll(ctx context.Context) ([]entity.SystemConfig, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.SystemConfig), args.Error(1)
+}
+
+func (m *MockSystemConfigRepo) Update(ctx context.Context, cfg *entity.SystemConfig) error {
+	return m.Called(ctx, cfg).Error(0)
+}
+
+func (m *MockSystemConfigRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockSystemConfigRepo) GetByKey(ctx context.Context, key string) (*entity.SystemConfig, error) {
+	args := m.Called(ctx, key)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.SystemConfig), args.Error(1)
+}
+
+func (m *MockSystemConfigRepo) GetAll(ctx context.Context) (map[string]string, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(map[string]string), args.Error(1)
+}
+
+func (m *MockSystemConfigRepo) BulkUpdate(ctx context.Context, updates map[string]string) error {
+	return m.Called(ctx, updates).Error(0)
+}
+
+func (m *MockSystemConfigRepo) GetBool(ctx context.Context, key string, defaultValue bool) (bool, error) {
+	args := m.Called(ctx, key, defaultValue)
+	return args.Bool(0), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: SchedulerCheckpointRepository
+// ---------------------------------------------------------------------------
+
+type MockSchedulerCheckpointRepo struct {
+	mock.Mock
+}
+
+func (m *MockSchedulerCheckpointRepo) Create(ctx context.Context, cp *entity.SchedulerCheckpoint) error {
+	return m.Called(ctx, cp).Error(0)
+}
+
+func (m *MockSchedulerCheckpointRepo) FindByID(ctx context.Context, id interface{}) (*entity.SchedulerCheckpoint, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.SchedulerCheckpoint), args.Error(1)
+}
+
+func (m *MockSchedulerCheckpointRepo) FindAll(ctx context.Context) ([]entity.SchedulerCheckpoint, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.SchedulerCheckpoint), args.Error(1)
+}
+
+func (m *MockSchedulerCheckpointRepo) Update(ctx context.Context, cp *entity.SchedulerCheckpoint) error {
+	return m.Called(ctx, cp).Error(0)
+}
+
+func (m *MockSchedulerCheckpointRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockSchedulerCheckpointRepo) GetNextEligibleDepartment(ctx context.Context, minAge time.Duration, leaseHolder string, leaseDuration time.Duration) (*entity.SchedulerCheckpoint, error) {
+	args := m.Called(ctx, minAge, leaseHolder, leaseDuration)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.SchedulerCheckpoint), args.Error(1)
+}
+
+func (m *MockSchedulerCheckpointRepo) UpdateLastProcessed(ctx context.Context, hospitalID, deptID uuid.UUID, leaseHolder string) error {
+	return m.Called(ctx, hospitalID, deptID, leaseHolder).Error(0)
+}
+
+func (m *MockSchedulerCheckpointRepo) ReleaseLease(ctx context.Context, hospitalID, deptID uuid.UUID, leaseHolder string) error {
+	return m.Called(ctx, hospitalID, deptID, leaseHolder).Error(0)
+}
+
+func (m *MockSchedulerCheckpointRepo) AcquireLease(ctx context.Context, hospitalID, deptID uuid.UUID, leaseHolder string, leaseDuration time.Duration) (bool, error) {
+	args := m.Called(ctx, hospitalID, deptID, leaseHolder, leaseDuration)
+	return args.Bool(0), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: SchedulerServiceUseCase
+// ---------------------------------------------------------------------------
+
+type MockSchedulerServiceUseCase struct {
+	mock.Mock
+}
+
+func (m *MockSchedulerServiceUseCase) RunSchedulerCycle(ctx context.Context, leaseHolder string) (*dto.BatchScheduleResult, error) {
+	args := m.Called(ctx, leaseHolder)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
 }
