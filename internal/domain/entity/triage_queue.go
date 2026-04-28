@@ -40,7 +40,7 @@ type TriageQueue struct {
 	ReferralID       uuid.UUID     `gorm:"type:uuid;not null;uniqueIndex:idx_ref_date" json:"referral_id"`
 	HospitalID       uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept_status,priority:1" json:"hospital_id"`
 	DepartmentID     uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept_status,priority:2" json:"department_id"`
-	DeptID           uuid.UUID     `gorm:"type:uuid;not null" json:"dept_id"` // Deprecated link
+	DeptID           uuid.UUID     `gorm:"type:uuid" json:"dept_id"` // Deprecated link
 	AppointmentDate  *time.Time     `gorm:"type:date;uniqueIndex:idx_ref_date;index:idx_triage_dept_score" json:"appointment_date,omitempty"`
 	CompositeScore   float64       `gorm:"type:numeric(5,2);not null;index:idx_triage_dept_score,priority:desc" json:"composite_score"`
 	AssignedAt       time.Time     `gorm:"default:now()" json:"assigned_at"`
@@ -52,6 +52,7 @@ type TriageQueue struct {
 	DoctorAssignedAt *time.Time    `json:"doctor_assigned_at,omitempty"`
 	QueueStatus      QueueStatus   `gorm:"type:queuestatus;default:'WAITING';index:idx_triage_hosp_dept_status,priority:3" json:"queue_status"`
 	ArrivalBoost     int           `gorm:"default:0" json:"arrival_boost"`
+	WaitingHoursWeight float64     `gorm:"type:numeric(5,2);default:0.00" json:"waiting_hours_weight"`
 	RescheduleReason *string       `gorm:"type:varchar(50)" json:"reschedule_reason,omitempty"`
 
 	Hospital   *Hospital   `gorm:"foreignKey:HospitalID" json:"hospital,omitempty"`
