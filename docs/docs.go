@@ -15,6 +15,74 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/admin/config": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all system-wide runtime configuration keys (e.g., buffer_days, aging_factor, overbook_limit).\n**Roles:** SYSTEM_SUPER_ADMIN\n**Prerequisites:** Authenticated session.\n**Common Errors:**\n- 401 Unauthorized\n- 403 Forbidden (not super admin)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin/Config"
+                ],
+                "summary": "Get System Configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update system-wide runtime configuration values.\n**Roles:** SYSTEM_SUPER_ADMIN\n**State Transition:** Immediately affects scheduling logic and triage weight calculations.\n**Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default.\n**Common Errors:**\n- 400 invalid key or value format\n- 403 forbidden (not super admin)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin/Config"
+                ],
+                "summary": "Update System Configuration",
+                "parameters": [
+                    {
+                        "description": "Key-value pairs to update",
+                        "name": "updates",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/admin/network-routes": {
             "get": {
                 "security": [
@@ -22,7 +90,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve all routing rules, optionally filtered by sender hospital. Only HOSPITAL_ADMIN can view admin routes.",
+                "description": "Retrieve all routing rules, optionally filtered by sender hospital. Only HOSPITAL_ADMIN can view admin routes.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN\n**Common Errors:**\n- 400 invalid filter format\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -65,7 +133,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.",
+                "description": "Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 500 Internal Server Error",
                 "consumes": [
                     "application/json"
                 ],
@@ -116,7 +184,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.",
+                "description": "Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN\n**Common Errors:**\n- 400 invalid ID format\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -162,7 +230,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "The first step in creating/updating a referral with attachments.\n1. Generates a unique **Pre-Minted Referral ID**.\n2. Provides a cryptographic signature for Cloudinary.\n3. Frontend MUST upload files to the folder path: ` + "`" + `temp/{referral_id}/` + "`" + `.\n4. Use the returned ` + "`" + `referral_id` + "`" + ` when calling the Referral Creation API.",
+                "description": "The first step in creating/updating a referral with attachments.\n1. Generates a unique **Pre-Minted Referral ID**.\n2. Provides a cryptographic signature for Cloudinary.\n3. Frontend MUST upload files to the folder path: ` + "`" + `temp/{referral_id}/` + "`" + `.\n4. Use the returned ` + "`" + `referral_id` + "`" + ` when calling the Referral Creation API.\n**Roles:** REFERRING_DOCTOR\n**Common Errors:**\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -201,7 +269,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve metadata for a specific attachment by its ID.",
+                "description": "Retrieve metadata for a specific attachment by its ID.\n**Roles:** All authenticated roles with referral access.\n**Common Errors:**\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -241,7 +309,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Immediately triggers metadata extraction and folder promotion for a specific attachment.\n- Verified files are moved from ` + "`" + `temp/` + "`" + ` to permanent hospital storage.\n- Failed files are marked as REJECTED and trigger NEED_REVISION on the referral.",
+                "description": "Immediately triggers metadata extraction and folder promotion for a specific attachment.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**State Transition:** Verified files are moved from ` + "`" + `temp/` + "`" + ` to permanent hospital storage. Failed files mark referral as NEED_REVISION.\n**Common Errors:**\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -276,7 +344,7 @@ const docTemplate = `{
         },
         "/api/v1/auth/login": {
             "post": {
-                "description": "Authenticate a user and return access/refresh token pair",
+                "description": "Authenticate a user using Email and Password. Returns a Bearer Access Token (short-lived) and a Refresh Token (long-lived).\n**Roles:** Any user with an active account.\n**Common Errors:**\n- 401 (Invalid Credentials)\n- 403 (Account Inactive)",
                 "consumes": [
                     "application/json"
                 ],
@@ -333,7 +401,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Revoke both access and refresh tokens",
+                "description": "Revoke both access and refresh tokens. Blacklists the tokens to prevent further use.\n**Roles:** Any authenticated user.\n**Prerequisites:** Requires a valid Access Token in Authorization header.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "consumes": [
                     "application/json"
                 ],
@@ -379,7 +447,7 @@ const docTemplate = `{
         },
         "/api/v1/auth/refresh": {
             "post": {
-                "description": "Exchange a valid refresh token for a new access/refresh token pair",
+                "description": "Exchange a valid refresh token for a new access/refresh token pair. Used to maintain session without re-login.\n**Roles:** Any user with a valid refresh token.\n**Constraints:** Refresh token must not be blacklisted or expired.\n**Common Errors:**\n- 401 Unauthorized (token invalid/expired)",
                 "consumes": [
                     "application/json"
                 ],
@@ -425,7 +493,7 @@ const docTemplate = `{
         },
         "/api/v1/cron/cleanup-temp": {
             "post": {
-                "description": "Internal endpoint triggered by GCP Cloud Scheduler.\nDeletes empty temp folders in Cloudinary to keep the storage clean.",
+                "description": "Internal endpoint triggered by GCP Cloud Scheduler. Deletes empty temp folders in Cloudinary to keep the storage clean.\n**Roles:** INTERNAL_CRON (Protected by GCP OIDC)\n**Common Errors:**\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -451,7 +519,7 @@ const docTemplate = `{
         },
         "/api/v1/cron/verify-attachments": {
             "post": {
-                "description": "Internal endpoint triggered by GCP Cloud Scheduler.\nExtracts metadata from PENDING attachments and promotes valid files to permanent storage.",
+                "description": "Internal endpoint triggered by GCP Cloud Scheduler. Extracts metadata from PENDING attachments and promotes valid files to permanent storage.\n**Roles:** INTERNAL_CRON (Protected by GCP OIDC)\n**Common Errors:**\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -475,6 +543,355 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/department-head/capacity/overrides": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all active and upcoming capacity overrides for the department.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "List Capacity Overrides",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets a temporary capacity override for a specific date.\n**Roles:** DEPT_HEAD\n**Side Effect:** Automatically synchronizes the daily schedule for that date.\n**Common Errors:**\n- 400 (date in past)\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Create Capacity Override",
+                "parameters": [
+                    {
+                        "description": "Override details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateOverrideRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/capacity/overrides/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing capacity override's limit and reason.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 400 invalid ID or input\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Update Capacity Override",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Override ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateOverrideRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a capacity override, reverting the daily schedule to standard limits.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 400 invalid ID\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Delete Capacity Override",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Override ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/schedule": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns daily schedule records for the next 30 days for the department.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "View department schedule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/schedule/batch": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Triggers the automated batch scheduling process for all WAITING referrals in priority order.\n**Roles:** DEPT_HEAD\n**Prerequisites:** Reads all WAITING entries for the department.\n**State Transition:** Assigns appointment dates to referrals and creates status history records.\n**Gatekeepers:** Respects buffer days and never overbooks.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Run Batch Scheduling",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/schedule/{id}/max-slots": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually adjust the maximum slots for a specific day.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 400 invalid schedule ID or input\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Update Daily Max Slots",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Schedule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateMaxSlotsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/departments": {
             "get": {
                 "security": [
@@ -482,7 +899,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "List departments with optional search",
+                "description": "List departments with optional search.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -527,7 +944,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to create a department",
+                "description": "Admin-only endpoint to create a department.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 401 Unauthorized\n- 403 Forbidden",
                 "consumes": [
                     "application/json"
                 ],
@@ -578,7 +995,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a department by its ID",
+                "description": "Retrieve a department by its ID.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 400 invalid ID format\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -616,7 +1033,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to update department information",
+                "description": "Admin-only endpoint to update department information.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 404 Not Found",
                 "consumes": [
                     "application/json"
                 ],
@@ -672,7 +1089,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to delete a department",
+                "description": "Admin-only endpoint to delete a department.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid ID format\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -712,7 +1129,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a list of the most recent pending referrals for the doctor's dashboard.",
+                "description": "Get the most recent pending referrals for the doctor's dashboard.\n**Roles:** REFERRING_DOCTOR\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -746,7 +1163,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of referrals created by the authenticated doctor.",
+                "description": "Get a paginated list of referrals created by the authenticated doctor.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Authenticated session as a doctor.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -821,7 +1238,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Finalizes a referral that was initiated via the ` + "`" + `signature` + "`" + ` endpoint.\n\n### Hybrid-Upload Flow:\n1. **Aquire ID**: Call ` + "`" + `/api/v1/attachments/signature` + "`" + ` to get a ` + "`" + `referral_id` + "`" + `.\n2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that ` + "`" + `referral_id` + "`" + ` as context.\n3. **Finalize**: Call this endpoint with the same ` + "`" + `id` + "`" + ` to register the referral.\n\n### Status Guide:\n- Use ` + "`" + `status=DRAFT` + "`" + ` to save information without entering the review pipeline.\n- Use ` + "`" + `status=SUBMITTED` + "`" + ` to officially send the referral to the hospital Liaison.",
+                "description": "Finalizes a referral that was initiated via the ` + "`" + `signature` + "`" + ` endpoint.\n\n### Hybrid-Upload Flow:\n1. **Aquire ID**: Call ` + "`" + `/api/v1/attachments/signature` + "`" + ` to get a ` + "`" + `referral_id` + "`" + `.\n2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that ` + "`" + `referral_id` + "`" + ` as context.\n3. **Finalize**: Call this endpoint with the same ` + "`" + `id` + "`" + ` to register the referral.\n\n### Status Guide:\n- Use ` + "`" + `status=DRAFT` + "`" + ` to save information without entering the review pipeline.\n- Use ` + "`" + `status=SUBMITTED` + "`" + ` to officially send the referral to the hospital Liaison.\n### Rules:\n- Role: DOCTOR (Sender hospital)\n- Constraint: Cannot create a new referral if the patient already has an active referral (not COMPLETED, CANCELLED, REJECTED_*, DECEASED) for the same target department.\n- Errors: 409 (Conflict if active referral exists).",
                 "consumes": [
                     "application/json"
                 ],
@@ -866,7 +1283,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information about a specific referral created by the doctor.",
+                "description": "Get full details of a specific referral created by the doctor.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Must be the original creator of the referral.\n**Common Errors:**\n- 400 Invalid ID format\n- 403 Forbidden (not the creator)",
                 "produces": [
                     "application/json"
                 ],
@@ -910,7 +1327,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates existing clinical data or forms for a referral in DRAFT or NEED_REVISION status.\nThis endpoint does NOT submit the referral for review.",
+                "description": "Updates existing clinical data or forms for a referral in DRAFT or NEED_REVISION status.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Status must be DRAFT or NEED_REVISION.\n**State Transition:** None (stays in DRAFT/NEED_REVISION).\n**Common Errors:**\n- 400 Invalid input or status field included\n- 403 Forbidden (not the creator)\n- 422 Invalid state transition (already submitted)",
                 "consumes": [
                     "application/json"
                 ],
@@ -962,7 +1379,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Bulk delete all attachments associated with a referral. Restricted to DRAFT or NEED_REVISION status and the referring doctor.",
+                "description": "Bulk delete all attachments associated with a referral.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Status must be DRAFT or NEED_REVISION.\n**Common Errors:**\n- 400 Invalid status\n- 403 Forbidden",
                 "produces": [
                     "application/json"
                 ],
@@ -1008,7 +1425,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Cancel an active referral that has not yet been processed (must be in DRAFT or NEED_REVISION status).",
+                "description": "Cancel an active referral that has not yet been processed.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Status must be DRAFT or NEED_REVISION.\n**State Transition:** Status becomes CANCELLED. Referral becomes read-only.\n**Common Errors:**\n- 400 Invalid status\n- 403 Forbidden",
                 "consumes": [
                     "application/json"
                 ],
@@ -1060,7 +1477,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Finalizes and submits an existing draft (or a referral needing revision) into the hospital review pipeline.\nOnce submitted, the referral status becomes SUBMITTED and it becomes visible to Liaisons.",
+                "description": "Finalizes and submits an existing draft (or a referral needing revision) into the hospital review pipeline.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Status must be DRAFT or NEED_REVISION. Must have at least one diagnosis, clinical summary, and patient history.\n**State Transition:** Status becomes SUBMITTED. Visible to Liaisons.\n**Common Errors:**\n- 400 Missing clinical data\n- 403 Forbidden (not the creator)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1112,7 +1529,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a summary of referral counts (Total, Pending, Accepted, Critical) for the doctor's dashboard.",
+                "description": "Dashboard statistics including Total, Pending, Accepted, and Critical counts.\n**Roles:** REFERRING_DOCTOR\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -1137,7 +1554,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get audit logs of all referral status transitions connected to the hospital.",
+                "description": "Get audit logs of all referral status transitions connected to the hospital.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Admin must belong to a hospital.\n**Common Errors:**\n- 401 Unauthorized\n- 403 Forbidden (wrong hospital)",
                 "produces": [
                     "application/json"
                 ],
@@ -1190,7 +1607,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Read-only status history for a referral linked to the admin's hospital.",
+                "description": "Read-only status history for a referral linked to the admin's hospital.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Referral must be linked to the admin's hospital.\n**Common Errors:**\n- 401 Unauthorized\n- 403 (out of scope)",
                 "produces": [
                     "application/json"
                 ],
@@ -1256,7 +1673,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "List staff users scoped to the admin's hospital.",
+                "description": "List staff users scoped to the admin's hospital.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Admin must belong to a hospital.\n**Common Errors:**\n- 401 Unauthorized\n- 403 Forbidden",
                 "produces": [
                     "application/json"
                 ],
@@ -1331,7 +1748,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new staff user in the current hospital scope.",
+                "description": "Create a new staff user in the current hospital scope.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Admin must belong to a hospital.\n**Common Errors:**\n- 400 invalid input\n- 403 (wrong hospital scope)\n- 409 (duplicate email/national_id)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1388,7 +1805,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a staff profile scoped to the admin's hospital.",
+                "description": "Get a staff profile scoped to the admin's hospital.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Target user must belong to the same hospital.\n**Common Errors:**\n- 400 Invalid ID format\n- 403 (out of scope)\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -1438,7 +1855,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Soft delete a staff user within the same hospital scope.",
+                "description": "Soft delete a staff user within the same hospital scope.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Target user must belong to the same hospital.\n**Common Errors:**\n- 403 (cannot delete self or out of scope)\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -1490,7 +1907,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "In-place replacement updates identity and password while keeping the same user ID.",
+                "description": "In-place replacement updates identity and password while keeping the same user ID.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Target user must belong to the same hospital.\n**Common Errors:**\n- 400 invalid input\n- 403 (out of scope)\n- 409 (conflict)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1560,7 +1977,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update the role of a staff user within the same hospital scope.",
+                "description": "Update the role of a staff user within the same hospital scope.\n**Roles:** HOSPITAL_ADMIN\n**Prerequisites:** Target user must belong to the same hospital.\n**Common Errors:**\n- 400 invalid role or input\n- 403 (out of scope)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1624,7 +2041,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "List hospitals with optional filters",
+                "description": "List hospitals with optional filters.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -1687,7 +2104,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to create a hospital",
+                "description": "Admin-only endpoint to create a hospital.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 401 Unauthorized\n- 403 Forbidden",
                 "consumes": [
                     "application/json"
                 ],
@@ -1738,7 +2155,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a hospital by its ID",
+                "description": "Retrieve a hospital by its ID.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 400 invalid ID format\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -1776,7 +2193,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to update hospital information",
+                "description": "Admin-only endpoint to update hospital information.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 404 Not Found",
                 "consumes": [
                     "application/json"
                 ],
@@ -1832,7 +2249,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to soft-delete a hospital",
+                "description": "Admin-only endpoint to soft-delete a hospital.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid ID format\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -1872,7 +2289,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve all departments linked to a specific hospital",
+                "description": "Retrieve all departments linked to a specific hospital.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 404 hospital not found",
                 "produces": [
                     "application/json"
                 ],
@@ -1910,7 +2327,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to associate a department with a hospital",
+                "description": "Admin-only endpoint to associate a department with a hospital.\n**Roles:** SYSTEM_SUPER_ADMIN\n**State Transition:** Creates a link and initializes the daily schedule.\n**Common Errors:**\n- 400 invalid input\n- 404 hospital/department not found\n- 409 link already exists",
                 "consumes": [
                     "application/json"
                 ],
@@ -1974,7 +2391,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to remove a department-hospital association",
+                "description": "Admin-only endpoint to remove a department-hospital association.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 404 link not found",
                 "produces": [
                     "application/json"
                 ],
@@ -2014,6 +2431,310 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/internal/jobs/extend-daily-schedule": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Triggers the expansion of the rolling capacity window. Typically called by a nightly cron job.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**Prerequisites:** Authenticated administrative session.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Jobs"
+                ],
+                "summary": "Extend Daily Schedule Window",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/jobs/run-scheduler-cycle": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Run one sharded scheduler cycle (processes one department).\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**State Transition:** Moves WAITING referrals to SCHEDULED if capacity exists.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Jobs"
+                ],
+                "summary": "Run Automated Batch Scheduling Cycle",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/jobs/send-reminders": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Finds appointments for tomorrow and queues SMS reminders for patients.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**Prerequisites:** Authenticated administrative session.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Jobs"
+                ],
+                "summary": "Batch Queue Appointment Reminders",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/jobs/update-waiting-weights": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Increments waiting_hours_weight for all WAITING referrals.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**Constraints:** Idempotent (runs once per calendar day).\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Jobs"
+                ],
+                "summary": "Manual Trigger for Waiting Weight Updates",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of notifications with various filters.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, RECEPTIONIST\n**Scoping:**\n- SYSTEM_SUPER_ADMIN: Global access, can filter by any hospital/department.\n- HOSPITAL_ADMIN: Scoped to their hospital.\n- DEPT_HEAD / RECEPTIONIST: Scoped to their hospital and department.\n**Common Errors:**\n- 401 Unauthorized\n- 403 Forbidden\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Notifications"
+                ],
+                "summary": "List Notifications",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Referral ID",
+                        "name": "referral_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Hospital ID (Ignored if not Super Admin)",
+                        "name": "hospital_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Department ID (Ignored if not Super Admin/Hospital Admin)",
+                        "name": "department_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Notification Type",
+                        "name": "notif_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Delivery Status",
+                        "name": "delivery_status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NotificationListResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/notifications/send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Processes up to 50 queued SMS notifications. Optionally filter by hospital/department.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**Prerequisites:** Authenticated administrative session.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Notifications"
+                ],
+                "summary": "Manual Trigger Notification Send",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by Hospital ID",
+                        "name": "hospital_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Department ID",
+                        "name": "department_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NotificationSendSummary"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/notifications/update-status": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync delivery status of SENT notifications with the SMS provider (AfroMessage).\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Notifications"
+                ],
+                "summary": "Manual Sync Delivery Status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NotificationStatusSummary"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/notifications/webhook": {
+            "get": {
+                "description": "Endpoint for AfroMessage to push status updates.\n**Roles:** SMS_PROVIDER (Public)\n**Common Errors:**\n- 500 Internal Server Error",
+                "tags": [
+                    "Internal/Notifications"
+                ],
+                "summary": "SMS Webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider Message ID",
+                        "name": "message_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Delivery Status",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/notifications/{id}/resend": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Resends a failed or queued notification.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**Common Errors:**\n- 400 invalid notification ID\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal/Notifications"
+                ],
+                "summary": "Manual Resend Notification",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Notification ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/liaison/referrals": {
             "get": {
                 "security": [
@@ -2021,7 +2742,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of referrals sent FROM the liaison's hospital for review.",
+                "description": "Get a paginated list of referrals sent FROM the liaison's hospital.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** Must be a liaison at the sender hospital.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -2080,7 +2801,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information about a specific referral.",
+                "description": "Get detailed information about an outgoing referral.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** Referral must be SUBMITTED or later (cannot view DRAFT).\n**Common Errors:**\n- 400 Invalid ID format\n- 403 Forbidden (DRAFT status or wrong hospital)",
                 "produces": [
                     "application/json"
                 ],
@@ -2126,7 +2847,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Forward an approved referral to the specialists within the hospital.\n**GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.",
+                "description": "Forward the referral to specialists at the target hospital.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED.\n**State Transition:** → FORWARDED.\n**Gatekeepers:** Attachment verification (not PENDING/REJECTED).\n**Common Errors:**\n- 400 invalid format\n- 403 (wrong hospital)\n- 422 (attachments not verified)",
                 "produces": [
                     "application/json"
                 ],
@@ -2166,7 +2887,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Acknowledge receipt and mark the referral as read by the liaison.",
+                "description": "Acknowledge receipt and mark the referral as read by the liaison.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** referral.status must be SUBMITTED.\n**State Transition:** SUBMITTED → UNDER_LIAISON_REVIEW.\n**Common Errors:**\n- 400 invalid format\n- 403 (not sender hospital)",
                 "produces": [
                     "application/json"
                 ],
@@ -2212,7 +2933,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Reject an incoming referral.\n**GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.",
+                "description": "Reject the referral back to the referring doctor.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW.\n**State Transition:** → REJECTED_BY_LIAISON.\n**Common Errors:**\n- 400 invalid format\n- 403 (wrong hospital)",
                 "consumes": [
                     "application/json"
                 ],
@@ -2264,7 +2985,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Send a referral back to the draft stage to ask the sender for revisions.\n**GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.",
+                "description": "Send a referral back to the doctor for additional information or clarification.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW.\n**State Transition:** → NEED_REVISION.\n**Common Errors:**\n- 400 invalid format\n- 403 (wrong hospital)",
                 "consumes": [
                     "application/json"
                 ],
@@ -2316,7 +3037,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Explicitly create a new patient record. Validates uniqueness covering National ID or Phone+Name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
+                "description": "Explicitly create a new patient record. Validates uniqueness covering National ID or Phone+Name.\n**Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN\n**Gatekeepers:** Duplicate check on (NationalID) or (Phone + FirstName).\n**Common Errors:**\n- 400 invalid input\n- 409 Conflict (patient already exists)",
                 "consumes": [
                     "application/json"
                 ],
@@ -2367,7 +3088,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Intelligent secure search by strictly providing National ID OR (Phone + First Name). Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN",
+                "description": "Intelligent secure search by strictly providing National ID OR (Phone + First Name).\n**Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid query parameters\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -2424,7 +3145,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lookup patient data by plain text National ID",
+                "description": "Lookup patient data by plain text National ID.\n**Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid format\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -2464,19 +3185,19 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/referrals": {
+        "/api/v1/receptionist": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of referrals assigned to the receptionist's hospital.",
+                "description": "Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.\n**Roles:** RECEPTIONIST\n**Visibility:** ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Receptionist Referrals"
+                    "Receptionist"
                 ],
                 "summary": "List Referrals for Receptionist",
                 "parameters": [
@@ -2541,19 +3262,109 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/referrals/{id}": {
+        "/api/v1/receptionist/schedule": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information about a specific referral.",
+                "description": "Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.\n**Roles:** RECEPTIONIST\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Receptionist Referrals"
+                    "Receptionist"
+                ],
+                "summary": "Get Receptionist Schedule",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/walk-in": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register a patient arriving without a prior appointment.\n**Roles:** RECEPTIONIST\n**Prerequisites:** referral.status must be ACCEPTED or SCHEDULED.\n**State Transition:** Creates new TriageQueue entry with arrival_boost=20.\n**Gatekeepers:** Status check (must be ACCEPTED or SCHEDULED).\n**Common Errors:**\n- 400 invalid format\n- 422 invalid referral status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "Register Walk-in Patient",
+                "parameters": [
+                    {
+                        "description": "Walk-in details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.WalkInRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information about an accepted or scheduled referral.\n**Roles:** RECEPTIONIST\n**Prerequisites:** Referral must be in ACCEPTED or later status.\n**Common Errors:**\n- 400 Invalid ID format\n- 403 Forbidden (wrong hospital or invalid status)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
                 ],
                 "summary": "Get Referral Details for Receptionist",
                 "parameters": [
@@ -2587,14 +3398,60 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/referrals/{id}/confirm-attendance": {
+        "/api/v1/receptionist/{id}/arrive": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Confirm that the patient has attended their referral appointment.",
+                "description": "Mark a patient as arrived.\n**Roles:** RECEPTIONIST\n**Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.\n**State Transition:** arrival_status → ARRIVED, queue_status → ARRIVED.\n**Common Errors:**\n- 400 invalid format\n- 409 already arrived",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "Mark Patient Arrival",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TriageQueue ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/{id}/assign-doctor": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Assign a treating specialist to the patient.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue must be ARRIVED; doctor must be RECEIVING_SPECIALIST in same hospital.\n**Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access\n- 409 already assigned",
                 "consumes": [
                     "application/json"
                 ],
@@ -2602,27 +3459,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Receptionist Referrals"
+                    "Receptionist"
                 ],
-                "summary": "Confirm Referral Attendance",
+                "summary": "Assign Treating Doctor",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Referral ID",
+                        "description": "TriageQueue ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Status (key: status)",
-                        "name": "request",
+                        "description": "Assignment details",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.AssignDoctorRequest"
                         }
                     }
                 ],
@@ -2638,6 +3492,70 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/{id}/miss": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark an appointment as missed.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue entry must exist.\n**State Transition:** arrival_status → MISSED; creates ClinicalUpdate for re‑evaluation.\n**Common Errors:**\n- 400 invalid format",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "Mark Appointment as Missed",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TriageQueue ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Miss reason details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.MarkMissedRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -2649,7 +3567,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all global departments (not scoped to a hospital). Accessible by all authenticated roles.",
+                "description": "Returns all global departments (not scoped to a hospital). Accessible by all authenticated roles.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -2674,7 +3592,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all hospitals, optionally filtered by tier. Accessible by all authenticated roles.",
+                "description": "Returns all hospitals, optionally filtered by tier. Accessible by all authenticated roles.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -2707,7 +3625,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns departments available at a specific target hospital. Used by doctors when selecting a department to refer to. Accessible by all authenticated roles.",
+                "description": "Returns departments available at a specific target hospital. Used by doctors when selecting a department to refer to.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 400 Invalid hospital ID\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -2742,7 +3660,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.",
+                "description": "Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -2775,7 +3693,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all active liaison officers belonging to the authenticated user's hospital. Hospital ID is extracted from the JWT token.",
+                "description": "Returns all active liaison officers belonging to the authenticated user's hospital. Hospital ID is extracted from the JWT token.\n**Roles:** Any authenticated user with a hospital scope.\n**Prerequisites:** Authenticated user must belong to a hospital.\n**Common Errors:**\n- 403 Forbidden (no hospital scope)\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -2812,7 +3730,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target. Accessible by all authenticated roles.",
+                "description": "Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target.\n**Roles:** Any authenticated user with a hospital scope.\n**Prerequisites:** Authenticated user must belong to a sender hospital.\n**Common Errors:**\n- 403 Forbidden (no hospital scope)\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -2837,7 +3755,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all attachments associated with a specific referral",
+                "description": "Get all attachments associated with a specific referral.\n**Roles:** All authenticated roles with referral access.\n**Common Errors:**\n- 404 Referral not found",
                 "produces": [
                     "application/json"
                 ],
@@ -2869,7 +3787,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Supports two modes for associating clinical data with a referral:\n1. **Hybrid/Bulk JSON**: Register multiple files already uploaded to Cloudinary.\n- Requires the ` + "`" + `referral_id` + "`" + ` pre-minted from the ` + "`" + `/attachments/signature` + "`" + ` endpoint.\n- Files MUST be at the ` + "`" + `temp/{referral_id}/` + "`" + ` path in Cloudinary.\n2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.\nStrictly restricted to the Referring Doctor. Allowed only when status is DRAFT or NEED_REVISION.",
+                "description": "Supports two modes for associating clinical data with a referral:\n1. **Hybrid/Bulk JSON**: Register multiple files already uploaded to Cloudinary.\n- Requires the ` + "`" + `referral_id` + "`" + ` pre-minted from the ` + "`" + `/attachments/signature` + "`" + ` endpoint.\n- Files MUST be at the ` + "`" + `temp/{referral_id}/` + "`" + ` path in Cloudinary.\n2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Allowed only when referral status is DRAFT or NEED_REVISION.\n**Common Errors:**\n- 400 Invalid ID or file too large\n- 403 Forbidden (not the creator or invalid status)",
                 "consumes": [
                     "application/json",
                     "multipart/form-data"
@@ -2939,7 +3857,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Remove attachment from referral. Only allowed for Draft/NeedRevision status by the referring doctor.",
+                "description": "Remove attachment from referral.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Only allowed for Draft/NeedRevision status by the referring doctor.\n**Common Errors:**\n- 403 Forbidden (invalid status or not owner)",
                 "produces": [
                     "application/json"
                 ],
@@ -2979,6 +3897,169 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/referrals/{id}/clinical/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the chronological history of clinical updates for a referral.\n**Roles:** DOCTOR, SPECIALIST, or RECEPTIONIST with access.\n**Prerequisites:** Must be the creator, assigned specialist, or hospital staff where referral is active.\n**Common Errors:**\n- 400 invalid format\n- 403 (no clinical access)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Clinical"
+                ],
+                "summary": "Get Clinical History",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/clinical/outcome": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Record the final clinical outcome and close the referral episode.\n**Roles:** Requires clinical access (assigned specialist).\n**Prerequisites:** referral must be active.\n**State Transition:** → COMPLETED; if outcome = 'deceased', → DECEASED and is_archived=true.\n**Side Effect:** Pending appointments cancelled if deceased; clinical access revoked on completion.\n**Common Errors:**\n- 400 invalid format\n- 403 (no clinical access)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Clinical"
+                ],
+                "summary": "Record Referral Outcome",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Outcome details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RecordOutcomeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/clinical/updates": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a clinical progress note to the referral.\n**Roles:** Requires clinical access (treating or consulted doctor).\n**Prerequisites:** Specialist must be assigned or have explicit access grant.\n**Side Effect:** If update_reason is CONDITION_CHANGE or MISSED_APPOINTMENT_RE_EVALUATION, the ` + "`" + `requires_review` + "`" + ` flag is set.\n**Common Errors:**\n- 400 invalid format\n- 403 (no clinical access)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Clinical"
+                ],
+                "summary": "Add Clinical Update",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddClinicalUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/referrals/{id}/verify-attachments": {
             "post": {
                 "security": [
@@ -2986,7 +4067,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.\nEnsures the system moves the referral out of PENDING states before Liaison review.",
+                "description": "Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, REFERRING_DOCTOR\n**State Transition:** Ensures the system moves the referral out of PENDING states before Liaison review.\n**Common Errors:**\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -3026,12 +4107,12 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of referrals forwarded to the specialist's hospital.",
+                "description": "Get a paginated list of referrals forwarded to the specialist's hospital.\n**Roles:** RECEIVING_SPECIALIST\n**Visibility:** All referrals forwarded to the specialist's specific department.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Specialist Referrals"
+                    "Specialist"
                 ],
                 "summary": "List Referrals for Specialist",
                 "parameters": [
@@ -3096,6 +4177,107 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/specialist/referrals/capacity": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "View capacity slots for the next N days.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Authenticated session in a hospital/department.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Get Department Capacity Status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 14,
+                        "description": "Number of days to view",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/triage-queue": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the current prioritized triage queue for the specialist's hospital.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Authenticated session in a hospital.\n**Gatekeepers:** Sorting based on severity score and waiting time.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Get Triage Queue",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/specialist/referrals/{id}": {
             "get": {
                 "security": [
@@ -3103,12 +4285,12 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information about a specific referral.",
+                "description": "Get detailed information about a forwarded referral.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Status must be FORWARDED or later.\n**Common Errors:**\n- 400 Invalid format\n- 403 Forbidden (wrong hospital)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Specialist Referrals"
+                    "Specialist"
                 ],
                 "summary": "Get Referral Details for Specialist",
                 "parameters": [
@@ -3149,7 +4331,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Accept an incoming referral and assign a severity score.",
+                "description": "Accept the referral and place it in the triage queue.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** status = UNDER_SPECIALIST_REVIEW; severity score must be set (manual or ML).\n**State Transition:** → ACCEPTED; lands in triage queue.\n**Gatekeepers:** Severity gate (manual or ML score must exist).\n**Common Errors:**\n- 400 invalid format\n- 422 (no severity score)",
                 "consumes": [
                     "application/json"
                 ],
@@ -3157,7 +4339,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Specialist Referrals"
+                    "Specialist"
                 ],
                 "summary": "Accept Referral",
                 "parameters": [
@@ -3197,6 +4379,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/specialist/referrals/{id}/emergency-schedule": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Schedule an emergency appointment bypassing buffer days and allowing overbooking.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral must be accepted; condition must be ` + "`" + `critical` + "`" + ` OR justification provided.\n**State Transition:** Sets appointment_date, bypasses buffer, allows overbooking.\n**Gatekeepers:** Allows overbooking up to ` + "`" + `overbook_limit` + "`" + `.\n**Common Errors:**\n- 400 invalid format\n- 500 internal error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Manual Emergency Scheduling",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Scheduling details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ManualEmergencyScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/specialist/referrals/{id}/read": {
             "post": {
                 "security": [
@@ -3204,12 +4444,12 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Acknowledge receipt and claim the referral for review by the specialist.",
+                "description": "Acknowledge receipt and claim the referral for review.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral.status = FORWARDED.\n**State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Specialist Referrals"
+                    "Specialist"
                 ],
                 "summary": "Mark Referral as Read",
                 "parameters": [
@@ -3244,7 +4484,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Reject an incoming referral.",
+                "description": "Reject the referral back to the referring hospital.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** status = UNDER_SPECIALIST_REVIEW.\n**State Transition:** → REJECTED_BY_SPECIALIST.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
                 "consumes": [
                     "application/json"
                 ],
@@ -3252,7 +4492,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Specialist Referrals"
+                    "Specialist"
                 ],
                 "summary": "Reject Referral",
                 "parameters": [
@@ -3296,7 +4536,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Allows a specialist to unassign themselves from a referral, returning it to the hospital pool.",
+                "description": "Unassign self and return the referral to the hospital pool.\n**Roles:** RECEIVING_SPECIALIST (Assigned)\n**Prerequisites:** status = UNDER_SPECIALIST_REVIEW.\n**State Transition:** → FORWARDED.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized access",
                 "consumes": [
                     "application/json"
                 ],
@@ -3304,7 +4544,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Specialist Referrals"
+                    "Specialist"
                 ],
                 "summary": "Release Referral (Unassign Self)",
                 "parameters": [
@@ -3348,12 +4588,12 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Rerun the machine learning prediction for a specific referral.",
+                "description": "Rerun the machine learning prediction for a specific referral.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Status must be FORWARDED or UNDER_SPECIALIST_REVIEW.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Specialist Referrals"
+                    "Specialist"
                 ],
                 "summary": "Rerun ML Prediction",
                 "parameters": [
@@ -3381,6 +4621,192 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/specialist/referrals/{id}/schedule": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** status = ACCEPTED.\n**State Transition:** → SCHEDULED.\n**Common Errors:**\n- 400 invalid format\n- 500 internal error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Schedule Appointment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Scheduling details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SchedulingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/triage-review": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a specialist to review and finalize the ML-generated triage score (APPROVE/OVERRIDE/REJECT).\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Referral must have an ML prediction or manual score set.\n**State Transition:** Finalizes the triage state for the referral.\n**Common Errors:**\n- 400 invalid format or input\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Triage"
+                ],
+                "summary": "Review Triage Prediction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Review details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.TriageReviewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/triage-severity": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually set the severity score for a referral. Overrides ML score and updates triage queue.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral must exist and be under the specialist's purview.\n**Side Effect:** Overrides ML score, updates triage queue composite score.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Set Manual Severity Score",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Severity details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SetManualSeverityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/system-admin/referrals": {
             "get": {
                 "security": [
@@ -3388,7 +4814,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a global paginated list of all referrals with optional status filtering.",
+                "description": "Get a global paginated list of all referrals with optional status filtering.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Visibility:** Global access to all referrals in the database.\n**Common Errors:**\n- 401 Unauthorized\n- 403 Forbidden (not super admin)",
                 "produces": [
                     "application/json"
                 ],
@@ -3465,7 +4891,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Administrative-only endpoint for global user discovery across all hospitals.\n- Supports full tokenized search (matches name parts regardless of order).\n- Supports hospital, department, and role-based filtration.",
+                "description": "Administrative-only endpoint for global user discovery across all hospitals.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Visibility:** Global access to all users.\n**Common Errors:**\n- 403 Forbidden (not super admin)",
                 "produces": [
                     "application/json"
                 ],
@@ -3552,7 +4978,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to create a new user account",
+                "description": "Admin-only endpoint to create a new user account.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 409 conflict (email/national_id)",
                 "consumes": [
                     "application/json"
                 ],
@@ -3609,7 +5035,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to update a user's information",
+                "description": "Admin-only endpoint to update a user's information.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 404 Not Found",
                 "consumes": [
                     "application/json"
                 ],
@@ -3665,7 +5091,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to soft-delete a user",
+                "description": "Admin-only endpoint to soft-delete a user.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -3705,7 +5131,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Remove a user's profile image (SystemAdmin or HospitalAdmin only)",
+                "description": "Remove a user's profile image (SystemAdmin or HospitalAdmin only).\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN\n**Prerequisites:** Hospital Admin can only moderate users in their own hospital.\n**Common Errors:**\n- 403 Forbidden (out of scope)",
                 "produces": [
                     "application/json"
                 ],
@@ -3745,7 +5171,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin-only endpoint to change a user's role",
+                "description": "Admin-only endpoint to change a user's role.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid role\n- 404 Not Found",
                 "consumes": [
                     "application/json"
                 ],
@@ -3796,6 +5222,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/triage": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a prioritized list of patients waiting for triage for the specialist's hospital.\n**Roles:** RECEIVING_SPECIALIST\n**Sorting:** Severity score descending, waiting time ascending.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Triage"
+                ],
+                "summary": "List Triage Queue",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users": {
             "get": {
                 "security": [
@@ -3803,7 +5283,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of users within your own hospital.\n- MOH Analysts: Strictly forbidden (returns empty list).\n- Hospital Admins/Doctors/Specialists: See only users within their own hospital.\n- Global Admins: Should use /system-admin/users for global discovery.\n- Filtration: Supports tokenized name search (matches regardless of name part order).",
+                "description": "Retrieve a list of users within your own hospital.\n**Roles:** Hospital Admins, Doctors, Specialists, Liaisons\n**Visibility:** MOH Analysts are strictly forbidden. Users see only others in the same hospital.\n**Common Errors:**\n- 403 Forbidden for MOH Analysts",
                 "produces": [
                     "application/json"
                 ],
@@ -3880,7 +5360,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns the profile of the currently authenticated user",
+                "description": "Returns the profile of the currently authenticated user.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized",
                 "produces": [
                     "application/json"
                 ],
@@ -3911,7 +5391,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update the current user's profile image by uploading a file (Max 5MB: JPEG, PNG, WEBP)",
+                "description": "Update the current user's profile image by uploading a file (Max 5MB: JPEG, PNG, WEBP).\n**Roles:** Any authenticated user.\n**Constraints:** Max 5MB, format must be JPEG, PNG, or WEBP.\n**Common Errors:**\n- 400 invalid size/format",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -3952,7 +5432,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Remove the current user's profile image (unsets URL and PublicID)",
+                "description": "Remove the current user's profile image (unsets URL and PublicID).\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized",
                 "produces": [
                     "application/json"
                 ],
@@ -3983,7 +5463,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve detailed profile of a user with nuanced visibility rules.\n- System Admins: Can view any profile.\n- Doctors/Specialists/Liaison/HospitalAdmins: Can view each other across different hospitals to facilitate referrals.\n- Restriction: Clinical roles CANNOT view SystemAdmins or Receptionists from other hospitals.\n- Receptionists: Can ONLY view users within their own hospital.\n- MOH Analysts: Cannot view any user except their own (via /users/me).",
+                "description": "Retrieve detailed profile of a user with nuanced visibility rules.\n**Roles:** All authenticated roles (with visibility rules).\n**Visibility Rules:**\n- System Admins: Can view any profile.\n- Clinical roles: Can view each other across hospitals (for referrals).\n- Clinical roles: Cannot view SystemAdmins or Receptionists from other hospitals.\n- Receptionists: Can ONLY view users within their own hospital.\n- MOH Analysts: Cannot view any user except their own.\n**Common Errors:**\n- 403 visibility violation\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -4024,6 +5504,37 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.AddClinicalUpdateRequest": {
+            "type": "object",
+            "required": [
+                "clinical_notes",
+                "update_reason"
+            ],
+            "properties": {
+                "clinical_notes": {
+                    "type": "string"
+                },
+                "update_reason": {
+                    "type": "string",
+                    "enum": [
+                        "MISSED_APPOINTMENT_RE_EVALUATION",
+                        "CONDITION_CHANGE",
+                        "SPECIALIST_NOTE"
+                    ]
+                }
+            }
+        },
+        "dto.AssignDoctorRequest": {
+            "type": "object",
+            "required": [
+                "doctor_id"
+            ],
+            "properties": {
+                "doctor_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AttachmentListResponse": {
             "type": "object",
             "properties": {
@@ -4190,6 +5701,26 @@ const docTemplate = `{
                     "example": true
                 },
                 "sender_hospital_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateOverrideRequest": {
+            "type": "object",
+            "required": [
+                "new_limit",
+                "reason",
+                "target_date"
+            ],
+            "properties": {
+                "new_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "target_date": {
                     "type": "string"
                 }
             }
@@ -4865,6 +6396,38 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ManualEmergencyScheduleRequest": {
+            "type": "object",
+            "required": [
+                "appointment_date",
+                "justification"
+            ],
+            "properties": {
+                "appointment_date": {
+                    "type": "string"
+                },
+                "justification": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.MarkMissedRequest": {
+            "type": "object",
+            "required": [
+                "miss_reason"
+            ],
+            "properties": {
+                "miss_reason": {
+                    "type": "string",
+                    "enum": [
+                        "PATIENT_NO_SHOW",
+                        "PATIENT_CONTACTED_RESCHEDULE",
+                        "HOSPITAL_CANCELLED",
+                        "HOSPITAL_CAPACITY_ISSUE"
+                    ]
+                }
+            }
+        },
         "dto.NetworkRouteListResponse": {
             "type": "object",
             "properties": {
@@ -4907,6 +6470,61 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "dto.NotificationListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.Notification"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.NotificationSendSummary": {
+            "type": "object",
+            "properties": {
+                "failed_count": {
+                    "type": "integer"
+                },
+                "sent_count": {
+                    "type": "integer"
+                },
+                "total_processed": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.NotificationStatusSummary": {
+            "type": "object",
+            "properties": {
+                "delivered_count": {
+                    "type": "integer"
+                },
+                "failed_count": {
+                    "type": "integer"
+                },
+                "still_processing": {
+                    "type": "integer"
+                },
+                "total_checked": {
+                    "type": "integer"
                 }
             }
         },
@@ -5003,6 +6621,33 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RecordOutcomeRequest": {
+            "type": "object",
+            "required": [
+                "outcome"
+            ],
+            "properties": {
+                "length_of_stay_days": {
+                    "type": "integer"
+                },
+                "outcome": {
+                    "type": "string",
+                    "enum": [
+                        "improved",
+                        "deteriorated",
+                        "deceased",
+                        "transferred",
+                        "discharged"
+                    ]
+                },
+                "outcome_notes": {
+                    "type": "string"
+                },
+                "was_referral_appropriate": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.ReferralCreationResponse": {
             "type": "object",
             "properties": {
@@ -5084,6 +6729,9 @@ const docTemplate = `{
                 "patient_id": {
                     "type": "string"
                 },
+                "receiver_hospital": {
+                    "$ref": "#/definitions/entity.Hospital"
+                },
                 "referral_form": {
                     "$ref": "#/definitions/entity.ReferralForm"
                 },
@@ -5096,6 +6744,9 @@ const docTemplate = `{
                 },
                 "revision_reason": {
                     "type": "string"
+                },
+                "sender_hospital": {
+                    "$ref": "#/definitions/entity.Hospital"
                 },
                 "sender_hospital_id": {
                     "type": "string"
@@ -5110,6 +6761,9 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": true
+                },
+                "target_department": {
+                    "$ref": "#/definitions/entity.Department"
                 },
                 "target_dept_id": {
                     "type": "string"
@@ -5173,6 +6827,87 @@ const docTemplate = `{
                 "reason": {
                     "type": "string",
                     "minLength": 5
+                }
+            }
+        },
+        "dto.SchedulingRequest": {
+            "type": "object",
+            "required": [
+                "appointment_date"
+            ],
+            "properties": {
+                "appointment_date": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "override": {
+                    "description": "Request a capacity override",
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.SetManualSeverityRequest": {
+            "type": "object",
+            "required": [
+                "justification",
+                "score"
+            ],
+            "properties": {
+                "justification": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
+                }
+            }
+        },
+        "dto.TriageReviewRequest": {
+            "type": "object",
+            "required": [
+                "action"
+            ],
+            "properties": {
+                "action": {
+                    "description": "\"APPROVE\", \"OVERRIDE\", \"REJECT\"",
+                    "type": "string"
+                },
+                "composite_score": {
+                    "type": "number"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateMaxSlotsRequest": {
+            "type": "object",
+            "required": [
+                "max_slots"
+            ],
+            "properties": {
+                "max_slots": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "dto.UpdateOverrideRequest": {
+            "type": "object",
+            "required": [
+                "new_limit",
+                "reason"
+            ],
+            "properties": {
+                "new_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "reason": {
+                    "type": "string"
                 }
             }
         },
@@ -5435,6 +7170,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.WalkInRequest": {
+            "type": "object",
+            "required": [
+                "referral_id"
+            ],
+            "properties": {
+                "referral_id": {
+                    "type": "string"
+                }
+            }
+        },
         "entity.Attachment": {
             "type": "object",
             "properties": {
@@ -5487,6 +7233,45 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.DeliveryStatus": {
+            "type": "string",
+            "enum": [
+                "QUEUED",
+                "SENT",
+                "DELIVERED",
+                "FAILED",
+                "RESEND",
+                "CANCELLED"
+            ],
+            "x-enum-varnames": [
+                "DeliveryQueued",
+                "DeliverySent",
+                "DeliveryDelivered",
+                "DeliveryFailed",
+                "DeliveryResend",
+                "DeliveryCancelled"
+            ]
+        },
+        "entity.Department": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "entity.DiagnosisCertainty": {
             "type": "string",
             "enum": [
@@ -5499,6 +7284,38 @@ const docTemplate = `{
                 "CertaintySuspected",
                 "CertaintySymptomOnly"
             ]
+        },
+        "entity.Hospital": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "contact_phone": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "tier_level": {
+                    "$ref": "#/definitions/entity.HospitalTier"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
         },
         "entity.HospitalTier": {
             "type": "string",
@@ -5528,6 +7345,59 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "entity.Notification": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "delivery_status": {
+                    "$ref": "#/definitions/entity.DeliveryStatus"
+                },
+                "failure_reason": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "notification_type": {
+                    "$ref": "#/definitions/entity.NotificationType"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "provider_message_id": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "retry_count": {
+                    "type": "integer"
+                },
+                "sent_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.NotificationType": {
+            "type": "string",
+            "enum": [
+                "ACCEPTANCE",
+                "SCHEDULING",
+                "REMINDER",
+                "RESCHEDULE"
+            ],
+            "x-enum-varnames": [
+                "NotifyAcceptance",
+                "NotifyScheduling",
+                "NotifyReminder",
+                "NotifyReschedule"
+            ]
         },
         "entity.Patient": {
             "type": "object",
@@ -5624,6 +7494,9 @@ const docTemplate = `{
                 "patient_id": {
                     "type": "string"
                 },
+                "receiver_hospital": {
+                    "$ref": "#/definitions/entity.Hospital"
+                },
                 "referral_form": {
                     "$ref": "#/definitions/entity.ReferralForm"
                 },
@@ -5637,6 +7510,9 @@ const docTemplate = `{
                 "revision_reason": {
                     "type": "string"
                 },
+                "sender_hospital": {
+                    "$ref": "#/definitions/entity.Hospital"
+                },
                 "sender_hospital_id": {
                     "type": "string"
                 },
@@ -5646,6 +7522,9 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/entity.ReferralStatus"
+                },
+                "target_department": {
+                    "$ref": "#/definitions/entity.Department"
                 },
                 "target_dept_id": {
                     "type": "string"
@@ -5749,7 +7628,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "reason_for_referral_category": {
-                    "description": "TODO: Remove ReasonForReferralCategory in production phase. Kept temporarily as nullable.",
                     "type": "string"
                 },
                 "reason_of_referral": {
@@ -6163,7 +8041,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Hospital Referral System API",
-	Description:      "API for managing hospital referrals, users, hospitals, and departments.",
+	Description:      "# Hospital Referral Hub API\nA national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.\n\n---\n## Referral Lifecycle\nDRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED\n↘ REJECTED_BY_LIAISON\nFORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST\nACCEPTED → SCHEDULED → ASSIGNED → COMPLETED\n↘ MISSED / RESCHEDULED / DECEASED\n\n---\n## Visibility Rules\n\n| Status | Visible To |\n|----------------------|-----------|\n| DRAFT / NEED_REVISION | Referring Doctor only |\n| SUBMITTED … FORWARDED | Liaison of the sender hospital |\n| FORWARDED … COMPLETED | Specialists of the target hospital |\n| ACCEPTED … RESCHEDULED| Receptionists of the target hospital |\n| All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |\n\n---\n## Critical Business Rules\n\n- **ML Triage Gate**: A referral cannot be accepted without a severity score (set manually via `POST /specialist/referrals/{id}/triage-severity`).\n- **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.\n- **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.\n- **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.\n- **Deceased Outcome**: Recording a deceased outcome sets the referral to DECEASED, soft‑archives it (`is_archived=true`), and cancels any pending appointments.\n- **Cancel After Send**: A doctor may cancel a referral after sending (REJECTED_AFTER_SEND) only if it has not been accepted yet.\n\nFor detailed per‑endpoint rules, see the individual endpoint descriptions below.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

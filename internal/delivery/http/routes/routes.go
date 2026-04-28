@@ -73,6 +73,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	overrideRepo := repository.NewCapacityOverrideRepository(db)
 	configRepo := repository.NewSystemConfigRepository(db)
 	referralAccessRepo := repository.NewReferralAccessRepository(db)
+	checkpointRepo := repository.NewSchedulerCheckpointRepository(db)
 
 	// Infrastructure Clients
 	smsClient := sms.NewAfroMessageClient()
@@ -84,17 +85,21 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo, configRepo, auditLogRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
 	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc)
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, attachmentUseCase)
+	// Post-acceptance Use Cases
+	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, smsClient)
+	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo)
+	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase)
+	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo)
+	clinicalUseCase := usecase.NewClinicalUseCase(db, referralRepo, clinicalRepo, outcomeRepo, referralAccessRepo, auditLogRepo)
+	capacityManagementUseCase := usecase.NewCapacityManagementUseCase(scheduleRepo, overrideRepo, departmentRepo, auditLogRepo)
+	adminConfigUseCase := usecase.NewAdminConfigUseCase(configRepo, auditLogRepo)
+	dailyWeightUseCase := usecase.NewDailyWeightUseCase(configRepo, triageRepo, auditLogRepo)
+	schedulerServiceUseCase := usecase.NewSchedulerServiceUseCase(checkpointRepo, configRepo, schedUseCase)
+
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, attachmentUseCase, notifUseCase)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo)
-
-	// Workflow Use Cases
-	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo)
-	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo)
-	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo)
-	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, smsClient)
-	capacityManagementUseCase := usecase.NewCapacityManagementUseCase(scheduleRepo, overrideRepo, departmentRepo, auditLogRepo)
 
 	// ---- Dependency Injection (Handlers) ----
 	authHandler := handlers.NewAuthHandler(authUseCase)
@@ -118,9 +123,11 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 
 	// Workflow Handlers
 	triageHandler := handlers.NewTriageHandler(triageUseCase)
-	schedHandler := handlers.NewSchedulingHandler(schedUseCase)
-	clinicalHandler := handlers.NewClinicalHandler(referralUseCase)
+	scheduleHandler := handlers.NewScheduleHandler(capacityManagementUseCase)
+	jobHandler := handlers.NewJobHandler(capacityManagementUseCase, notifUseCase, dailyWeightUseCase, schedulerServiceUseCase)
+	clinicalHandler := handlers.NewClinicalHandler(clinicalUseCase)
 	notifHandler := handlers.NewNotificationHandler(notifUseCase)
+	adminConfigHandler := handlers.NewAdminConfigHandler(adminConfigUseCase)
 
 	// ---- API v1 Routes ----
 	v1 := router.Group("/api/v1")
@@ -128,7 +135,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 		// Auth (public)
 		authRoutes := v1.Group("/auth")
 		{
-			authRoutes.POST("/login", middleware.RateLimiter(redisClient, 5, time.Minute), authHandler.Login)
+			authRoutes.POST("/login", middleware.RateLimiter(redisClient, 100, time.Minute), authHandler.Login)
 			authRoutes.POST("/refresh", authHandler.Refresh)
 			authRoutes.POST("/logout", authHandler.Logout)
 		}
@@ -141,20 +148,30 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			cronRoutes.POST("/cleanup-temp", cronHandler.CleanupTemp)
 		}
 
-		// Internal Job Routes
-		jobHandler := handlers.NewJobHandler(capacityManagementUseCase)
-		jobRoutes := v1.Group("/internal/jobs")
-		{
-			jobRoutes.POST("/extend-daily-schedule", jobHandler.ExtendDailySchedule)
-		}
-
-		// Internal Notification Trigger
-		v1.POST("/internal/notifications/send", notifHandler.TriggerManualSend)
-
 		// Protected routes (require authentication + audit logging)
 		protected := v1.Group("/")
 		protected.Use(middleware.RequireAuth(tokenBlacklist))
 		protected.Use(middleware.AuditLogger(auditLogRepo))
+
+		// Internal Notification Trigger (Administrators only)
+		internalNotif := protected.Group("/internal/notifications")
+		internalNotif.Use(middleware.RequireRole(entity.RoleHospitalAdmin, entity.RoleDeptHead, entity.RoleSystemSuperAdmin, entity.RoleReceptionist))
+		{
+			internalNotif.GET("", notifHandler.ListNotifications)
+			internalNotif.POST("/send", notifHandler.TriggerManualSend)
+			internalNotif.POST("/update-status", notifHandler.UpdateStatus)
+			internalNotif.POST("/:id/resend", notifHandler.Resend)
+		}
+
+		// Internal Job Routes (Administrators only)
+		jobRoutes := protected.Group("/internal/jobs")
+		jobRoutes.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin, entity.RoleHospitalAdmin, entity.RoleDeptHead))
+		{
+			jobRoutes.POST("/extend-daily-schedule", jobHandler.ExtendDailySchedule)
+			jobRoutes.POST("/send-reminders", jobHandler.SendReminders)
+			jobRoutes.POST("/update-waiting-weights", jobHandler.UpdateWaitingWeights)
+			jobRoutes.POST("/run-scheduler-cycle", jobHandler.RunSchedulerCycle)
+		}
 		{
 			// Admin Level Network Management Routes
 			adminGroup := protected.Group("/admin/network-routes")
@@ -165,6 +182,22 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				adminGroup.POST("", netHandler.Create)
 				adminGroup.GET("", netHandler.List)
 				adminGroup.DELETE("/:id", netHandler.Delete)
+			}
+
+			// System Admin Config Routes
+			adminConfigGroup := protected.Group("/admin/config")
+			adminConfigGroup.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin))
+			{
+				adminConfigGroup.GET("", adminConfigHandler.GetConfig)
+				adminConfigGroup.PUT("", adminConfigHandler.UpdateConfig)
+			}
+
+			// Clinical & Outcome
+			clinicalGroup := protected.Group("/referrals/:id/clinical")
+			{
+				clinicalGroup.GET("/history", clinicalHandler.GetHistory)
+				clinicalGroup.POST("/updates", clinicalHandler.AddUpdate)
+				clinicalGroup.POST("/outcome", clinicalHandler.RecordOutcome)
 			}
 
 			// Patient Identity Routes
@@ -243,10 +276,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				specialistGroup.GET("/triage-queue", specialistHandler.GetTriageQueue)
 				specialistGroup.POST("/:id/triage-severity", specialistHandler.SetManualSeverity)
 				specialistGroup.POST("/:id/triage-review", triageHandler.Review)
-				specialistGroup.GET("/capacity", schedHandler.GetCapacity)
-				specialistGroup.POST("/:id/schedule", schedHandler.Schedule)
+				specialistGroup.GET("/capacity", specialistHandler.GetCapacity)
+				specialistGroup.POST("/:id/schedule", specialistHandler.Schedule)
 				specialistGroup.POST("/:id/emergency-schedule", specialistHandler.ManualEmergencySchedule)
-				specialistGroup.POST("/:id/manual-emergency-schedule", specialistHandler.ManualEmergencySchedule) // Deprecated alias
 			}
 
 			// RECEPTIONIST
@@ -312,8 +344,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				deptHeadGroup.DELETE("/capacity/overrides/:id", deptHeadHandler.DeleteOverride)
 
 				// Daily Schedule
-				deptHeadGroup.GET("/schedule", deptHeadHandler.GetSchedule)
-				deptHeadGroup.PUT("/schedule/:id/max-slots", deptHeadHandler.UpdateMaxSlots)
+				deptHeadGroup.GET("/schedule", scheduleHandler.GetSchedule)
+				deptHeadGroup.PUT("/schedule/:id/max-slots", scheduleHandler.UpdateMaxSlots)
 				deptHeadGroup.POST("/schedule/batch", deptHeadHandler.BatchSchedule)
 			}
 
@@ -330,13 +362,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			protected.GET("/referrals/:id/attachments", attachmentHandler.GetReferralAttachments)
 			protected.DELETE("/referrals/:id/attachments/:attachment_id", attachmentHandler.DeleteFromReferral)
 
-			// Clinical Updates & History
-			clinicalGroup := protected.Group("/referrals/:id/clinical")
-			{
-				clinicalGroup.GET("/history", clinicalHandler.GetHistory)
-				clinicalGroup.POST("/updates", clinicalHandler.AddUpdate)
-				clinicalGroup.POST("/outcome", clinicalHandler.RecordOutcome)
-			}
 
 			// ---- User Management ----
 			// Profile & Global Reference Lookup – accessible by clinical/hospital/analyst roles

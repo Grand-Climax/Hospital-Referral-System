@@ -26,6 +26,11 @@ func NewDoctorHandler(referralUC iusecase.ReferralUseCase) *DoctorHandler {
 // ListReferrals godoc
 // @Summary      List Referrals for Doctor
 // @Description  Get a paginated list of referrals created by the authenticated doctor.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Authenticated session as a doctor.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Doctor Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -41,8 +46,13 @@ func NewDoctorHandler(referralUC iusecase.ReferralUseCase) *DoctorHandler {
 // @Router       /api/v1/doctor/referrals [get]
 func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
-	doctorID, ok := userIdVal.(uuid.UUID)
-	if !ok {
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
+	if doctorID == uuid.Nil {
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
 			Success: false,
 			Error:   "invalid user",
@@ -112,7 +122,12 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 
 // GetReferral godoc
 // @Summary      Get Referral Details for Doctor
-// @Description  Get detailed information about a specific referral created by the doctor.
+// @Description  Get full details of a specific referral created by the doctor.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Must be the original creator of the referral.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid ID format
+// @Description  - 403 Forbidden (not the creator)
 // @Tags         Doctor Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -133,7 +148,12 @@ func (h *DoctorHandler) GetReferral(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	doctorID, _ := userIdVal.(uuid.UUID)
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
 
 	ref, err := h.referralUC.GetDetailsForDoctor(c.Request.Context(), id, doctorID)
 	if err != nil {
@@ -156,7 +176,11 @@ func (h *DoctorHandler) GetReferral(c *gin.Context) {
 
 // GetStats godoc
 // @Summary      Get Doctor Dashboard Stats
-// @Description  Get a summary of referral counts (Total, Pending, Accepted, Critical) for the doctor's dashboard.
+// @Description  Dashboard statistics including Total, Pending, Accepted, and Critical counts.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Doctor Dashboard
 // @Produce      json
 // @Success      200 {object} dto.DoctorDashboardStatsResponse
@@ -164,7 +188,12 @@ func (h *DoctorHandler) GetReferral(c *gin.Context) {
 // @Router       /api/v1/doctor/stats [get]
 func (h *DoctorHandler) GetStats(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
-	doctorID, _ := userIdVal.(uuid.UUID)
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
 
 	stats, err := h.referralUC.GetDoctorDashboardStats(c.Request.Context(), doctorID)
 	if err != nil {
@@ -183,7 +212,11 @@ func (h *DoctorHandler) GetStats(c *gin.Context) {
 
 // GetLatestPending godoc
 // @Summary      Get Latest Pending Referrals
-// @Description  Get a list of the most recent pending referrals for the doctor's dashboard.
+// @Description  Get the most recent pending referrals for the doctor's dashboard.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Doctor Dashboard
 // @Produce      json
 // @Param        limit query int false "Number of records to fetch" default(5)
@@ -192,8 +225,13 @@ func (h *DoctorHandler) GetStats(c *gin.Context) {
 // @Router       /api/v1/doctor/latest-pending [get]
 func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
-	doctorID, ok := userIdVal.(uuid.UUID)
-	if !ok {
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
+	if doctorID == uuid.Nil {
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
 			Success: false,
 			Error:   "invalid user session",
@@ -243,6 +281,10 @@ func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
 // @Description  ### Status Guide:
 // @Description  - Use `status=DRAFT` to save information without entering the review pipeline.
 // @Description  - Use `status=SUBMITTED` to officially send the referral to the hospital Liaison.
+// @Description  ### Rules:
+// @Description  - Role: DOCTOR (Sender hospital)
+// @Description  - Constraint: Cannot create a new referral if the patient already has an active referral (not COMPLETED, CANCELLED, REJECTED_*, DECEASED) for the same target department.
+// @Description  - Errors: 409 (Conflict if active referral exists).
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
@@ -253,11 +295,18 @@ func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
 // @Router       /api/v1/doctor/referrals [post]
 func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 	userIdVal, _ := c.Get("userID")
-	doctorID, _ := userIdVal.(uuid.UUID)
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
 
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 
@@ -301,7 +350,13 @@ func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 // UpdateDraft godoc
 // @Summary      Update Referral Draft
 // @Description  Updates existing clinical data or forms for a referral in DRAFT or NEED_REVISION status.
-// @Description  This endpoint does NOT submit the referral for review.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Status must be DRAFT or NEED_REVISION.
+// @Description  **State Transition:** None (stays in DRAFT/NEED_REVISION).
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid input or status field included
+// @Description  - 403 Forbidden (not the creator)
+// @Description  - 422 Invalid state transition (already submitted)
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
@@ -318,7 +373,12 @@ func (h *DoctorHandler) UpdateDraft(c *gin.Context) {
 // SubmitReferral godoc
 // @Summary      Submit Referral for Review
 // @Description  Finalizes and submits an existing draft (or a referral needing revision) into the hospital review pipeline.
-// @Description  Once submitted, the referral status becomes SUBMITTED and it becomes visible to Liaisons.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Status must be DRAFT or NEED_REVISION. Must have at least one diagnosis, clinical summary, and patient history.
+// @Description  **State Transition:** Status becomes SUBMITTED. Visible to Liaisons.
+// @Description  **Common Errors:**
+// @Description  - 400 Missing clinical data
+// @Description  - 403 Forbidden (not the creator)
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
@@ -341,7 +401,12 @@ func (h *DoctorHandler) handleUpdate(c *gin.Context, submit bool) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	doctorID, _ := userIdVal.(uuid.UUID)
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
 
 	var rawBody map[string]interface{}
 	if err := c.ShouldBindJSON(&rawBody); err != nil {
@@ -380,7 +445,13 @@ func (h *DoctorHandler) handleUpdate(c *gin.Context, submit bool) {
 
 // Cancel godoc
 // @Summary      Cancel Referral
-// @Description  Cancel an active referral that has not yet been processed (must be in DRAFT or NEED_REVISION status).
+// @Description  Cancel an active referral that has not yet been processed.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Status must be DRAFT or NEED_REVISION.
+// @Description  **State Transition:** Status becomes CANCELLED. Referral becomes read-only.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid status
+// @Description  - 403 Forbidden
 // @Tags         Doctor Referrals
 // @Accept       json
 // @Produce      json
@@ -399,7 +470,12 @@ func (h *DoctorHandler) Cancel(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	doctorID, _ := userIdVal.(uuid.UUID)
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
 
 	var req dto.CancelReferralRequest
 	_ = c.ShouldBindJSON(&req)
@@ -420,7 +496,12 @@ func (h *DoctorHandler) Cancel(c *gin.Context) {
 
 // DeleteAttachments godoc
 // @Summary      Delete All Attachments
-// @Description  Bulk delete all attachments associated with a referral. Restricted to DRAFT or NEED_REVISION status and the referring doctor.
+// @Description  Bulk delete all attachments associated with a referral.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Status must be DRAFT or NEED_REVISION.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid status
+// @Description  - 403 Forbidden
 // @Tags         Doctor Referrals
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -438,7 +519,12 @@ func (h *DoctorHandler) DeleteAttachments(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	doctorID, _ := userIdVal.(uuid.UUID)
+	doctorID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		doctorID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		doctorID = *uID
+	}
 
 	if err := h.referralUC.DeleteAttachmentsByReferralID(c.Request.Context(), id, doctorID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{

@@ -14,6 +14,8 @@ const (
 	DeliverySent      DeliveryStatus = "SENT"
 	DeliveryDelivered DeliveryStatus = "DELIVERED"
 	DeliveryFailed    DeliveryStatus = "FAILED"
+	DeliveryResend    DeliveryStatus = "RESEND"
+	DeliveryCancelled DeliveryStatus = "CANCELLED"
 )
 
 type NotificationType string
@@ -35,6 +37,8 @@ type Notification struct {
 	SentAt           *time.Time       `json:"sent_at,omitempty"`
 	CreatedAt        time.Time        `gorm:"default:now()" json:"created_at"`
 	NotificationType NotificationType `gorm:"type:notificationtype" json:"notification_type"`
+	ProviderMessageID string           `gorm:"type:varchar(255);index" json:"provider_message_id,omitempty"`
+	RetryCount        int              `gorm:"default:0" json:"retry_count"`
 }
 
 func (n *Notification) BeforeCreate(tx *gorm.DB) (err error) {

@@ -19,8 +19,10 @@ func NewCronHandler(attachUC iusecase.AttachmentUseCase) *CronHandler {
 
 // ValidateAttachments godoc
 // @Summary      Batch Verification Cron
-// @Description  Internal endpoint triggered by GCP Cloud Scheduler.
-// @Description  Extracts metadata from PENDING attachments and promotes valid files to permanent storage.
+// @Description  Internal endpoint triggered by GCP Cloud Scheduler. Extracts metadata from PENDING attachments and promotes valid files to permanent storage.
+// @Description  **Roles:** INTERNAL_CRON (Protected by GCP OIDC)
+// @Description  **Common Errors:**
+// @Description  - 500 Internal Server Error
 // @Tags         Cron
 // @Produce      json
 // @Success      200 {object} dto.BaseResponse
@@ -37,8 +39,10 @@ func (h *CronHandler) ValidateAttachments(c *gin.Context) {
 
 // CleanupTemp godoc
 // @Summary      Cleanup Temporary Folders
-// @Description  Internal endpoint triggered by GCP Cloud Scheduler.
-// @Description  Deletes empty temp folders in Cloudinary to keep the storage clean.
+// @Description  Internal endpoint triggered by GCP Cloud Scheduler. Deletes empty temp folders in Cloudinary to keep the storage clean.
+// @Description  **Roles:** INTERNAL_CRON (Protected by GCP OIDC)
+// @Description  **Common Errors:**
+// @Description  - 500 Internal Server Error
 // @Tags         Cron
 // @Produce      json
 // @Success      200 {object} dto.BaseResponse
