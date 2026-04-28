@@ -29,10 +29,43 @@ func (r *notificationRepository) Create(ctx context.Context, n *entity.Notificat
 	return r.db.WithContext(ctx).Create(n).Error
 }
 
+func (r *notificationRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Notification, error) {
+	var n entity.Notification
+	err := r.db.WithContext(ctx).First(&n, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &n, nil
+}
+
 func (r *notificationRepository) GetQueued(ctx context.Context, limit int) ([]entity.Notification, error) {
+	return r.GetQueuedByFilter(ctx, nil, nil, limit)
+}
+
+func (r *notificationRepository) GetQueuedByFilter(ctx context.Context, hospitalID, deptID *uuid.UUID, limit int) ([]entity.Notification, error) {
+	var ns []entity.Notification
+	query := r.db.WithContext(ctx).
+		Table("notifications").
+		Select("notifications.*").
+		Joins("JOIN referrals ON notifications.referral_id = referrals.id").
+		Where("notifications.delivery_status = ?", entity.DeliveryQueued)
+
+	if hospitalID != nil && *hospitalID != uuid.Nil {
+		query = query.Where("referrals.target_hospital_id = ?", *hospitalID)
+	}
+	if deptID != nil && *deptID != uuid.Nil {
+		query = query.Where("referrals.target_dept_id = ?", *deptID)
+	}
+
+	err := query.Limit(limit).Find(&ns).Error
+	return ns, err
+}
+
+func (r *notificationRepository) GetSent(ctx context.Context, limit int) ([]entity.Notification, error) {
 	var ns []entity.Notification
 	err := r.db.WithContext(ctx).
-		Where("delivery_status = ?", entity.DeliveryQueued).
+		Where("delivery_status = ?", entity.DeliverySent).
+		Where("provider_message_id IS NOT NULL AND provider_message_id != ?", "").
 		Limit(limit).
 		Find(&ns).Error
 	return ns, err
@@ -43,8 +76,57 @@ func (r *notificationRepository) UpdateDelivery(ctx context.Context, id uuid.UUI
 	if messageID != nil {
 		updates["provider_message_id"] = *messageID
 	}
-	if status == entity.DeliverySent {
+	if status == entity.DeliverySent || status == entity.DeliveryResend {
 		updates["sent_at"] = time.Now()
 	}
+	if status == entity.DeliveryFailed {
+		return r.db.WithContext(ctx).Model(&entity.Notification{}).
+			Where("id = ?", id).
+			Updates(updates).
+			UpdateColumn("retry_count", gorm.Expr("retry_count + 1")).Error
+	}
 	return r.db.WithContext(ctx).Model(&entity.Notification{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *notificationRepository) ListWithFilter(ctx context.Context, filter irepository.NotificationListFilter) ([]entity.Notification, int64, error) {
+	var ns []entity.Notification
+	var total int64
+
+	query := r.db.WithContext(ctx).Model(&entity.Notification{})
+
+	if filter.HospitalID != nil || filter.DepartmentID != nil {
+		query = query.Joins("JOIN referrals ON notifications.referral_id = referrals.id")
+		if filter.HospitalID != nil {
+			query = query.Where("referrals.target_hospital_id = ?", *filter.HospitalID)
+		}
+		if filter.DepartmentID != nil {
+			query = query.Where("referrals.target_dept_id = ?", *filter.DepartmentID)
+		}
+	}
+
+	if filter.ReferralID != nil {
+		query = query.Where("notifications.referral_id = ?", *filter.ReferralID)
+	}
+	if filter.NotificationType != nil {
+		query = query.Where("notifications.notification_type = ?", *filter.NotificationType)
+	}
+	if filter.DeliveryStatus != nil {
+		query = query.Where("notifications.delivery_status = ?", *filter.DeliveryStatus)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	limit := filter.PageSize
+	if limit <= 0 {
+		limit = 20
+	}
+	offset := (filter.Page - 1) * limit
+	if offset < 0 {
+		offset = 0
+	}
+
+	err := query.Limit(limit).Offset(offset).Order("notifications.created_at DESC").Find(&ns).Error
+	return ns, total, err
 }

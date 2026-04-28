@@ -44,7 +44,11 @@ func toAttachmentResponse(a *entity.Attachment) dto.AttachmentResponse {
 // @Description     - Requires the `referral_id` pre-minted from the `/attachments/signature` endpoint.
 // @Description     - Files MUST be at the `temp/{referral_id}/` path in Cloudinary.
 // @Description  2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.
-// @Description  Strictly restricted to the Referring Doctor. Allowed only when status is DRAFT or NEED_REVISION.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Allowed only when referral status is DRAFT or NEED_REVISION.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid ID or file too large
+// @Description  - 403 Forbidden (not the creator or invalid status)
 // @Tags         Attachments
 // @Accept       json
 // @Accept       mpfd
@@ -138,6 +142,9 @@ func (h *AttachmentHandler) UploadAttachment(c *gin.Context) {
 // GetAttachment godoc
 // @Summary      Get Attachment Details
 // @Description  Retrieve metadata for a specific attachment by its ID.
+// @Description  **Roles:** All authenticated roles with referral access.
+// @Description  **Common Errors:**
+// @Description  - 404 Not Found
 // @Tags         Attachments
 // @Produce      json
 // @Param        id path string true "Attachment ID"
@@ -165,7 +172,11 @@ func (h *AttachmentHandler) GetAttachment(c *gin.Context) {
 
 // DeleteFromReferral godoc
 // @Summary      Delete Attachment From Referral
-// @Description  Remove attachment from referral. Only allowed for Draft/NeedRevision status by the referring doctor.
+// @Description  Remove attachment from referral.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Only allowed for Draft/NeedRevision status by the referring doctor.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (invalid status or not owner)
 // @Tags         Attachments
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -215,6 +226,9 @@ func (h *AttachmentHandler) DeleteFromReferral(c *gin.Context) {
 // @Description  2. Provides a cryptographic signature for Cloudinary.
 // @Description  3. Frontend MUST upload files to the folder path: `temp/{referral_id}/`.
 // @Description  4. Use the returned `referral_id` when calling the Referral Creation API.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Common Errors:**
+// @Description  - 500 Internal Server Error
 // @Tags         Attachments
 // @Produce      json
 // @Param        referral_id query string false "Existing Referral ID (for updates)"
@@ -252,8 +266,10 @@ func (h *AttachmentHandler) GetUploadSignature(c *gin.Context) {
 // ManualVerifyAttachment godoc
 // @Summary      Manual Verification & Promotion
 // @Description  Immediately triggers metadata extraction and folder promotion for a specific attachment.
-// @Description  - Verified files are moved from `temp/` to permanent hospital storage.
-// @Description  - Failed files are marked as REJECTED and trigger NEED_REVISION on the referral.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+// @Description  **State Transition:** Verified files are moved from `temp/` to permanent hospital storage. Failed files mark referral as NEED_REVISION.
+// @Description  **Common Errors:**
+// @Description  - 500 Internal Server Error
 // @Tags         Attachments
 // @Produce      json
 // @Param        id path string true "Attachment ID"
@@ -286,7 +302,10 @@ func (h *AttachmentHandler) ManualVerifyAttachment(c *gin.Context) {
 // ManualVerifyReferralAttachments godoc
 // @Summary      Verify All Referral Attachments
 // @Description  Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.
-// @Description  Ensures the system moves the referral out of PENDING states before Liaison review.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, REFERRING_DOCTOR
+// @Description  **State Transition:** Ensures the system moves the referral out of PENDING states before Liaison review.
+// @Description  **Common Errors:**
+// @Description  - 500 Internal Server Error
 // @Tags         Attachments
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -314,7 +333,10 @@ func (h *AttachmentHandler) ManualVerifyReferralAttachments(c *gin.Context) {
 
 // GetReferralAttachments godoc
 // @Summary      List Referral Attachments
-// @Description  Get all attachments associated with a specific referral
+// @Description  Get all attachments associated with a specific referral.
+// @Description  **Roles:** All authenticated roles with referral access.
+// @Description  **Common Errors:**
+// @Description  - 404 Referral not found
 // @Tags         Attachments
 // @Produce      json
 // @Param        id path string true "Referral ID"
