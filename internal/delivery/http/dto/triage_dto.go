@@ -16,6 +16,7 @@ type TriageLandingResponse struct {
 }
 
 type TriageListResponse struct {
+	QueueID         uuid.UUID  `json:"id"`
 	ReferralID      uuid.UUID `json:"referral_id"`
 	PatientName     string    `json:"patient_name"`
 	TargetDept      string    `json:"target_dept"`

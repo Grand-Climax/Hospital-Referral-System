@@ -1,4 +1,4 @@
-package usecase
+ package usecase
 
 import (
 	"context"
@@ -137,7 +137,7 @@ func (u *arrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUI
 
 	// Allowed statuses for walk-in
 	allowed := false
-	for _, s := range []entity.ReferralStatus{entity.StatusAccepted, entity.StatusScheduled, entity.StatusForwarded} {
+	for _, s := range []entity.ReferralStatus{entity.StatusAccepted, entity.StatusScheduled} {
 		if ref.Status == s {
 			allowed = true
 			break
@@ -168,6 +168,11 @@ func (u *arrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUI
 		ArrivedAt:       &now,
 		MarkedBy:        &userID,
 		AssignedAt:      now,
+	}
+
+	var hospDept entity.HospitalDepartment
+	if err := u.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).First(&hospDept).Error; err == nil {
+		queue.DeptID = hospDept.ID
 	}
 
 	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

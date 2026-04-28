@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/config"
-	"Hospital-Referral-System/internal/infrastructure/seeder"
+	"Hospital-Referral-System/internal/infrastructure/seeder_deprecated"
 )
 
 func main() {

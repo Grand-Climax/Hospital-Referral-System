@@ -19,12 +19,6 @@ type DailyScheduleRepository interface {
 	IncrementBookedSlots(ctx context.Context, id uuid.UUID, version int) error
 }
 
-// SchedulerCheckpointRepository tracks the last time the scheduler processed batch jobs (e.g., missed-arrival detection).
-type SchedulerCheckpointRepository interface {
-	BaseRepository[entity.SchedulerCheckpoint]
-	GetLastCheckpoint(ctx context.Context) (time.Time, error)
-	UpdateCheckpoint(ctx context.Context, timestamp time.Time) error
-}
 
 
 

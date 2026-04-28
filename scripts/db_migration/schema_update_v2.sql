@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS referral_outcomes (
     length_of_stay_days INT,
     was_referral_appropriate BOOLEAN,
     outcome_notes TEXT,
-    recorded_by UUID NOT NULL REFERENCES users(id),
+    recorded_by_id UUID NOT NULL REFERENCES users(id),
     recorded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

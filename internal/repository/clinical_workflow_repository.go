@@ -28,7 +28,7 @@ func (r *clinicalUpdateRepository) ListByReferralID(ctx context.Context, referra
 	var updates []entity.ClinicalUpdate
 	err := r.db.WithContext(ctx).
 		Where("referral_id = ?", referralID).
-		Order("created_at desc").
+		Order("created_at asc").
 		Find(&updates).Error
 	return updates, err
 }

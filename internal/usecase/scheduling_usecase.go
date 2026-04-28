@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -24,6 +25,7 @@ type schedulingUseCase struct {
 	deptRepo     irepository.DepartmentRepository
 	configRepo   irepository.SystemConfigRepository
 	auditRepo    irepository.AuditLogRepository
+	notifUC      iusecase.NotificationUseCase
 }
 
 func NewSchedulingUseCase(
@@ -35,6 +37,7 @@ func NewSchedulingUseCase(
 	deptRepo irepository.DepartmentRepository,
 	configRepo irepository.SystemConfigRepository,
 	auditRepo irepository.AuditLogRepository,
+	notifUC iusecase.NotificationUseCase,
 ) iusecase.SchedulingUseCase {
 	return &schedulingUseCase{
 		db:           db,
@@ -45,6 +48,7 @@ func NewSchedulingUseCase(
 		deptRepo:     deptRepo,
 		configRepo:   configRepo,
 		auditRepo:    auditRepo,
+		notifUC:      notifUC,
 	}
 }
 
@@ -103,7 +107,31 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 			return err
 		}
 
-		return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, &referralID, nil, req)
+		if err := u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, &referralID, nil, req); err != nil {
+			return err
+		}
+
+		// Queue Notification
+		hospitalName := "the hospital"
+		deptName := "the department"
+		if ref.ReceiverHospital != nil {
+			hospitalName = ref.ReceiverHospital.Name
+		}
+		if ref.TargetDepartment != nil {
+			deptName = ref.TargetDepartment.Name
+		}
+
+		notifType := entity.NotificationType("SCHEDULING")
+		content := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
+		
+		if queue.QueueStatus == entity.QueueScheduled {
+			notifType = entity.NotificationType("RESCHEDULE")
+			content = fmt.Sprintf("Your appointment at %s, %s has been rescheduled to %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
+		}
+
+		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, content)
+
+		return nil
 	})
 }
 
@@ -136,13 +164,13 @@ func (u *schedulingUseCase) ManageCapacityOverride(ctx context.Context, hospital
 	}
 
 	override := &entity.CapacityOverride{
-		HospitalID: hospitalID,
-		DeptID:     deptID,
-		TargetDate: d,
-		NewLimit:   newLimit,
-		Reason:     &notes,
-		IsActive:   true,
-		SetByID:    userID,
+		HospitalID:   hospitalID,
+		DepartmentID: deptID,
+		TargetDate:   d,
+		NewLimit:     newLimit,
+		Reason:       &notes,
+		IsActive:     true,
+		SetByID:      userID,
 	}
 
 	if err := u.overrideRepo.Create(ctx, override); err != nil {
@@ -209,14 +237,30 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 			return err
 		}
 
-		return u.auditRepo.LogWithContext(ctx, userID, "MANUAL_EMERGENCY_SCHEDULE", &referralID, nil, map[string]interface{}{
+		if err := u.auditRepo.LogWithContext(ctx, userID, entity.ActionEmergencySchedule, &referralID, nil, map[string]interface{}{
 			"appointment_date": appointmentDate.Format("2006-01-02"),
 			"justification":    justification,
-		})
+		}); err != nil {
+			return err
+		}
+
+		// Queue Notification
+		hospitalName := "the hospital"
+		deptName := "the department"
+		if ref.ReceiverHospital != nil {
+			hospitalName = ref.ReceiverHospital.Name
+		}
+		if ref.TargetDepartment != nil {
+			deptName = ref.TargetDepartment.Name
+		}
+		message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
+		_ = u.notifUC.QueueNotification(ctx, referralID, entity.NotificationType("SCHEDULING"), message)
+
+		return nil
 	})
 }
 
-func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, departmentID, userID uuid.UUID) (*dto.BatchScheduleResult, error) {
+func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, departmentID, userID uuid.UUID, sendNotifications bool) (*dto.BatchScheduleResult, error) {
 	waiting, err := u.triageRepo.FindWaitingByHospitalAndDept(ctx, hospitalID, departmentID)
 	if err != nil {
 		return nil, err
@@ -273,7 +317,41 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 						return err
 					}
 
-					return tx.Model(&entity.Referral{}).Where("id = ?", q.ReferralID).Update("status", entity.StatusScheduled).Error
+					ref, err := u.referralRepo.GetReferralByID(ctx, q.ReferralID)
+					if err != nil {
+						return err
+					}
+
+					oldStatus := ref.Status
+					ref.Status = entity.StatusScheduled
+					if err := tx.Save(ref).Error; err != nil {
+						return err
+					}
+
+					if err := u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
+						ReferralID:  q.ReferralID,
+						ChangedByID: userID,
+						FromStatus:  &oldStatus,
+						ToStatus:    entity.StatusScheduled,
+					}); err != nil {
+						return err
+					}
+
+					// Queue Notification
+					if sendNotifications {
+						hospitalName := "the hospital"
+						deptName := "the department"
+						if dept.Hospital.Name != "" {
+							hospitalName = dept.Hospital.Name
+						}
+						if dept.Department.Name != "" {
+							deptName = dept.Department.Name
+						}
+						message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, targetDate.Format("2006-01-02"))
+						_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotificationType("SCHEDULING"), message)
+					}
+
+					return nil
 				})
 
 				if err == nil {
@@ -285,7 +363,7 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 		}
 	}
 
-	u.auditRepo.LogWithContext(ctx, userID, "BATCH_SCHEDULE_RUN", nil, nil, map[string]interface{}{
+	u.auditRepo.LogWithContext(ctx, userID, entity.ActionBatchSchedule, nil, nil, map[string]interface{}{
 		"hospital_id":   hospitalID,
 		"department_id": departmentID,
 		"result":        result,
