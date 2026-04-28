@@ -35,7 +35,11 @@ type LogoutRequest struct {
 
 // Login godoc
 // @Summary      User login
-// @Description  Authenticate a user and return access/refresh token pair
+// @Description  Authenticate a user using Email and Password. Returns a Bearer Access Token (short-lived) and a Refresh Token (long-lived).
+// @Description  **Roles:** Any user with an active account.
+// @Description  **Common Errors:**
+// @Description  - 401 (Invalid Credentials)
+// @Description  - 403 (Account Inactive)
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
@@ -86,7 +90,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // Refresh godoc
 // @Summary      Refresh token
-// @Description  Exchange a valid refresh token for a new access/refresh token pair
+// @Description  Exchange a valid refresh token for a new access/refresh token pair. Used to maintain session without re-login.
+// @Description  **Roles:** Any user with a valid refresh token.
+// @Description  **Constraints:** Refresh token must not be blacklisted or expired.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized (token invalid/expired)
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
@@ -129,7 +137,12 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 // Logout godoc
 // @Summary      User logout
-// @Description  Revoke both access and refresh tokens
+// @Description  Revoke both access and refresh tokens. Blacklists the tokens to prevent further use.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Prerequisites:** Requires a valid Access Token in Authorization header.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Auth
 // @Accept       json
 // @Produce      json

@@ -21,6 +21,10 @@ func NewNetworkHandler(uc iusecase.NetworkUseCase) *NetworkHandler {
 // Create godoc
 // @Summary      Create Network Route
 // @Description  Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 500 Internal Server Error
 // @Tags         Network Routes (Admin)
 // @Accept       json
 // @Produce      json
@@ -65,6 +69,10 @@ func (h *NetworkHandler) Create(c *gin.Context) {
 // List godoc
 // @Summary      List Network Routes
 // @Description  Retrieve all routing rules, optionally filtered by sender hospital. Only HOSPITAL_ADMIN can view admin routes.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid filter format
+// @Description  - 500 Internal Server Error
 // @Tags         Network Routes (Admin)
 // @Produce      json
 // @Param        sender_hospital_id query string false "Filter by Sender Hospital ID"
@@ -122,6 +130,10 @@ func (h *NetworkHandler) List(c *gin.Context) {
 // Delete godoc
 // @Summary      Delete Network Route
 // @Description  Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid ID format
+// @Description  - 500 Internal Server Error
 // @Tags         Network Routes (Admin)
 // @Produce      json
 // @Param        id path string true "Route ID"

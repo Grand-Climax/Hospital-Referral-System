@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -14,12 +15,29 @@ import (
 
 type referralUseCase struct {
 	referralRepo      irepository.ReferralRepository
+	clinicalRepo      irepository.ClinicalUpdateRepository
+	outcomeRepo       irepository.ReferralOutcomeRepository
 	networkRepo       irepository.NetworkRepository
 	attachmentUseCase iusecase.AttachmentUseCase
+	notifUC           iusecase.NotificationUseCase
 }
 
-func NewReferralUseCase(rRepo irepository.ReferralRepository, nRepo irepository.NetworkRepository, aUC iusecase.AttachmentUseCase) iusecase.ReferralUseCase {
-	return &referralUseCase{referralRepo: rRepo, networkRepo: nRepo, attachmentUseCase: aUC}
+func NewReferralUseCase(
+	rRepo irepository.ReferralRepository,
+	cRepo irepository.ClinicalUpdateRepository,
+	oRepo irepository.ReferralOutcomeRepository,
+	nRepo irepository.NetworkRepository,
+	aUC iusecase.AttachmentUseCase,
+	notifUC iusecase.NotificationUseCase,
+) iusecase.ReferralUseCase {
+	return &referralUseCase{
+		referralRepo:      rRepo,
+		clinicalRepo:      cRepo,
+		outcomeRepo:       oRepo,
+		networkRepo:       nRepo,
+		attachmentUseCase: aUC,
+		notifUC:           notifUC,
+	}
 }
 
 // ---------------------------------------------------------
@@ -721,6 +739,11 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 		return errors.New("referral is claimed by another specialist")
 	}
 
+	// Severity gate: a manual severity score must have been set before acceptance
+	if severityScore == nil && ref.MLSeverityScore == nil {
+		return errors.New("severity score must be set before accepting a referral; use the triage-severity endpoint first")
+	}
+
 	oldStatus := ref.Status
 	ref.Status = entity.StatusAccepted
 	if severityScore != nil {
@@ -739,7 +762,24 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 		ToStatus:    entity.StatusAccepted,
 		Reason:      &reason,
 	}
-	return u.referralRepo.CreateStatusHistory(ctx, history)
+
+	if err := u.referralRepo.CreateStatusHistory(ctx, history); err != nil {
+		return err
+	}
+
+	// Queue Notification
+	hospitalName := "the hospital"
+	deptName := "the department"
+	if ref.ReceiverHospital != nil {
+		hospitalName = ref.ReceiverHospital.Name
+	}
+	if ref.TargetDepartment != nil {
+		deptName = ref.TargetDepartment.Name
+	}
+	message := fmt.Sprintf("Your referral to %s, %s has been accepted. Please wait for your appointment date.", hospitalName, deptName)
+	_ = u.notifUC.QueueNotification(ctx, id, entity.NotificationType("ACCEPTANCE"), message)
+
+	return nil
 }
 
 func (u *referralUseCase) SpecialistReject(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error {
@@ -935,3 +975,4 @@ func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uu
 func (u *referralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
 	return u.referralRepo.GetReferralStatusHistoryForHospital(ctx, hospID, referralID, limit, page)
 }
+

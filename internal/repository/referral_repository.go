@@ -14,11 +14,15 @@ import (
 )
 
 type referralRepository struct {
+	*BaseRepository[entity.Referral]
 	db *gorm.DB
 }
 
 func NewReferralRepository(db *gorm.DB) irepository.ReferralRepository {
-	return &referralRepository{db: db}
+	return &referralRepository{
+		BaseRepository: NewBaseRepository[entity.Referral](db),
+		db:             db,
+	}
 }
 
 func (r *referralRepository) CreateReferralTransaction(ctx context.Context, referral *entity.Referral) error {
@@ -61,6 +65,8 @@ func (r *referralRepository) GetReferralByID(ctx context.Context, id uuid.UUID) 
 		Preload("Vitals").
 		Preload("EmergencyDetail").
 		Preload("Attachments").
+		Preload("ReceiverHospital").
+		Preload("TargetDepartment").
 		Where("id = ?", id).
 		First(&referral).Error
 	return &referral, err
@@ -327,4 +333,96 @@ func (r *referralRepository) GetLatestPendingForDoctor(ctx context.Context, doct
 		Preload("ReferralForm").
 		Find(&referrals).Error
 	return referrals, err
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ReferralOutcomeRepository
+// Persists the final clinical outcome when a referral episode is complete.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type referralOutcomeRepository struct {
+	*BaseRepository[entity.ReferralOutcome]
+	db *gorm.DB
+}
+
+func NewReferralOutcomeRepository(db *gorm.DB) irepository.ReferralOutcomeRepository {
+	return &referralOutcomeRepository{
+		BaseRepository: NewBaseRepository[entity.ReferralOutcome](db),
+		db:             db,
+	}
+}
+
+func (r *referralOutcomeRepository) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralOutcome, error) {
+	var outcome entity.ReferralOutcome
+	err := r.db.WithContext(ctx).Where("referral_id = ?", referralID).First(&outcome).Error
+	return &outcome, err
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ReferralRedirectionRepository
+// Records when a referral was redirected to a different hospital or department.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type referralRedirectionRepository struct {
+	*BaseRepository[entity.ReferralRedirection]
+	db *gorm.DB
+}
+
+func NewReferralRedirectionRepository(db *gorm.DB) irepository.ReferralRedirectionRepository {
+	return &referralRedirectionRepository{
+		BaseRepository: NewBaseRepository[entity.ReferralRedirection](db),
+		db:             db,
+	}
+}
+
+func (r *referralRedirectionRepository) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralRedirection, error) {
+	var redirection entity.ReferralRedirection
+	err := r.db.WithContext(ctx).Where("referral_id = ?", referralID).First(&redirection).Error
+	return &redirection, err
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ReferralAccessRepository
+// Tracks which doctors have been granted read/update access to a referral
+// (treating doctor vs. consulted doctor).
+// ─────────────────────────────────────────────────────────────────────────────
+
+type referralAccessRepository struct {
+	*BaseRepository[entity.ReferralAccess]
+	db *gorm.DB
+}
+
+func NewReferralAccessRepository(db *gorm.DB) irepository.ReferralAccessRepository {
+	return &referralAccessRepository{
+		BaseRepository: NewBaseRepository[entity.ReferralAccess](db),
+		db:             db,
+	}
+}
+
+func (r *referralAccessRepository) GetAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error) {
+	var access entity.ReferralAccess
+	err := r.db.WithContext(ctx).Where("referral_id = ? AND user_id = ? AND revoked_at IS NULL", referralID, userID).First(&access).Error
+	return &access, err
+}
+
+func (r *referralAccessRepository) CheckAccess(ctx context.Context, referralID, userID uuid.UUID) (bool, error) {
+	// 1. Check if user is the referring doctor or assigned specialist
+	var ref entity.Referral
+	if err := r.db.WithContext(ctx).Select("id, referring_doctor_id, specialist_id").Where("id = ?", referralID).First(&ref).Error; err != nil {
+		return false, err
+	}
+
+	if ref.ReferringDoctorID == userID || (ref.SpecialistID != nil && *ref.SpecialistID == userID) {
+		return true, nil
+	}
+
+	// 2. Check for explicit active access grant
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.ReferralAccess{}).
+		Where("referral_id = ? AND user_id = ? AND revoked_at IS NULL", referralID, userID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

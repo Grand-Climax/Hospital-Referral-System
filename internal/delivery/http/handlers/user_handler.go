@@ -117,7 +117,11 @@ func toUserResponse(u *entity.User) dto.UserResponse {
 
 // CreateUser godoc
 // @Summary      Create a new user
-// @Description  Admin-only endpoint to create a new user account
+// @Description  Admin-only endpoint to create a new user account.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 409 conflict (email/national_id)
 // @Tags         SystemAdmin
 // @Accept       json
 // @Produce      json
@@ -194,10 +198,10 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // ListUsers godoc
 // @Summary      List users (Hospital-Scoped)
 // @Description  Retrieve a list of users within your own hospital.
-// @Description  - MOH Analysts: Strictly forbidden (returns empty list).
-// @Description  - Hospital Admins/Doctors/Specialists: See only users within their own hospital.
-// @Description  - Global Admins: Should use /system-admin/users for global discovery.
-// @Description  - Filtration: Supports tokenized name search (matches regardless of name part order).
+// @Description  **Roles:** Hospital Admins, Doctors, Specialists, Liaisons
+// @Description  **Visibility:** MOH Analysts are strictly forbidden. Users see only others in the same hospital.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden for MOH Analysts
 // @Tags         Users
 // @Produce      json
 // @Param        page      query int    false "Page number" default(1)
@@ -269,11 +273,16 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 // GetUser godoc
 // @Summary      Get user by ID
 // @Description  Retrieve detailed profile of a user with nuanced visibility rules.
+// @Description  **Roles:** All authenticated roles (with visibility rules).
+// @Description  **Visibility Rules:**
 // @Description  - System Admins: Can view any profile.
-// @Description  - Doctors/Specialists/Liaison/HospitalAdmins: Can view each other across different hospitals to facilitate referrals.
-// @Description  - Restriction: Clinical roles CANNOT view SystemAdmins or Receptionists from other hospitals.
+// @Description  - Clinical roles: Can view each other across hospitals (for referrals).
+// @Description  - Clinical roles: Cannot view SystemAdmins or Receptionists from other hospitals.
 // @Description  - Receptionists: Can ONLY view users within their own hospital.
-// @Description  - MOH Analysts: Cannot view any user except their own (via /users/me).
+// @Description  - MOH Analysts: Cannot view any user except their own.
+// @Description  **Common Errors:**
+// @Description  - 403 visibility violation
+// @Description  - 404 Not Found
 // @Tags         Users
 // @Produce      json
 // @Param        id path string true "User ID"
@@ -309,7 +318,11 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 
 // UpdateUser godoc
 // @Summary      Update a user
-// @Description  Admin-only endpoint to update a user's information
+// @Description  Admin-only endpoint to update a user's information.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 404 Not Found
 // @Tags         SystemAdmin
 // @Accept       json
 // @Produce      json
@@ -413,7 +426,10 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 // DeleteUser godoc
 // @Summary      Delete a user
-// @Description  Admin-only endpoint to soft-delete a user
+// @Description  Admin-only endpoint to soft-delete a user.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 404 Not Found
 // @Tags         SystemAdmin
 // @Produce      json
 // @Param        id path string true "User ID"
@@ -447,7 +463,10 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 // GetMyProfile godoc
 // @Summary      Get current user's profile
-// @Description  Returns the profile of the currently authenticated user
+// @Description  Returns the profile of the currently authenticated user.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
 // @Tags         Users
 // @Produce      json
 // @Success      200 {object} dto.UserResponse
@@ -493,8 +512,10 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 // SystemAdminListUsers godoc
 // @Summary      Global User List (System Admin Only)
 // @Description  Administrative-only endpoint for global user discovery across all hospitals.
-// @Description  - Supports full tokenized search (matches name parts regardless of order).
-// @Description  - Supports hospital, department, and role-based filtration.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Visibility:** Global access to all users.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (not super admin)
 // @Tags         SystemAdmin
 // @Produce      json
 // @Param        page      query int    false "Page number" default(1)
@@ -570,7 +591,11 @@ func (h *UserHandler) SystemAdminListUsers(c *gin.Context) {
 
 // AssignRole godoc
 // @Summary      Assign role to user
-// @Description  Admin-only endpoint to change a user's role
+// @Description  Admin-only endpoint to change a user's role.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid role
+// @Description  - 404 Not Found
 // @Tags         SystemAdmin
 // @Accept       json
 // @Produce      json
@@ -616,7 +641,11 @@ func (h *UserHandler) AssignRole(c *gin.Context) {
 }
 
 // @Summary      Update Profile Image
-// @Description  Update the current user's profile image by uploading a file (Max 5MB: JPEG, PNG, WEBP)
+// @Description  Update the current user's profile image by uploading a file (Max 5MB: JPEG, PNG, WEBP).
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Constraints:** Max 5MB, format must be JPEG, PNG, or WEBP.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid size/format
 // @Tags         Users
 // @Accept       mpfd
 // @Produce      json
@@ -683,7 +712,10 @@ func (h *UserHandler) UpdateProfileImage(c *gin.Context) {
 
 // DeleteMyProfileImage godoc
 // @Summary      Delete own Profile Image
-// @Description  Remove the current user's profile image (unsets URL and PublicID)
+// @Description  Remove the current user's profile image (unsets URL and PublicID).
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
 // @Tags         Users
 // @Produce      json
 // @Success      200 {object} dto.BaseResponse
@@ -705,7 +737,11 @@ func (h *UserHandler) DeleteMyProfileImage(c *gin.Context) {
 
 // ModerateProfileImage godoc
 // @Summary      Moderate Profile Image
-// @Description  Remove a user's profile image (SystemAdmin or HospitalAdmin only)
+// @Description  Remove a user's profile image (SystemAdmin or HospitalAdmin only).
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+// @Description  **Prerequisites:** Hospital Admin can only moderate users in their own hospital.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (out of scope)
 // @Tags         SystemAdmin
 // @Produce      json
 // @Param        id path string true "User ID to moderate"

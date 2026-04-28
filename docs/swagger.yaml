@@ -1,5 +1,26 @@
 basePath: /
 definitions:
+  dto.AddClinicalUpdateRequest:
+    properties:
+      clinical_notes:
+        type: string
+      update_reason:
+        enum:
+        - MISSED_APPOINTMENT_RE_EVALUATION
+        - CONDITION_CHANGE
+        - SPECIALIST_NOTE
+        type: string
+    required:
+    - clinical_notes
+    - update_reason
+    type: object
+  dto.AssignDoctorRequest:
+    properties:
+      doctor_id:
+        type: string
+    required:
+    - doctor_id
+    type: object
   dto.AttachmentListResponse:
     properties:
       data:
@@ -119,6 +140,20 @@ definitions:
     required:
     - receiver_hospital_id
     - sender_hospital_id
+    type: object
+  dto.CreateOverrideRequest:
+    properties:
+      new_limit:
+        minimum: 0
+        type: integer
+      reason:
+        type: string
+      target_date:
+        type: string
+    required:
+    - new_limit
+    - reason
+    - target_date
     type: object
   dto.CreatePatientRequest:
     properties:
@@ -587,6 +622,28 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.ManualEmergencyScheduleRequest:
+    properties:
+      appointment_date:
+        type: string
+      justification:
+        type: string
+    required:
+    - appointment_date
+    - justification
+    type: object
+  dto.MarkMissedRequest:
+    properties:
+      miss_reason:
+        enum:
+        - PATIENT_NO_SHOW
+        - PATIENT_CONTACTED_RESCHEDULE
+        - HOSPITAL_CANCELLED
+        - HOSPITAL_CAPACITY_ISSUE
+        type: string
+    required:
+    - miss_reason
+    type: object
   dto.NetworkRouteListResponse:
     properties:
       data:
@@ -616,6 +673,42 @@ definitions:
       success:
         example: true
         type: boolean
+    type: object
+  dto.NotificationListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/entity.Notification'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.NotificationSendSummary:
+    properties:
+      failed_count:
+        type: integer
+      sent_count:
+        type: integer
+      total_processed:
+        type: integer
+    type: object
+  dto.NotificationStatusSummary:
+    properties:
+      delivered_count:
+        type: integer
+      failed_count:
+        type: integer
+      still_processing:
+        type: integer
+      total_checked:
+        type: integer
     type: object
   dto.PaginatedLogResponse:
     properties:
@@ -679,6 +772,25 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.RecordOutcomeRequest:
+    properties:
+      length_of_stay_days:
+        type: integer
+      outcome:
+        enum:
+        - improved
+        - deteriorated
+        - deceased
+        - transferred
+        - discharged
+        type: string
+      outcome_notes:
+        type: string
+      was_referral_appropriate:
+        type: boolean
+    required:
+    - outcome
+    type: object
   dto.ReferralCreationResponse:
     properties:
       message:
@@ -733,6 +845,8 @@ definitions:
         description: Relationships
       patient_id:
         type: string
+      receiver_hospital:
+        $ref: '#/definitions/entity.Hospital'
       referral_form:
         $ref: '#/definitions/entity.ReferralForm'
       referring_doctor_id:
@@ -742,6 +856,8 @@ definitions:
         type: string
       revision_reason:
         type: string
+      sender_hospital:
+        $ref: '#/definitions/entity.Hospital'
       sender_hospital_id:
         type: string
       specialist_id:
@@ -752,10 +868,14 @@ definitions:
       success:
         example: true
         type: boolean
+      target_department:
+        $ref: '#/definitions/entity.Department'
       target_dept_id:
         type: string
       target_hospital_id:
         type: string
+      triage_status:
+        $ref: '#/definitions/entity.TriageStatus'
       updated_at:
         type: string
       vitals:
@@ -791,6 +911,61 @@ definitions:
         minLength: 5
         type: string
     required:
+    - reason
+    type: object
+  dto.SchedulingRequest:
+    properties:
+      appointment_date:
+        type: string
+      notes:
+        type: string
+      override:
+        description: Request a capacity override
+        type: boolean
+    required:
+    - appointment_date
+    type: object
+  dto.SetManualSeverityRequest:
+    properties:
+      justification:
+        type: string
+      score:
+        maximum: 100
+        minimum: 0
+        type: number
+    required:
+    - justification
+    - score
+    type: object
+  dto.TriageReviewRequest:
+    properties:
+      action:
+        description: '"APPROVE", "OVERRIDE", "REJECT"'
+        type: string
+      composite_score:
+        type: number
+      reason:
+        type: string
+    required:
+    - action
+    type: object
+  dto.UpdateMaxSlotsRequest:
+    properties:
+      max_slots:
+        minimum: 1
+        type: integer
+    required:
+    - max_slots
+    type: object
+  dto.UpdateOverrideRequest:
+    properties:
+      new_limit:
+        minimum: 0
+        type: integer
+      reason:
+        type: string
+    required:
+    - new_limit
     - reason
     type: object
   dto.UpdateReferralRequest:
@@ -980,6 +1155,13 @@ definitions:
         minimum: 25
         type: number
     type: object
+  dto.WalkInRequest:
+    properties:
+      referral_id:
+        type: string
+    required:
+    - referral_id
+    type: object
   entity.Attachment:
     properties:
       category:
@@ -1014,6 +1196,35 @@ definitions:
         example: VERIFIED
         type: string
     type: object
+  entity.DeliveryStatus:
+    enum:
+    - QUEUED
+    - SENT
+    - DELIVERED
+    - FAILED
+    - RESEND
+    - CANCELLED
+    type: string
+    x-enum-varnames:
+    - DeliveryQueued
+    - DeliverySent
+    - DeliveryDelivered
+    - DeliveryFailed
+    - DeliveryResend
+    - DeliveryCancelled
+  entity.Department:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   entity.DiagnosisCertainty:
     enum:
     - CONFIRMED
@@ -1024,6 +1235,27 @@ definitions:
     - CertaintyConfirmed
     - CertaintySuspected
     - CertaintySymptomOnly
+  entity.Hospital:
+    properties:
+      address:
+        type: string
+      contact_phone:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      region:
+        type: string
+      tier_level:
+        $ref: '#/definitions/entity.HospitalTier'
+      updated_at:
+        type: string
+    type: object
   entity.HospitalTier:
     enum:
     - PRIMARY
@@ -1045,8 +1277,47 @@ definitions:
       description:
         type: string
     type: object
+  entity.Notification:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      delivery_status:
+        $ref: '#/definitions/entity.DeliveryStatus'
+      failure_reason:
+        type: string
+      id:
+        type: string
+      notification_type:
+        $ref: '#/definitions/entity.NotificationType'
+      phone_number:
+        type: string
+      provider_message_id:
+        type: string
+      referral_id:
+        type: string
+      retry_count:
+        type: integer
+      sent_at:
+        type: string
+    type: object
+  entity.NotificationType:
+    enum:
+    - ACCEPTANCE
+    - SCHEDULING
+    - REMINDER
+    - RESCHEDULE
+    type: string
+    x-enum-varnames:
+    - NotifyAcceptance
+    - NotifyScheduling
+    - NotifyReminder
+    - NotifyReschedule
   entity.Patient:
     properties:
+      allow_sms:
+        type: boolean
       date_of_birth:
         type: string
       first_name:
@@ -1106,6 +1377,8 @@ definitions:
         description: Relationships
       patient_id:
         type: string
+      receiver_hospital:
+        $ref: '#/definitions/entity.Hospital'
       referral_form:
         $ref: '#/definitions/entity.ReferralForm'
       referring_doctor_id:
@@ -1115,6 +1388,8 @@ definitions:
         type: string
       revision_reason:
         type: string
+      sender_hospital:
+        $ref: '#/definitions/entity.Hospital'
       sender_hospital_id:
         type: string
       specialist_id:
@@ -1122,10 +1397,14 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/entity.ReferralStatus'
+      target_department:
+        $ref: '#/definitions/entity.Department'
       target_dept_id:
         type: string
       target_hospital_id:
         type: string
+      triage_status:
+        $ref: '#/definitions/entity.TriageStatus'
       updated_at:
         type: string
       vitals:
@@ -1186,8 +1465,6 @@ definitions:
       physical_examination_findings:
         type: string
       reason_for_referral_category:
-        description: 'TODO: Remove ReasonForReferralCategory in production phase.
-          Kept temporarily as nullable.'
         type: string
       reason_of_referral:
         type: string
@@ -1213,6 +1490,10 @@ definitions:
     - REJECTED_BY_SPECIALIST
     - MISSED
     - RESCHEDULED
+    - REDIRECTED
+    - ADMITTED
+    - REJECTED_AFTER_SEND
+    - DECEASED
     type: string
     x-enum-varnames:
     - StatusDraft
@@ -1230,6 +1511,20 @@ definitions:
     - StatusRejectedBySpecialist
     - StatusMissed
     - StatusRescheduled
+    - StatusRedirected
+    - StatusAdmitted
+    - StatusRejectedAfterSend
+    - StatusDeceased
+  entity.TriageStatus:
+    enum:
+    - AUTO_SCORED
+    - REVIEWED
+    - OVERRIDDEN
+    type: string
+    x-enum-varnames:
+    - TriageAutoScored
+    - TriageReviewed
+    - TriageOverridden
   entity.UserRole:
     enum:
     - REFERRING_DOCTOR
@@ -1456,14 +1751,106 @@ definitions:
     type: object
 info:
   contact: {}
-  description: API for managing hospital referrals, users, hospitals, and departments.
+  description: |-
+    # Hospital Referral Hub API
+    A national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.
+
+    ---
+    ## Referral Lifecycle
+    DRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED
+    ↘ REJECTED_BY_LIAISON
+    FORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST
+    ACCEPTED → SCHEDULED → ASSIGNED → COMPLETED
+    ↘ MISSED / RESCHEDULED / DECEASED
+
+    ---
+    ## Visibility Rules
+
+    | Status | Visible To |
+    |----------------------|-----------|
+    | DRAFT / NEED_REVISION | Referring Doctor only |
+    | SUBMITTED … FORWARDED | Liaison of the sender hospital |
+    | FORWARDED … COMPLETED | Specialists of the target hospital |
+    | ACCEPTED … RESCHEDULED| Receptionists of the target hospital |
+    | All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |
+
+    ---
+    ## Critical Business Rules
+
+    - **ML Triage Gate**: A referral cannot be accepted without a severity score (set manually via `POST /specialist/referrals/{id}/triage-severity`).
+    - **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.
+    - **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.
+    - **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.
+    - **Deceased Outcome**: Recording a deceased outcome sets the referral to DECEASED, soft‑archives it (`is_archived=true`), and cancels any pending appointments.
+    - **Cancel After Send**: A doctor may cancel a referral after sending (REJECTED_AFTER_SEND) only if it has not been accepted yet.
+
+    For detailed per‑endpoint rules, see the individual endpoint descriptions below.
   title: Hospital Referral System API
   version: "1.0"
 paths:
+  /api/v1/admin/config:
+    get:
+      description: |-
+        Retrieve all system-wide runtime configuration keys (e.g., buffer_days, aging_factor, overbook_limit).
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Prerequisites:** Authenticated session.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 403 Forbidden (not super admin)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get System Configuration
+      tags:
+      - Admin/Config
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Update system-wide runtime configuration values.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **State Transition:** Immediately affects scheduling logic and triage weight calculations.
+        **Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default.
+        **Common Errors:**
+        - 400 invalid key or value format
+        - 403 forbidden (not super admin)
+      parameters:
+      - description: Key-value pairs to update
+        in: body
+        name: updates
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Update System Configuration
+      tags:
+      - Admin/Config
   /api/v1/admin/network-routes:
     get:
-      description: Retrieve all routing rules, optionally filtered by sender hospital.
-        Only HOSPITAL_ADMIN can view admin routes.
+      description: |-
+        Retrieve all routing rules, optionally filtered by sender hospital. Only HOSPITAL_ADMIN can view admin routes.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+        **Common Errors:**
+        - 400 invalid filter format
+        - 500 Internal Server Error
       parameters:
       - description: Filter by Sender Hospital ID
         in: query
@@ -1492,8 +1879,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN
-        can create routes.
+      description: |-
+        Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+        **Common Errors:**
+        - 400 invalid input
+        - 500 Internal Server Error
       parameters:
       - description: Network routing rule payload
         in: body
@@ -1523,8 +1914,12 @@ paths:
       - Network Routes (Admin)
   /api/v1/admin/network-routes/{id}:
     delete:
-      description: Remove a referral network routing rule. Only HOSPITAL_ADMIN can
-        delete routes.
+      description: |-
+        Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+        **Common Errors:**
+        - 400 invalid ID format
+        - 500 Internal Server Error
       parameters:
       - description: Route ID
         in: path
@@ -1553,7 +1948,11 @@ paths:
       - Network Routes (Admin)
   /api/v1/attachments/{id}:
     get:
-      description: Retrieve metadata for a specific attachment by its ID.
+      description: |-
+        Retrieve metadata for a specific attachment by its ID.
+        **Roles:** All authenticated roles with referral access.
+        **Common Errors:**
+        - 404 Not Found
       parameters:
       - description: Attachment ID
         in: path
@@ -1580,8 +1979,10 @@ paths:
     post:
       description: |-
         Immediately triggers metadata extraction and folder promotion for a specific attachment.
-        - Verified files are moved from `temp/` to permanent hospital storage.
-        - Failed files are marked as REJECTED and trigger NEED_REVISION on the referral.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **State Transition:** Verified files are moved from `temp/` to permanent hospital storage. Failed files mark referral as NEED_REVISION.
+        **Common Errors:**
+        - 500 Internal Server Error
       parameters:
       - description: Attachment ID
         in: path
@@ -1612,6 +2013,9 @@ paths:
         2. Provides a cryptographic signature for Cloudinary.
         3. Frontend MUST upload files to the folder path: `temp/{referral_id}/`.
         4. Use the returned `referral_id` when calling the Referral Creation API.
+        **Roles:** REFERRING_DOCTOR
+        **Common Errors:**
+        - 500 Internal Server Error
       parameters:
       - description: Existing Referral ID (for updates)
         in: query
@@ -1637,7 +2041,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticate a user and return access/refresh token pair
+      description: |-
+        Authenticate a user using Email and Password. Returns a Bearer Access Token (short-lived) and a Refresh Token (long-lived).
+        **Roles:** Any user with an active account.
+        **Common Errors:**
+        - 401 (Invalid Credentials)
+        - 403 (Account Inactive)
       parameters:
       - description: Login credentials
         in: body
@@ -1671,7 +2080,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Revoke both access and refresh tokens
+      description: |-
+        Revoke both access and refresh tokens. Blacklists the tokens to prevent further use.
+        **Roles:** Any authenticated user.
+        **Prerequisites:** Requires a valid Access Token in Authorization header.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - description: Refresh token to revoke
         in: body
@@ -1703,7 +2118,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: Exchange a valid refresh token for a new access/refresh token pair
+      description: |-
+        Exchange a valid refresh token for a new access/refresh token pair. Used to maintain session without re-login.
+        **Roles:** Any user with a valid refresh token.
+        **Constraints:** Refresh token must not be blacklisted or expired.
+        **Common Errors:**
+        - 401 Unauthorized (token invalid/expired)
       parameters:
       - description: Refresh token
         in: body
@@ -1732,8 +2152,10 @@ paths:
   /api/v1/cron/cleanup-temp:
     post:
       description: |-
-        Internal endpoint triggered by GCP Cloud Scheduler.
-        Deletes empty temp folders in Cloudinary to keep the storage clean.
+        Internal endpoint triggered by GCP Cloud Scheduler. Deletes empty temp folders in Cloudinary to keep the storage clean.
+        **Roles:** INTERNAL_CRON (Protected by GCP OIDC)
+        **Common Errors:**
+        - 500 Internal Server Error
       produces:
       - application/json
       responses:
@@ -1751,8 +2173,10 @@ paths:
   /api/v1/cron/verify-attachments:
     post:
       description: |-
-        Internal endpoint triggered by GCP Cloud Scheduler.
-        Extracts metadata from PENDING attachments and promotes valid files to permanent storage.
+        Internal endpoint triggered by GCP Cloud Scheduler. Extracts metadata from PENDING attachments and promotes valid files to permanent storage.
+        **Roles:** INTERNAL_CRON (Protected by GCP OIDC)
+        **Common Errors:**
+        - 500 Internal Server Error
       produces:
       - application/json
       responses:
@@ -1767,9 +2191,279 @@ paths:
       summary: Batch Verification Cron
       tags:
       - Cron
+  /api/v1/department-head/capacity/overrides:
+    get:
+      description: |-
+        Get all active and upcoming capacity overrides for the department.
+        **Roles:** DEPT_HEAD
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: List Capacity Overrides
+      tags:
+      - Department Head
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Sets a temporary capacity override for a specific date.
+        **Roles:** DEPT_HEAD
+        **Side Effect:** Automatically synchronizes the daily schedule for that date.
+        **Common Errors:**
+        - 400 (date in past)
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Override details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateOverrideRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Create Capacity Override
+      tags:
+      - Department Head
+  /api/v1/department-head/capacity/overrides/{id}:
+    delete:
+      description: |-
+        Removes a capacity override, reverting the daily schedule to standard limits.
+        **Roles:** DEPT_HEAD
+        **Common Errors:**
+        - 400 invalid ID
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Override ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete Capacity Override
+      tags:
+      - Department Head
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Updates an existing capacity override's limit and reason.
+        **Roles:** DEPT_HEAD
+        **Common Errors:**
+        - 400 invalid ID or input
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Override ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateOverrideRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Capacity Override
+      tags:
+      - Department Head
+  /api/v1/department-head/schedule:
+    get:
+      description: |-
+        Returns daily schedule records for the next 30 days for the department.
+        **Roles:** DEPT_HEAD
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: View department schedule
+      tags:
+      - Department Head
+  /api/v1/department-head/schedule/{id}/max-slots:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Manually adjust the maximum slots for a specific day.
+        **Roles:** DEPT_HEAD
+        **Common Errors:**
+        - 400 invalid schedule ID or input
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Schedule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateMaxSlotsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Daily Max Slots
+      tags:
+      - Department Head
+  /api/v1/department-head/schedule/batch:
+    post:
+      description: |-
+        Triggers the automated batch scheduling process for all WAITING referrals in priority order.
+        **Roles:** DEPT_HEAD
+        **Prerequisites:** Reads all WAITING entries for the department.
+        **State Transition:** Assigns appointment dates to referrals and creates status history records.
+        **Gatekeepers:** Respects buffer days and never overbooks.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Run Batch Scheduling
+      tags:
+      - Department Head
   /api/v1/departments:
     get:
-      description: List departments with optional search
+      description: |-
+        List departments with optional search.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - default: 1
         description: Page number
@@ -1800,7 +2494,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Admin-only endpoint to create a department
+      description: |-
+        Admin-only endpoint to create a department.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid input
+        - 401 Unauthorized
+        - 403 Forbidden
       parameters:
       - description: Department creation payload
         in: body
@@ -1830,7 +2530,12 @@ paths:
       - Departments
   /api/v1/departments/{id}:
     delete:
-      description: Admin-only endpoint to delete a department
+      description: |-
+        Admin-only endpoint to delete a department.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid ID format
+        - 404 Not Found
       parameters:
       - description: Department ID
         in: path
@@ -1854,7 +2559,12 @@ paths:
       tags:
       - Departments
     get:
-      description: Retrieve a department by its ID
+      description: |-
+        Retrieve a department by its ID.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 400 invalid ID format
+        - 404 Not Found
       parameters:
       - description: Department ID
         in: path
@@ -1880,7 +2590,12 @@ paths:
     put:
       consumes:
       - application/json
-      description: Admin-only endpoint to update department information
+      description: |-
+        Admin-only endpoint to update department information.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid input
+        - 404 Not Found
       parameters:
       - description: Department ID
         in: path
@@ -1915,8 +2630,12 @@ paths:
       - Departments
   /api/v1/doctor/latest-pending:
     get:
-      description: Get a list of the most recent pending referrals for the doctor's
-        dashboard.
+      description: |-
+        Get the most recent pending referrals for the doctor's dashboard.
+        **Roles:** REFERRING_DOCTOR
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - default: 5
         description: Number of records to fetch
@@ -1937,8 +2656,13 @@ paths:
       - Doctor Dashboard
   /api/v1/doctor/referrals:
     get:
-      description: Get a paginated list of referrals created by the authenticated
-        doctor.
+      description: |-
+        Get a paginated list of referrals created by the authenticated doctor.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Authenticated session as a doctor.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - default: 20
         description: Pagination limit
@@ -2000,6 +2724,10 @@ paths:
         ### Status Guide:
         - Use `status=DRAFT` to save information without entering the review pipeline.
         - Use `status=SUBMITTED` to officially send the referral to the hospital Liaison.
+        ### Rules:
+        - Role: DOCTOR (Sender hospital)
+        - Constraint: Cannot create a new referral if the patient already has an active referral (not COMPLETED, CANCELLED, REJECTED_*, DECEASED) for the same target department.
+        - Errors: 409 (Conflict if active referral exists).
       parameters:
       - description: Referral Details (Include pre-minted referral_id)
         in: body
@@ -2025,8 +2753,13 @@ paths:
       - Doctor Referrals
   /api/v1/doctor/referrals/{id}:
     get:
-      description: Get detailed information about a specific referral created by the
-        doctor.
+      description: |-
+        Get full details of a specific referral created by the doctor.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Must be the original creator of the referral.
+        **Common Errors:**
+        - 400 Invalid ID format
+        - 403 Forbidden (not the creator)
       parameters:
       - description: Referral ID
         in: path
@@ -2058,7 +2791,13 @@ paths:
       - application/json
       description: |-
         Updates existing clinical data or forms for a referral in DRAFT or NEED_REVISION status.
-        This endpoint does NOT submit the referral for review.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Status must be DRAFT or NEED_REVISION.
+        **State Transition:** None (stays in DRAFT/NEED_REVISION).
+        **Common Errors:**
+        - 400 Invalid input or status field included
+        - 403 Forbidden (not the creator)
+        - 422 Invalid state transition (already submitted)
       parameters:
       - description: Referral ID
         in: path
@@ -2089,8 +2828,13 @@ paths:
       - Doctor Referrals
   /api/v1/doctor/referrals/{id}/attachments:
     delete:
-      description: Bulk delete all attachments associated with a referral. Restricted
-        to DRAFT or NEED_REVISION status and the referring doctor.
+      description: |-
+        Bulk delete all attachments associated with a referral.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Status must be DRAFT or NEED_REVISION.
+        **Common Errors:**
+        - 400 Invalid status
+        - 403 Forbidden
       parameters:
       - description: Referral ID
         in: path
@@ -2121,8 +2865,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Cancel an active referral that has not yet been processed (must
-        be in DRAFT or NEED_REVISION status).
+      description: |-
+        Cancel an active referral that has not yet been processed.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Status must be DRAFT or NEED_REVISION.
+        **State Transition:** Status becomes CANCELLED. Referral becomes read-only.
+        **Common Errors:**
+        - 400 Invalid status
+        - 403 Forbidden
       parameters:
       - description: Referral ID
         in: path
@@ -2157,7 +2907,12 @@ paths:
       - application/json
       description: |-
         Finalizes and submits an existing draft (or a referral needing revision) into the hospital review pipeline.
-        Once submitted, the referral status becomes SUBMITTED and it becomes visible to Liaisons.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Status must be DRAFT or NEED_REVISION. Must have at least one diagnosis, clinical summary, and patient history.
+        **State Transition:** Status becomes SUBMITTED. Visible to Liaisons.
+        **Common Errors:**
+        - 400 Missing clinical data
+        - 403 Forbidden (not the creator)
       parameters:
       - description: Referral ID
         in: path
@@ -2188,8 +2943,12 @@ paths:
       - Doctor Referrals
   /api/v1/doctor/stats:
     get:
-      description: Get a summary of referral counts (Total, Pending, Accepted, Critical)
-        for the doctor's dashboard.
+      description: |-
+        Dashboard statistics including Total, Pending, Accepted, and Critical counts.
+        **Roles:** REFERRING_DOCTOR
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       produces:
       - application/json
       responses:
@@ -2204,8 +2963,13 @@ paths:
       - Doctor Dashboard
   /api/v1/hospital-admin/referrals-log:
     get:
-      description: Get audit logs of all referral status transitions connected to
-        the hospital.
+      description: |-
+        Get audit logs of all referral status transitions connected to the hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Admin must belong to a hospital.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 403 Forbidden (wrong hospital)
       parameters:
       - default: 20
         description: Pagination limit
@@ -2239,7 +3003,13 @@ paths:
       - Admin Referrals
   /api/v1/hospital-admin/referrals/{id}/status-history:
     get:
-      description: Read-only status history for a referral linked to the admin's hospital.
+      description: |-
+        Read-only status history for a referral linked to the admin's hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Referral must be linked to the admin's hospital.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 403 (out of scope)
       parameters:
       - description: Referral ID
         in: path
@@ -2282,7 +3052,13 @@ paths:
       - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff:
     get:
-      description: List staff users scoped to the admin's hospital.
+      description: |-
+        List staff users scoped to the admin's hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Admin must belong to a hospital.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 403 Forbidden
       parameters:
       - default: 1
         description: Page number
@@ -2333,7 +3109,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new staff user in the current hospital scope.
+      description: |-
+        Create a new staff user in the current hospital scope.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Admin must belong to a hospital.
+        **Common Errors:**
+        - 400 invalid input
+        - 403 (wrong hospital scope)
+        - 409 (duplicate email/national_id)
       parameters:
       - description: Staff creation payload
         in: body
@@ -2367,7 +3150,13 @@ paths:
       - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}:
     delete:
-      description: Soft delete a staff user within the same hospital scope.
+      description: |-
+        Soft delete a staff user within the same hospital scope.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Target user must belong to the same hospital.
+        **Common Errors:**
+        - 403 (cannot delete self or out of scope)
+        - 404 Not Found
       parameters:
       - description: Staff user ID
         in: path
@@ -2399,7 +3188,14 @@ paths:
       tags:
       - Hospital Admin - Staff Management
     get:
-      description: Get a staff profile scoped to the admin's hospital.
+      description: |-
+        Get a staff profile scoped to the admin's hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Target user must belong to the same hospital.
+        **Common Errors:**
+        - 400 Invalid ID format
+        - 403 (out of scope)
+        - 404 Not Found
       parameters:
       - description: Staff user ID
         in: path
@@ -2434,8 +3230,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: In-place replacement updates identity and password while keeping
-        the same user ID.
+      description: |-
+        In-place replacement updates identity and password while keeping the same user ID.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Target user must belong to the same hospital.
+        **Common Errors:**
+        - 400 invalid input
+        - 403 (out of scope)
+        - 409 (conflict)
       parameters:
       - description: Staff user ID
         in: path
@@ -2480,7 +3282,13 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Update the role of a staff user within the same hospital scope.
+      description: |-
+        Update the role of a staff user within the same hospital scope.
+        **Roles:** HOSPITAL_ADMIN
+        **Prerequisites:** Target user must belong to the same hospital.
+        **Common Errors:**
+        - 400 invalid role or input
+        - 403 (out of scope)
       parameters:
       - description: Staff user ID
         in: path
@@ -2519,7 +3327,12 @@ paths:
       - Hospital Admin - Staff Management
   /api/v1/hospitals:
     get:
-      description: List hospitals with optional filters
+      description: |-
+        List hospitals with optional filters.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - default: 1
         description: Page number
@@ -2562,7 +3375,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Admin-only endpoint to create a hospital
+      description: |-
+        Admin-only endpoint to create a hospital.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid input
+        - 401 Unauthorized
+        - 403 Forbidden
       parameters:
       - description: Hospital creation payload
         in: body
@@ -2592,7 +3411,12 @@ paths:
       - Hospitals
   /api/v1/hospitals/{id}:
     delete:
-      description: Admin-only endpoint to soft-delete a hospital
+      description: |-
+        Admin-only endpoint to soft-delete a hospital.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid ID format
+        - 404 Not Found
       parameters:
       - description: Hospital ID
         in: path
@@ -2616,7 +3440,12 @@ paths:
       tags:
       - Hospitals
     get:
-      description: Retrieve a hospital by its ID
+      description: |-
+        Retrieve a hospital by its ID.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 400 invalid ID format
+        - 404 Not Found
       parameters:
       - description: Hospital ID
         in: path
@@ -2642,7 +3471,12 @@ paths:
     put:
       consumes:
       - application/json
-      description: Admin-only endpoint to update hospital information
+      description: |-
+        Admin-only endpoint to update hospital information.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid input
+        - 404 Not Found
       parameters:
       - description: Hospital ID
         in: path
@@ -2677,7 +3511,11 @@ paths:
       - Hospitals
   /api/v1/hospitals/{id}/departments:
     get:
-      description: Retrieve all departments linked to a specific hospital
+      description: |-
+        Retrieve all departments linked to a specific hospital.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 404 hospital not found
       parameters:
       - description: Hospital ID
         in: path
@@ -2703,7 +3541,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Admin-only endpoint to associate a department with a hospital
+      description: |-
+        Admin-only endpoint to associate a department with a hospital.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **State Transition:** Creates a link and initializes the daily schedule.
+        **Common Errors:**
+        - 400 invalid input
+        - 404 hospital/department not found
+        - 409 link already exists
       parameters:
       - description: Hospital ID
         in: path
@@ -2742,7 +3587,11 @@ paths:
       - Hospitals
   /api/v1/hospitals/{id}/departments/{deptId}:
     delete:
-      description: Admin-only endpoint to remove a department-hospital association
+      description: |-
+        Admin-only endpoint to remove a department-hospital association.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 404 link not found
       parameters:
       - description: Hospital ID
         in: path
@@ -2770,10 +3619,261 @@ paths:
       summary: Unlink a department from a hospital
       tags:
       - Hospitals
+  /api/v1/internal/jobs/extend-daily-schedule:
+    post:
+      description: |-
+        Triggers the expansion of the rolling capacity window. Typically called by a nightly cron job.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **Prerequisites:** Authenticated administrative session.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Extend Daily Schedule Window
+      tags:
+      - Internal/Jobs
+  /api/v1/internal/jobs/run-scheduler-cycle:
+    post:
+      description: |-
+        Run one sharded scheduler cycle (processes one department).
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **State Transition:** Moves WAITING referrals to SCHEDULED if capacity exists.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Run Automated Batch Scheduling Cycle
+      tags:
+      - Internal/Jobs
+  /api/v1/internal/jobs/send-reminders:
+    post:
+      description: |-
+        Finds appointments for tomorrow and queues SMS reminders for patients.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **Prerequisites:** Authenticated administrative session.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Batch Queue Appointment Reminders
+      tags:
+      - Internal/Jobs
+  /api/v1/internal/jobs/update-waiting-weights:
+    post:
+      description: |-
+        Increments waiting_hours_weight for all WAITING referrals.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **Constraints:** Idempotent (runs once per calendar day).
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Manual Trigger for Waiting Weight Updates
+      tags:
+      - Internal/Jobs
+  /api/v1/internal/notifications:
+    get:
+      description: |-
+        Retrieve a paginated list of notifications with various filters.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, RECEPTIONIST
+        **Scoping:**
+        - SYSTEM_SUPER_ADMIN: Global access, can filter by any hospital/department.
+        - HOSPITAL_ADMIN: Scoped to their hospital.
+        - DEPT_HEAD / RECEPTIONIST: Scoped to their hospital and department.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 403 Forbidden
+        - 500 Internal Server Error
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by Referral ID
+        in: query
+        name: referral_id
+        type: string
+      - description: Filter by Hospital ID (Ignored if not Super Admin)
+        in: query
+        name: hospital_id
+        type: string
+      - description: Filter by Department ID (Ignored if not Super Admin/Hospital
+          Admin)
+        in: query
+        name: department_id
+        type: string
+      - description: Filter by Notification Type
+        in: query
+        name: notif_type
+        type: string
+      - description: Filter by Delivery Status
+        in: query
+        name: delivery_status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NotificationListResponse'
+      security:
+      - BearerAuth: []
+      summary: List Notifications
+      tags:
+      - Internal/Notifications
+  /api/v1/internal/notifications/{id}/resend:
+    post:
+      description: |-
+        Resends a failed or queued notification.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **Common Errors:**
+        - 400 invalid notification ID
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Manual Resend Notification
+      tags:
+      - Internal/Notifications
+  /api/v1/internal/notifications/send:
+    post:
+      description: |-
+        Processes up to 50 queued SMS notifications. Optionally filter by hospital/department.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **Prerequisites:** Authenticated administrative session.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Filter by Hospital ID
+        in: query
+        name: hospital_id
+        type: string
+      - description: Filter by Department ID
+        in: query
+        name: department_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NotificationSendSummary'
+      security:
+      - BearerAuth: []
+      summary: Manual Trigger Notification Send
+      tags:
+      - Internal/Notifications
+  /api/v1/internal/notifications/update-status:
+    post:
+      description: |-
+        Sync delivery status of SENT notifications with the SMS provider (AfroMessage).
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NotificationStatusSummary'
+      security:
+      - BearerAuth: []
+      summary: Manual Sync Delivery Status
+      tags:
+      - Internal/Notifications
+  /api/v1/internal/notifications/webhook:
+    get:
+      description: |-
+        Endpoint for AfroMessage to push status updates.
+        **Roles:** SMS_PROVIDER (Public)
+        **Common Errors:**
+        - 500 Internal Server Error
+      parameters:
+      - description: Provider Message ID
+        in: query
+        name: message_id
+        required: true
+        type: string
+      - description: Delivery Status
+        in: query
+        name: status
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      summary: SMS Webhook
+      tags:
+      - Internal/Notifications
   /api/v1/liaison/referrals:
     get:
-      description: Get a paginated list of referrals sent FROM the liaison's hospital
-        for review.
+      description: |-
+        Get a paginated list of referrals sent FROM the liaison's hospital.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** Must be a liaison at the sender hospital.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - default: 20
         description: Pagination limit
@@ -2811,7 +3911,13 @@ paths:
       - Liaison Referrals
   /api/v1/liaison/referrals/{id}:
     get:
-      description: Get detailed information about a specific referral.
+      description: |-
+        Get detailed information about an outgoing referral.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** Referral must be SUBMITTED or later (cannot view DRAFT).
+        **Common Errors:**
+        - 400 Invalid ID format
+        - 403 Forbidden (DRAFT status or wrong hospital)
       parameters:
       - description: Referral ID
         in: path
@@ -2841,8 +3947,15 @@ paths:
   /api/v1/liaison/referrals/{id}/forward:
     post:
       description: |-
-        Forward an approved referral to the specialists within the hospital.
-        **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
+        Forward the referral to specialists at the target hospital.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED.
+        **State Transition:** → FORWARDED.
+        **Gatekeepers:** Attachment verification (not PENDING/REJECTED).
+        **Common Errors:**
+        - 400 invalid format
+        - 403 (wrong hospital)
+        - 422 (attachments not verified)
       parameters:
       - description: Referral ID
         in: path
@@ -2867,7 +3980,14 @@ paths:
       - Liaison Referrals
   /api/v1/liaison/referrals/{id}/read:
     post:
-      description: Acknowledge receipt and mark the referral as read by the liaison.
+      description: |-
+        Acknowledge receipt and mark the referral as read by the liaison.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** referral.status must be SUBMITTED.
+        **State Transition:** SUBMITTED → UNDER_LIAISON_REVIEW.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 (not sender hospital)
       parameters:
       - description: Referral ID
         in: path
@@ -2899,8 +4019,13 @@ paths:
       consumes:
       - application/json
       description: |-
-        Reject an incoming referral.
-        **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
+        Reject the referral back to the referring doctor.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW.
+        **State Transition:** → REJECTED_BY_LIAISON.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 (wrong hospital)
       parameters:
       - description: Referral ID
         in: path
@@ -2934,8 +4059,13 @@ paths:
       consumes:
       - application/json
       description: |-
-        Send a referral back to the draft stage to ask the sender for revisions.
-        **GATEKEEPER**: Blocked if any clinical attachment is in PENDING or REJECTED state.
+        Send a referral back to the doctor for additional information or clarification.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW.
+        **State Transition:** → NEED_REVISION.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 (wrong hospital)
       parameters:
       - description: Referral ID
         in: path
@@ -2968,8 +4098,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: 'Explicitly create a new patient record. Validates uniqueness covering
-        National ID or Phone+Name. Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN'
+      description: |-
+        Explicitly create a new patient record. Validates uniqueness covering National ID or Phone+Name.
+        **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+        **Gatekeepers:** Duplicate check on (NationalID) or (Phone + FirstName).
+        **Common Errors:**
+        - 400 invalid input
+        - 409 Conflict (patient already exists)
       parameters:
       - description: New patient payload
         in: body
@@ -2999,8 +4134,12 @@ paths:
       - Patients
   /api/v1/patients/lookup:
     get:
-      description: 'Intelligent secure search by strictly providing National ID OR
-        (Phone + First Name). Roles: REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN'
+      description: |-
+        Intelligent secure search by strictly providing National ID OR (Phone + First Name).
+        **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid query parameters
+        - 404 Not Found
       parameters:
       - description: National ID
         in: query
@@ -3036,7 +4175,12 @@ paths:
       - Patients
   /api/v1/patients/national-id/{id}:
     get:
-      description: Lookup patient data by plain text National ID
+      description: |-
+        Lookup patient data by plain text National ID.
+        **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid format
+        - 404 Not Found
       parameters:
       - default: NAT-12345
         description: National ID
@@ -3064,10 +4208,15 @@ paths:
       summary: Get patient by National ID
       tags:
       - Patients
-  /api/v1/receptionist/referrals:
+  /api/v1/receptionist:
     get:
-      description: Get a paginated list of referrals assigned to the receptionist's
-        hospital.
+      description: |-
+        Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.
+        **Roles:** RECEPTIONIST
+        **Visibility:** ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - default: 20
         description: Pagination limit
@@ -3114,10 +4263,16 @@ paths:
       - BearerAuth: []
       summary: List Referrals for Receptionist
       tags:
-      - Receptionist Referrals
-  /api/v1/receptionist/referrals/{id}:
+      - Receptionist
+  /api/v1/receptionist/{id}:
     get:
-      description: Get detailed information about a specific referral.
+      description: |-
+        Get detailed information about an accepted or scheduled referral.
+        **Roles:** RECEPTIONIST
+        **Prerequisites:** Referral must be in ACCEPTED or later status.
+        **Common Errors:**
+        - 400 Invalid ID format
+        - 403 Forbidden (wrong hospital or invalid status)
       parameters:
       - description: Referral ID
         in: path
@@ -3143,26 +4298,23 @@ paths:
       - BearerAuth: []
       summary: Get Referral Details for Receptionist
       tags:
-      - Receptionist Referrals
-  /api/v1/receptionist/referrals/{id}/confirm-attendance:
+      - Receptionist
+  /api/v1/receptionist/{id}/arrive:
     post:
-      consumes:
-      - application/json
-      description: Confirm that the patient has attended their referral appointment.
+      description: |-
+        Mark a patient as arrived.
+        **Roles:** RECEPTIONIST
+        **Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.
+        **State Transition:** arrival_status → ARRIVED, queue_status → ARRIVED.
+        **Common Errors:**
+        - 400 invalid format
+        - 409 already arrived
       parameters:
-      - description: Referral ID
+      - description: TriageQueue ID
         in: path
         name: id
         required: true
         type: string
-      - description: 'Status (key: status)'
-        in: body
-        name: request
-        required: true
-        schema:
-          additionalProperties:
-            type: string
-          type: object
       produces:
       - application/json
       responses:
@@ -3174,15 +4326,181 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Confirm Referral Attendance
+      summary: Mark Patient Arrival
       tags:
-      - Receptionist Referrals
+      - Receptionist
+  /api/v1/receptionist/{id}/assign-doctor:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Assign a treating specialist to the patient.
+        **Roles:** RECEPTIONIST
+        **Prerequisites:** queue must be ARRIVED; doctor must be RECEIVING_SPECIALIST in same hospital.
+        **Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 unauthorized hospital access
+        - 409 already assigned
+      parameters:
+      - description: TriageQueue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Assignment details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignDoctorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign Treating Doctor
+      tags:
+      - Receptionist
+  /api/v1/receptionist/{id}/miss:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Mark an appointment as missed.
+        **Roles:** RECEPTIONIST
+        **Prerequisites:** queue entry must exist.
+        **State Transition:** arrival_status → MISSED; creates ClinicalUpdate for re‑evaluation.
+        **Common Errors:**
+        - 400 invalid format
+      parameters:
+      - description: TriageQueue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Miss reason details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MarkMissedRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark Appointment as Missed
+      tags:
+      - Receptionist
+  /api/v1/receptionist/schedule:
+    get:
+      description: |-
+        Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.
+        **Roles:** RECEPTIONIST
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Receptionist Schedule
+      tags:
+      - Receptionist
+  /api/v1/receptionist/walk-in:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Register a patient arriving without a prior appointment.
+        **Roles:** RECEPTIONIST
+        **Prerequisites:** referral.status must be ACCEPTED or SCHEDULED.
+        **State Transition:** Creates new TriageQueue entry with arrival_boost=20.
+        **Gatekeepers:** Status check (must be ACCEPTED or SCHEDULED).
+        **Common Errors:**
+        - 400 invalid format
+        - 422 invalid referral status
+      parameters:
+      - description: Walk-in details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.WalkInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register Walk-in Patient
+      tags:
+      - Receptionist
   /api/v1/reference/departments:
     get:
-      description: Returns all global departments (not scoped to a hospital). Accessible
-        by all authenticated roles.
+      description: |-
+        Returns all global departments (not scoped to a hospital). Accessible by all authenticated roles.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       produces:
       - application/json
       responses:
@@ -3197,8 +4515,12 @@ paths:
       - References
   /api/v1/reference/hospitals:
     get:
-      description: Returns all hospitals, optionally filtered by tier. Accessible
-        by all authenticated roles.
+      description: |-
+        Returns all hospitals, optionally filtered by tier. Accessible by all authenticated roles.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - description: Hospital Tier (PRIMARY, GENERAL, SPECIALIZED)
         in: query
@@ -3218,9 +4540,12 @@ paths:
       - References
   /api/v1/reference/hospitals/{id}/departments:
     get:
-      description: Returns departments available at a specific target hospital. Used
-        by doctors when selecting a department to refer to. Accessible by all authenticated
-        roles.
+      description: |-
+        Returns departments available at a specific target hospital. Used by doctors when selecting a department to refer to.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 400 Invalid hospital ID
+        - 500 Internal Server Error
       parameters:
       - default: 62af3d82-52ce-4e8f-af29-2c5e509e1e24
         description: Hospital ID
@@ -3242,8 +4567,12 @@ paths:
       - References
   /api/v1/reference/icd-codes:
     get:
-      description: Returns all available ICD-10 codes. Used by doctors and specialists
-        when filling in diagnoses.
+      description: |-
+        Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - description: Search by code or description
         in: query
@@ -3263,8 +4592,13 @@ paths:
       - References
   /api/v1/reference/liaisons:
     get:
-      description: Returns all active liaison officers belonging to the authenticated
-        user's hospital. Hospital ID is extracted from the JWT token.
+      description: |-
+        Returns all active liaison officers belonging to the authenticated user's hospital. Hospital ID is extracted from the JWT token.
+        **Roles:** Any authenticated user with a hospital scope.
+        **Prerequisites:** Authenticated user must belong to a hospital.
+        **Common Errors:**
+        - 403 Forbidden (no hospital scope)
+        - 500 Internal Server Error
       produces:
       - application/json
       responses:
@@ -3287,9 +4621,13 @@ paths:
       - References
   /api/v1/reference/networked-hospitals:
     get:
-      description: Returns hospitals in the referral network that can receive from
-        the requesting hospital. Used by doctors/liaison when selecting a referral
-        target. Accessible by all authenticated roles.
+      description: |-
+        Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target.
+        **Roles:** Any authenticated user with a hospital scope.
+        **Prerequisites:** Authenticated user must belong to a sender hospital.
+        **Common Errors:**
+        - 403 Forbidden (no hospital scope)
+        - 500 Internal Server Error
       produces:
       - application/json
       responses:
@@ -3304,7 +4642,11 @@ paths:
       - References
   /api/v1/referrals/{id}/attachments:
     get:
-      description: Get all attachments associated with a specific referral
+      description: |-
+        Get all attachments associated with a specific referral.
+        **Roles:** All authenticated roles with referral access.
+        **Common Errors:**
+        - 404 Referral not found
       parameters:
       - description: Referral ID
         in: path
@@ -3333,7 +4675,11 @@ paths:
         - Requires the `referral_id` pre-minted from the `/attachments/signature` endpoint.
         - Files MUST be at the `temp/{referral_id}/` path in Cloudinary.
         2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.
-        Strictly restricted to the Referring Doctor. Allowed only when status is DRAFT or NEED_REVISION.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Allowed only when referral status is DRAFT or NEED_REVISION.
+        **Common Errors:**
+        - 400 Invalid ID or file too large
+        - 403 Forbidden (not the creator or invalid status)
       parameters:
       - description: Referral ID (Pre-minted or Existing)
         in: path
@@ -3375,8 +4721,12 @@ paths:
       - Attachments
   /api/v1/referrals/{id}/attachments/{attachment_id}:
     delete:
-      description: Remove attachment from referral. Only allowed for Draft/NeedRevision
-        status by the referring doctor.
+      description: |-
+        Remove attachment from referral.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Only allowed for Draft/NeedRevision status by the referring doctor.
+        **Common Errors:**
+        - 403 Forbidden (invalid status or not owner)
       parameters:
       - description: Referral ID
         in: path
@@ -3404,11 +4754,139 @@ paths:
       summary: Delete Attachment From Referral
       tags:
       - Attachments
+  /api/v1/referrals/{id}/clinical/history:
+    get:
+      description: |-
+        Returns the chronological history of clinical updates for a referral.
+        **Roles:** DOCTOR, SPECIALIST, or RECEPTIONIST with access.
+        **Prerequisites:** Must be the creator, assigned specialist, or hospital staff where referral is active.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 (no clinical access)
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Clinical History
+      tags:
+      - Clinical
+  /api/v1/referrals/{id}/clinical/outcome:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Record the final clinical outcome and close the referral episode.
+        **Roles:** Requires clinical access (assigned specialist).
+        **Prerequisites:** referral must be active.
+        **State Transition:** → COMPLETED; if outcome = 'deceased', → DECEASED and is_archived=true.
+        **Side Effect:** Pending appointments cancelled if deceased; clinical access revoked on completion.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 (no clinical access)
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Outcome details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RecordOutcomeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Record Referral Outcome
+      tags:
+      - Clinical
+  /api/v1/referrals/{id}/clinical/updates:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Add a clinical progress note to the referral.
+        **Roles:** Requires clinical access (treating or consulted doctor).
+        **Prerequisites:** Specialist must be assigned or have explicit access grant.
+        **Side Effect:** If update_reason is CONDITION_CHANGE or MISSED_APPOINTMENT_RE_EVALUATION, the `requires_review` flag is set.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 (no clinical access)
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddClinicalUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add Clinical Update
+      tags:
+      - Clinical
   /api/v1/referrals/{id}/verify-attachments:
     post:
       description: |-
         Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.
-        Ensures the system moves the referral out of PENDING states before Liaison review.
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, REFERRING_DOCTOR
+        **State Transition:** Ensures the system moves the referral out of PENDING states before Liaison review.
+        **Common Errors:**
+        - 500 Internal Server Error
       parameters:
       - description: Referral ID
         in: path
@@ -3433,8 +4911,13 @@ paths:
       - Attachments
   /api/v1/specialist/referrals:
     get:
-      description: Get a paginated list of referrals forwarded to the specialist's
-        hospital.
+      description: |-
+        Get a paginated list of referrals forwarded to the specialist's hospital.
+        **Roles:** RECEIVING_SPECIALIST
+        **Visibility:** All referrals forwarded to the specialist's specific department.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
       parameters:
       - default: 20
         description: Pagination limit
@@ -3481,10 +4964,16 @@ paths:
       - BearerAuth: []
       summary: List Referrals for Specialist
       tags:
-      - Specialist Referrals
+      - Specialist
   /api/v1/specialist/referrals/{id}:
     get:
-      description: Get detailed information about a specific referral.
+      description: |-
+        Get detailed information about a forwarded referral.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** Status must be FORWARDED or later.
+        **Common Errors:**
+        - 400 Invalid format
+        - 403 Forbidden (wrong hospital)
       parameters:
       - description: Referral ID
         in: path
@@ -3510,12 +4999,20 @@ paths:
       - BearerAuth: []
       summary: Get Referral Details for Specialist
       tags:
-      - Specialist Referrals
+      - Specialist
   /api/v1/specialist/referrals/{id}/accept:
     post:
       consumes:
       - application/json
-      description: Accept an incoming referral and assign a severity score.
+      description: |-
+        Accept the referral and place it in the triage queue.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** status = UNDER_SPECIALIST_REVIEW; severity score must be set (manual or ML).
+        **State Transition:** → ACCEPTED; lands in triage queue.
+        **Gatekeepers:** Severity gate (manual or ML score must exist).
+        **Common Errors:**
+        - 400 invalid format
+        - 422 (no severity score)
       parameters:
       - description: Referral ID
         in: path
@@ -3527,6 +5024,7 @@ paths:
         name: request
         schema:
           additionalProperties:
+            format: float64
             type: number
           type: object
       produces:
@@ -3544,10 +5042,62 @@ paths:
       - BearerAuth: []
       summary: Accept Referral
       tags:
-      - Specialist Referrals
+      - Specialist
+  /api/v1/specialist/referrals/{id}/emergency-schedule:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Schedule an emergency appointment bypassing buffer days and allowing overbooking.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** referral must be accepted; condition must be `critical` OR justification provided.
+        **State Transition:** Sets appointment_date, bypasses buffer, allows overbooking.
+        **Gatekeepers:** Allows overbooking up to `overbook_limit`.
+        **Common Errors:**
+        - 400 invalid format
+        - 500 internal error
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Scheduling details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ManualEmergencyScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Manual Emergency Scheduling
+      tags:
+      - Specialist
   /api/v1/specialist/referrals/{id}/read:
     post:
-      description: Acknowledge receipt and claim the referral for review by the specialist.
+      description: |-
+        Acknowledge receipt and claim the referral for review.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** referral.status = FORWARDED.
+        **State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 unauthorized hospital access
       parameters:
       - description: Referral ID
         in: path
@@ -3569,12 +5119,19 @@ paths:
       - BearerAuth: []
       summary: Mark Referral as Read
       tags:
-      - Specialist Referrals
+      - Specialist
   /api/v1/specialist/referrals/{id}/reject:
     post:
       consumes:
       - application/json
-      description: Reject an incoming referral.
+      description: |-
+        Reject the referral back to the referring hospital.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** status = UNDER_SPECIALIST_REVIEW.
+        **State Transition:** → REJECTED_BY_SPECIALIST.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 unauthorized hospital access
       parameters:
       - description: Referral ID
         in: path
@@ -3602,13 +5159,19 @@ paths:
       - BearerAuth: []
       summary: Reject Referral
       tags:
-      - Specialist Referrals
+      - Specialist
   /api/v1/specialist/referrals/{id}/release:
     post:
       consumes:
       - application/json
-      description: Allows a specialist to unassign themselves from a referral, returning
-        it to the hospital pool.
+      description: |-
+        Unassign self and return the referral to the hospital pool.
+        **Roles:** RECEIVING_SPECIALIST (Assigned)
+        **Prerequisites:** status = UNDER_SPECIALIST_REVIEW.
+        **State Transition:** → FORWARDED.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 unauthorized access
       parameters:
       - description: Referral ID
         in: path
@@ -3636,10 +5199,16 @@ paths:
       - BearerAuth: []
       summary: Release Referral (Unassign Self)
       tags:
-      - Specialist Referrals
+      - Specialist
   /api/v1/specialist/referrals/{id}/rerun-ml:
     post:
-      description: Rerun the machine learning prediction for a specific referral.
+      description: |-
+        Rerun the machine learning prediction for a specific referral.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** Status must be FORWARDED or UNDER_SPECIALIST_REVIEW.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 unauthorized hospital access
       parameters:
       - description: Referral ID
         in: path
@@ -3661,11 +5230,235 @@ paths:
       - BearerAuth: []
       summary: Rerun ML Prediction
       tags:
-      - Specialist Referrals
+      - Specialist
+  /api/v1/specialist/referrals/{id}/schedule:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** status = ACCEPTED.
+        **State Transition:** → SCHEDULED.
+        **Common Errors:**
+        - 400 invalid format
+        - 500 internal error
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Scheduling details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SchedulingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Schedule Appointment
+      tags:
+      - Specialist
+  /api/v1/specialist/referrals/{id}/triage-review:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Allows a specialist to review and finalize the ML-generated triage score (APPROVE/OVERRIDE/REJECT).
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** Referral must have an ML prediction or manual score set.
+        **State Transition:** Finalizes the triage state for the referral.
+        **Common Errors:**
+        - 400 invalid format or input
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Review details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TriageReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Review Triage Prediction
+      tags:
+      - Triage
+  /api/v1/specialist/referrals/{id}/triage-severity:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Manually set the severity score for a referral. Overrides ML score and updates triage queue.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** referral must exist and be under the specialist's purview.
+        **Side Effect:** Overrides ML score, updates triage queue composite score.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 unauthorized hospital access
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Severity details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetManualSeverityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set Manual Severity Score
+      tags:
+      - Specialist
+  /api/v1/specialist/referrals/capacity:
+    get:
+      description: |-
+        View capacity slots for the next N days.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** Authenticated session in a hospital/department.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 14
+        description: Number of days to view
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Department Capacity Status
+      tags:
+      - Specialist
+  /api/v1/specialist/referrals/triage-queue:
+    get:
+      description: |-
+        Get the current prioritized triage queue for the specialist's hospital.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** Authenticated session in a hospital.
+        **Gatekeepers:** Sorting based on severity score and waiting time.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 50
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Triage Queue
+      tags:
+      - Specialist
   /api/v1/system-admin/referrals:
     get:
-      description: Get a global paginated list of all referrals with optional status
-        filtering.
+      description: |-
+        Get a global paginated list of all referrals with optional status filtering.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Visibility:** Global access to all referrals in the database.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 403 Forbidden (not super admin)
       parameters:
       - default: 20
         description: Pagination limit
@@ -3717,8 +5510,10 @@ paths:
     get:
       description: |-
         Administrative-only endpoint for global user discovery across all hospitals.
-        - Supports full tokenized search (matches name parts regardless of order).
-        - Supports hospital, department, and role-based filtration.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Visibility:** Global access to all users.
+        **Common Errors:**
+        - 403 Forbidden (not super admin)
       parameters:
       - default: 1
         description: Page number
@@ -3777,7 +5572,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: Admin-only endpoint to create a new user account
+      description: |-
+        Admin-only endpoint to create a new user account.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid input
+        - 409 conflict (email/national_id)
       parameters:
       - description: User creation payload
         in: body
@@ -3811,7 +5611,11 @@ paths:
       - SystemAdmin
   /api/v1/system-admin/users/{id}:
     delete:
-      description: Admin-only endpoint to soft-delete a user
+      description: |-
+        Admin-only endpoint to soft-delete a user.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 404 Not Found
       parameters:
       - description: User ID
         in: path
@@ -3837,7 +5641,12 @@ paths:
     put:
       consumes:
       - application/json
-      description: Admin-only endpoint to update a user's information
+      description: |-
+        Admin-only endpoint to update a user's information.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid input
+        - 404 Not Found
       parameters:
       - description: User ID
         in: path
@@ -3872,7 +5681,12 @@ paths:
       - SystemAdmin
   /api/v1/system-admin/users/{id}/profile/image:
     delete:
-      description: Remove a user's profile image (SystemAdmin or HospitalAdmin only)
+      description: |-
+        Remove a user's profile image (SystemAdmin or HospitalAdmin only).
+        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+        **Prerequisites:** Hospital Admin can only moderate users in their own hospital.
+        **Common Errors:**
+        - 403 Forbidden (out of scope)
       parameters:
       - description: User ID to moderate
         in: path
@@ -3899,7 +5713,12 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Admin-only endpoint to change a user's role
+      description: |-
+        Admin-only endpoint to change a user's role.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Common Errors:**
+        - 400 invalid role
+        - 404 Not Found
       parameters:
       - description: User ID
         in: path
@@ -3932,14 +5751,55 @@ paths:
       summary: Assign role to user
       tags:
       - SystemAdmin
+  /api/v1/triage:
+    get:
+      description: |-
+        Returns a prioritized list of patients waiting for triage for the specialist's hospital.
+        **Roles:** RECEIVING_SPECIALIST
+        **Sorting:** Severity score descending, waiting time ascending.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 10
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: List Triage Queue
+      tags:
+      - Triage
   /api/v1/users:
     get:
       description: |-
         Retrieve a list of users within your own hospital.
-        - MOH Analysts: Strictly forbidden (returns empty list).
-        - Hospital Admins/Doctors/Specialists: See only users within their own hospital.
-        - Global Admins: Should use /system-admin/users for global discovery.
-        - Filtration: Supports tokenized name search (matches regardless of name part order).
+        **Roles:** Hospital Admins, Doctors, Specialists, Liaisons
+        **Visibility:** MOH Analysts are strictly forbidden. Users see only others in the same hospital.
+        **Common Errors:**
+        - 403 Forbidden for MOH Analysts
       parameters:
       - default: 1
         description: Page number
@@ -3991,11 +5851,16 @@ paths:
     get:
       description: |-
         Retrieve detailed profile of a user with nuanced visibility rules.
+        **Roles:** All authenticated roles (with visibility rules).
+        **Visibility Rules:**
         - System Admins: Can view any profile.
-        - Doctors/Specialists/Liaison/HospitalAdmins: Can view each other across different hospitals to facilitate referrals.
-        - Restriction: Clinical roles CANNOT view SystemAdmins or Receptionists from other hospitals.
+        - Clinical roles: Can view each other across hospitals (for referrals).
+        - Clinical roles: Cannot view SystemAdmins or Receptionists from other hospitals.
         - Receptionists: Can ONLY view users within their own hospital.
-        - MOH Analysts: Cannot view any user except their own (via /users/me).
+        - MOH Analysts: Cannot view any user except their own.
+        **Common Errors:**
+        - 403 visibility violation
+        - 404 Not Found
       parameters:
       - description: User ID
         in: path
@@ -4024,7 +5889,11 @@ paths:
       - Users
   /api/v1/users/me:
     get:
-      description: Returns the profile of the currently authenticated user
+      description: |-
+        Returns the profile of the currently authenticated user.
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
       produces:
       - application/json
       responses:
@@ -4043,7 +5912,11 @@ paths:
       - Users
   /api/v1/users/profile/image:
     delete:
-      description: Remove the current user's profile image (unsets URL and PublicID)
+      description: |-
+        Remove the current user's profile image (unsets URL and PublicID).
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
       produces:
       - application/json
       responses:
@@ -4063,8 +5936,12 @@ paths:
     put:
       consumes:
       - multipart/form-data
-      description: 'Update the current user''s profile image by uploading a file (Max
-        5MB: JPEG, PNG, WEBP)'
+      description: |-
+        Update the current user's profile image by uploading a file (Max 5MB: JPEG, PNG, WEBP).
+        **Roles:** Any authenticated user.
+        **Constraints:** Max 5MB, format must be JPEG, PNG, or WEBP.
+        **Common Errors:**
+        - 400 invalid size/format
       parameters:
       - description: Profile image file
         in: formData

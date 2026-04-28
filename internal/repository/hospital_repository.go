@@ -61,3 +61,4 @@ func (r *hospitalRepository) ListHospitals(ctx context.Context, filter ireposito
 
 	return hospitals, total, nil
 }
+
