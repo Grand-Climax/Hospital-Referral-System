@@ -83,3 +83,7 @@ func (r *departmentRepository) FindHospitalDepartment(ctx context.Context, hospi
 	}
 	return &link, nil
 }
+
+func (r *departmentRepository) UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error {
+	return r.db.WithContext(ctx).Save(link).Error
+}
