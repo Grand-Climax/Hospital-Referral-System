@@ -11,6 +11,7 @@ import (
 	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/infrastructure/cache"
 	"Hospital-Referral-System/internal/pkg/auth"
 )
 
@@ -24,15 +25,27 @@ var (
 	ErrInvalidAdminScope   = errors.New("forbidden: hospital admin must belong to a hospital")
 	ErrCannotManageUser    = errors.New("forbidden: this user cannot be managed by hospital admin")
 	ErrCannotManageSelf    = errors.New("forbidden: hospital admin cannot perform this operation on their own account")
+	ErrSecurityUnavailable = errors.New("security subsystem is unavailable")
 )
 
 type userUseCase struct {
-	repo    irepository.UserRepository
-	storage iinfra.StorageService
+	repo     irepository.UserRepository
+	storage  iinfra.StorageService
+	authRepo irepository.AuthRepository
+	sessions cache.SessionStore
 }
 
 func NewUserUseCase(repo irepository.UserRepository, storage iinfra.StorageService) iusecase.UserUseCase {
 	return &userUseCase{repo: repo, storage: storage}
+}
+
+func NewUserUseCaseWithSecurity(repo irepository.UserRepository, storage iinfra.StorageService, authRepo irepository.AuthRepository, sessions cache.SessionStore) iusecase.UserUseCase {
+	return &userUseCase{
+		repo:     repo,
+		storage:  storage,
+		authRepo: authRepo,
+		sessions: sessions,
+	}
 }
 
 var validRoles = map[entity.UserRole]bool{
@@ -380,7 +393,111 @@ func (u *userUseCase) HospitalAdminSoftDeleteStaff(ctx context.Context, adminID,
 
 	target.IsDeleted = true
 	target.IsActive = false
-	return u.repo.Update(ctx, target)
+	if err := u.repo.Update(ctx, target); err != nil {
+		return err
+	}
+	_, err = u.revokeUserSessions(ctx, target.ID)
+	return err
+}
+
+func (u *userUseCase) HospitalAdminSetStaffActive(ctx context.Context, adminID, staffID uuid.UUID, isActive bool) error {
+	admin, _, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return err
+	}
+
+	target, err := u.repo.FindByID(ctx, staffID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+	if err := u.validateHospitalAdminTarget(admin, target); err != nil {
+		return err
+	}
+
+	target.IsActive = isActive
+	if err := u.repo.Update(ctx, target); err != nil {
+		return err
+	}
+
+	if !isActive {
+		_, err = u.revokeUserSessions(ctx, target.ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (u *userUseCase) HospitalAdminReassignStaffDepartment(ctx context.Context, adminID, staffID uuid.UUID, departmentID *uuid.UUID) error {
+	admin, _, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return err
+	}
+	target, err := u.repo.FindByID(ctx, staffID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+	if err := u.validateHospitalAdminTarget(admin, target); err != nil {
+		return err
+	}
+
+	target.DepartmentID = departmentID
+	if err := u.repo.Update(ctx, target); err != nil {
+		if strings.Contains(err.Error(), "fk_users_department") {
+			return ErrInvalidDepartment
+		}
+		return err
+	}
+	return nil
+}
+
+func (u *userUseCase) HospitalAdminListActiveStaffSessions(ctx context.Context, adminID uuid.UUID, filter iusecase.HospitalAdminSessionFilter) ([]entity.Session, int64, error) {
+	_, adminHospID, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if u.authRepo == nil {
+		return nil, 0, ErrSecurityUnavailable
+	}
+	return u.authRepo.ListActiveSessionsByHospital(ctx, adminHospID, filter.StaffID, filter.Page, filter.PageSize)
+}
+
+func (u *userUseCase) HospitalAdminForceLogoutStaff(ctx context.Context, adminID, staffID uuid.UUID) (int64, error) {
+	admin, _, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return 0, err
+	}
+	target, err := u.repo.FindByID(ctx, staffID)
+	if err != nil {
+		return 0, ErrUserNotFound
+	}
+	if err := u.validateHospitalAdminTarget(admin, target); err != nil {
+		return 0, err
+	}
+	return u.revokeUserSessions(ctx, target.ID)
+}
+
+func (u *userUseCase) revokeUserSessions(ctx context.Context, userID uuid.UUID) (int64, error) {
+	if u.authRepo == nil {
+		return 0, nil
+	}
+
+	activeSessions, err := u.authRepo.ListActiveSessionsByUser(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	revoked, err := u.authRepo.RevokeActiveSessionsByUser(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	if u.sessions != nil {
+		for _, sess := range activeSessions {
+			_ = u.sessions.DeleteSession(ctx, sess.RefreshTokenHash)
+		}
+	}
+	return revoked, nil
 }
 
 func (u *userUseCase) HospitalAdminReplaceStaff(ctx context.Context, adminID, staffID uuid.UUID, input iusecase.HospitalAdminReplacementInput) error {

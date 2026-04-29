@@ -18,6 +18,12 @@ type HospitalAdminReplacementInput struct {
 	Reason     string
 }
 
+type HospitalAdminSessionFilter struct {
+	StaffID  *uuid.UUID
+	Page     int
+	PageSize int
+}
+
 type UserUseCase interface {
 	CreateUser(ctx context.Context, user *entity.User, rawPassword string) error
 	GetUserByID(ctx context.Context, id, requesterID uuid.UUID) (*entity.User, error)
@@ -37,4 +43,8 @@ type UserUseCase interface {
 	HospitalAdminChangeStaffRole(ctx context.Context, adminID, staffID uuid.UUID, role entity.UserRole) error
 	HospitalAdminSoftDeleteStaff(ctx context.Context, adminID, staffID uuid.UUID) error
 	HospitalAdminReplaceStaff(ctx context.Context, adminID, staffID uuid.UUID, input HospitalAdminReplacementInput) error
+	HospitalAdminSetStaffActive(ctx context.Context, adminID, staffID uuid.UUID, isActive bool) error
+	HospitalAdminReassignStaffDepartment(ctx context.Context, adminID, staffID uuid.UUID, departmentID *uuid.UUID) error
+	HospitalAdminListActiveStaffSessions(ctx context.Context, adminID uuid.UUID, filter HospitalAdminSessionFilter) ([]entity.Session, int64, error)
+	HospitalAdminForceLogoutStaff(ctx context.Context, adminID, staffID uuid.UUID) (int64, error)
 }
