@@ -64,6 +64,8 @@ func mapHospitalAdminStaffError(err error) int {
 		return http.StatusConflict
 	case usecase.ErrForbiddenStaffScope, usecase.ErrInvalidAdminScope, usecase.ErrCannotManageUser, usecase.ErrCannotManageSelf:
 		return http.StatusForbidden
+	case usecase.ErrSecurityUnavailable:
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}
@@ -289,6 +291,198 @@ func (h *HospitalAdminStaffHandler) DeleteStaff(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Staff soft-deleted successfully"})
+}
+
+// SetStaffActive godoc
+// @Summary      Activate or deactivate staff (Hospital Admin)
+// @Description  Toggle staff active status within the same hospital scope.
+// @Tags         Hospital Admin - Staff Management
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Staff user ID"
+// @Param        body body dto.HospitalAdminSetStaffActiveRequest true "Activation payload"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/hospital-admin/staff/{id}/activation [patch]
+func (h *HospitalAdminStaffHandler) SetStaffActive(c *gin.Context) {
+	adminID, _, ok := getAdminContext(c)
+	if !ok {
+		return
+	}
+
+	staffID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid staff ID"})
+		return
+	}
+
+	var req dto.HospitalAdminSetStaffActiveRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.IsActive == nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request payload"})
+		return
+	}
+
+	if err := h.userUseCase.HospitalAdminSetStaffActive(c.Request.Context(), adminID, staffID, *req.IsActive); err != nil {
+		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	msg := "Staff deactivated successfully"
+	if *req.IsActive {
+		msg = "Staff activated successfully"
+	}
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: msg})
+}
+
+// ReassignDepartment godoc
+// @Summary      Reassign staff department (Hospital Admin)
+// @Description  Update staff department within the same hospital scope.
+// @Tags         Hospital Admin - Staff Management
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Staff user ID"
+// @Param        body body dto.HospitalAdminReassignDepartmentRequest true "Department reassignment payload"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/hospital-admin/staff/{id}/department [patch]
+func (h *HospitalAdminStaffHandler) ReassignDepartment(c *gin.Context) {
+	adminID, _, ok := getAdminContext(c)
+	if !ok {
+		return
+	}
+	staffID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid staff ID"})
+		return
+	}
+
+	var req dto.HospitalAdminReassignDepartmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request payload"})
+		return
+	}
+
+	var departmentID *uuid.UUID
+	if req.DepartmentID != nil {
+		parsed, err := uuid.Parse(*req.DepartmentID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
+			return
+		}
+		departmentID = &parsed
+	}
+
+	if err := h.userUseCase.HospitalAdminReassignStaffDepartment(c.Request.Context(), adminID, staffID, departmentID); err != nil {
+		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Staff department reassigned successfully"})
+}
+
+// ListActiveStaffSessions godoc
+// @Summary      List active staff sessions (Hospital Admin)
+// @Description  View active sessions for hospital staff, optionally filtered by staff ID.
+// @Tags         Hospital Admin - Staff Management
+// @Produce      json
+// @Param        page query int false "Page number" default(1)
+// @Param        page_size query int false "Page size" default(20)
+// @Param        staff_id query string false "Staff user ID filter"
+// @Success      200 {object} dto.HospitalAdminSessionListResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/hospital-admin/staff/sessions [get]
+func (h *HospitalAdminStaffHandler) ListActiveStaffSessions(c *gin.Context) {
+	adminID, _, ok := getAdminContext(c)
+	if !ok {
+		return
+	}
+
+	filter := iusecase.HospitalAdminSessionFilter{Page: 1, PageSize: 20}
+	if p, err := strconv.Atoi(c.Query("page")); err == nil {
+		filter.Page = p
+	}
+	if ps, err := strconv.Atoi(c.Query("page_size")); err == nil {
+		filter.PageSize = ps
+	}
+	if staffIDParam := c.Query("staff_id"); staffIDParam != "" {
+		staffID, err := uuid.Parse(staffIDParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid staff_id"})
+			return
+		}
+		filter.StaffID = &staffID
+	}
+
+	sessions, total, err := h.userUseCase.HospitalAdminListActiveStaffSessions(c.Request.Context(), adminID, filter)
+	if err != nil {
+		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	resp := make([]dto.HospitalAdminSessionResponse, 0, len(sessions))
+	for _, sess := range sessions {
+		resp = append(resp, dto.HospitalAdminSessionResponse{
+			ID:        sess.ID.String(),
+			UserID:    sess.UserID.String(),
+			IPAddress: sess.IPAddress,
+			UserAgent: sess.UserAgent,
+			ExpiresAt: sess.ExpiresAt.Format("2006-01-02 15:04:05"),
+			CreatedAt: sess.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.HospitalAdminSessionListResponse{
+		Data:  resp,
+		Total: total,
+		Page:  filter.Page,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Active staff sessions retrieved successfully",
+		},
+	})
+}
+
+// ForceLogoutStaff godoc
+// @Summary      Force logout staff (Hospital Admin)
+// @Description  Revoke active sessions for a staff user within hospital scope.
+// @Tags         Hospital Admin - Staff Management
+// @Produce      json
+// @Param        id path string true "Staff user ID"
+// @Success      200 {object} dto.HospitalAdminForceLogoutResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/hospital-admin/staff/{id}/force-logout [post]
+func (h *HospitalAdminStaffHandler) ForceLogoutStaff(c *gin.Context) {
+	adminID, _, ok := getAdminContext(c)
+	if !ok {
+		return
+	}
+	staffID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid staff ID"})
+		return
+	}
+
+	revoked, err := h.userUseCase.HospitalAdminForceLogoutStaff(c.Request.Context(), adminID, staffID)
+	if err != nil {
+		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.HospitalAdminForceLogoutResponse{
+		RevokedSessions: revoked,
+		BaseResponse:    dto.BaseResponse{Success: true, Message: "Staff sessions revoked successfully"},
+	})
 }
 
 // ReplaceStaff godoc
