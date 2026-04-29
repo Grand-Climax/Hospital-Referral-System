@@ -928,6 +928,71 @@ func (u *referralUseCase) ListForSystemAdmin(ctx context.Context, filter ireposi
 	return u.referralRepo.ListForSystemAdmin(ctx, filter)
 }
 
+func (u *referralUseCase) ListInboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListInboundForHospitalAdmin(ctx, hospID, filter)
+}
+
+func (u *referralUseCase) ListOutboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
+		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
+	}
+	return u.referralRepo.ListOutboundForHospitalAdmin(ctx, hospID, filter)
+}
+
+func (u *referralUseCase) ListPendingApprovalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	pendingStatuses := []entity.ReferralStatus{
+		entity.StatusSubmitted,
+		entity.StatusUnderLiaisonReview,
+		entity.StatusForwarded,
+		entity.StatusUnderSpecialistReview,
+	}
+	return u.referralRepo.ListByStatusesForHospitalAdmin(ctx, hospID, filter, pendingStatuses)
+}
+
+func (u *referralUseCase) ListRejectedRedirectedForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	rejectedRedirected := []entity.ReferralStatus{
+		entity.StatusRejectedByLiaison,
+		entity.StatusRejectedBySpecialist,
+		entity.StatusNeedRevision,
+	}
+	return u.referralRepo.ListByStatusesForHospitalAdmin(ctx, hospID, filter, rejectedRedirected)
+}
+
+func (u *referralUseCase) GetDetailsForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID) (*entity.Referral, error) {
+	return u.referralRepo.GetDetailsForHospitalAdmin(ctx, hospID, referralID)
+}
+
+func (u *referralUseCase) GetReferralStatusCountsForHospitalAdmin(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
+	return u.referralRepo.CountByStatusForHospitalAdmin(ctx, hospID)
+}
+
+func (u *referralUseCase) GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]irepository.MonthlyReferralTotal, error) {
+	return u.referralRepo.GetMonthlyReferralTotalsForHospitalAdmin(ctx, hospID, months)
+}
+
+func (u *referralUseCase) GetAcceptanceRejectionRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, float64, error) {
+	return u.referralRepo.GetAcceptanceRejectionRateForHospitalAdmin(ctx, hospID)
+}
+
+func (u *referralUseCase) GetMissedAppointmentRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	return u.referralRepo.GetMissedAppointmentRateForHospitalAdmin(ctx, hospID)
+}
+
+func (u *referralUseCase) GetBusiestDepartmentsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.DepartmentReferralLoad, error) {
+	return u.referralRepo.GetBusiestDepartmentsForHospitalAdmin(ctx, hospID, limit)
+}
+
+func (u *referralUseCase) GetAverageWaitTimeForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	return u.referralRepo.GetAverageWaitTimeForHospitalAdmin(ctx, hospID)
+}
+
+func (u *referralUseCase) GetTopReferringHospitalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.ReferringHospitalCount, error) {
+	return u.referralRepo.GetTopReferringHospitalsForHospitalAdmin(ctx, hospID, limit)
+}
+
 func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
 	return u.referralRepo.GetHospitalLogsForAdmin(ctx, hospID, limit, page)
 }
