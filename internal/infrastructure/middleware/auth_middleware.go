@@ -3,17 +3,19 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
+	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	"Hospital-Referral-System/internal/infrastructure/cache"
 	"Hospital-Referral-System/internal/pkg/auth"
-	"Hospital-Referral-System/internal/delivery/http/dto"
 )
 
 // RequireAuth validates the JWT from the Authorization header, checks the blacklist, and sets user claims in context.
-func RequireAuth(blacklist cache.TokenBlacklist) gin.HandlerFunc {
+func RequireAuth(blacklist cache.TokenBlacklist, userRepo irepository.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -66,6 +68,24 @@ func RequireAuth(blacklist cache.TokenBlacklist) gin.HandlerFunc {
 		}
 
 		// Set claims securely into the Gin Context
+		if userRepo != nil {
+			user, lookupErr := userRepo.FindByID(c.Request.Context(), payload.UserID)
+			if lookupErr != nil || user.IsDeleted || !user.IsActive {
+				if blacklist != nil && payload.ExpiresAt != nil {
+					ttl := time.Until(payload.ExpiresAt.Time)
+					if ttl > 0 {
+						_ = blacklist.Add(c.Request.Context(), tokenStr, ttl)
+					}
+				}
+				c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+					Success: false,
+					Error:   "Account is inactive or deleted",
+				})
+				return
+			}
+		}
+
+		// Set claims securely into the Gin Context
 		c.Set("userID", payload.UserID)
 		c.Set("role", payload.Role)
 		c.Set("hospID", payload.HospID)
@@ -110,7 +130,6 @@ func RequireRole(allowedRoles ...entity.UserRole) gin.HandlerFunc {
 		c.Next()
 	}
 }
-
 
 // RequirePermission abstracts the specific role check to a capability check.
 func RequirePermission(requiredAction entity.ActionType) gin.HandlerFunc {

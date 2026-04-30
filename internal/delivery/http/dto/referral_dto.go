@@ -115,11 +115,21 @@ type ListReferralResponse struct {
 }
 
 type PaginatedReferralResponse struct {
-	Data     []ListReferralResponse `json:"data"`
+	Data []ListReferralResponse `json:"data"`
 	BaseResponse
-	Total    int64                  `json:"total"`
-	Page     int                    `json:"page"`
-	PageSize int                    `json:"page_size"`
+	Total    int64 `json:"total"`
+	Page     int   `json:"page"`
+	PageSize int   `json:"page_size"`
+}
+
+type ReferralStatusCountResponse struct {
+	Status string `json:"status"`
+	Count  int64  `json:"count"`
+}
+
+type ReferralStatusCountListResponse struct {
+	Data []ReferralStatusCountResponse `json:"data"`
+	BaseResponse
 }
 
 type RejectDTO struct {
@@ -136,13 +146,13 @@ type CancelReferralRequest struct {
 
 // LogResponseDTO is used by HospitalAdmins to view event log history without clinical details.
 type LogResponseDTO struct {
-	HistoryID   uuid.UUID  `json:"history_id"`
-	ReferralID  uuid.UUID  `json:"referral_id"`
-	ChangedByID uuid.UUID  `json:"changed_by_id"`
-	Role        string     `json:"role"`
-	FromStatus  *string    `json:"from_status,omitempty"`
-	ToStatus    string     `json:"to_status"`
-	CreatedAt   string     `json:"created_at"`
+	HistoryID   uuid.UUID `json:"history_id"`
+	ReferralID  uuid.UUID `json:"referral_id"`
+	ChangedByID uuid.UUID `json:"changed_by_id"`
+	Role        string    `json:"role"`
+	FromStatus  *string   `json:"from_status,omitempty"`
+	ToStatus    string    `json:"to_status"`
+	CreatedAt   string    `json:"created_at"`
 }
 
 type PaginatedLogResponse struct {
