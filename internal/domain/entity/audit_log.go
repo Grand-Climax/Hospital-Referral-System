@@ -32,6 +32,16 @@ const (
 	ActionGenerateReports     ActionType = "GENERATE_REPORTS"
 	ActionUpdatePatientStatus ActionType = "UPDATE_PATIENT_STATUS"
 	ActionCancelReferral      ActionType = "CANCEL_REFERRAL"
+	ActionUpdateSystemConfig  ActionType = "UPDATE_SYSTEM_CONFIG"
+	ActionConfirmArrival      ActionType = "CONFIRM_ARRIVAL"
+	ActionAssignDoctor        ActionType = "ASSIGN_DOCTOR"
+	ActionWalkInRegistered    ActionType = "WALK_IN_REGISTERED"
+	ActionMarkMissed          ActionType = "MARK_MISSED"
+	ActionAddClinicalUpdate   ActionType = "ADD_CLINICAL_UPDATE"
+	ActionRecordOutcome       ActionType = "RECORD_OUTCOME"
+	ActionBatchSchedule       ActionType = "BATCH_SCHEDULE_RUN"
+	ActionEmergencySchedule    ActionType = "MANUAL_EMERGENCY_SCHEDULE"
+	ActionDailyWeightUpdate   ActionType = "DAILY_WEIGHT_UPDATE"
 )
 
 type AuditLog struct {

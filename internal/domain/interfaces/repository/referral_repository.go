@@ -39,6 +39,7 @@ type ReferringHospitalCount struct {
 }
 
 type ReferralRepository interface {
+	BaseRepository[entity.Referral]
 	CreateReferralTransaction(ctx context.Context, referral *entity.Referral) error
 	UpdateReferralTransaction(ctx context.Context, referral *entity.Referral) error
 	DeleteReferral(ctx context.Context, id uuid.UUID) error
@@ -68,4 +69,26 @@ type ReferralRepository interface {
 	ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter ReferralFilter) ([]entity.Referral, int64, error)
 	GetDoctorStats(ctx context.Context, doctorID uuid.UUID) (total, pending, accepted, critical int64, err error)
 	GetLatestPendingForDoctor(ctx context.Context, doctorID uuid.UUID, limit int) ([]entity.Referral, error)
+}
+
+// ReferralOutcomeRepository persists the final clinical outcome of a referral episode.
+type ReferralOutcomeRepository interface {
+	BaseRepository[entity.ReferralOutcome]
+	Create(ctx context.Context, outcome *entity.ReferralOutcome) error
+	GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralOutcome, error)
+}
+
+// ReferralRedirectionRepository stores records of referrals that were redirected to another hospital/department.
+type ReferralRedirectionRepository interface {
+	BaseRepository[entity.ReferralRedirection]
+	Create(ctx context.Context, redirection *entity.ReferralRedirection) error
+	GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralRedirection, error)
+}
+
+// ReferralAccessRepository tracks which doctors have been granted access to a referral (treating vs. consulted).
+type ReferralAccessRepository interface {
+	BaseRepository[entity.ReferralAccess]
+	Create(ctx context.Context, access *entity.ReferralAccess) error
+	GetAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error)
+	CheckAccess(ctx context.Context, referralID, userID uuid.UUID) (bool, error)
 }

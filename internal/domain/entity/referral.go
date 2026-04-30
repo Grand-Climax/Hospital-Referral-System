@@ -27,6 +27,18 @@ const (
 	StatusRejectedBySpecialist ReferralStatus = "REJECTED_BY_SPECIALIST"
 	StatusMissed               ReferralStatus = "MISSED"
 	StatusRescheduled          ReferralStatus = "RESCHEDULED"
+	StatusRedirected           ReferralStatus = "REDIRECTED"
+	StatusAdmitted             ReferralStatus = "ADMITTED"
+	StatusRejectedAfterSend    ReferralStatus = "REJECTED_AFTER_SEND"
+	StatusDeceased             ReferralStatus = "DECEASED"
+)
+
+type TriageStatus string
+
+const (
+	TriageAutoScored TriageStatus = "AUTO_SCORED"
+	TriageReviewed   TriageStatus = "REVIEWED"
+	TriageOverridden TriageStatus = "OVERRIDDEN"
 )
 
 type Referral struct {
@@ -37,7 +49,8 @@ type Referral struct {
 	TargetHospitalID    uuid.UUID `gorm:"type:uuid;not null;index:idx_target_status" json:"target_hospital_id"`
 	LiaisonOfficerID    *uuid.UUID `gorm:"type:uuid" json:"liaison_officer_id,omitempty"`
 	TargetDeptID        uuid.UUID `gorm:"type:uuid;not null;index:idx_dept_status_created" json:"target_dept_id"`
-	Status              ReferralStatus `gorm:"type:varchar(50);not null;default:'DRAFT';index;index:idx_target_status;index:idx_dept_status_created" json:"status"`
+	Status              ReferralStatus `gorm:"type:referralstatus;not null;default:'DRAFT';index;index:idx_target_status;index:idx_dept_status_created" json:"status"`
+	TriageStatus        TriageStatus   `gorm:"type:triagestatus;not null;default:'AUTO_SCORED'" json:"triage_status"`
 
 	// Triage priority
 	ActiveMLPredictionID *uuid.UUID `gorm:"type:uuid;index" json:"active_ml_prediction_id,omitempty"`
@@ -76,6 +89,10 @@ type Referral struct {
 	Vitals          []Vital                  `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"vitals,omitempty"`
 	EmergencyDetail *ReferralEmergencyDetail `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"emergency_detail,omitempty"`
 	Attachments     []Attachment            `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"attachments,omitempty"`
+	
+	ReceiverHospital *Hospital `gorm:"foreignKey:TargetHospitalID" json:"receiver_hospital,omitempty"`
+	SenderHospital   *Hospital `gorm:"foreignKey:SenderHospitalID" json:"sender_hospital,omitempty"`
+	TargetDepartment *Department `gorm:"foreignKey:TargetDeptID" json:"target_department,omitempty"`
 }
 
 func (r *Referral) BeforeCreate(tx *gorm.DB) (err error) {

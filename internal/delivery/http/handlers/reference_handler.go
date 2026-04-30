@@ -21,6 +21,10 @@ func NewReferenceHandler(uc iusecase.ReferenceUseCase) *ReferenceHandler {
 // GetHospitals godoc
 // @Summary      Get Hospitals List
 // @Description  Returns all hospitals, optionally filtered by tier. Accessible by all authenticated roles.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         References
 // @Produce      json
 // @Param        tier query string false "Hospital Tier (PRIMARY, GENERAL, SPECIALIZED)"
@@ -72,6 +76,10 @@ func (h *ReferenceHandler) GetHospitals(c *gin.Context) {
 // GetDepartments godoc
 // @Summary      Get Departments List
 // @Description  Returns all global departments (not scoped to a hospital). Accessible by all authenticated roles.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         References
 // @Produce      json
 // @Success      200 {object} dto.DepartmentListResponse
@@ -113,6 +121,10 @@ func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 // ListICDCodes godoc
 // @Summary      List all ICD-10 Codes
 // @Description  Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         References
 // @Produce      json
 // @Param        search query string false "Search by code or description"
@@ -139,7 +151,12 @@ func (h *ReferenceHandler) ListICDCodes(c *gin.Context) {
 
 // GetNetworkedHospitals godoc
 // @Summary      Get Networked Hospitals
-// @Description  Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target. Accessible by all authenticated roles.
+// @Description  Returns hospitals in the referral network that can receive from the requesting hospital. Used by doctors/liaison when selecting a referral target.
+// @Description  **Roles:** Any authenticated user with a hospital scope.
+// @Description  **Prerequisites:** Authenticated user must belong to a sender hospital.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (no hospital scope)
+// @Description  - 500 Internal Server Error
 // @Tags         References
 // @Produce      json
 // @Success      200 {object} dto.HospitalListResponse
@@ -205,7 +222,11 @@ func (h *ReferenceHandler) GetNetworkedHospitals(c *gin.Context) {
 
 // GetHospitalDepartments godoc
 // @Summary      Get Hospital Departments
-// @Description  Returns departments available at a specific target hospital. Used by doctors when selecting a department to refer to. Accessible by all authenticated roles.
+// @Description  Returns departments available at a specific target hospital. Used by doctors when selecting a department to refer to.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid hospital ID
+// @Description  - 500 Internal Server Error
 // @Tags         References
 // @Produce      json
 // @Param        id path string true "Hospital ID" default(62af3d82-52ce-4e8f-af29-2c5e509e1e24)
@@ -257,6 +278,11 @@ func (h *ReferenceHandler) GetHospitalDepartments(c *gin.Context) {
 // GetLiaisons godoc
 // @Summary      Get Liaisons for Current Hospital
 // @Description  Returns all active liaison officers belonging to the authenticated user's hospital. Hospital ID is extracted from the JWT token.
+// @Description  **Roles:** Any authenticated user with a hospital scope.
+// @Description  **Prerequisites:** Authenticated user must belong to a hospital.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (no hospital scope)
+// @Description  - 500 Internal Server Error
 // @Tags         References
 // @Produce      json
 // @Success      200 {object} dto.LiaisonListResponse

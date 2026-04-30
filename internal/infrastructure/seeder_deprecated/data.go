@@ -249,4 +249,19 @@ var generalHospUsers = []hospitalUserTemplate{
 		LastName:   "Hospital Admin",
 		Role:       entity.RoleHospitalAdmin,
 	},
+	{
+		NationalID: "RECEPT-GEN-001",
+		Email:      "reception.general@hospital.et",
+		FirstName:  "General",
+		LastName:   "Receptionist",
+		Role:       entity.RoleReceptionist,
+	},
+	{
+		NationalID:   "HEAD-GEN-001",
+		Email:        "head.general@hospital.et",
+		FirstName:    "General",
+		LastName:     "Dept Head",
+		Role:         entity.RoleDeptHead,
+		DepartmentID: &cardiologyID,
+	},
 }
