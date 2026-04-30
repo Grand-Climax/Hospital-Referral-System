@@ -66,7 +66,12 @@ func toHospitalDepartmentResponse(hd *entity.HospitalDepartment) dto.HospitalDep
 
 // CreateDepartment godoc
 // @Summary      Create a new department
-// @Description  Admin-only endpoint to create a department
+// @Description  Admin-only endpoint to create a department.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 401 Unauthorized
+// @Description  - 403 Forbidden
 // @Tags         Departments
 // @Accept       json
 // @Produce      json
@@ -110,7 +115,11 @@ func (h *DepartmentHandler) CreateDepartment(c *gin.Context) {
 
 // ListDepartments godoc
 // @Summary      List departments
-// @Description  List departments with optional search
+// @Description  List departments with optional search.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Departments
 // @Produce      json
 // @Param        page      query int    false "Page number" default(1)
@@ -162,7 +171,11 @@ func (h *DepartmentHandler) ListDepartments(c *gin.Context) {
 
 // GetDepartment godoc
 // @Summary      Get department by ID
-// @Description  Retrieve a department by its ID
+// @Description  Retrieve a department by its ID.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid ID format
+// @Description  - 404 Not Found
 // @Tags         Departments
 // @Produce      json
 // @Param        id path string true "Department ID"
@@ -197,7 +210,11 @@ func (h *DepartmentHandler) GetDepartment(c *gin.Context) {
 
 // UpdateDepartment godoc
 // @Summary      Update a department
-// @Description  Admin-only endpoint to update department information
+// @Description  Admin-only endpoint to update department information.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 404 Not Found
 // @Tags         Departments
 // @Accept       json
 // @Produce      json
@@ -256,7 +273,11 @@ func (h *DepartmentHandler) UpdateDepartment(c *gin.Context) {
 
 // DeleteDepartment godoc
 // @Summary      Delete a department
-// @Description  Admin-only endpoint to delete a department
+// @Description  Admin-only endpoint to delete a department.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid ID format
+// @Description  - 404 Not Found
 // @Tags         Departments
 // @Produce      json
 // @Param        id path string true "Department ID"
@@ -287,7 +308,13 @@ func (h *DepartmentHandler) DeleteDepartment(c *gin.Context) {
 
 // LinkDepartmentToHospital godoc
 // @Summary      Link a department to a hospital
-// @Description  Admin-only endpoint to associate a department with a hospital
+// @Description  Admin-only endpoint to associate a department with a hospital.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **State Transition:** Creates a link and initializes the daily schedule.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 404 hospital/department not found
+// @Description  - 409 link already exists
 // @Tags         Hospitals
 // @Accept       json
 // @Produce      json
@@ -343,7 +370,10 @@ func (h *DepartmentHandler) LinkDepartmentToHospital(c *gin.Context) {
 
 // UnlinkDepartmentFromHospital godoc
 // @Summary      Unlink a department from a hospital
-// @Description  Admin-only endpoint to remove a department-hospital association
+// @Description  Admin-only endpoint to remove a department-hospital association.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 404 link not found
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id     path string true "Hospital ID"
@@ -381,7 +411,10 @@ func (h *DepartmentHandler) UnlinkDepartmentFromHospital(c *gin.Context) {
 
 // ListHospitalDepartments godoc
 // @Summary      List departments of a hospital
-// @Description  Retrieve all departments linked to a specific hospital
+// @Description  Retrieve all departments linked to a specific hospital.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 404 hospital not found
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"

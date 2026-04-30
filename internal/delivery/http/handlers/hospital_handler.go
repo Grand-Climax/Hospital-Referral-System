@@ -61,7 +61,12 @@ func toHospitalResponse(h *entity.Hospital) dto.HospitalResponse {
 
 // CreateHospital godoc
 // @Summary      Create a new hospital
-// @Description  Admin-only endpoint to create a hospital
+// @Description  Admin-only endpoint to create a hospital.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 401 Unauthorized
+// @Description  - 403 Forbidden
 // @Tags         Hospitals
 // @Accept       json
 // @Produce      json
@@ -111,7 +116,11 @@ func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 
 // ListHospitals godoc
 // @Summary      List hospitals
-// @Description  List hospitals with optional filters
+// @Description  List hospitals with optional filters.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospitals
 // @Produce      json
 // @Param        page      query int    false "Page number" default(1)
@@ -177,7 +186,11 @@ func (h *HospitalHandler) ListHospitals(c *gin.Context) {
 
 // GetHospital godoc
 // @Summary      Get hospital by ID
-// @Description  Retrieve a hospital by its ID
+// @Description  Retrieve a hospital by its ID.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid ID format
+// @Description  - 404 Not Found
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"
@@ -218,7 +231,11 @@ func (h *HospitalHandler) GetHospital(c *gin.Context) {
 
 // UpdateHospital godoc
 // @Summary      Update a hospital
-// @Description  Admin-only endpoint to update hospital information
+// @Description  Admin-only endpoint to update hospital information.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid input
+// @Description  - 404 Not Found
 // @Tags         Hospitals
 // @Accept       json
 // @Produce      json
@@ -295,7 +312,11 @@ func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 
 // DeleteHospital godoc
 // @Summary      Delete a hospital
-// @Description  Admin-only endpoint to soft-delete a hospital
+// @Description  Admin-only endpoint to soft-delete a hospital.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 invalid ID format
+// @Description  - 404 Not Found
 // @Tags         Hospitals
 // @Produce      json
 // @Param        id path string true "Hospital ID"

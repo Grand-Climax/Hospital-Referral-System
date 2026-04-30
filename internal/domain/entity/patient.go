@@ -18,6 +18,7 @@ type Patient struct {
 	Sex            string     `gorm:"type:varchar(10);not null" json:"sex"`
 	DateOfBirth    *time.Time `gorm:"type:date" json:"date_of_birth,omitempty"`
 	HomeRegion     *string    `gorm:"type:varchar(100);index" json:"home_region,omitempty"`
+	AllowSMS       bool       `gorm:"default:true" json:"allow_sms"`
 	IsDeleted      bool       `gorm:"default:false;index" json:"-"`
 	DeletedAt      gorm.DeletedAt `json:"-"`
 }

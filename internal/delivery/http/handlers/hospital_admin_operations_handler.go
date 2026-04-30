@@ -29,6 +29,11 @@ func NewHospitalAdminOperationsHandler(userUC iusecase.UserUseCase, hospitalUC i
 // GetMyHospitalProfile godoc
 // @Summary      Get own hospital profile (Hospital Admin)
 // @Description  Retrieve hospital profile for the authenticated hospital admin scope.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Admin's own hospital.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Operations
 // @Produce      json
 // @Success      200 {object} dto.HospitalResponse
@@ -56,6 +61,12 @@ func (h *HospitalAdminOperationsHandler) GetMyHospitalProfile(c *gin.Context) {
 // UpdateMyHospitalProfile godoc
 // @Summary      Update own hospital profile (Hospital Admin)
 // @Description  Update name, contact phone, and address for the admin's own hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** Hospital profile fields updated in DB.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid input
+// @Description  - 403 Forbidden
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Operations
 // @Accept       json
 // @Produce      json
@@ -107,6 +118,11 @@ func (h *HospitalAdminOperationsHandler) UpdateMyHospitalProfile(c *gin.Context)
 // LinkDepartmentToMyHospital godoc
 // @Summary      Add department to own hospital (Hospital Admin)
 // @Description  Link an existing department to the admin's hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** New HospitalDepartment link created.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden
+// @Description  - 409 Link already exists
 // @Tags         Hospital Admin - Operations
 // @Accept       json
 // @Produce      json
@@ -156,6 +172,10 @@ func (h *HospitalAdminOperationsHandler) LinkDepartmentToMyHospital(c *gin.Conte
 // ListMyHospitalDepartments godoc
 // @Summary      View own hospital departments (Hospital Admin)
 // @Description  List departments linked to the admin's hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Hospital scoped department listing.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden
 // @Tags         Hospital Admin - Operations
 // @Produce      json
 // @Success      200 {object} dto.HospitalDepartmentListResponse
@@ -193,6 +213,11 @@ func (h *HospitalAdminOperationsHandler) ListMyHospitalDepartments(c *gin.Contex
 // SetDepartmentActive godoc
 // @Summary      Activate or deactivate department link (Hospital Admin)
 // @Description  Toggle active state of a hospital-department link in own hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** HospitalDepartment.IsActive toggled.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Operations
 // @Accept       json
 // @Produce      json
@@ -241,6 +266,11 @@ func (h *HospitalAdminOperationsHandler) SetDepartmentActive(c *gin.Context) {
 // AssignDepartmentHead godoc
 // @Summary      Assign or change department head (Hospital Admin)
 // @Description  Assign a staff user as DEPT_HEAD and bind them to the department.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** User.Role = DEPT_HEAD, User.DepartmentID updated.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden
+// @Description  - 404 Department/Staff not found
 // @Tags         Hospital Admin - Operations
 // @Accept       json
 // @Produce      json

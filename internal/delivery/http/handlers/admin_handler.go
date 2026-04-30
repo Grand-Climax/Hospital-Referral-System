@@ -65,6 +65,12 @@ func parseReferralFilter(c *gin.Context) irepository.ReferralFilter {
 // SystemAdminList godoc
 // @Summary      System Admin Global Listing
 // @Description  Get a global paginated list of all referrals with optional status filtering.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
+// @Description  **Visibility:** Global - across all hospitals and departments.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid status
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Admin Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -146,6 +152,11 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 // HospitalAdminLogs godoc
 // @Summary      Get Referral Logs for Hospital
 // @Description  Get audit logs of all referral status transitions connected to the hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Scoped to the admin's hospital.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Admin Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -227,6 +238,11 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 // HospitalAdminInboundReferrals godoc
 // @Summary      List inbound referrals (Hospital Admin)
 // @Description  List referrals where the admin's hospital is the target hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Inbound scope.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Referral Oversight
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -271,6 +287,11 @@ func (h *AdminHandler) HospitalAdminInboundReferrals(c *gin.Context) {
 // HospitalAdminOutboundReferrals godoc
 // @Summary      List outbound referrals (Hospital Admin)
 // @Description  List referrals where the admin's hospital is the sender hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Outbound scope.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Referral Oversight
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -315,6 +336,11 @@ func (h *AdminHandler) HospitalAdminOutboundReferrals(c *gin.Context) {
 // HospitalAdminPendingApprovals godoc
 // @Summary      List pending approvals (Hospital Admin)
 // @Description  List hospital referrals currently waiting in referral approval/review stages.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Pending approval scope.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Referral Oversight
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -354,6 +380,11 @@ func (h *AdminHandler) HospitalAdminPendingApprovals(c *gin.Context) {
 // HospitalAdminRejectedRedirected godoc
 // @Summary      List rejected or redirected referrals (Hospital Admin)
 // @Description  List hospital referrals that were rejected or redirected for revision.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Rejected/Redirected scope.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Referral Oversight
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -393,6 +424,12 @@ func (h *AdminHandler) HospitalAdminRejectedRedirected(c *gin.Context) {
 // HospitalAdminReferralDetails godoc
 // @Summary      Get referral details (Hospital Admin)
 // @Description  Read-only referral details for referrals connected to admin's hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Hospital connected referrals.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid ID
+// @Description  - 401 Unauthorized
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Referral Oversight
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -431,6 +468,11 @@ func (h *AdminHandler) HospitalAdminReferralDetails(c *gin.Context) {
 // HospitalAdminReferralStatusCounts godoc
 // @Summary      Get referral counts by status (Hospital Admin)
 // @Description  Aggregate referral counts by status for referrals connected to admin's hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Hospital scoped stats.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Referral Oversight
 // @Produce      json
 // @Success      200 {object} dto.ReferralStatusCountListResponse
@@ -467,6 +509,11 @@ func (h *AdminHandler) HospitalAdminReferralStatusCounts(c *gin.Context) {
 // HospitalAdminAuditLogs godoc
 // @Summary      View hospital audit logs (Hospital Admin)
 // @Description  Read-only hospital-scoped audit log viewer.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Hospital scoped audit logs.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 503 Service Unavailable
 // @Tags         Hospital Admin - Audit & Reports
 // @Produce      json
 // @Param        page query int false "Page number" default(1)
@@ -544,6 +591,10 @@ func (h *AdminHandler) HospitalAdminAuditLogs(c *gin.Context) {
 // HospitalAdminMonthlyReferralTotals godoc
 // @Summary      Monthly referral totals (Hospital Admin)
 // @Description  Monthly referral totals for hospital-connected referrals.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Audit & Reports
 // @Produce      json
 // @Param        months query int false "Number of months" default(6)
@@ -581,6 +632,10 @@ func (h *AdminHandler) HospitalAdminMonthlyReferralTotals(c *gin.Context) {
 // HospitalAdminAcceptanceRejectionRate godoc
 // @Summary      Acceptance and rejection rate (Hospital Admin)
 // @Description  Acceptance and rejection rates for hospital-connected referrals.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Audit & Reports
 // @Produce      json
 // @Success      200 {object} dto.AcceptanceRejectionRateResponse
@@ -610,6 +665,10 @@ func (h *AdminHandler) HospitalAdminAcceptanceRejectionRate(c *gin.Context) {
 // HospitalAdminMissedAppointmentRate godoc
 // @Summary      Missed appointment rate (Hospital Admin)
 // @Description  Missed appointment rate for hospital inbound appointment-tracked referrals.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Audit & Reports
 // @Produce      json
 // @Success      200 {object} dto.MissedAppointmentRateResponse
@@ -638,6 +697,10 @@ func (h *AdminHandler) HospitalAdminMissedAppointmentRate(c *gin.Context) {
 // HospitalAdminBusiestDepartments godoc
 // @Summary      Busiest departments (Hospital Admin)
 // @Description  Ranked departments by inbound referral volume.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Audit & Reports
 // @Produce      json
 // @Param        limit query int false "Result size" default(5)
@@ -678,6 +741,10 @@ func (h *AdminHandler) HospitalAdminBusiestDepartments(c *gin.Context) {
 // HospitalAdminAverageWaitTime godoc
 // @Summary      Average wait time (Hospital Admin)
 // @Description  Average wait time derived from referral waiting-hours weight.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Audit & Reports
 // @Produce      json
 // @Success      200 {object} dto.AverageWaitTimeResponse
@@ -706,6 +773,10 @@ func (h *AdminHandler) HospitalAdminAverageWaitTime(c *gin.Context) {
 // HospitalAdminTopReferringHospitals godoc
 // @Summary      Top referring hospitals (Hospital Admin)
 // @Description  Ranked sender hospitals by referrals sent to this hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Audit & Reports
 // @Produce      json
 // @Param        limit query int false "Result size" default(5)

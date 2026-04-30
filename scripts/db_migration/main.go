@@ -59,44 +59,102 @@ func preFillNullColumns(db *gorm.DB) {
 func main() {
 	cfg := config.LoadConfig()
 
-	// Neon uses DATABASE_URL (postgres:// connection string)
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = fmt.Sprintf(
-			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TZ=Africa/Addis_Ababa",
 			cfg.DB.Host, cfg.DB.User, cfg.DB.Password, cfg.DB.DB_Name, cfg.DB.Port, cfg.DB.SSLMode,
 		)
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn), // only show warnings/errors
+		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	fmt.Println("=== Hospital Referral System – DB Sync ===")
-	fmt.Println("Step 1: Pre-filling NULL columns to avoid NOT NULL migration errors...")
+	fmt.Println("=== Hospital Referral Hub – DB Sync v2 ===")
+
+	fmt.Println("Step 1: Pre-filling legacy NULL columns...")
 	preFillNullColumns(db)
 
-	fmt.Println("Step 2: Running AutoMigrate for all modified entities...")
+	fmt.Println("Step 2: Executing raw SQL schema update (Enums & Constraints)...")
+	sqlFile := "scripts/db_migration/schema_update_v2.sql"
+	content, err := os.ReadFile(sqlFile)
+	if err != nil {
+		log.Fatalf("Failed to read SQL migration file: %v", err)
+	}
+
+	if err := db.Exec(string(content)).Error; err != nil {
+		log.Fatalf("Failed to execute SQL migration: %v", err)
+	}
+	fmt.Println("  ✓ SQL migration successful")
+
+	fmt.Println("Step 3: Running AutoMigrate for all system entities...")
 	entities := []interface{}{
-		&entity.User{},
-		&entity.Referral{},
-		&entity.Attachment{},
-		&entity.Patient{},
+		// Master Data
 		&entity.Hospital{},
 		&entity.Department{},
+		&entity.HospitalDepartment{},
+		&entity.ICDCode{},
+		&entity.ReferralNetwork{},
+
+		// Users & Auth
+		&entity.User{},
+		&entity.Session{},
+		&entity.ReferralAccess{},
+
+		// Patient & Referral Core
+		&entity.Patient{},
+		&entity.Referral{},
+		&entity.ReferralForm{},
+		&entity.ReferralDiagnosis{},
+		&entity.Vital{},
+		&entity.ReferralEmergencyDetail{},
+		&entity.Attachment{},
+
+		// Workflow & Lifecycle
+		&entity.TriageQueue{},
+		&entity.DailySchedule{},
+		&entity.CapacityOverride{},
+		&entity.ClinicalUpdate{},
+		&entity.ReferralOutcome{},
+		&entity.ReferralRedirection{},
+		&entity.ReferralStatusHistory{},
+
+		// Communication & System
+		&entity.Notification{},
+		&entity.MLPrediction{},
+		&entity.SchedulerCheckpoint{},
+		&entity.SystemConfig{},
+		&entity.AuditLog{},
 	}
 
 	for _, e := range entities {
 		name := fmt.Sprintf("%T", e)
-		fmt.Printf("  Migrating %s ...\n", name)
 		if err := db.AutoMigrate(e); err != nil {
 			log.Fatalf("AutoMigrate failed for %s: %v", name, err)
 		}
-		fmt.Printf("  ✓ %s done\n", name)
+		fmt.Printf("  ✓ %s synced\n", name)
 	}
+
+	fmt.Println("\nStep 4: Seeding default system configurations...")
+	defaults := []entity.SystemConfig{
+		{Key: "buffer_days", Value: "2"},
+		{Key: "aging_factor", Value: "1.0"},
+		{Key: "max_horizon_days", Value: "14"},
+		{Key: "overbook_limit_default", Value: "0"},
+	}
+	for _, cfg := range defaults {
+		if err := db.FirstOrCreate(&entity.SystemConfig{}, entity.SystemConfig{Key: cfg.Key}).Error; err != nil {
+			log.Printf("Warning: failed to seed config %s: %v", cfg.Key, err)
+		} else {
+			// Ensure value is set even if record existed (optional, but good for defaults)
+			db.Model(&entity.SystemConfig{}).Where("key = ?", cfg.Key).Update("value", cfg.Value)
+		}
+	}
+	fmt.Println("  ✓ System configurations seeded")
 
 	fmt.Println("\n=== Database synchronisation complete ✓ ===")
 }

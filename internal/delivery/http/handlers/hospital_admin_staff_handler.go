@@ -74,6 +74,12 @@ func mapHospitalAdminStaffError(err error) int {
 // CreateStaff godoc
 // @Summary      Create staff (Hospital Admin)
 // @Description  Create a new staff user in the current hospital scope.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Prerequisites:** Hospital Admin must have an assigned hospital.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid input
+// @Description  - 403 Forbidden (wrong hospital or not admin)
+// @Description  - 409 Email/NationalID already exists
 // @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
@@ -126,6 +132,11 @@ func (h *HospitalAdminStaffHandler) CreateStaff(c *gin.Context) {
 // ListStaff godoc
 // @Summary      List staff (Hospital Admin)
 // @Description  List staff users scoped to the admin's hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Hospital scoped staff listing.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden
+// @Description  - 500 Internal Server Error
 // @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        page query int false "Page number" default(1)
@@ -192,6 +203,11 @@ func (h *HospitalAdminStaffHandler) ListStaff(c *gin.Context) {
 // GetStaff godoc
 // @Summary      Get staff by ID (Hospital Admin)
 // @Description  Get a staff profile scoped to the admin's hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid ID
+// @Description  - 403 Forbidden (trying to access staff from another hospital)
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -226,6 +242,11 @@ func (h *HospitalAdminStaffHandler) GetStaff(c *gin.Context) {
 // ChangeStaffRole godoc
 // @Summary      Change staff role (Hospital Admin)
 // @Description  Update the role of a staff user within the same hospital scope.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** User.Role updated.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid role
+// @Description  - 403 Forbidden (managing self or outside scope)
 // @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
@@ -265,6 +286,11 @@ func (h *HospitalAdminStaffHandler) ChangeStaffRole(c *gin.Context) {
 // DeleteStaff godoc
 // @Summary      Soft delete staff (Hospital Admin)
 // @Description  Soft delete a staff user within the same hospital scope.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** User.IsDeleted = true.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (managing self or outside scope)
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -296,6 +322,10 @@ func (h *HospitalAdminStaffHandler) DeleteStaff(c *gin.Context) {
 // SetStaffActive godoc
 // @Summary      Activate or deactivate staff (Hospital Admin)
 // @Description  Toggle staff active status within the same hospital scope.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** User.IsActive toggled.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (managing self or outside scope)
 // @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
@@ -340,6 +370,11 @@ func (h *HospitalAdminStaffHandler) SetStaffActive(c *gin.Context) {
 // ReassignDepartment godoc
 // @Summary      Reassign staff department (Hospital Admin)
 // @Description  Update staff department within the same hospital scope.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** User.DepartmentID updated.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid department
+// @Description  - 403 Forbidden (outside scope)
 // @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
@@ -389,6 +424,10 @@ func (h *HospitalAdminStaffHandler) ReassignDepartment(c *gin.Context) {
 // ListActiveStaffSessions godoc
 // @Summary      List active staff sessions (Hospital Admin)
 // @Description  View active sessions for hospital staff, optionally filtered by staff ID.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Hospital scoped sessions.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden
 // @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        page query int false "Page number" default(1)
@@ -453,6 +492,11 @@ func (h *HospitalAdminStaffHandler) ListActiveStaffSessions(c *gin.Context) {
 // ForceLogoutStaff godoc
 // @Summary      Force logout staff (Hospital Admin)
 // @Description  Revoke active sessions for a staff user within hospital scope.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **State Transition:** All active sessions for the user are blacklisted/deleted.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (managing self or outside scope)
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -488,6 +532,12 @@ func (h *HospitalAdminStaffHandler) ForceLogoutStaff(c *gin.Context) {
 // ReplaceStaff godoc
 // @Summary      Replace staff in-place (Hospital Admin)
 // @Description  In-place replacement updates identity and password while keeping the same user ID.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Prerequisites:** Staff member must be in the same hospital.
+// @Description  **State Transition:** User profile (name, email) and credentials updated.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (managing self or outside scope)
+// @Description  - 409 Conflict (email exists)
 // @Tags         Hospital Admin - Staff Management
 // @Accept       json
 // @Produce      json
@@ -536,6 +586,11 @@ func (h *HospitalAdminStaffHandler) ReplaceStaff(c *gin.Context) {
 // GetReferralStatusHistory godoc
 // @Summary      Get referral status history (Hospital Admin)
 // @Description  Read-only status history for a referral linked to the admin's hospital.
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Hospital connected referral history.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (not connected)
+// @Description  - 404 Not Found
 // @Tags         Hospital Admin - Staff Management
 // @Produce      json
 // @Param        id path string true "Referral ID"

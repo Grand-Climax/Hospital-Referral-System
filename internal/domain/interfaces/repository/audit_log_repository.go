@@ -17,5 +17,6 @@ type AuditLogFilter struct {
 
 type AuditLogRepository interface {
 	Create(ctx context.Context, log *entity.AuditLog) error
+	LogWithContext(ctx context.Context, userID uuid.UUID, action entity.ActionType, referralID *uuid.UUID, oldValue, newValue interface{}) error
 	ListByHospital(ctx context.Context, hospitalID uuid.UUID, filter AuditLogFilter) ([]entity.AuditLog, int64, error)
 }
