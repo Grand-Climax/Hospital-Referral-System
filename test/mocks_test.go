@@ -10,6 +10,7 @@ import (
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
 // ---------------------------------------------------------------------------
@@ -146,6 +147,64 @@ func (m *MockReferralRepo) CreateStatusHistory(ctx context.Context, history *ent
 func (m *MockReferralRepo) ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralRepo) ListInboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralRepo) ListOutboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralRepo) ListByStatusesForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter, statuses []entity.ReferralStatus) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter, statuses)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralRepo) GetDetailsForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID) (*entity.Referral, error) {
+	args := m.Called(ctx, hospID, referralID)
+	if args.Get(0) != nil {
+		return args.Get(0).(*entity.Referral), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockReferralRepo) CountByStatusForHospitalAdmin(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).([]irepository.ReferralStatusCount), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]irepository.MonthlyReferralTotal, error) {
+	args := m.Called(ctx, hospID, months)
+	return args.Get(0).([]irepository.MonthlyReferralTotal), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetAcceptanceRejectionRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, float64, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).(float64), args.Get(1).(float64), args.Error(2)
+}
+
+func (m *MockReferralRepo) GetMissedAppointmentRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetBusiestDepartmentsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.DepartmentReferralLoad, error) {
+	args := m.Called(ctx, hospID, limit)
+	return args.Get(0).([]irepository.DepartmentReferralLoad), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetAverageWaitTimeForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetTopReferringHospitalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.ReferringHospitalCount, error) {
+	args := m.Called(ctx, hospID, limit)
+	return args.Get(0).([]irepository.ReferringHospitalCount), args.Error(1)
 }
 
 func (m *MockReferralRepo) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
@@ -383,6 +442,69 @@ func (m *MockReferralUseCase) ConfirmAttendance(ctx context.Context, id, recepti
 func (m *MockReferralUseCase) ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralUseCase) ListInboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralUseCase) ListOutboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralUseCase) ListPendingApprovalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralUseCase) ListRejectedRedirectedForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	args := m.Called(ctx, hospID, filter)
+	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockReferralUseCase) GetDetailsForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID) (*entity.Referral, error) {
+	args := m.Called(ctx, hospID, referralID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Referral), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetReferralStatusCountsForHospitalAdmin(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).([]irepository.ReferralStatusCount), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]irepository.MonthlyReferralTotal, error) {
+	args := m.Called(ctx, hospID, months)
+	return args.Get(0).([]irepository.MonthlyReferralTotal), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetAcceptanceRejectionRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, float64, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).(float64), args.Get(1).(float64), args.Error(2)
+}
+
+func (m *MockReferralUseCase) GetMissedAppointmentRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetBusiestDepartmentsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.DepartmentReferralLoad, error) {
+	args := m.Called(ctx, hospID, limit)
+	return args.Get(0).([]irepository.DepartmentReferralLoad), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetAverageWaitTimeForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetTopReferringHospitalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.ReferringHospitalCount, error) {
+	args := m.Called(ctx, hospID, limit)
+	return args.Get(0).([]irepository.ReferringHospitalCount), args.Error(1)
 }
 
 func (m *MockReferralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
@@ -1163,4 +1285,222 @@ func (m *MockSchedulerServiceUseCase) RunSchedulerCycle(ctx context.Context, lea
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
+}
+// ---------------------------------------------------------------------------
+// Mock: UserUseCase
+// ---------------------------------------------------------------------------
+
+type MockUserUseCase struct {
+	mock.Mock
+}
+
+func (m *MockUserUseCase) CreateUser(ctx context.Context, user *entity.User, rawPassword string) error {
+	args := m.Called(ctx, user, rawPassword)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) GetUserByID(ctx context.Context, id, requesterID uuid.UUID) (*entity.User, error) {
+	args := m.Called(ctx, id, requesterID)
+	if args.Get(0) != nil {
+		return args.Get(0).(*entity.User), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockUserUseCase) GetMyProfile(ctx context.Context, userID uuid.UUID) (*entity.User, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) != nil {
+		return args.Get(0).(*entity.User), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockUserUseCase) UpdateUser(ctx context.Context, user *entity.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) ListUsers(ctx context.Context, filter irepository.UserListFilter, requesterID uuid.UUID) ([]entity.User, int64, error) {
+	args := m.Called(ctx, filter, requesterID)
+	return args.Get(0).([]entity.User), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockUserUseCase) AssignRole(ctx context.Context, userID uuid.UUID, role entity.UserRole) error {
+	args := m.Called(ctx, userID, role)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) DeleteProfileImage(ctx context.Context, userID uuid.UUID) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) ModerateProfileImage(ctx context.Context, userID, moderatorID uuid.UUID) error {
+	args := m.Called(ctx, userID, moderatorID)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) UpdateProfileImage(ctx context.Context, userID uuid.UUID, file interface{}) error {
+	args := m.Called(ctx, userID, file)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) HospitalAdminCreateStaff(ctx context.Context, adminID uuid.UUID, user *entity.User, rawPassword string) error {
+	args := m.Called(ctx, adminID, user, rawPassword)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) HospitalAdminListStaff(ctx context.Context, adminID uuid.UUID, filter irepository.UserListFilter) ([]entity.User, int64, error) {
+	args := m.Called(ctx, adminID, filter)
+	return args.Get(0).([]entity.User), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockUserUseCase) HospitalAdminGetStaffByID(ctx context.Context, adminID, staffID uuid.UUID) (*entity.User, error) {
+	args := m.Called(ctx, adminID, staffID)
+	if args.Get(0) != nil {
+		return args.Get(0).(*entity.User), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockUserUseCase) HospitalAdminChangeStaffRole(ctx context.Context, adminID, staffID uuid.UUID, role entity.UserRole) error {
+	args := m.Called(ctx, adminID, staffID, role)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) HospitalAdminSoftDeleteStaff(ctx context.Context, adminID, staffID uuid.UUID) error {
+	args := m.Called(ctx, adminID, staffID)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) HospitalAdminReplaceStaff(ctx context.Context, adminID, staffID uuid.UUID, input iusecase.HospitalAdminReplacementInput) error {
+	args := m.Called(ctx, adminID, staffID, input)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) HospitalAdminSetStaffActive(ctx context.Context, adminID, staffID uuid.UUID, isActive bool) error {
+	args := m.Called(ctx, adminID, staffID, isActive)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) HospitalAdminReassignStaffDepartment(ctx context.Context, adminID, staffID uuid.UUID, departmentID *uuid.UUID) error {
+	args := m.Called(ctx, adminID, staffID, departmentID)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) HospitalAdminListActiveStaffSessions(ctx context.Context, adminID uuid.UUID, filter iusecase.HospitalAdminSessionFilter) ([]entity.Session, int64, error) {
+	args := m.Called(ctx, adminID, filter)
+	return args.Get(0).([]entity.Session), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockUserUseCase) HospitalAdminForceLogoutStaff(ctx context.Context, adminID, staffID uuid.UUID) (int64, error) {
+	args := m.Called(ctx, adminID, staffID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: HospitalUseCase
+// ---------------------------------------------------------------------------
+
+type MockHospitalUseCase struct {
+	mock.Mock
+}
+
+func (m *MockHospitalUseCase) CreateHospital(ctx context.Context, hospital *entity.Hospital) error {
+	args := m.Called(ctx, hospital)
+	return args.Error(0)
+}
+
+func (m *MockHospitalUseCase) GetHospitalByID(ctx context.Context, id uuid.UUID) (*entity.Hospital, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) != nil {
+		return args.Get(0).(*entity.Hospital), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockHospitalUseCase) UpdateHospital(ctx context.Context, hospital *entity.Hospital) error {
+	args := m.Called(ctx, hospital)
+	return args.Error(0)
+}
+
+func (m *MockHospitalUseCase) DeleteHospital(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockHospitalUseCase) ListHospitals(ctx context.Context, filter irepository.HospitalListFilter) ([]entity.Hospital, int64, error) {
+	args := m.Called(ctx, filter)
+	return args.Get(0).([]entity.Hospital), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockHospitalUseCase) UpdateSystemConfig(ctx context.Context, userID uuid.UUID, req map[string]string) error {
+	args := m.Called(ctx, userID, req)
+	return args.Error(0)
+}
+
+func (m *MockHospitalUseCase) GetSystemConfigs(ctx context.Context) (map[string]string, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(map[string]string), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: DepartmentUseCase
+// ---------------------------------------------------------------------------
+
+type MockDepartmentUseCase struct {
+	mock.Mock
+}
+
+func (m *MockDepartmentUseCase) CreateDepartment(ctx context.Context, dept *entity.Department) error {
+	args := m.Called(ctx, dept)
+	return args.Error(0)
+}
+
+func (m *MockDepartmentUseCase) GetDepartmentByID(ctx context.Context, id uuid.UUID) (*entity.Department, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) != nil {
+		return args.Get(0).(*entity.Department), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockDepartmentUseCase) UpdateDepartment(ctx context.Context, dept *entity.Department) error {
+	args := m.Called(ctx, dept)
+	return args.Error(0)
+}
+
+func (m *MockDepartmentUseCase) DeleteDepartment(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockDepartmentUseCase) ListDepartments(ctx context.Context, filter irepository.DepartmentListFilter) ([]entity.Department, int64, error) {
+	args := m.Called(ctx, filter)
+	return args.Get(0).([]entity.Department), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockDepartmentUseCase) LinkDepartmentToHospital(ctx context.Context, hospitalID, departmentID uuid.UUID, dailyLimit int) error {
+	args := m.Called(ctx, hospitalID, departmentID, dailyLimit)
+	return args.Error(0)
+}
+
+func (m *MockDepartmentUseCase) UnlinkDepartmentFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error {
+	args := m.Called(ctx, hospitalID, departmentID)
+	return args.Error(0)
+}
+
+func (m *MockDepartmentUseCase) ListHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.HospitalDepartment, error) {
+	args := m.Called(ctx, hospitalID)
+	return args.Get(0).([]entity.HospitalDepartment), args.Error(1)
+}
+
+func (m *MockDepartmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentID uuid.UUID, isActive bool) error {
+	args := m.Called(ctx, hospitalID, departmentID, isActive)
+	return args.Error(0)
 }

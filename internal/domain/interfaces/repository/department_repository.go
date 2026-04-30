@@ -21,5 +21,5 @@ type DepartmentRepository interface {
 	UnlinkFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error
 	ListHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.HospitalDepartment, error)
 	FindHospitalDepartment(ctx context.Context, hospitalID, departmentID uuid.UUID) (*entity.HospitalDepartment, error)
-	FindHospitalDepartmentByID(ctx context.Context, id uuid.UUID) (*entity.HospitalDepartment, error)
+	UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error
 }

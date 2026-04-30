@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"fmt"
+	"math"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -65,8 +67,6 @@ func (r *referralRepository) GetReferralByID(ctx context.Context, id uuid.UUID) 
 		Preload("Vitals").
 		Preload("EmergencyDetail").
 		Preload("Attachments").
-		Preload("ReceiverHospital").
-		Preload("TargetDepartment").
 		Where("id = ?", id).
 		First(&referral).Error
 	return &referral, err
@@ -163,6 +163,207 @@ func (r *referralRepository) ListForSystemAdmin(ctx context.Context, filter irep
 	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
+}
+
+func (r *referralRepository) listHospitalAdminReferrals(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter, scope string, statuses []entity.ReferralStatus) ([]entity.Referral, int64, error) {
+	var referrals []entity.Referral
+	var count int64
+	offset := (filter.Page - 1) * filter.Limit
+
+	query := r.db.WithContext(ctx).Model(&entity.Referral{})
+	switch scope {
+	case "inbound":
+		query = query.Where("target_hospital_id = ?", hospID)
+	case "outbound":
+		query = query.Where("sender_hospital_id = ?", hospID)
+	default:
+		query = query.Where("(sender_hospital_id = ? OR target_hospital_id = ?)", hospID, hospID)
+	}
+	if len(statuses) > 0 {
+		query = query.Where("status IN ?", statuses)
+	}
+	query = r.applyFilter(query, filter)
+
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	return referrals, count, err
+}
+
+func (r *referralRepository) ListInboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	return r.listHospitalAdminReferrals(ctx, hospID, filter, "inbound", nil)
+}
+
+func (r *referralRepository) ListOutboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
+	return r.listHospitalAdminReferrals(ctx, hospID, filter, "outbound", nil)
+}
+
+func (r *referralRepository) ListByStatusesForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter, statuses []entity.ReferralStatus) ([]entity.Referral, int64, error) {
+	return r.listHospitalAdminReferrals(ctx, hospID, filter, "both", statuses)
+}
+
+func (r *referralRepository) GetDetailsForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID) (*entity.Referral, error) {
+	var referral entity.Referral
+	err := r.db.WithContext(ctx).
+		Preload("Patient").
+		Preload("ReferralForm").
+		Preload("Diagnoses").
+		Preload("Diagnoses.CodeInfo").
+		Preload("Vitals").
+		Preload("EmergencyDetail").
+		Preload("Attachments").
+		Where("id = ?", referralID).
+		Where("(sender_hospital_id = ? OR target_hospital_id = ?)", hospID, hospID).
+		First(&referral).Error
+	if err != nil {
+		return nil, err
+	}
+	return &referral, nil
+}
+
+func (r *referralRepository) CountByStatusForHospitalAdmin(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
+	var rows []irepository.ReferralStatusCount
+	err := r.db.WithContext(ctx).
+		Model(&entity.Referral{}).
+		Select("status, COUNT(*) as count").
+		Where("sender_hospital_id = ? OR target_hospital_id = ?", hospID, hospID).
+		Group("status").
+		Scan(&rows).Error
+	return rows, err
+}
+
+func (r *referralRepository) GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]irepository.MonthlyReferralTotal, error) {
+	if months <= 0 {
+		months = 6
+	}
+	cutoff := time.Now().AddDate(0, -months+1, 0)
+	type row struct {
+		Month time.Time
+		Count int64
+	}
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Model(&entity.Referral{}).
+		Select("DATE_TRUNC('month', created_at) as month, COUNT(*) as count").
+		Where("(sender_hospital_id = ? OR target_hospital_id = ?) AND created_at >= ?", hospID, hospID, cutoff).
+		Group("month").
+		Order("month ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]irepository.MonthlyReferralTotal, 0, len(rows))
+	for _, rw := range rows {
+		resp = append(resp, irepository.MonthlyReferralTotal{
+			Month: rw.Month.Format("2006-01"),
+			Count: rw.Count,
+		})
+	}
+	return resp, nil
+}
+
+func (r *referralRepository) GetAcceptanceRejectionRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, float64, error) {
+	var accepted int64
+	var rejected int64
+
+	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("(sender_hospital_id = ? OR target_hospital_id = ?) AND status = ?", hospID, hospID, entity.StatusAccepted).
+		Count(&accepted).Error
+	if err != nil {
+		return 0, 0, err
+	}
+	err = r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("(sender_hospital_id = ? OR target_hospital_id = ?) AND status IN ?", hospID, hospID, []entity.ReferralStatus{
+			entity.StatusRejectedByLiaison,
+			entity.StatusRejectedBySpecialist,
+		}).
+		Count(&rejected).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	total := accepted + rejected
+	if total == 0 {
+		return 0, 0, nil
+	}
+	return (float64(accepted) / float64(total)) * 100, (float64(rejected) / float64(total)) * 100, nil
+}
+
+func (r *referralRepository) GetMissedAppointmentRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	var missed int64
+	var tracked int64
+
+	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("target_hospital_id = ? AND status = ?", hospID, entity.StatusMissed).
+		Count(&missed).Error
+	if err != nil {
+		return 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("target_hospital_id = ? AND status IN ?", hospID, []entity.ReferralStatus{
+			entity.StatusScheduled,
+			entity.StatusAssigned,
+			entity.StatusCompleted,
+			entity.StatusMissed,
+			entity.StatusRescheduled,
+		}).
+		Count(&tracked).Error
+	if err != nil {
+		return 0, err
+	}
+
+	if tracked == 0 {
+		return 0, nil
+	}
+	return (float64(missed) / float64(tracked)) * 100, nil
+}
+
+func (r *referralRepository) GetBusiestDepartmentsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.DepartmentReferralLoad, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	var rows []irepository.DepartmentReferralLoad
+	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select("target_dept_id as department_id, COUNT(*) as count").
+		Where("target_hospital_id = ?", hospID).
+		Group("target_dept_id").
+		Order("count DESC").
+		Limit(limit).
+		Scan(&rows).Error
+	return rows, err
+}
+
+func (r *referralRepository) GetAverageWaitTimeForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error) {
+	type row struct {
+		Avg float64
+	}
+	var rw row
+	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select("COALESCE(AVG(waiting_hours_weight), 0) as avg").
+		Where("sender_hospital_id = ? OR target_hospital_id = ?", hospID, hospID).
+		Scan(&rw).Error
+	if err != nil {
+		return 0, err
+	}
+	// keep to 2 dp for API readability
+	return math.Round(rw.Avg*100) / 100, nil
+}
+
+func (r *referralRepository) GetTopReferringHospitalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.ReferringHospitalCount, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	var rows []irepository.ReferringHospitalCount
+	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select("sender_hospital_id as hospital_id, hospitals.name as hospital_name, COUNT(*) as count").
+		Joins("JOIN hospitals ON hospitals.id = referrals.sender_hospital_id").
+		Where("referrals.target_hospital_id = ?", hospID).
+		Group("sender_hospital_id, hospitals.name").
+		Order("count DESC").
+		Limit(limit).
+		Scan(&rows).Error
+	return rows, err
 }
 
 func (r *referralRepository) GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {

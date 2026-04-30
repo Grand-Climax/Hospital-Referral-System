@@ -1,5 +1,17 @@
 basePath: /
 definitions:
+  dto.AcceptanceRejectionRateResponse:
+    properties:
+      acceptance_rate:
+        type: number
+      message:
+        type: string
+      rejection_rate:
+        type: number
+      success:
+        example: true
+        type: boolean
+    type: object
   dto.AddClinicalUpdateRequest:
     properties:
       clinical_notes:
@@ -75,6 +87,53 @@ definitions:
       verification_status:
         example: VERIFIED
         type: string
+    type: object
+  dto.AuditLogListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.AuditLogResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.AuditLogResponse:
+    properties:
+      action_type:
+        $ref: '#/definitions/entity.ActionType'
+      id:
+        type: string
+      ip_address:
+        type: string
+      referral_id:
+        type: string
+      resource:
+        type: string
+      resource_id:
+        type: string
+      timestamp:
+        type: string
+      user_agent:
+        type: string
+      user_id:
+        type: string
+    type: object
+  dto.AverageWaitTimeResponse:
+    properties:
+      average_wait_time:
+        type: number
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   dto.BaseResponse:
     properties:
@@ -298,6 +357,25 @@ definitions:
       total:
         type: integer
     type: object
+  dto.DepartmentLoadListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.DepartmentLoadResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.DepartmentLoadResponse:
+    properties:
+      count:
+        type: integer
+      department_id:
+        type: string
+    type: object
   dto.DepartmentResponse:
     properties:
       created_at:
@@ -367,6 +445,14 @@ definitions:
         example: false
         type: boolean
     type: object
+  dto.HospitalAdminAssignDepartmentHeadRequest:
+    properties:
+      staff_id:
+        example: 711fd40a-1083-4445-b5bd-aaa2c113de20
+        type: string
+    required:
+    - staff_id
+    type: object
   dto.HospitalAdminChangeRoleRequest:
     properties:
       role:
@@ -412,6 +498,33 @@ definitions:
     - password
     - role
     type: object
+  dto.HospitalAdminForceLogoutResponse:
+    properties:
+      message:
+        type: string
+      revoked_sessions:
+        type: integer
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.HospitalAdminLinkDepartmentRequest:
+    properties:
+      daily_limit:
+        example: 20
+        type: integer
+      department_id:
+        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        type: string
+    required:
+    - department_id
+    type: object
+  dto.HospitalAdminReassignDepartmentRequest:
+    properties:
+      department_id:
+        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        type: string
+    type: object
   dto.HospitalAdminReplaceStaffRequest:
     properties:
       email:
@@ -441,6 +554,65 @@ definitions:
     - middle_name
     - password
     - reason
+    type: object
+  dto.HospitalAdminSessionListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.HospitalAdminSessionResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.HospitalAdminSessionResponse:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      ip_address:
+        type: string
+      user_agent:
+        type: string
+      user_id:
+        type: string
+    type: object
+  dto.HospitalAdminSetDepartmentActiveRequest:
+    properties:
+      is_active:
+        example: true
+        type: boolean
+    required:
+    - is_active
+    type: object
+  dto.HospitalAdminSetStaffActiveRequest:
+    properties:
+      is_active:
+        example: false
+        type: boolean
+    required:
+    - is_active
+    type: object
+  dto.HospitalAdminUpdateHospitalProfileRequest:
+    properties:
+      address:
+        example: Jimma, Oromia, Ethiopia
+        type: string
+      contact_phone:
+        example: +251 47 111 1458
+        type: string
+      name:
+        example: Jimma University Medical Center
+        type: string
     type: object
   dto.HospitalDepartmentListResponse:
     properties:
@@ -643,6 +815,35 @@ definitions:
         type: string
     required:
     - miss_reason
+    type: object
+  dto.MissedAppointmentRateResponse:
+    properties:
+      message:
+        type: string
+      missed_appointment_rate:
+        type: number
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MonthlyReferralTotalResponse:
+    properties:
+      count:
+        type: integer
+      month:
+        type: string
+    type: object
+  dto.MonthlyReferralTotalsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.MonthlyReferralTotalResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   dto.NetworkRouteListResponse:
     properties:
@@ -885,6 +1086,25 @@ definitions:
       waiting_hours_weight:
         type: number
     type: object
+  dto.ReferralStatusCountListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ReferralStatusCountResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.ReferralStatusCountResponse:
+    properties:
+      count:
+        type: integer
+      status:
+        type: string
+    type: object
   dto.RefreshResponse:
     properties:
       access_token:
@@ -936,6 +1156,27 @@ definitions:
     required:
     - justification
     - score
+    type: object
+  dto.TopReferringHospitalListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.TopReferringHospitalResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.TopReferringHospitalResponse:
+    properties:
+      count:
+        type: integer
+      hospital_id:
+        type: string
+      hospital_name:
+        type: string
     type: object
   dto.TriageReviewRequest:
     properties:
@@ -1162,6 +1403,74 @@ definitions:
     required:
     - referral_id
     type: object
+  entity.ActionType:
+    enum:
+    - CREATE_REFERRAL
+    - APPROVE_REFERRAL
+    - REJECT_REFERRAL
+    - ACCEPT_REFERRAL
+    - REDIRECT_REFERRAL
+    - OVERRIDE_ML_SCORE
+    - VIEW_PATIENT_DATA
+    - LOGIN
+    - LOGOUT
+    - EXPORT_DATA
+    - MANAGE_USERS
+    - ASSIGN_ROLES
+    - MANAGE_CAPACITY
+    - VIEW_AUDIT_LOG
+    - RESET_MFA
+    - MANAGE_HOSPITALS
+    - MANAGE_DEPTS
+    - API_CALL
+    - OVERRIDE_QUEUE
+    - GENERATE_REPORTS
+    - UPDATE_PATIENT_STATUS
+    - CANCEL_REFERRAL
+    - UPDATE_SYSTEM_CONFIG
+    - CONFIRM_ARRIVAL
+    - ASSIGN_DOCTOR
+    - WALK_IN_REGISTERED
+    - MARK_MISSED
+    - ADD_CLINICAL_UPDATE
+    - RECORD_OUTCOME
+    - BATCH_SCHEDULE_RUN
+    - MANUAL_EMERGENCY_SCHEDULE
+    - DAILY_WEIGHT_UPDATE
+    type: string
+    x-enum-varnames:
+    - ActionCreateReferral
+    - ActionApproveReferral
+    - ActionRejectReferral
+    - ActionAcceptReferral
+    - ActionRedirectReferral
+    - ActionOverrideMLScore
+    - ActionViewPatientData
+    - ActionLogin
+    - ActionLogout
+    - ActionExportData
+    - ActionManageUsers
+    - ActionAssignRoles
+    - ActionManageCapacity
+    - ActionViewAuditLog
+    - ActionResetMFA
+    - ActionManageHospitals
+    - ActionManageDepts
+    - ActionAPICall
+    - ActionOverrideQueue
+    - ActionGenerateReports
+    - ActionUpdatePatientStatus
+    - ActionCancelReferral
+    - ActionUpdateSystemConfig
+    - ActionConfirmArrival
+    - ActionAssignDoctor
+    - ActionWalkInRegistered
+    - ActionMarkMissed
+    - ActionAddClinicalUpdate
+    - ActionRecordOutcome
+    - ActionBatchSchedule
+    - ActionEmergencySchedule
+    - ActionDailyWeightUpdate
   entity.Attachment:
     properties:
       category:
@@ -2961,15 +3270,305 @@ paths:
       summary: Get Doctor Dashboard Stats
       tags:
       - Doctor Dashboard
+  /api/v1/hospital-admin/audit-logs:
+    get:
+      description: |-
+        Read-only hospital-scoped audit log viewer.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Hospital scoped audit logs.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 503 Service Unavailable
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by action type
+        in: query
+        name: action_type
+        type: string
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuditLogListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: View hospital audit logs (Hospital Admin)
+      tags:
+      - Hospital Admin - Audit & Reports
+  /api/v1/hospital-admin/departments:
+    get:
+      description: |-
+        List departments linked to the admin's hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Hospital scoped department listing.
+        **Common Errors:**
+        - 403 Forbidden
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HospitalDepartmentListResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: View own hospital departments (Hospital Admin)
+      tags:
+      - Hospital Admin - Operations
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Link an existing department to the admin's hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **State Transition:** New HospitalDepartment link created.
+        **Common Errors:**
+        - 403 Forbidden
+        - 409 Link already exists
+      parameters:
+      - description: Department link payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminLinkDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add department to own hospital (Hospital Admin)
+      tags:
+      - Hospital Admin - Operations
+  /api/v1/hospital-admin/departments/{deptId}/activation:
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Toggle active state of a hospital-department link in own hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **State Transition:** HospitalDepartment.IsActive toggled.
+        **Common Errors:**
+        - 403 Forbidden
+        - 404 Not Found
+      parameters:
+      - description: Department ID
+        in: path
+        name: deptId
+        required: true
+        type: string
+      - description: Activation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminSetDepartmentActiveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate or deactivate department link (Hospital Admin)
+      tags:
+      - Hospital Admin - Operations
+  /api/v1/hospital-admin/departments/{deptId}/head:
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Assign a staff user as DEPT_HEAD and bind them to the department.
+        **Roles:** HOSPITAL_ADMIN
+        **State Transition:** User.Role = DEPT_HEAD, User.DepartmentID updated.
+        **Common Errors:**
+        - 403 Forbidden
+        - 404 Department/Staff not found
+      parameters:
+      - description: Department ID
+        in: path
+        name: deptId
+        required: true
+        type: string
+      - description: Department head payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminAssignDepartmentHeadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign or change department head (Hospital Admin)
+      tags:
+      - Hospital Admin - Operations
+  /api/v1/hospital-admin/hospital/profile:
+    get:
+      description: |-
+        Retrieve hospital profile for the authenticated hospital admin scope.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Admin's own hospital.
+        **Common Errors:**
+        - 403 Forbidden
+        - 404 Not Found
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HospitalResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get own hospital profile (Hospital Admin)
+      tags:
+      - Hospital Admin - Operations
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Update name, contact phone, and address for the admin's own hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **State Transition:** Hospital profile fields updated in DB.
+        **Common Errors:**
+        - 400 Invalid input
+        - 403 Forbidden
+        - 404 Not Found
+      parameters:
+      - description: Hospital profile update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminUpdateHospitalProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HospitalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update own hospital profile (Hospital Admin)
+      tags:
+      - Hospital Admin - Operations
   /api/v1/hospital-admin/referrals-log:
     get:
       description: |-
         Get audit logs of all referral status transitions connected to the hospital.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Admin must belong to a hospital.
+        **Visibility:** Scoped to the admin's hospital.
         **Common Errors:**
         - 401 Unauthorized
-        - 403 Forbidden (wrong hospital)
+        - 500 Internal Server Error
       parameters:
       - default: 20
         description: Pagination limit
@@ -3001,15 +3600,55 @@ paths:
       summary: Get Referral Logs for Hospital
       tags:
       - Admin Referrals
+  /api/v1/hospital-admin/referrals/{id}:
+    get:
+      description: |-
+        Read-only referral details for referrals connected to admin's hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Hospital connected referrals.
+        **Common Errors:**
+        - 400 Invalid ID
+        - 401 Unauthorized
+        - 404 Not Found
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReferralDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get referral details (Hospital Admin)
+      tags:
+      - Hospital Admin - Referral Oversight
   /api/v1/hospital-admin/referrals/{id}/status-history:
     get:
       description: |-
         Read-only status history for a referral linked to the admin's hospital.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Referral must be linked to the admin's hospital.
+        **Visibility:** Hospital connected referral history.
         **Common Errors:**
-        - 401 Unauthorized
-        - 403 (out of scope)
+        - 403 Forbidden (not connected)
+        - 404 Not Found
       parameters:
       - description: Referral ID
         in: path
@@ -3050,15 +3689,454 @@ paths:
       summary: Get referral status history (Hospital Admin)
       tags:
       - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/referrals/inbound:
+    get:
+      description: |-
+        List referrals where the admin's hospital is the target hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Inbound scope.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - description: Filter by patient name
+        in: query
+        name: patient_name
+        type: string
+      - description: Sort order (asc/desc)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List inbound referrals (Hospital Admin)
+      tags:
+      - Hospital Admin - Referral Oversight
+  /api/v1/hospital-admin/referrals/outbound:
+    get:
+      description: |-
+        List referrals where the admin's hospital is the sender hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Outbound scope.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - description: Filter by patient name
+        in: query
+        name: patient_name
+        type: string
+      - description: Sort order (asc/desc)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List outbound referrals (Hospital Admin)
+      tags:
+      - Hospital Admin - Referral Oversight
+  /api/v1/hospital-admin/referrals/pending-approvals:
+    get:
+      description: |-
+        List hospital referrals currently waiting in referral approval/review stages.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Pending approval scope.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - description: Filter by patient name
+        in: query
+        name: patient_name
+        type: string
+      - description: Sort order (asc/desc)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List pending approvals (Hospital Admin)
+      tags:
+      - Hospital Admin - Referral Oversight
+  /api/v1/hospital-admin/referrals/rejected-redirected:
+    get:
+      description: |-
+        List hospital referrals that were rejected or redirected for revision.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Rejected/Redirected scope.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - description: Filter by patient name
+        in: query
+        name: patient_name
+        type: string
+      - description: Sort order (asc/desc)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List rejected or redirected referrals (Hospital Admin)
+      tags:
+      - Hospital Admin - Referral Oversight
+  /api/v1/hospital-admin/referrals/stats/by-status:
+    get:
+      description: |-
+        Aggregate referral counts by status for referrals connected to admin's hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Hospital scoped stats.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReferralStatusCountListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get referral counts by status (Hospital Admin)
+      tags:
+      - Hospital Admin - Referral Oversight
+  /api/v1/hospital-admin/reports/acceptance-rejection-rate:
+    get:
+      description: |-
+        Acceptance and rejection rates for hospital-connected referrals.
+        **Roles:** HOSPITAL_ADMIN
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AcceptanceRejectionRateResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Acceptance and rejection rate (Hospital Admin)
+      tags:
+      - Hospital Admin - Audit & Reports
+  /api/v1/hospital-admin/reports/average-wait-time:
+    get:
+      description: |-
+        Average wait time derived from referral waiting-hours weight.
+        **Roles:** HOSPITAL_ADMIN
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AverageWaitTimeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Average wait time (Hospital Admin)
+      tags:
+      - Hospital Admin - Audit & Reports
+  /api/v1/hospital-admin/reports/busiest-departments:
+    get:
+      description: |-
+        Ranked departments by inbound referral volume.
+        **Roles:** HOSPITAL_ADMIN
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 5
+        description: Result size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DepartmentLoadListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Busiest departments (Hospital Admin)
+      tags:
+      - Hospital Admin - Audit & Reports
+  /api/v1/hospital-admin/reports/missed-appointment-rate:
+    get:
+      description: |-
+        Missed appointment rate for hospital inbound appointment-tracked referrals.
+        **Roles:** HOSPITAL_ADMIN
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MissedAppointmentRateResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Missed appointment rate (Hospital Admin)
+      tags:
+      - Hospital Admin - Audit & Reports
+  /api/v1/hospital-admin/reports/monthly-referrals:
+    get:
+      description: |-
+        Monthly referral totals for hospital-connected referrals.
+        **Roles:** HOSPITAL_ADMIN
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 6
+        description: Number of months
+        in: query
+        name: months
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MonthlyReferralTotalsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Monthly referral totals (Hospital Admin)
+      tags:
+      - Hospital Admin - Audit & Reports
+  /api/v1/hospital-admin/reports/top-referring-hospitals:
+    get:
+      description: |-
+        Ranked sender hospitals by referrals sent to this hospital.
+        **Roles:** HOSPITAL_ADMIN
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      parameters:
+      - default: 5
+        description: Result size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TopReferringHospitalListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Top referring hospitals (Hospital Admin)
+      tags:
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/staff:
     get:
       description: |-
         List staff users scoped to the admin's hospital.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Admin must belong to a hospital.
+        **Visibility:** Hospital scoped staff listing.
         **Common Errors:**
-        - 401 Unauthorized
         - 403 Forbidden
+        - 500 Internal Server Error
       parameters:
       - default: 1
         description: Page number
@@ -3112,11 +4190,11 @@ paths:
       description: |-
         Create a new staff user in the current hospital scope.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Admin must belong to a hospital.
+        **Prerequisites:** Hospital Admin must have an assigned hospital.
         **Common Errors:**
-        - 400 invalid input
-        - 403 (wrong hospital scope)
-        - 409 (duplicate email/national_id)
+        - 400 Invalid input
+        - 403 Forbidden (wrong hospital or not admin)
+        - 409 Email/NationalID already exists
       parameters:
       - description: Staff creation payload
         in: body
@@ -3153,9 +4231,9 @@ paths:
       description: |-
         Soft delete a staff user within the same hospital scope.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Target user must belong to the same hospital.
+        **State Transition:** User.IsDeleted = true.
         **Common Errors:**
-        - 403 (cannot delete self or out of scope)
+        - 403 Forbidden (managing self or outside scope)
         - 404 Not Found
       parameters:
       - description: Staff user ID
@@ -3191,10 +4269,9 @@ paths:
       description: |-
         Get a staff profile scoped to the admin's hospital.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Target user must belong to the same hospital.
         **Common Errors:**
-        - 400 Invalid ID format
-        - 403 (out of scope)
+        - 400 Invalid ID
+        - 403 Forbidden (trying to access staff from another hospital)
         - 404 Not Found
       parameters:
       - description: Staff user ID
@@ -3226,6 +4303,138 @@ paths:
       summary: Get staff by ID (Hospital Admin)
       tags:
       - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff/{id}/activation:
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Toggle staff active status within the same hospital scope.
+        **Roles:** HOSPITAL_ADMIN
+        **State Transition:** User.IsActive toggled.
+        **Common Errors:**
+        - 403 Forbidden (managing self or outside scope)
+      parameters:
+      - description: Staff user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Activation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminSetStaffActiveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate or deactivate staff (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff/{id}/department:
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Update staff department within the same hospital scope.
+        **Roles:** HOSPITAL_ADMIN
+        **State Transition:** User.DepartmentID updated.
+        **Common Errors:**
+        - 400 Invalid department
+        - 403 Forbidden (outside scope)
+      parameters:
+      - description: Staff user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Department reassignment payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.HospitalAdminReassignDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reassign staff department (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff/{id}/force-logout:
+    post:
+      description: |-
+        Revoke active sessions for a staff user within hospital scope.
+        **Roles:** HOSPITAL_ADMIN
+        **State Transition:** All active sessions for the user are blacklisted/deleted.
+        **Common Errors:**
+        - 403 Forbidden (managing self or outside scope)
+        - 404 Not Found
+      parameters:
+      - description: Staff user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HospitalAdminForceLogoutResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Force logout staff (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}/replace:
     post:
       consumes:
@@ -3233,11 +4442,11 @@ paths:
       description: |-
         In-place replacement updates identity and password while keeping the same user ID.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Target user must belong to the same hospital.
+        **Prerequisites:** Staff member must be in the same hospital.
+        **State Transition:** User profile (name, email) and credentials updated.
         **Common Errors:**
-        - 400 invalid input
-        - 403 (out of scope)
-        - 409 (conflict)
+        - 403 Forbidden (managing self or outside scope)
+        - 409 Conflict (email exists)
       parameters:
       - description: Staff user ID
         in: path
@@ -3285,10 +4494,10 @@ paths:
       description: |-
         Update the role of a staff user within the same hospital scope.
         **Roles:** HOSPITAL_ADMIN
-        **Prerequisites:** Target user must belong to the same hospital.
+        **State Transition:** User.Role updated.
         **Common Errors:**
-        - 400 invalid role or input
-        - 403 (out of scope)
+        - 400 Invalid role
+        - 403 Forbidden (managing self or outside scope)
       parameters:
       - description: Staff user ID
         in: path
@@ -3323,6 +4532,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Change staff role (Hospital Admin)
+      tags:
+      - Hospital Admin - Staff Management
+  /api/v1/hospital-admin/staff/sessions:
+    get:
+      description: |-
+        View active sessions for hospital staff, optionally filtered by staff ID.
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Hospital scoped sessions.
+        **Common Errors:**
+        - 403 Forbidden
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Staff user ID filter
+        in: query
+        name: staff_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HospitalAdminSessionListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List active staff sessions (Hospital Admin)
       tags:
       - Hospital Admin - Staff Management
   /api/v1/hospitals:
@@ -5455,10 +6707,11 @@ paths:
       description: |-
         Get a global paginated list of all referrals with optional status filtering.
         **Roles:** SYSTEM_SUPER_ADMIN
-        **Visibility:** Global access to all referrals in the database.
+        **Visibility:** Global - across all hospitals and departments.
         **Common Errors:**
+        - 400 Invalid status
         - 401 Unauthorized
-        - 403 Forbidden (not super admin)
+        - 500 Internal Server Error
       parameters:
       - default: 20
         description: Pagination limit
