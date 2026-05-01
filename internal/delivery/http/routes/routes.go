@@ -112,7 +112,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase)
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase)
-	adminHandler := handlers.NewAdminHandler(referralUseCase)
+	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
 	hospitalAdminOpsHandler := handlers.NewHospitalAdminOperationsHandler(userUseCase, hospitalUseCase, departmentUseCase)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase)
