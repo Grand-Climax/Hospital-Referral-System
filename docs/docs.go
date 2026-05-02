@@ -7114,12 +7114,12 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 2,
-                    "example": "Kebede"
+                    "example": "Balcha"
                 },
                 "middle_name": {
                     "description": "Optional Fields",
                     "type": "string",
-                    "example": "Tilahun"
+                    "example": "Kebede"
                 },
                 "national_id": {
                     "description": "Optional Primary ID",
@@ -7195,7 +7195,7 @@ const docTemplate = `{
                 },
                 "liaison_officer_id": {
                     "type": "string",
-                    "example": "42b00780-6bd7-4919-ad05-dfaa060a319d"
+                    "example": "d1000000-0000-0000-0000-000000000002"
                 },
                 "medication_on_transfer": {
                     "type": "string",
@@ -7212,7 +7212,7 @@ const docTemplate = `{
                 "patient_id": {
                     "description": "Patient Logic",
                     "type": "string",
-                    "example": "912b4375-2295-41bb-8ffd-c8318e9c051f"
+                    "example": "e0000000-0000-0000-0000-000000000001"
                 },
                 "physical_examination_findings": {
                     "type": "string",
@@ -7237,12 +7237,12 @@ const docTemplate = `{
                 },
                 "target_dept_id": {
                     "type": "string",
-                    "example": "23fdcea4-074f-4c6b-8fe8-400da55df997"
+                    "example": "b5000000-0000-0000-0000-000000000005"
                 },
                 "target_hospital_id": {
                     "description": "Routing Information",
                     "type": "string",
-                    "example": "c9020345-5e41-42d6-9a66-c8d4557519ff"
+                    "example": "a3000000-0000-0000-0000-000000000003"
                 },
                 "treatment_given_before_referral": {
                     "type": "string",
@@ -7356,7 +7356,7 @@ const docTemplate = `{
                 },
                 "icd_code": {
                     "type": "string",
-                    "example": "I10"
+                    "example": "J18.9"
                 },
                 "is_primary": {
                     "type": "boolean",
@@ -7420,7 +7420,7 @@ const docTemplate = `{
             "properties": {
                 "staff_id": {
                     "type": "string",
-                    "example": "711fd40a-1083-4445-b5bd-aaa2c113de20"
+                    "example": "d3000000-0000-0000-0000-000000000003"
                 }
             }
         },
@@ -7453,7 +7453,7 @@ const docTemplate = `{
             "properties": {
                 "department_id": {
                     "type": "string",
-                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
+                    "example": "b5000000-0000-0000-0000-000000000005"
                 },
                 "email": {
                     "type": "string",
@@ -7517,7 +7517,7 @@ const docTemplate = `{
                 },
                 "department_id": {
                     "type": "string",
-                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
+                    "example": "b5000000-0000-0000-0000-000000000005"
                 }
             }
         },
@@ -7526,7 +7526,7 @@ const docTemplate = `{
             "properties": {
                 "department_id": {
                     "type": "string",
-                    "example": "dfc2b777-a5d5-424b-911a-976b2e8d8614"
+                    "example": "b5000000-0000-0000-0000-000000000005"
                 }
             }
         },
@@ -8596,7 +8596,7 @@ const docTemplate = `{
                 },
                 "liaison_officer_id": {
                     "type": "string",
-                    "example": "42b00780-6bd7-4919-ad05-dfaa060a319d"
+                    "example": "d1000000-0000-0000-0000-000000000002"
                 },
                 "medication_on_transfer": {
                     "type": "string",
@@ -8613,7 +8613,7 @@ const docTemplate = `{
                 "patient_id": {
                     "description": "Patient ID cannot be changed in update usually, but we'll include it for consistency or restrict if needed.\nFor now, mirroring Create except Status.",
                     "type": "string",
-                    "example": "912b4375-2295-41bb-8ffd-c8318e9c051f"
+                    "example": "e0000000-0000-0000-0000-000000000001"
                 },
                 "physical_examination_findings": {
                     "type": "string",
@@ -8629,12 +8629,12 @@ const docTemplate = `{
                 },
                 "target_dept_id": {
                     "type": "string",
-                    "example": "23fdcea4-074f-4c6b-8fe8-400da55df997"
+                    "example": "b5000000-0000-0000-0000-000000000005"
                 },
                 "target_hospital_id": {
                     "description": "Routing Information",
                     "type": "string",
-                    "example": "c9020345-5e41-42d6-9a66-c8d4557519ff"
+                    "example": "a3000000-0000-0000-0000-000000000003"
                 },
                 "treatment_given_before_referral": {
                     "type": "string",

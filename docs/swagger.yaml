@@ -227,13 +227,13 @@ definitions:
         example: Addis Ababa
         type: string
       last_name:
-        example: Kebede
+        example: Balcha
         maxLength: 100
         minLength: 2
         type: string
       middle_name:
         description: Optional Fields
-        example: Tilahun
+        example: Kebede
         type: string
       national_id:
         description: Optional Primary ID
@@ -290,7 +290,7 @@ definitions:
         example: ECG shows ST elevation
         type: string
       liaison_officer_id:
-        example: 42b00780-6bd7-4919-ad05-dfaa060a319d
+        example: d1000000-0000-0000-0000-000000000002
         type: string
       medication_on_transfer:
         example: IV Nitroglycerin
@@ -303,7 +303,7 @@ definitions:
         type: string
       patient_id:
         description: Patient Logic
-        example: 912b4375-2295-41bb-8ffd-c8318e9c051f
+        example: e0000000-0000-0000-0000-000000000001
         type: string
       physical_examination_findings:
         example: BP 180/110, HR 105
@@ -322,11 +322,11 @@ definitions:
         example: SUBMITTED
         type: string
       target_dept_id:
-        example: 23fdcea4-074f-4c6b-8fe8-400da55df997
+        example: b5000000-0000-0000-0000-000000000005
         type: string
       target_hospital_id:
         description: Routing Information
-        example: c9020345-5e41-42d6-9a66-c8d4557519ff
+        example: a3000000-0000-0000-0000-000000000003
         type: string
       treatment_given_before_referral:
         example: Aspirin 300mg
@@ -404,7 +404,7 @@ definitions:
         example: SUSPECTED
         type: string
       icd_code:
-        example: I10
+        example: J18.9
         type: string
       is_primary:
         example: true
@@ -448,7 +448,7 @@ definitions:
   dto.HospitalAdminAssignDepartmentHeadRequest:
     properties:
       staff_id:
-        example: 711fd40a-1083-4445-b5bd-aaa2c113de20
+        example: d3000000-0000-0000-0000-000000000003
         type: string
     required:
     - staff_id
@@ -465,7 +465,7 @@ definitions:
   dto.HospitalAdminCreateStaffRequest:
     properties:
       department_id:
-        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        example: b5000000-0000-0000-0000-000000000005
         type: string
       email:
         example: staff@hospital.et
@@ -514,7 +514,7 @@ definitions:
         example: 20
         type: integer
       department_id:
-        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        example: b5000000-0000-0000-0000-000000000005
         type: string
     required:
     - department_id
@@ -522,7 +522,7 @@ definitions:
   dto.HospitalAdminReassignDepartmentRequest:
     properties:
       department_id:
-        example: dfc2b777-a5d5-424b-911a-976b2e8d8614
+        example: b5000000-0000-0000-0000-000000000005
         type: string
     type: object
   dto.HospitalAdminReplaceStaffRequest:
@@ -1239,7 +1239,7 @@ definitions:
         example: ECG shows ST elevation
         type: string
       liaison_officer_id:
-        example: 42b00780-6bd7-4919-ad05-dfaa060a319d
+        example: d1000000-0000-0000-0000-000000000002
         type: string
       medication_on_transfer:
         example: IV Nitroglycerin
@@ -1254,7 +1254,7 @@ definitions:
         description: |-
           Patient ID cannot be changed in update usually, but we'll include it for consistency or restrict if needed.
           For now, mirroring Create except Status.
-        example: 912b4375-2295-41bb-8ffd-c8318e9c051f
+        example: e0000000-0000-0000-0000-000000000001
         type: string
       physical_examination_findings:
         example: BP 180/110, HR 105
@@ -1266,11 +1266,11 @@ definitions:
         example: Requires immediate cardiological intervention
         type: string
       target_dept_id:
-        example: 23fdcea4-074f-4c6b-8fe8-400da55df997
+        example: b5000000-0000-0000-0000-000000000005
         type: string
       target_hospital_id:
         description: Routing Information
-        example: c9020345-5e41-42d6-9a66-c8d4557519ff
+        example: a3000000-0000-0000-0000-000000000003
         type: string
       treatment_given_before_referral:
         example: Aspirin 300mg
