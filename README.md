@@ -69,6 +69,17 @@ REDIS_URL=localhost:6379
 # Security
 JWT_SECRET=your_super_secret_key_here
 PORT=8081
+
+# Storage (Cloudinary)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# SMS (AfroMessage)
+AFROMESSAGE_API_KEY=your_afromessage_key
+AFROMESSAGE_SENDER_NAME=your_sender_name
+AFROMESSAGE_IDENTIFIER_ID=your_id
+AFROMESSAGE_BASE_URL=https://api.afromessage.com
 ```
 
 ### 3. Infrastructure (Redis)
