@@ -7,7 +7,7 @@ type HospitalAdminUpdateHospitalProfileRequest struct {
 }
 
 type HospitalAdminLinkDepartmentRequest struct {
-	DepartmentID string `json:"department_id" binding:"required" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	DepartmentID string `json:"department_id" binding:"required" example:"b5000000-0000-0000-0000-000000000005"`
 	DailyLimit   int    `json:"daily_limit" example:"20"`
 }
 
@@ -16,5 +16,5 @@ type HospitalAdminSetDepartmentActiveRequest struct {
 }
 
 type HospitalAdminAssignDepartmentHeadRequest struct {
-	StaffID string `json:"staff_id" binding:"required" example:"711fd40a-1083-4445-b5bd-aaa2c113de20"`
+	StaffID string `json:"staff_id" binding:"required" example:"d3000000-0000-0000-0000-000000000003"`
 }

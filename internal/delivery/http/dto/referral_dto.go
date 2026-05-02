@@ -12,12 +12,12 @@ type CreateReferralRequest struct {
 	ID *uuid.UUID `json:"id" binding:"omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 
 	// Patient Logic
-	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"912b4375-2295-41bb-8ffd-c8318e9c051f"`
+	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"e0000000-0000-0000-0000-000000000001"`
 
 	// Routing Information
-	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"c9020345-5e41-42d6-9a66-c8d4557519ff"`
-	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"23fdcea4-074f-4c6b-8fe8-400da55df997"`
-	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id,omitempty" binding:"required" example:"42b00780-6bd7-4919-ad05-dfaa060a319d"`
+	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"a3000000-0000-0000-0000-000000000003"`
+	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"b5000000-0000-0000-0000-000000000005"`
+	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id,omitempty" binding:"required" example:"d1000000-0000-0000-0000-000000000002"`
 
 	// Annex IV Clinical Data
 	ClinicalSummary              string  `json:"clinical_summary" example:"Patient complains of severe chest pain for 2 hours"`
@@ -48,12 +48,12 @@ type CreateReferralRequest struct {
 type UpdateReferralRequest struct {
 	// Patient ID cannot be changed in update usually, but we'll include it for consistency or restrict if needed.
 	// For now, mirroring Create except Status.
-	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"912b4375-2295-41bb-8ffd-c8318e9c051f"`
+	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"e0000000-0000-0000-0000-000000000001"`
 
 	// Routing Information
-	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"c9020345-5e41-42d6-9a66-c8d4557519ff"`
-	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"23fdcea4-074f-4c6b-8fe8-400da55df997"`
-	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id,omitempty" binding:"required" example:"42b00780-6bd7-4919-ad05-dfaa060a319d"`
+	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"a3000000-0000-0000-0000-000000000003"`
+	TargetDeptID     uuid.UUID  `json:"target_dept_id" binding:"required" example:"b5000000-0000-0000-0000-000000000005"`
+	LiaisonOfficerID *uuid.UUID `json:"liaison_officer_id,omitempty" binding:"required" example:"d1000000-0000-0000-0000-000000000002"`
 
 	// Annex IV Clinical Data
 	ClinicalSummary              string  `json:"clinical_summary" example:"Patient complains of severe chest pain for 2 hours"`
@@ -79,7 +79,7 @@ type UpdateReferralRequest struct {
 }
 
 type DiagnosisDTO struct {
-	ICDCode            string `json:"icd_code" binding:"required" example:"I10"`
+	ICDCode            string `json:"icd_code" binding:"required" example:"J18.9"`
 	IsPrimary          bool   `json:"is_primary" example:"true"`
 	DiagnosisCertainty string `json:"diagnosis_certainty" binding:"required,oneof=CONFIRMED SUSPECTED SYMPTOM_ONLY" example:"SUSPECTED"`
 }

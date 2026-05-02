@@ -10,7 +10,7 @@ type HospitalAdminCreateStaffRequest struct {
 	LastName     string          `json:"last_name" binding:"required" example:"Molla"`
 	NationalID   string          `json:"national_id" example:"ETH-0001"`
 	Role         entity.UserRole `json:"role" binding:"required" example:"LIAISON_OFFICER"`
-	DepartmentID *string         `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	DepartmentID *string         `json:"department_id" example:"b5000000-0000-0000-0000-000000000005"`
 }
 
 type HospitalAdminChangeRoleRequest struct {
@@ -31,7 +31,7 @@ type HospitalAdminSetStaffActiveRequest struct {
 }
 
 type HospitalAdminReassignDepartmentRequest struct {
-	DepartmentID *string `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	DepartmentID *string `json:"department_id" example:"b5000000-0000-0000-0000-000000000005"`
 }
 
 type HospitalAdminSessionResponse struct {
