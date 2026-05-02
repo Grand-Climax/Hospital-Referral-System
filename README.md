@@ -33,12 +33,14 @@ At its heart, the system manages a robust **Referral State Machine**:
 - **📡 Multi-Hospital Networking**: Intelligent routing of referrals between Tertiary, General, and Primary healthcare tiers.
 - **💾 Attachment Handling**: Support for medical documents, images, and DICOM files linked to clinical cases.
 - **📊 Real-time Audit**: Immutable logs capturing WHO, WHAT, and WHEN for every critical system interaction.
+- **🧠 ML-Powered Triage**: Integration-ready structures for machine learning predictions on patient severity and scheduling urgency.
+- **📅 Dynamic Capacity**: Automated scheduling service with configurable buffers, aging factors, and overbook management.
 
 ---
 
 ## 🛠️ Technical Stack
 
-- **Lanuage**: Go (Golang) for high-concurrency performance.
+- **Language**: Go (Golang) for high-concurrency performance.
 - **Framework**: [Gin Gonic](https://gin-gonic.com/) for high-performance HTTP routing.
 - **Persistence**: [PostgreSQL](https://www.postgresql.org/) managed via [GORM](https://gorm.io/).
 - **Caching**: [Redis](https://redis.io/) for session management, logout blacklisting, and rate limiting.
@@ -52,7 +54,7 @@ At its heart, the system manages a robust **Referral State Machine**:
 ### 1. Prerequisites
 - **Go** (1.20+)
 - **PostgreSQL** (Active instance)
-- **Docker** (Recommended for Redis)
+- **Redis** (Active instance)
 
 ### 2. Environment Configuration
 Configure your local environment by creating a `.env` file at the project root:
@@ -98,11 +100,15 @@ go run cmd/server/main.go
 
 ## 🧪 Development & Quality
 
-### Integration Test Suite
+### Integration & E2E Test Suite
 The project maintains a professional test suite covering complex State Machine transitions and Auth flows:
 
 ```bash
+# Run unit & integration tests
 go test ./test -v -count=1
+
+# Run comprehensive E2E suite (Server must be running)
+go run scratch/run_e2e_tests_v2/run_e2e_tests_v2.go
 ```
 
 ### API Exploration (Swagger)
@@ -118,17 +124,45 @@ swag init -g cmd/server/main.go --output docs
 
 ## 🔑 Pre-configured Test Accounts
 
-| Role | Email | Use Case |
-| :--- | :--- | :--- |
-| **Referring Doctor** | `doc.primary@hospital.et` | Initiate referrals |
-| **Specialist** | `specialist.cardio@hospital.et` | Review/Accept cases |
-| **Receptionist** | `reception.primary@hospital.et` | Confirm patient arrival |
-| **Liaison Officer** | `liaison@moh.gov.et` | Oversee regional routing |
-| **Hospital Admin** | `admin.specialized@hospital.et` | Manage hospital resources |
-| **MoH Analyst** | `analyst@moh.gov.et` | View global statistics |
-| **System Admin** | `superadmin@moh.gov.et` | Global configuration |
+All accounts use the default password: **`password123`**
 
-*Default password for all accounts: **`password123`***
+### 🌍 System Global
+| Role | Email | Name |
+| :--- | :--- | :--- |
+| **Super Admin** | `superadmin@moh.gov.et` | System Super Admin |
+| **MoH Analyst** | `analyst@moh.gov.et` | MoH Analyst |
+
+### 🏥 Tikur Anbessa Specialized Hospital
+| Role | Email | Name |
+| :--- | :--- | :--- |
+| **Referring Doctor** | `doctor.ta@hospital.et` | Alemayehu Doctor |
+| **Referring Doctor** | `doc.primary@hospital.et` | Primary Doc |
+| **Liaison Officer** | `liaison.ta@hospital.et` | Sara Liaison |
+| **Liaison Officer** | `liaison@moh.gov.et` | MoH Liaison |
+| **Specialist** | `specialist.ta@hospital.et` | Yohannes Specialist |
+| **Specialist** | `specialist.cardio@hospital.et` | Cardio Specialist |
+| **Receptionist** | `reception.ta@hospital.et` | Aster Receptionist |
+| **Receptionist** | `reception.primary@hospital.et` | Primary Reception |
+| **Dept Head** | `depthead.ta@hospital.et` | Genet Dept Head |
+
+### 🏥 St. Paul's Hospital (SPHMMC)
+| Role | Email | Name |
+| :--- | :--- | :--- |
+| **Hospital Admin** | `admin.specialized@hospital.et` | Hospital Admin |
+| **Referring Doctor** | `doctor.sp@hospital.et` | Tesfaye Doctor |
+| **Liaison Officer** | `liaison.sp@hospital.et` | Liaison SP |
+| **Specialist** | `specialist.sp@hospital.et` | Kidist Specialist |
+| **Receptionist** | `reception.sp@hospital.et` | Etagegn Receptionist |
+| **Dept Head** | `depthead.sp@hospital.et` | Henok Dept Head |
+
+### 🏥 Black Lion Hospital
+| Role | Email | Name |
+| :--- | :--- | :--- |
+| **Referring Doctor** | `doctor.bl@hospital.et` | Doctor BL |
+| **Liaison Officer** | `liaison.bl@hospital.et` | Liaison BL |
+| **Specialist** | `specialist.bl@hospital.et` | Martha Specialist |
+| **Receptionist** | `reception.bl@hospital.et` | Frehiwot Receptionist |
+| **Dept Head** | `depthead.bl@hospital.et` | Head BL |
 
 ---
 
@@ -137,12 +171,14 @@ swag init -g cmd/server/main.go --output docs
 ```text
 ├── cmd/                # Entry points (server, seeder)
 ├── internal/           # Private application code
-│   ├── delivery/       # HTTP handlers and routes
+│   ├── delivery/       # HTTP handlers, DTOs, and routes
 │   ├── domain/         # Entities and interfaces
-│   ├── infrastructure/ # DB, Redis, Middleware
+│   ├── infrastructure/ # DB, Redis, Caching, Middleware, Storage
 │   ├── repository/     # Data persistence logic
+│   ├── seeds/          # Database seeders
 │   └── usecase/        # Business logic orchestration
 ├── pkg/                # Reusable public packages
 ├── docs/               # Auto-generated Swagger docs
-└── test/               # Integration & E2E tests
+├── test/               # Integration tests
+└── scratch/            # Utility scripts and E2E runs
 ```
