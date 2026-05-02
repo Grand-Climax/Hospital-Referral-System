@@ -12,11 +12,11 @@ type CreatePatientRequest struct {
 	// Required fields
 	PhoneNumber string     `json:"phone_number" binding:"required,e164"          example:"+251911000001"`
 	FirstName   string     `json:"first_name"   binding:"required,min=2,max=100" example:"Abebe"`
-	LastName    string     `json:"last_name"    binding:"required,min=2,max=100" example:"Kebede"`
+	LastName    string     `json:"last_name"    binding:"required,min=2,max=100" example:"Balcha"`
 	Sex         string     `json:"sex"          binding:"required,oneof=male female unknown" example:"male"`
 
 	// Optional Fields
-	MiddleName  string     `json:"middle_name"                                            example:"Tilahun"`
+	MiddleName  string     `json:"middle_name"                                            example:"Kebede"`
 	DateOfBirth *time.Time `json:"date_of_birth"`
 	HomeRegion  string     `json:"home_region"                                            example:"Addis Ababa"`
 }
