@@ -400,6 +400,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				entity.RoleLiaisonOfficer,
 				entity.RoleReceptionist,
 				entity.RoleMohAnalyst,
+				entity.RoleDeptHead,
 			))
 			{
 				userAccesses.GET("/me", userHandler.GetMyProfile)
