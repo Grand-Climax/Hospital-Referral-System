@@ -2765,6 +2765,44 @@ paths:
       summary: Run Batch Scheduling
       tags:
       - Department Head
+  /api/v1/department-head/triage-queue:
+    get:
+      description: |-
+        Returns triage queue entries scoped to the authenticated department head's hospital and department.
+        **Roles:** DEPT_HEAD
+        **Visibility:** Department-scoped queue only.
+      parameters:
+      - default: 50
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get department triage queue
+      tags:
+      - Department Head
   /api/v1/departments:
     get:
       description: |-
@@ -5679,6 +5717,7 @@ paths:
     get:
       description: |-
         Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.
+        **Access Scope:** Receptionists can view scheduled/operational queue items only; full triage prioritization queue is restricted to RECEIVING_SPECIALIST and DEPT_HEAD roles.
         **Roles:** RECEPTIONIST
         **Common Errors:**
         - 401 Unauthorized
@@ -6276,7 +6315,6 @@ paths:
         name: request
         schema:
           additionalProperties:
-            format: float64
             type: number
           type: object
       produces:

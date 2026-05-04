@@ -33,7 +33,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 
 	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC)
 	scheduleHandler := handlers.NewScheduleHandler(mockCapacityUC)
-	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC)
+	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC, mockTriageUC)
 	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC)
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
 	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC) // notifUC not needed for this test

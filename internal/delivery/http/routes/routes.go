@@ -115,7 +115,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
 	hospitalAdminOpsHandler := handlers.NewHospitalAdminOperationsHandler(userUseCase, hospitalUseCase, departmentUseCase)
-	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase)
+	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase, triageUseCase)
 
 	refHandler := handlers.NewReferenceHandler(refUseCase)
 	netHandler := handlers.NewNetworkHandler(netUseCase)
@@ -363,6 +363,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			deptHeadGroup := protected.Group("/department-head")
 			deptHeadGroup.Use(middleware.RequireRole(entity.RoleDeptHead))
 			{
+				deptHeadGroup.GET("/triage-queue", deptHeadHandler.GetTriageQueue)
+
 				// Capacity Overrides
 				deptHeadGroup.GET("/capacity/overrides", deptHeadHandler.ListOverrides)
 				deptHeadGroup.POST("/capacity/overrides", deptHeadHandler.CreateOverride)
@@ -387,7 +389,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			protected.POST("/referrals/:id/verify-attachments", attachmentHandler.ManualVerifyReferralAttachments)
 			protected.GET("/referrals/:id/attachments", attachmentHandler.GetReferralAttachments)
 			protected.DELETE("/referrals/:id/attachments/:attachment_id", attachmentHandler.DeleteFromReferral)
-
 
 			// ---- User Management ----
 			// Profile & Global Reference Lookup – accessible by clinical/hospital/analyst roles

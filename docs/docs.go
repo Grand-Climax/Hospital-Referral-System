@@ -892,6 +892,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/department-head/triage-queue": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns triage queue entries scoped to the authenticated department head's hospital and department.\n**Roles:** DEPT_HEAD\n**Visibility:** Department-scoped queue only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Get department triage queue",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/departments": {
             "get": {
                 "security": [
@@ -4543,7 +4597,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.\n**Roles:** RECEPTIONIST\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.\n**Access Scope:** Receptionists can view scheduled/operational queue items only; full triage prioritization queue is restricted to RECEIVING_SPECIALIST and DEPT_HEAD roles.\n**Roles:** RECEPTIONIST\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -5631,8 +5685,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number",
-                                "format": "float64"
+                                "type": "number"
                             }
                         }
                     }

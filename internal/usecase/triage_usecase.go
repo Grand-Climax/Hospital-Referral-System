@@ -134,6 +134,38 @@ func (u *triageUseCase) ListForTriage(ctx context.Context, hospitalID uuid.UUID,
 	return resp, count, nil
 }
 
+func (u *triageUseCase) ListForTriageByDepartment(ctx context.Context, hospitalID, deptID uuid.UUID, limit, offset int) ([]dto.TriageListResponse, int64, error) {
+	queues, count, err := u.triageRepo.FindByHospitalAndDept(ctx, hospitalID, deptID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	resp := make([]dto.TriageListResponse, 0, len(queues))
+	for _, q := range queues {
+		ref, _ := u.referralRepo.GetReferralByID(ctx, q.ReferralID)
+		name := "Unknown"
+		targetDept := deptID.String()
+		if ref != nil {
+			if ref.Patient != nil {
+				name = fmt.Sprintf("%s %s", ref.Patient.FirstName, ref.Patient.LastName)
+			}
+			targetDept = ref.TargetDeptID.String()
+		}
+		resp = append(resp, dto.TriageListResponse{
+			QueueID:         q.ID,
+			ReferralID:      q.ReferralID,
+			PatientName:     name,
+			TargetDept:      targetDept,
+			CompositeScore:  q.CompositeScore,
+			QueueStatus:     string(q.QueueStatus),
+			ArrivalBoost:    float64(q.ArrivalBoost),
+			AppointmentDate: q.AppointmentDate,
+		})
+	}
+
+	return resp, count, nil
+}
+
 func (u *triageUseCase) ReviewTriage(ctx context.Context, referralID, userID uuid.UUID, req dto.TriageReviewRequest) error {
 	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
 	if err != nil {
