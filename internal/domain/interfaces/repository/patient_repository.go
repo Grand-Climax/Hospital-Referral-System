@@ -8,7 +8,6 @@ import (
 
 type PatientRepository interface {
 	BaseRepository[entity.Patient]
-	FindByNationalID(ctx context.Context, nationalID string) (*entity.Patient, error)
-	SearchPatients(ctx context.Context, query string) ([]entity.Patient, error)
-	FindByPhoneAndName(ctx context.Context, phone, firstName string) (*entity.Patient, error)
+	FindByNationalIDHash(ctx context.Context, hash string) (*entity.Patient, error)
+	FindByPhoneHash(ctx context.Context, hash string) (*entity.Patient, error)
 }

@@ -1630,6 +1630,7 @@ definitions:
       date_of_birth:
         type: string
       first_name:
+        description: Transient fields for plaintext data
         type: string
       home_region:
         type: string
@@ -1638,6 +1639,8 @@ definitions:
       last_name:
         type: string
       middle_name:
+        type: string
+      national_id:
         type: string
       phone_number:
         type: string
@@ -5387,7 +5390,7 @@ paths:
   /api/v1/patients/lookup:
     get:
       description: |-
-        Intelligent secure search by strictly providing National ID OR (Phone + First Name).
+        Intelligent secure search by strictly providing National ID OR Phone Number.
         **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
         **Common Errors:**
         - 400 invalid query parameters
@@ -5400,10 +5403,6 @@ paths:
       - description: Phone Number (E.164)
         in: query
         name: phone_number
-        type: string
-      - description: First Name
-        in: query
-        name: first_name
         type: string
       produces:
       - application/json

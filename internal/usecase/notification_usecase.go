@@ -11,6 +11,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/infrastructure/crypto"
 	"Hospital-Referral-System/internal/infrastructure/sms"
 )
 
@@ -19,6 +20,7 @@ type notificationUseCase struct {
 	notificationRepo irepository.NotificationRepository
 	triageRepo       irepository.TriageQueueRepository
 	smsClient        sms.SMSClient
+	cryptoSvc        *crypto.PatientCryptoService
 }
 
 func NewNotificationUseCase(
@@ -26,12 +28,14 @@ func NewNotificationUseCase(
 	nRepo irepository.NotificationRepository,
 	tRepo irepository.TriageQueueRepository,
 	smsClient sms.SMSClient,
+	cryptoSvc *crypto.PatientCryptoService,
 ) iusecase.NotificationUseCase {
 	return &notificationUseCase{
 		referralRepo:     rRepo,
 		notificationRepo: nRepo,
 		triageRepo:       tRepo,
 		smsClient:        smsClient,
+		cryptoSvc:        cryptoSvc,
 	}
 }
 
@@ -52,8 +56,9 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 	}
 
 	recipient := ""
-	if ref.Patient.PhoneNumber != nil {
-		recipient = *ref.Patient.PhoneNumber
+	if ref.Patient != nil {
+		_ = ref.Patient.DecryptFields(u.cryptoSvc)
+		recipient = ref.Patient.PhonePlain
 	}
 
 	if recipient == "" {

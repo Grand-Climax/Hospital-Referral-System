@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -10,7 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/config"
-	"Hospital-Referral-System/internal/infrastructure/seeder_deprecated"
+	"Hospital-Referral-System/internal/seeds"
 )
 
 func main() {
@@ -28,10 +27,9 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	ctx := context.Background()
 	log.Println("Connected to internal database...")
 
-	if err := seeder.SeedReferenceData(ctx, db); err != nil {
+	if err := seeds.SeedAll(db); err != nil {
 		log.Fatalf("Seeding failed: %v", err)
 	}
 

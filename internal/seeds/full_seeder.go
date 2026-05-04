@@ -3,6 +3,7 @@ package seeds
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"Hospital-Referral-System/internal/domain/entity"
+	"Hospital-Referral-System/internal/infrastructure/crypto"
 )
 
 func generateHash(password string) string {
@@ -298,17 +300,49 @@ func seedPatients(ctx context.Context, db *gorm.DB) error {
 	phone := "+251911234567"
 	dob1, _ := time.Parse("2006-01-02", "1985-01-01")
 
+	// Initialize Crypto Service
+	aesKey := os.Getenv("PATIENT_AES_KEY")
+	hmacKey := os.Getenv("PATIENT_HMAC_KEY")
+
+	if aesKey == "" {
+		aesKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+	}
+	if hmacKey == "" {
+		hmacKey = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+	}
+
+	cryptoSvc, err := crypto.NewPatientCryptoService(aesKey, hmacKey)
+	if err != nil {
+		return err
+	}
+
+	// Helper to encrypt
+	encryptStr := func(s string) string {
+		enc, _ := cryptoSvc.Encrypt([]byte(s))
+		return enc
+	}
+	encryptPhone := func(s string) *string {
+		norm, _ := crypto.NormalizePhone(s)
+		enc, _ := cryptoSvc.Encrypt([]byte(norm))
+		return &enc
+	}
+	hashPhone := func(s string) *string {
+		norm, _ := crypto.NormalizePhone(s)
+		h := cryptoSvc.GenerateHMAC(norm)
+		return &h
+	}
+
 	patients := []entity.Patient{
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000001"), FirstName: "Abebe", MiddleName: "Kebede", LastName: "Balcha", Sex: "male", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000002"), FirstName: "Meseret", MiddleName: "Tesfaye", LastName: "Gebre", Sex: "female", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000003"), FirstName: "Dawit", MiddleName: "Haile", LastName: "Mengistu", Sex: "male", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000004"), FirstName: "Tigist", MiddleName: "Belay", LastName: "Negash", Sex: "female", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000005"), FirstName: "Bereket", MiddleName: "Alemayehu", LastName: "Tekle", Sex: "male", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000006"), FirstName: "Hiwot", MiddleName: "Mekonnen", LastName: "Asrat", Sex: "female", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000007"), FirstName: "Yonas", MiddleName: "Girma", LastName: "Tadesse", Sex: "male", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000008"), FirstName: "Meron", MiddleName: "Dereje", LastName: "Worku", Sex: "female", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000009"), FirstName: "Henok", MiddleName: "Teshome", LastName: "Abate", Sex: "male", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000010"), FirstName: "Selam", MiddleName: "Yohannes", LastName: "Fikre", Sex: "female", DateOfBirth: &dob1, PhoneNumber: &phone, AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000001"), FirstNameEnc: encryptStr("Abebe"), MiddleNameEnc: encryptStr("Kebede"), LastNameEnc: encryptStr("Balcha"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000002"), FirstNameEnc: encryptStr("Meseret"), MiddleNameEnc: encryptStr("Tesfaye"), LastNameEnc: encryptStr("Gebre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000003"), FirstNameEnc: encryptStr("Dawit"), MiddleNameEnc: encryptStr("Haile"), LastNameEnc: encryptStr("Mengistu"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000004"), FirstNameEnc: encryptStr("Tigist"), MiddleNameEnc: encryptStr("Belay"), LastNameEnc: encryptStr("Negash"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000005"), FirstNameEnc: encryptStr("Bereket"), MiddleNameEnc: encryptStr("Alemayehu"), LastNameEnc: encryptStr("Tekle"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000006"), FirstNameEnc: encryptStr("Hiwot"), MiddleNameEnc: encryptStr("Mekonnen"), LastNameEnc: encryptStr("Asrat"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000007"), FirstNameEnc: encryptStr("Yonas"), MiddleNameEnc: encryptStr("Girma"), LastNameEnc: encryptStr("Tadesse"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000008"), FirstNameEnc: encryptStr("Meron"), MiddleNameEnc: encryptStr("Dereje"), LastNameEnc: encryptStr("Worku"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000009"), FirstNameEnc: encryptStr("Henok"), MiddleNameEnc: encryptStr("Teshome"), LastNameEnc: encryptStr("Abate"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000010"), FirstNameEnc: encryptStr("Selam"), MiddleNameEnc: encryptStr("Yohannes"), LastNameEnc: encryptStr("Fikre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
 	}
 
 	for _, p := range patients {

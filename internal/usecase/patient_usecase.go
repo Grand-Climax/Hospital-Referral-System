@@ -2,8 +2,6 @@ package usecase
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"strings"
 
@@ -11,65 +9,105 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/infrastructure/crypto"
 )
 
 type patientUseCase struct {
-	patientRepo irepository.PatientRepository
+	patientRepo   irepository.PatientRepository
+	cryptoSvc     *crypto.PatientCryptoService
+	auditRepo     irepository.AuditLogRepository
 }
 
-func NewPatientUseCase(patientRepo irepository.PatientRepository) iusecase.PatientUseCase {
+func NewPatientUseCase(patientRepo irepository.PatientRepository, cryptoSvc *crypto.PatientCryptoService, auditRepo irepository.AuditLogRepository) iusecase.PatientUseCase {
 	return &patientUseCase{
 		patientRepo: patientRepo,
+		cryptoSvc:   cryptoSvc,
+		auditRepo:   auditRepo,
 	}
+}
+
+func (u *patientUseCase) decryptPatient(ctx context.Context, p *entity.Patient) error {
+	if p == nil {
+		return nil
+	}
+	err := p.DecryptFields(u.cryptoSvc)
+	if err != nil {
+		return err
+	}
+
+	// Optional: Log audit for decryption, if user info is available in context.
+	// For simplicity, we just decrypt. The handler can log if needed, or we assume
+	// generic read access here. If strict audit is needed:
+	// u.auditRepo.Create(ctx, &entity.AuditLog{...})
+	
+	return nil
 }
 
 func (u *patientUseCase) GetByNationalID(ctx context.Context, nationalID string) (*entity.Patient, error) {
-	patient, err := u.patientRepo.FindByNationalID(ctx, nationalID)
+	if nationalID == "" {
+		return nil, errors.New("national ID is required")
+	}
+
+	hash := u.cryptoSvc.GenerateHMAC(nationalID)
+	patient, err := u.patientRepo.FindByNationalIDHash(ctx, hash)
 	if err != nil {
 		return nil, err
 	}
-	// Return nil if not found, let handler decide 404
+
+	if err := u.decryptPatient(ctx, patient); err != nil {
+		return nil, err
+	}
+
 	return patient, nil
 }
 
-func (u *patientUseCase) SearchPatients(ctx context.Context, query string) ([]entity.Patient, error) {
-	// Reverted to support explicit matching
-	return nil, errors.New("method deprecated: use explicit lookup methods")
-}
-
-func (u *patientUseCase) LookupPatient(ctx context.Context, nationalID, phone, firstName string) (*entity.Patient, error) {
+func (u *patientUseCase) LookupPatient(ctx context.Context, nationalID, phone string) (*entity.Patient, error) {
 	if nationalID != "" {
-		return u.patientRepo.FindByNationalID(ctx, nationalID)
+		hash := u.cryptoSvc.GenerateHMAC(nationalID)
+		patient, err := u.patientRepo.FindByNationalIDHash(ctx, hash)
+		if err != nil {
+			return nil, err
+		}
+		if err := u.decryptPatient(ctx, patient); err != nil {
+			return nil, err
+		}
+		return patient, nil
 	}
 
-	if phone != "" && firstName != "" {
-		// Validate Ethiopian phone number
-		if err := u.validateEthiopianPhone(phone); err != nil {
+	if phone != "" {
+		normalizedPhone, err := crypto.NormalizePhone(phone)
+		if err != nil {
 			return nil, err
 		}
 
-		patient, err := u.patientRepo.FindByPhoneAndName(ctx, phone, firstName)
+		hash := u.cryptoSvc.GenerateHMAC(normalizedPhone)
+		patient, err := u.patientRepo.FindByPhoneHash(ctx, hash)
 		if err != nil {
 			return nil, err
 		}
 		if patient == nil {
 			return nil, nil
 		}
+		
+		if err := u.decryptPatient(ctx, patient); err != nil {
+			return nil, err
+		}
 		return patient, nil
 	}
 
-	return nil, errors.New("insufficient lookup parameters: provide national_id OR (phone_number AND first_name)")
+	return nil, errors.New("insufficient lookup parameters: provide national_id OR phone_number")
 }
 
 func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error) {
-	// 0. Validate Ethiopian phone number
-	if err := u.validateEthiopianPhone(req.PhoneNumber); err != nil {
+	normalizedPhone, err := crypto.NormalizePhone(req.PhoneNumber)
+	if err != nil {
 		return nil, err
 	}
 
-	// 1. Uniqueness check by National ID (if provided)
+	var natIDHash string
 	if req.NationalID != "" {
-		existing, err := u.patientRepo.FindByNationalID(ctx, req.NationalID)
+		natIDHash = u.cryptoSvc.GenerateHMAC(req.NationalID)
+		existing, err := u.patientRepo.FindByNationalIDHash(ctx, natIDHash)
 		if err != nil {
 			return nil, err
 		}
@@ -78,53 +116,62 @@ func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatien
 		}
 	}
 
-	// 2. Uniqueness check by Phone
-	existingPhones, err := u.patientRepo.SearchPatients(ctx, req.PhoneNumber)
+	phoneHash := u.cryptoSvc.GenerateHMAC(normalizedPhone)
+	existingPhone, err := u.patientRepo.FindByPhoneHash(ctx, phoneHash)
 	if err != nil {
 		return nil, err
 	}
-	for _, p := range existingPhones {
-		if p.PhoneNumber != nil && *p.PhoneNumber == req.PhoneNumber && strings.EqualFold(p.FirstName, req.FirstName) {
-			return nil, errors.New("a patient with this Phone Number and First Name already exists")
-		}
+	if existingPhone != nil {
+		return nil, errors.New("a patient with this Phone Number already exists")
 	}
 
-	// 3. Create New Patient
+	// Encrypt fields
+	encPhone, err := u.cryptoSvc.Encrypt([]byte(normalizedPhone))
+	if err != nil { return nil, err }
+	
+	encFirst, err := u.cryptoSvc.Encrypt([]byte(req.FirstName))
+	if err != nil { return nil, err }
+
+	encMiddle, err := u.cryptoSvc.Encrypt([]byte(req.MiddleName))
+	if err != nil { return nil, err }
+
+	encLast, err := u.cryptoSvc.Encrypt([]byte(req.LastName))
+	if err != nil { return nil, err }
+
+	var encNatID *string
+	if req.NationalID != "" {
+		enc, err := u.cryptoSvc.Encrypt([]byte(req.NationalID))
+		if err != nil { return nil, err }
+		encNatID = &enc
+	}
+
 	newPatient := &entity.Patient{
-		PhoneNumber: &req.PhoneNumber,
-		FirstName:   req.FirstName,
-		MiddleName:  req.MiddleName,
-		LastName:    req.LastName,
-		Sex:         strings.ToLower(req.Sex),
-		DateOfBirth: req.DateOfBirth,
+		PhoneNumberEnc: &encPhone,
+		PhoneHash:      &phoneHash,
+		FirstNameEnc:   encFirst,
+		MiddleNameEnc:  encMiddle,
+		LastNameEnc:    encLast,
+		Sex:            strings.ToLower(req.Sex),
+		DateOfBirth:    req.DateOfBirth,
 	}
 
 	if req.HomeRegion != "" {
 		newPatient.HomeRegion = &req.HomeRegion
 	}
 
-	// Hash and store NationalID if provided
 	if req.NationalID != "" {
-		newPatient.NationalIDEnc = &req.NationalID
-
-		hash := sha256.Sum256([]byte(req.NationalID))
-		hashStr := hex.EncodeToString(hash[:])
-		newPatient.NationalIDHash = &hashStr
+		newPatient.NationalIDEnc = encNatID
+		newPatient.NationalIDHash = &natIDHash
 	}
 
 	if err := u.patientRepo.Create(ctx, newPatient); err != nil {
 		return nil, err
 	}
 
-	return newPatient, nil
-}
+	// Decrypt for return
+	if err := u.decryptPatient(ctx, newPatient); err != nil {
+		return nil, err
+	}
 
-func (u *patientUseCase) validateEthiopianPhone(phone string) error {
-	if !strings.HasPrefix(phone, "09") && !strings.HasPrefix(phone, "07") && !strings.HasPrefix(phone, "+2519") && !strings.HasPrefix(phone, "+2517") {
-		return errors.New("invalid phone format: must be an Ethiopian number (09/07 or +251)")
-	}
-	if len(phone) < 10 || len(phone) > 13 {
-		return errors.New("invalid phone format length")
-	}
-	return nil
+	return newPatient, nil
 }
