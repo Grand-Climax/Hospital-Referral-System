@@ -68,7 +68,7 @@ func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 
 // LookupPatient godoc
 // @Summary      Lookup patient
-// @Description  Intelligent secure search by strictly providing National ID OR (Phone + First Name).
+// @Description  Intelligent secure search by strictly providing National ID OR Phone Number.
 // @Description  **Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN
 // @Description  **Common Errors:**
 // @Description  - 400 invalid query parameters
@@ -77,7 +77,6 @@ func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 // @Produce      json
 // @Param        national_id query string false "National ID"
 // @Param        phone_number query string false "Phone Number (E.164)"
-// @Param        first_name query string false "First Name"
 // @Success      200 {object} dto.PatientResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      404 {object} dto.ErrorResponse
@@ -86,17 +85,16 @@ func (h *PatientHandler) GetByNationalID(c *gin.Context) {
 func (h *PatientHandler) LookupPatient(c *gin.Context) {
 	nationalID := strings.TrimSpace(c.Query("national_id"))
 	phone := strings.TrimSpace(c.Query("phone_number"))
-	firstName := strings.TrimSpace(c.Query("first_name"))
 
-	if nationalID == "" && (phone == "" || firstName == "") {
+	if nationalID == "" && phone == "" {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Success: false,
-			Error:   "either national_id OR both phone_number and first_name are required",
+			Error:   "either national_id OR phone_number are required",
 		})
 		return
 	}
 
-	patient, err := h.patientUC.LookupPatient(c.Request.Context(), nationalID, phone, firstName)
+	patient, err := h.patientUC.LookupPatient(c.Request.Context(), nationalID, phone)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Success: false,
@@ -167,24 +165,18 @@ func mapPatientToResponse(patient *entity.Patient, message string) dto.PatientRe
 	if patient.DateOfBirth != nil {
 		dob = patient.DateOfBirth.Format("2006-01-02")
 	}
-	phone := ""
-	if patient.PhoneNumber != nil {
-		phone = *patient.PhoneNumber
-	}
+	phone := patient.PhonePlain
 	region := ""
 	if patient.HomeRegion != nil {
 		region = *patient.HomeRegion
 	}
-	nid := ""
-	if patient.NationalIDEnc != nil {
-		nid = *patient.NationalIDEnc
-	}
+	nid := patient.NationalIDPlain
 
 	return dto.PatientResponse{
 		ID:          patient.ID.String(),
-		FirstName:   patient.FirstName,
-		MiddleName:  patient.MiddleName,
-		LastName:    patient.LastName,
+		FirstName:   patient.FirstNamePlain,
+		MiddleName:  patient.MiddleNamePlain,
+		LastName:    patient.LastNamePlain,
 		NationalID:  nid,
 		Sex:         patient.Sex,
 		DateOfBirth: dob,

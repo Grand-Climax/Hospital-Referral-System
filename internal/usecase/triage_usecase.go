@@ -14,6 +14,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/infrastructure/crypto"
 )
 
 type triageUseCase struct {
@@ -23,6 +24,7 @@ type triageUseCase struct {
 	mlRepo       irepository.MLPredictionRepository
 	configRepo   irepository.SystemConfigRepository
 	auditRepo    irepository.AuditLogRepository
+	cryptoSvc    *crypto.PatientCryptoService
 }
 
 func NewTriageUseCase(
@@ -32,6 +34,7 @@ func NewTriageUseCase(
 	mlRepo irepository.MLPredictionRepository,
 	cfgRepo irepository.SystemConfigRepository,
 	auditRepo irepository.AuditLogRepository,
+	cryptoSvc *crypto.PatientCryptoService,
 ) iusecase.TriageUseCase {
 	return &triageUseCase{
 		db:           db,
@@ -40,6 +43,7 @@ func NewTriageUseCase(
 		mlRepo:       mlRepo,
 		configRepo:   cfgRepo,
 		auditRepo:    auditRepo,
+		cryptoSvc:    cryptoSvc,
 	}
 }
 
@@ -118,7 +122,8 @@ func (u *triageUseCase) ListForTriage(ctx context.Context, hospitalID uuid.UUID,
 		ref, _ := u.referralRepo.GetReferralByID(ctx, q.ReferralID)
 		name := "Unknown"
 		if ref != nil && ref.Patient != nil {
-			name = fmt.Sprintf("%s %s", ref.Patient.FirstName, ref.Patient.LastName)
+			_ = ref.Patient.DecryptFields(u.cryptoSvc)
+			name = fmt.Sprintf("%s %s", ref.Patient.FirstNamePlain, ref.Patient.LastNamePlain)
 		}
 		resp = append(resp, dto.TriageListResponse{
 			QueueID:         q.ID,

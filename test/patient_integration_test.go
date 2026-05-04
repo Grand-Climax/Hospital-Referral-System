@@ -31,8 +31,8 @@ func (m *MockPatientUseCase) GetByNationalID(ctx context.Context, nationalID str
 	return nil, args.Error(1)
 }
 
-func (m *MockPatientUseCase) LookupPatient(ctx context.Context, nationalID, phone, firstName string) (*entity.Patient, error) {
-	args := m.Called(ctx, nationalID, phone, firstName)
+func (m *MockPatientUseCase) LookupPatient(ctx context.Context, nationalID, phone string) (*entity.Patient, error) {
+	args := m.Called(ctx, nationalID, phone)
 	if patient := args.Get(0); patient != nil {
 		return patient.(*entity.Patient), args.Error(1)
 	}
@@ -70,14 +70,14 @@ func TestPatientLookupByPhoneAndName_Found(t *testing.T) {
 	router := setupPatientRouter(mockUC)
 
 	mockPatient := &entity.Patient{
-		ID:        uuid.New(),
-		FirstName: "Liya",
+		ID:             uuid.New(),
+		FirstNamePlain: "Liya",
 	}
 
 	phone := "+251911000002"
-	mockUC.On("LookupPatient", mock.Anything, "", phone, "Liya").Return(mockPatient, nil)
+	mockUC.On("LookupPatient", mock.Anything, "", phone).Return(mockPatient, nil)
 
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup?phone_number=%2B251911000002&first_name=Liya", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/patients/lookup?phone_number=%2B251911000002", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -109,9 +109,9 @@ func TestCreatePatient_Success(t *testing.T) {
 	}
 
 	mockPatient := &entity.Patient{
-		ID:          uuid.New(),
-		FirstName:   "New",
-		PhoneNumber: ptr("+251999999999"),
+		ID:             uuid.New(),
+		FirstNamePlain: "New",
+		PhonePlain:     "+251999999999",
 	}
 
 	mockUC.On("CreatePatient", mock.Anything, mock.AnythingOfType("dto.CreatePatientRequest")).Return(mockPatient, nil)

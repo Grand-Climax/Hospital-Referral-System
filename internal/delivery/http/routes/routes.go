@@ -1,8 +1,10 @@
 package routes
 
 import (
+	"os"
 	"net/http"
 	"time"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -17,6 +19,7 @@ import (
 	"Hospital-Referral-System/internal/infrastructure/middleware"
 	"Hospital-Referral-System/internal/infrastructure/sms"
 	"Hospital-Referral-System/internal/infrastructure/storage"
+	"Hospital-Referral-System/internal/infrastructure/crypto"
 	"Hospital-Referral-System/internal/repository"
 	"Hospital-Referral-System/internal/usecase"
 )
@@ -79,6 +82,11 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	smsClient := sms.NewAfroMessageClient()
 	// Use mock if needed: smsClient := sms.NewMockSMSClient()
 
+	cryptoSvc, err := crypto.NewPatientCryptoService(os.Getenv("PATIENT_AES_KEY"), os.Getenv("PATIENT_HMAC_KEY"))
+	if err != nil {
+		log.Fatalf("Failed to initialize PatientCryptoService: %v", err)
+	}
+
 	// ---- Dependency Injection (Use Cases) ----
 	authUseCase := usecase.NewAuthUseCase(authRepo, tokenBlacklist, sessionStore)
 	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc)
@@ -86,8 +94,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
 	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc)
 	// Post-acceptance Use Cases
-	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, smsClient)
-	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo)
+	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, smsClient, cryptoSvc)
+	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, cryptoSvc)
 	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase)
 	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo)
 	clinicalUseCase := usecase.NewClinicalUseCase(db, referralRepo, clinicalRepo, outcomeRepo, referralAccessRepo, auditLogRepo)
@@ -96,10 +104,10 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	dailyWeightUseCase := usecase.NewDailyWeightUseCase(configRepo, triageRepo, auditLogRepo)
 	schedulerServiceUseCase := usecase.NewSchedulerServiceUseCase(checkpointRepo, configRepo, schedUseCase)
 
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, attachmentUseCase, notifUseCase)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, attachmentUseCase, notifUseCase, cryptoSvc)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo)
-	patientUseCase := usecase.NewPatientUseCase(patientRepo)
+	patientUseCase := usecase.NewPatientUseCase(patientRepo, cryptoSvc, auditLogRepo)
 
 	// ---- Dependency Injection (Handlers) ----
 	authHandler := handlers.NewAuthHandler(authUseCase)

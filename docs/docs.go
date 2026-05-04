@@ -4362,7 +4362,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Intelligent secure search by strictly providing National ID OR (Phone + First Name).\n**Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid query parameters\n- 404 Not Found",
+                "description": "Intelligent secure search by strictly providing National ID OR Phone Number.\n**Roles:** REFERRING_DOCTOR, RECEPTIONIST, SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid query parameters\n- 404 Not Found",
                 "produces": [
                     "application/json"
                 ],
@@ -4381,12 +4381,6 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Phone Number (E.164)",
                         "name": "phone_number",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "First Name",
-                        "name": "first_name",
                         "in": "query"
                     }
                 ],
@@ -9117,6 +9111,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "first_name": {
+                    "description": "Transient fields for plaintext data",
                     "type": "string"
                 },
                 "home_region": {
@@ -9129,6 +9124,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "middle_name": {
+                    "type": "string"
+                },
+                "national_id": {
                     "type": "string"
                 },
                 "phone_number": {

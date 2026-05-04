@@ -11,6 +11,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/infrastructure/crypto"
 )
 
 type referralUseCase struct {
@@ -20,6 +21,7 @@ type referralUseCase struct {
 	networkRepo       irepository.NetworkRepository
 	attachmentUseCase iusecase.AttachmentUseCase
 	notifUC           iusecase.NotificationUseCase
+	cryptoSvc         *crypto.PatientCryptoService
 }
 
 func NewReferralUseCase(
@@ -29,6 +31,7 @@ func NewReferralUseCase(
 	nRepo irepository.NetworkRepository,
 	aUC iusecase.AttachmentUseCase,
 	notifUC iusecase.NotificationUseCase,
+	cryptoSvc *crypto.PatientCryptoService,
 ) iusecase.ReferralUseCase {
 	return &referralUseCase{
 		referralRepo:      rRepo,
@@ -37,6 +40,7 @@ func NewReferralUseCase(
 		networkRepo:       nRepo,
 		attachmentUseCase: aUC,
 		notifUC:           notifUC,
+		cryptoSvc:         cryptoSvc,
 	}
 }
 
@@ -202,7 +206,16 @@ func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID,
 	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
 		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
 	}
-	return u.referralRepo.ListForDoctor(ctx, doctorID, filter)
+	referrals, count, err := u.referralRepo.ListForDoctor(ctx, doctorID, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
+		}
+	}
+	return referrals, count, nil
 }
 
 func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error) {
@@ -212,6 +225,9 @@ func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID 
 	}
 	if ref.ReferringDoctorID != doctorID {
 		return nil, errors.New("unauthorized: can only view own referrals")
+	}
+	if ref.Patient != nil {
+		_ = ref.Patient.DecryptFields(u.cryptoSvc)
 	}
 	return ref, nil
 }
@@ -409,9 +425,10 @@ func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorI
 		patientNameLast := ""
 		patientRegion := ""
 		if r.Patient != nil {
-			patientNameFirst = r.Patient.FirstName
-			patientNameMiddle = r.Patient.MiddleName
-			patientNameLast = r.Patient.LastName
+			_ = r.Patient.DecryptFields(u.cryptoSvc)
+			patientNameFirst = r.Patient.FirstNamePlain
+			patientNameMiddle = r.Patient.MiddleNamePlain
+			patientNameLast = r.Patient.LastNamePlain
 			if r.Patient.HomeRegion != nil {
 				patientRegion = *r.Patient.HomeRegion
 			}
@@ -448,14 +465,32 @@ func (u *referralUseCase) ListOutgoingForLiaison(ctx context.Context, hospID uui
 	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
 		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
 	}
-	return u.referralRepo.ListOutgoingForLiaison(ctx, hospID, filter)
+	referrals, count, err := u.referralRepo.ListOutgoingForLiaison(ctx, hospID, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
+		}
+	}
+	return referrals, count, nil
 }
 
 func (u *referralUseCase) ListIncomingForLiaison(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
 		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
 	}
-	return u.referralRepo.ListIncomingForLiaison(ctx, hospID, filter)
+	referrals, count, err := u.referralRepo.ListIncomingForLiaison(ctx, hospID, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
+		}
+	}
+	return referrals, count, nil
 }
 
 func (u *referralUseCase) GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -472,6 +507,9 @@ func (u *referralUseCase) GetDetailsForLiaison(ctx context.Context, id, hospID u
 		return nil, errors.New("forbidden: cannot view drafts")
 	}
 
+	if ref.Patient != nil {
+		_ = ref.Patient.DecryptFields(u.cryptoSvc)
+	}
 	return ref, nil
 }
 
@@ -663,7 +701,16 @@ func (u *referralUseCase) ListForSpecialist(ctx context.Context, hospID, special
 	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
 		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
 	}
-	return u.referralRepo.ListForSpecialist(ctx, hospID, filter)
+	referrals, count, err := u.referralRepo.ListForSpecialist(ctx, hospID, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
+		}
+	}
+	return referrals, count, nil
 }
 
 func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -692,6 +739,9 @@ func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospI
 		return nil, errors.New("unauthorized: referral has not yet been forwarded to your hospital")
 	}
 
+	if ref.Patient != nil {
+		_ = ref.Patient.DecryptFields(u.cryptoSvc)
+	}
 	return ref, nil
 }
 
