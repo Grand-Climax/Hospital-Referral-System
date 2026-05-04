@@ -111,7 +111,7 @@ func (r *triageRepository) FindByHospitalAndDept(ctx context.Context, hospitalID
 	if err := query.Count(&count).Error; err != nil {
 		return nil, 0, err
 	}
-	err := query.Limit(limit).Offset(offset).Find(&queues).Error
+	err := query.Order("composite_score desc").Limit(limit).Offset(offset).Find(&queues).Error
 	return queues, count, err
 }
 
