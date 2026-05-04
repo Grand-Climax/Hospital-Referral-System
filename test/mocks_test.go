@@ -943,6 +943,11 @@ func (m *MockTriageUseCase) ListForTriage(ctx context.Context, hospitalID uuid.U
 	return args.Get(0).([]dto.TriageListResponse), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockTriageUseCase) ListForTriageByDepartment(ctx context.Context, hospitalID, deptID uuid.UUID, limit, offset int) ([]dto.TriageListResponse, int64, error) {
+	args := m.Called(ctx, hospitalID, deptID, limit, offset)
+	return args.Get(0).([]dto.TriageListResponse), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *MockTriageUseCase) ReviewTriage(ctx context.Context, referralID, userID uuid.UUID, req dto.TriageReviewRequest) error {
 	return m.Called(ctx, referralID, userID, req).Error(0)
 }
@@ -955,6 +960,7 @@ func (m *MockTriageUseCase) ListScheduledInRange(ctx context.Context, hospitalID
 func (m *MockTriageUseCase) SetManualSeverity(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
 	return m.Called(ctx, referralID, userID, score, justification).Error(0)
 }
+
 // ---------------------------------------------------------------------------
 // Mock: ArrivalUseCase
 // ---------------------------------------------------------------------------
@@ -1149,6 +1155,7 @@ func (m *MockNotificationUseCase) ListNotifications(ctx context.Context, filter 
 	}
 	return args.Get(0).([]entity.Notification), args.Get(1).(int64), args.Error(2)
 }
+
 // ---------------------------------------------------------------------------
 // Mock: DailyWeightUseCase
 // ---------------------------------------------------------------------------
@@ -1286,6 +1293,7 @@ func (m *MockSchedulerServiceUseCase) RunSchedulerCycle(ctx context.Context, lea
 	}
 	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
 }
+
 // ---------------------------------------------------------------------------
 // Mock: UserUseCase
 // ---------------------------------------------------------------------------
