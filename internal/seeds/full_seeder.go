@@ -173,6 +173,12 @@ func seedHospitals(ctx context.Context, db *gorm.DB) error {
 			Address:      ptrStr("Addis Ababa, Ethiopia"),
 			ContactPhone: ptrStr("+251 11 111 1111"),
 		},
+		{ID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), Name: "Yekatit 12 Hospital", TierLevel: entity.SecondaryHosp, Region: "Addis Ababa", Address: ptrStr("Addis Ababa, Ethiopia"), ContactPhone: ptrStr("+251 11 123 4567")},
+		{ID: uuid.MustParse("a4000000-0000-0000-0000-000000000004"), Name: "Adama Primary Hospital", TierLevel: entity.PrimaryHosp, Region: "Oromia", Address: ptrStr("Adama, Ethiopia")},
+		{ID: uuid.MustParse("a5000000-0000-0000-0000-000000000005"), Name: "Jimma Primary Clinic", TierLevel: entity.PrimaryHosp, Region: "Oromia", Address: ptrStr("Jimma, Ethiopia")},
+		{ID: uuid.MustParse("a6000000-0000-0000-0000-000000000006"), Name: "Mekelle Health Center", TierLevel: entity.PrimaryHosp, Region: "Tigray", Address: ptrStr("Mekelle, Ethiopia")},
+		{ID: uuid.MustParse("a7000000-0000-0000-0000-000000000007"), Name: "Hawassa Primary Hospital", TierLevel: entity.PrimaryHosp, Region: "Sidama", Address: ptrStr("Hawassa, Ethiopia")},
+		{ID: uuid.MustParse("a8000000-0000-0000-0000-000000000008"), Name: "Dire Dawa Health Station", TierLevel: entity.PrimaryHosp, Region: "Dire Dawa", Address: ptrStr("Dire Dawa, Ethiopia")},
 	}
 
 	for _, h := range hospitals {
@@ -190,6 +196,12 @@ func seedDepartments(ctx context.Context, db *gorm.DB) error {
 		{ID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), Name: "Orthopedics", Description: ptrStr("Conditions involving the musculoskeletal system")},
 		{ID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), Name: "Internal Medicine", Description: ptrStr("General internal medicine")},
 		{ID: uuid.MustParse("b5000000-0000-0000-0000-000000000005"), Name: "Pediatrics", Description: ptrStr("Care of infants, children, and adolescents")},
+		{ID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), Name: "General Surgery", Description: ptrStr("Surgical procedures")},
+		{ID: uuid.MustParse("b7000000-0000-0000-0000-000000000007"), Name: "Obstetrics & Gynecology", Description: ptrStr("Pregnancy and female reproductive system")},
+		{ID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), Name: "Oncology", Description: ptrStr("Cancer treatment")},
+		{ID: uuid.MustParse("b9000000-0000-0000-0000-000000000009"), Name: "Ophthalmology", Description: ptrStr("Eye care")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000010"), Name: "Dermatology", Description: ptrStr("Skin conditions")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000011"), Name: "Emergency Medicine", Description: ptrStr("Acute care for trauma and illnesses")},
 	}
 
 	for _, d := range departments {
@@ -202,12 +214,29 @@ func seedDepartments(ctx context.Context, db *gorm.DB) error {
 
 func seedHospitalDepartmentsAndSchedules(ctx context.Context, db *gorm.DB) error {
 	mappings := []entity.HospitalDepartment{
-		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 20}, // TA - Cardio
-		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b2000000-0000-0000-0000-000000000002"), StandardDailyLimit: 20}, // TA - Neuro
-		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 20}, // SP - Ortho
-		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 22}, // SP - Internal Med
-		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b5000000-0000-0000-0000-000000000005"), StandardDailyLimit: 20}, // BL - Peds
-		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 18}, // BL - Cardio
+		// TA (Tertiary) - Cardiology, Neurology, General Surgery, Oncology
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 20},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b2000000-0000-0000-0000-000000000002"), StandardDailyLimit: 20},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), StandardDailyLimit: 15},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), StandardDailyLimit: 10},
+		// St. Paul's (Specialized) - Orthopedics, Internal Med, OB/GYN
+		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 20},
+		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 22},
+		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b7000000-0000-0000-0000-000000000007"), StandardDailyLimit: 18},
+		// Black Lion (Tertiary) - Pediatrics, Cardiology, Oncology
+		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b5000000-0000-0000-0000-000000000005"), StandardDailyLimit: 20},
+		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 18},
+		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), StandardDailyLimit: 12},
+		// Yekatit 12 (Secondary) - Internal Med, General Surgery, Emergency
+		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 30},
+		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), StandardDailyLimit: 20},
+		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b0000000-0000-0000-0000-000000000011"), StandardDailyLimit: 25},
+		// Primary hospitals - Internal Medicine only
+		{ID: uuid.MustParse("c4000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a4000000-0000-0000-0000-000000000004"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
+		{ID: uuid.MustParse("c5000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a5000000-0000-0000-0000-000000000005"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
+		{ID: uuid.MustParse("c6000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a6000000-0000-0000-0000-000000000006"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
+		{ID: uuid.MustParse("c7000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a7000000-0000-0000-0000-000000000007"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
+		{ID: uuid.MustParse("c8000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a8000000-0000-0000-0000-000000000008"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
 	}
 
 	for _, m := range mappings {
@@ -250,10 +279,12 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 	hosp1 := uuid.MustParse("a1000000-0000-0000-0000-000000000001") // Tikur Anbessa
 	hosp2 := uuid.MustParse("a2000000-0000-0000-0000-000000000002") // St. Paul's
 	hosp3 := uuid.MustParse("a3000000-0000-0000-0000-000000000003") // Black Lion
+	hosp9 := uuid.MustParse("a9000000-0000-0000-0000-000000000009") // Yekatit 12
 
 	deptCardio := uuid.MustParse("b1000000-0000-0000-0000-000000000001")
 	deptOrtho := uuid.MustParse("b3000000-0000-0000-0000-000000000003")
 	deptPeds := uuid.MustParse("b5000000-0000-0000-0000-000000000005")
+	deptInternal := uuid.MustParse("b4000000-0000-0000-0000-000000000004")
 
 	users := []entity.User{
 		{ID: uuid.MustParse("d0000000-0000-0000-0000-000000000001"), NationalID: "SYS-001", Email: "superadmin@moh.gov.et", FirstName: "System", LastName: "Super Admin", Role: entity.RoleSystemSuperAdmin, PasswordHash: defaultHash},
@@ -286,6 +317,15 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000003"), NationalID: "SPEC-BL-001", Email: "specialist.bl@hospital.et", FirstName: "Martha", LastName: "Specialist", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash},
 		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000004"), NationalID: "REC-BL-001", Email: "reception.bl@hospital.et", FirstName: "Frehiwot", LastName: "Receptionist", Role: entity.RoleReceptionist, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash},
 		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000005"), NationalID: "HEAD-BL-001", Email: "depthead.bl@hospital.et", FirstName: "Head", LastName: "BL", Role: entity.RoleDeptHead, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000006"), NationalID: "ADMIN-BL-001", Email: "admin.bl@hospital.et", FirstName: "Hospital", LastName: "AdminBL", Role: entity.RoleHospitalAdmin, HospitalID: &hosp3, PasswordHash: defaultHash},
+
+		// TA Hospital Admin
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000010"), NationalID: "ADMIN-TA-001", Email: "admin.ta@hospital.et", FirstName: "Hospital", LastName: "AdminTA", Role: entity.RoleHospitalAdmin, HospitalID: &hosp1, PasswordHash: defaultHash},
+
+		// Yekatit 12 (Secondary)
+		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000001"), NationalID: "ADMIN-Y12-001", Email: "admin.secondary@hospital.et", FirstName: "Hospital", LastName: "AdminY12", Role: entity.RoleHospitalAdmin, HospitalID: &hosp9, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000002"), NationalID: "LIA-Y12-001", Email: "liaison.y12@hospital.et", FirstName: "Liaison", LastName: "Y12", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp9, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000003"), NationalID: "SPEC-Y12-001", Email: "specialist.y12@hospital.et", FirstName: "Specialist", LastName: "Y12", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp9, DepartmentID: &deptInternal, PasswordHash: defaultHash},
 	}
 
 	for _, u := range users {
@@ -331,18 +371,26 @@ func seedPatients(ctx context.Context, db *gorm.DB) error {
 		h := cryptoSvc.GenerateHMAC(norm)
 		return &h
 	}
+	encryptStrPtr := func(s string) *string {
+		enc, _ := cryptoSvc.Encrypt([]byte(s))
+		return &enc
+	}
+	hashStr := func(s string) *string {
+		h := cryptoSvc.GenerateHMAC(s)
+		return &h
+	}
 
 	patients := []entity.Patient{
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000001"), FirstNameEnc: encryptStr("Abebe"), MiddleNameEnc: encryptStr("Kebede"), LastNameEnc: encryptStr("Balcha"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000002"), FirstNameEnc: encryptStr("Meseret"), MiddleNameEnc: encryptStr("Tesfaye"), LastNameEnc: encryptStr("Gebre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000003"), FirstNameEnc: encryptStr("Dawit"), MiddleNameEnc: encryptStr("Haile"), LastNameEnc: encryptStr("Mengistu"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000004"), FirstNameEnc: encryptStr("Tigist"), MiddleNameEnc: encryptStr("Belay"), LastNameEnc: encryptStr("Negash"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000005"), FirstNameEnc: encryptStr("Bereket"), MiddleNameEnc: encryptStr("Alemayehu"), LastNameEnc: encryptStr("Tekle"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000006"), FirstNameEnc: encryptStr("Hiwot"), MiddleNameEnc: encryptStr("Mekonnen"), LastNameEnc: encryptStr("Asrat"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000007"), FirstNameEnc: encryptStr("Yonas"), MiddleNameEnc: encryptStr("Girma"), LastNameEnc: encryptStr("Tadesse"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000008"), FirstNameEnc: encryptStr("Meron"), MiddleNameEnc: encryptStr("Dereje"), LastNameEnc: encryptStr("Worku"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000009"), FirstNameEnc: encryptStr("Henok"), MiddleNameEnc: encryptStr("Teshome"), LastNameEnc: encryptStr("Abate"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000010"), FirstNameEnc: encryptStr("Selam"), MiddleNameEnc: encryptStr("Yohannes"), LastNameEnc: encryptStr("Fikre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000001"), FirstNameEnc: encryptStr("Abebe"), MiddleNameEnc: encryptStr("Kebede"), LastNameEnc: encryptStr("Balcha"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-001"), NationalIDHash: hashStr("NAT-SEED-001"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000002"), FirstNameEnc: encryptStr("Meseret"), MiddleNameEnc: encryptStr("Tesfaye"), LastNameEnc: encryptStr("Gebre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-002"), NationalIDHash: hashStr("NAT-SEED-002"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000003"), FirstNameEnc: encryptStr("Dawit"), MiddleNameEnc: encryptStr("Haile"), LastNameEnc: encryptStr("Mengistu"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-003"), NationalIDHash: hashStr("NAT-SEED-003"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000004"), FirstNameEnc: encryptStr("Tigist"), MiddleNameEnc: encryptStr("Belay"), LastNameEnc: encryptStr("Negash"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-004"), NationalIDHash: hashStr("NAT-SEED-004"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000005"), FirstNameEnc: encryptStr("Bereket"), MiddleNameEnc: encryptStr("Alemayehu"), LastNameEnc: encryptStr("Tekle"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-005"), NationalIDHash: hashStr("NAT-SEED-005"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000006"), FirstNameEnc: encryptStr("Hiwot"), MiddleNameEnc: encryptStr("Mekonnen"), LastNameEnc: encryptStr("Asrat"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-006"), NationalIDHash: hashStr("NAT-SEED-006"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000007"), FirstNameEnc: encryptStr("Yonas"), MiddleNameEnc: encryptStr("Girma"), LastNameEnc: encryptStr("Tadesse"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-007"), NationalIDHash: hashStr("NAT-SEED-007"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000008"), FirstNameEnc: encryptStr("Meron"), MiddleNameEnc: encryptStr("Dereje"), LastNameEnc: encryptStr("Worku"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-008"), NationalIDHash: hashStr("NAT-SEED-008"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000009"), FirstNameEnc: encryptStr("Henok"), MiddleNameEnc: encryptStr("Teshome"), LastNameEnc: encryptStr("Abate"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-009"), NationalIDHash: hashStr("NAT-SEED-009"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000010"), FirstNameEnc: encryptStr("Selam"), MiddleNameEnc: encryptStr("Yohannes"), LastNameEnc: encryptStr("Fikre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-010"), NationalIDHash: hashStr("NAT-SEED-010"), AllowSMS: true},
 	}
 
 	for _, p := range patients {
@@ -356,8 +404,25 @@ func seedPatients(ctx context.Context, db *gorm.DB) error {
 func seedICDCodes(ctx context.Context, db *gorm.DB) error {
 	icds := []entity.ICDCode{
 		{Code: "I21.9", Description: "Acute myocardial infarction, unspecified", Category: "Diseases of the circulatory system"},
-		{Code: "S06.9X9A", Description: "Unspecified intracranial injury with loss of consciousness of unspecified duration, initial encounter", Category: "Injury, poisoning and certain other consequences of external causes"},
+		{Code: "S06.9X9A", Description: "Unspecified intracranial injury, initial encounter", Category: "Injury, poisoning and certain other consequences of external causes"},
 		{Code: "J18.9", Description: "Pneumonia, unspecified organism", Category: "Diseases of the respiratory system"},
+		{ Code: "E11.9", Description: "Type 2 diabetes mellitus without complications", Category: "Endocrine, nutritional and metabolic diseases"},
+		{Code: "I10", Description: "Essential (primary) hypertension", Category: "Diseases of the circulatory system"},
+		{Code: "M54.5", Description: "Low back pain", Category: "Diseases of the musculoskeletal system"},
+		{Code: "K21.9", Description: "Gastro-esophageal reflux disease without esophagitis", Category: "Diseases of the digestive system"},
+		{Code: "N39.0", Description: "Urinary tract infection, site not specified", Category: "Diseases of the genitourinary system"},
+		{Code: "G40.909", Description: "Epilepsy, unspecified, not intractable", Category: "Diseases of the nervous system"},
+		{Code: "F32.9", Description: "Major depressive disorder, single episode, unspecified", Category: "Mental and behavioral disorders"},
+		{Code: "B20", Description: "Human immunodeficiency virus [HIV] disease", Category: "Certain infectious and parasitic diseases"},
+		{Code: "C34.90", Description: "Malignant neoplasm of unspecified bronchus or lung", Category: "Neoplasms"},
+		{Code: "O80", Description: "Encounter for full-term uncomplicated delivery", Category: "Pregnancy, childbirth and the puerperium"},
+		{Code: "L20.9", Description: "Atopic dermatitis, unspecified", Category: "Diseases of the skin and subcutaneous tissue"},
+		{Code: "H52.13", Description: "Myopia, bilateral", Category: "Diseases of the eye and adnexa"},
+		{Code: "A09.9", Description: "Gastroenteritis and colitis of infectious origin, unspecified", Category: "Certain infectious and parasitic diseases"},
+		{Code: "R51", Description: "Headache", Category: "Symptoms, signs and abnormal clinical and laboratory findings"},
+		{Code: "T14.90", Description: "Injury, unspecified", Category: "Injury, poisoning and certain other consequences of external causes"},
+		{Code: "I63.9", Description: "Cerebral infarction, unspecified", Category: "Diseases of the circulatory system"},
+		{Code: "Z00.00", Description: "Encounter for general adult medical examination without abnormal findings", Category: "Factors influencing health status"},
 	}
 
 	for _, icd := range icds {
@@ -370,46 +435,24 @@ func seedICDCodes(ctx context.Context, db *gorm.DB) error {
 
 func seedNetworks(ctx context.Context, db *gorm.DB) error {
 	networks := []entity.ReferralNetwork{
-		// Tikur Anbessa <-> Tikur Anbessa (Self)
-		{
-			SenderHospitalID:      uuid.MustParse("a1000000-0000-0000-0000-000000000001"),
-			ReceiverHospitalID:    uuid.MustParse("a1000000-0000-0000-0000-000000000001"),
-			ReferralType:          "routine",
-			RequiresAdminApproval: false,
-		},
-		// St. Paul's <-> St. Paul's (Self)
-		{
-			SenderHospitalID:      uuid.MustParse("a2000000-0000-0000-0000-000000000002"),
-			ReceiverHospitalID:    uuid.MustParse("a2000000-0000-0000-0000-000000000002"),
-			ReferralType:          "routine",
-			RequiresAdminApproval: false,
-		},
-		// Black Lion <-> Black Lion (Self)
-		{
-			SenderHospitalID:      uuid.MustParse("a3000000-0000-0000-0000-000000000003"),
-			ReceiverHospitalID:    uuid.MustParse("a3000000-0000-0000-0000-000000000003"),
-			ReferralType:          "routine",
-			RequiresAdminApproval: false,
-		},
-		// Tikur Anbessa <-> Black Lion
-		{
-			SenderHospitalID:      uuid.MustParse("a1000000-0000-0000-0000-000000000001"),
-			ReceiverHospitalID:    uuid.MustParse("a3000000-0000-0000-0000-000000000003"),
-			ReferralType:          "routine",
-			RequiresAdminApproval: false,
-		},
-		{
-			SenderHospitalID:      uuid.MustParse("a1000000-0000-0000-0000-000000000001"),
-			ReceiverHospitalID:    uuid.MustParse("a2000000-0000-0000-0000-000000000002"),
-			ReferralType:          "routine",
-			RequiresAdminApproval: false,
-		},
-		{
-			SenderHospitalID:      uuid.MustParse("a2000000-0000-0000-0000-000000000002"),
-			ReceiverHospitalID:    uuid.MustParse("a1000000-0000-0000-0000-000000000001"),
-			ReferralType:          "routine",
-			RequiresAdminApproval: false,
-		},
+		// PRIMARY (a4-a8) → SECONDARY (a9) only
+		{SenderHospitalID: uuid.MustParse("a4000000-0000-0000-0000-000000000004"), ReceiverHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a5000000-0000-0000-0000-000000000005"), ReceiverHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a6000000-0000-0000-0000-000000000006"), ReceiverHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a7000000-0000-0000-0000-000000000007"), ReceiverHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a8000000-0000-0000-0000-000000000008"), ReceiverHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReferralType: "routine"},
+		// SECONDARY (a9) → SPECIALIZED/TERTIARY
+		{SenderHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReceiverHospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReceiverHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), ReceiverHospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), ReferralType: "routine"},
+		// SPECIALIZED (a2) → TERTIARY (a1, a3)
+		{SenderHospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), ReceiverHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), ReceiverHospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), ReferralType: "routine"},
+		// TERTIARY ↔ TERTIARY
+		{SenderHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReceiverHospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), ReceiverHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReferralType: "routine"},
+		// TERTIARY → SPECIALIZED
+		{SenderHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReceiverHospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), ReferralType: "routine"},
 	}
 
 	for _, n := range networks {

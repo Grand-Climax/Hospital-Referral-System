@@ -11,7 +11,7 @@ type HospitalTier string
 
 const (
 	PrimaryHosp     HospitalTier = "PRIMARY"
-	GeneralHosp     HospitalTier = "GENERAL"
+	SecondaryHosp   HospitalTier = "SECONDARY"
 	SpecializedHosp HospitalTier = "SPECIALIZED"
 	TertiaryHosp    HospitalTier = "TERTIARY"
 )

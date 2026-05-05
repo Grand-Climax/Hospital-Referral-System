@@ -32,7 +32,7 @@ func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.
 // @Summary      List Referrals for Specialist
 // @Description  Get a paginated list of referrals forwarded to the specialist's hospital.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Visibility:** All referrals forwarded to the specialist's specific department.
+// @Description  **Visibility:** All referrals forwarded to the specialist's department, including REDIRECTED and REJECTED_AFTER_SEND.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
@@ -134,7 +134,7 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 // @Summary      Get Referral Details for Specialist
 // @Description  Get detailed information about a forwarded referral.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** Status must be FORWARDED or later.
+// @Description  **Prerequisites:** Status must be FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, or REJECTED_AFTER_SEND.
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid format
 // @Description  - 403 Forbidden (wrong hospital)
@@ -174,6 +174,7 @@ func (h *SpecialistHandler) GetReferral(c *gin.Context) {
 			Success: true,
 			Message: "Referral details retrieved successfully",
 		},
+		Redirections: toRedirectionResponseSlice(ref.Redirections),
 	})
 }
 
@@ -707,4 +708,145 @@ func (h *SpecialistHandler) Schedule(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Appointment scheduled successfully"})
+}
+
+// RedirectReferral godoc
+// @Summary      Redirect Referral to another hospital
+// @Description  Redirect an active referral (ACCEPTED/UNDER_SPECIALIST_REVIEW) to another hospital in the network.
+// @Description  **Roles:** RECEIVING_SPECIALIST (non-primary hospital)
+// @Description  **Constraints:** No loops allowed, target must be in outgoing network.
+// @Tags         Specialist
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        body body dto.RedirectReferralRequest true "Redirection details"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/redirect [post]
+func (h *SpecialistHandler) RedirectReferral(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid format"})
+		return
+	}
+
+	var req dto.RedirectReferralRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	specialistID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		specialistID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		specialistID = *uID
+	}
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	if err := h.referralUC.RedirectReferral(c.Request.Context(), id, specialistID, hospID, req.TargetHospitalID, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Referral redirected successfully"})
+}
+
+// ListRedirectionOptions godoc
+// @Summary      List possible hospitals for redirection
+// @Description  Get a list of hospitals in the network that haven't handled this referral yet.
+// @Tags         Specialist
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/redirect-options [get]
+func (h *SpecialistHandler) ListRedirectionOptions(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	specialistID, _ := userIdVal.(uuid.UUID)
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	hospitals, err := h.referralUC.ListRedirectionOptions(c.Request.Context(), id, specialistID, hospID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    hospitals,
+	})
+}
+
+// ChangeDepartment godoc
+// @Summary      Change Referral Target Department
+// @Description  Updates the target department of a referral as long as it is ACCEPTED or UNDER_SPECIALIST_REVIEW.
+// @Description  The new department must exist at the current hospital. This unlocks new redirect options.
+// @Description  **Roles:** RECEIVING_SPECIALIST
+// @Tags         Specialist
+// @Accept       json
+// @Produce      json
+// @Param        id   path     string                              true  "Referral ID"
+// @Param        body body     dto.ChangeDepartmentRequest         true  "Department change payload"
+// @Success      200  {object} dto.BaseResponse
+// @Failure      400  {object} dto.ErrorResponse
+// @Failure      401  {object} dto.ErrorResponse
+// @Failure      422  {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/department [put]
+func (h *SpecialistHandler) ChangeDepartment(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral ID"})
+		return
+	}
+
+	specialistIDVal, _ := c.Get("userID")
+	specialistID, _ := specialistIDVal.(uuid.UUID)
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	var req dto.ChangeDepartmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request body: " + err.Error()})
+		return
+	}
+
+	if err := h.referralUC.ChangeDepartment(c.Request.Context(), id, specialistID, hospID, req.DepartmentID); err != nil {
+		status := http.StatusUnprocessableEntity
+		if err.Error() == "unauthorized: referral is not at your hospital" {
+			status = http.StatusForbidden
+		}
+		c.JSON(status, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Department updated successfully"})
 }

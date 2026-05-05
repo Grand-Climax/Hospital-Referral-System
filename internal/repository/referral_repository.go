@@ -67,6 +67,9 @@ func (r *referralRepository) GetReferralByID(ctx context.Context, id uuid.UUID) 
 		Preload("Vitals").
 		Preload("EmergencyDetail").
 		Preload("Attachments").
+		Preload("Redirections").
+		Preload("Redirections.RedirectedFromHospital").
+		Preload("Redirections.RedirectedToHospital").
 		Where("id = ?", id).
 		First(&referral).Error
 	return &referral, err
@@ -175,7 +178,7 @@ func (r *referralRepository) listHospitalAdminReferrals(ctx context.Context, hos
 	case "inbound":
 		query = query.Where("target_hospital_id = ?", hospID)
 	case "outbound":
-		query = query.Where("sender_hospital_id = ?", hospID)
+		query = query.Where("sender_hospital_id = ? AND status != ?", hospID, entity.StatusDraft)
 	default:
 		query = query.Where("(sender_hospital_id = ? OR target_hospital_id = ?)", hospID, hospID)
 	}
@@ -211,6 +214,9 @@ func (r *referralRepository) GetDetailsForHospitalAdmin(ctx context.Context, hos
 		Preload("Vitals").
 		Preload("EmergencyDetail").
 		Preload("Attachments").
+		Preload("Redirections").
+		Preload("Redirections.RedirectedFromHospital").
+		Preload("Redirections.RedirectedToHospital").
 		Where("id = ?", referralID).
 		Where("(sender_hospital_id = ? OR target_hospital_id = ?)", hospID, hospID).
 		First(&referral).Error
@@ -220,7 +226,7 @@ func (r *referralRepository) GetDetailsForHospitalAdmin(ctx context.Context, hos
 	return &referral, nil
 }
 
-func (r *referralRepository) CountByStatusForHospitalAdmin(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
+func (r *referralRepository) GetReferralStatusCounts(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
 	var rows []irepository.ReferralStatusCount
 	err := r.db.WithContext(ctx).
 		Model(&entity.Referral{}).
@@ -432,6 +438,9 @@ func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID 
 		entity.StatusRejectedBySpecialist,
 		entity.StatusMissed,
 		entity.StatusRescheduled,
+		entity.StatusRedirected,
+		entity.StatusRejectedAfterSend,
+		entity.StatusAdmitted,
 	}
 
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
@@ -452,6 +461,7 @@ func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.
 		entity.StatusForwarded, entity.StatusUnderSpecialistReview, entity.StatusAccepted,
 		entity.StatusScheduled, entity.StatusAssigned, entity.StatusCompleted,
 		entity.StatusRejectedBySpecialist, entity.StatusMissed, entity.StatusRescheduled,
+		entity.StatusRedirected, entity.StatusRejectedAfterSend,
 	}
 
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
@@ -470,7 +480,7 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 	offset := (filter.Page - 1) * filter.Limit
 	allowedStatuses := []entity.ReferralStatus{
 		entity.StatusAccepted, entity.StatusScheduled, entity.StatusAssigned,
-		entity.StatusMissed, entity.StatusRescheduled,
+		entity.StatusMissed, entity.StatusRescheduled, entity.StatusAdmitted,
 	}
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("target_hospital_id = ? AND status IN ?", hospID, allowedStatuses)
@@ -481,6 +491,16 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
+
+func (r *referralRepository) UpdateTargetAndStatus(ctx context.Context, referralID, targetID uuid.UUID, status entity.ReferralStatus) error {
+	return r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("id = ?", referralID).
+		Updates(map[string]interface{}{
+			"target_hospital_id": targetID,
+			"status":             status,
+		}).Error
+}
+
 func (r *referralRepository) GetDoctorStats(ctx context.Context, doctorID uuid.UUID) (total, pending, accepted, critical int64, err error) {
 	// Total
 	if err := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ?", doctorID).Count(&total).Error; err != nil {
@@ -576,10 +596,15 @@ func NewReferralRedirectionRepository(db *gorm.DB) irepository.ReferralRedirecti
 	}
 }
 
-func (r *referralRedirectionRepository) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralRedirection, error) {
-	var redirection entity.ReferralRedirection
-	err := r.db.WithContext(ctx).Where("referral_id = ?", referralID).First(&redirection).Error
-	return &redirection, err
+func (r *referralRedirectionRepository) ListByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralRedirection, error) {
+	var redirections []entity.ReferralRedirection
+	err := r.db.WithContext(ctx).
+		Where("referral_id = ?", referralID).
+		Preload("RedirectedFromHospital").
+		Preload("RedirectedToHospital").
+		Order("created_at ASC").
+		Find(&redirections).Error
+	return redirections, err
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

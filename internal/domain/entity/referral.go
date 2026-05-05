@@ -89,6 +89,7 @@ type Referral struct {
 	Vitals          []Vital                  `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"vitals,omitempty"`
 	EmergencyDetail *ReferralEmergencyDetail `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"emergency_detail,omitempty"`
 	Attachments     []Attachment            `gorm:"foreignKey:ReferralID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"attachments,omitempty"`
+	Redirections    []ReferralRedirection   `gorm:"foreignKey:ReferralID" json:"redirections,omitempty"`
 	
 	ReceiverHospital *Hospital `gorm:"foreignKey:TargetHospitalID" json:"receiver_hospital,omitempty"`
 	SenderHospital   *Hospital `gorm:"foreignKey:SenderHospitalID" json:"sender_hospital,omitempty"`

@@ -85,11 +85,12 @@ func NormalizePhone(raw string) (string, error) {
 	cleaned := regexp.MustCompile(`[^\d\+]`).ReplaceAllString(raw, "")
 	// Handle common prefixes
 	if strings.HasPrefix(cleaned, "0") && len(cleaned) == 10 {
-		if cleaned[1] == '9' {
+		switch cleaned[1] {
+		case '9':
 			cleaned = "+251" + cleaned[1:] // 09... -> +2519...
-		} else if cleaned[1] == '7' {
+		case '7':
 			cleaned = "+251" + cleaned[1:] // 07... -> +2517...
-		} else {
+		default:
 			return "", errors.New("invalid Ethiopian mobile prefix")
 		}
 	} else if strings.HasPrefix(cleaned, "00251") && len(cleaned) == 14 {

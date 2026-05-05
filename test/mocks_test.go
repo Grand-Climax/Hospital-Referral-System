@@ -177,6 +177,16 @@ func (m *MockReferralRepo) CountByStatusForHospitalAdmin(ctx context.Context, ho
 	return args.Get(0).([]irepository.ReferralStatusCount), args.Error(1)
 }
 
+func (m *MockReferralRepo) GetReferralStatusCounts(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).([]irepository.ReferralStatusCount), args.Error(1)
+}
+
+func (m *MockReferralRepo) UpdateTargetAndStatus(ctx context.Context, referralID, targetID uuid.UUID, status entity.ReferralStatus) error {
+	args := m.Called(ctx, referralID, targetID, status)
+	return args.Error(0)
+}
+
 func (m *MockReferralRepo) GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]irepository.MonthlyReferralTotal, error) {
 	args := m.Called(ctx, hospID, months)
 	return args.Get(0).([]irepository.MonthlyReferralTotal), args.Error(1)
@@ -294,6 +304,112 @@ func (m *MockNetworkRepo) VerifyNetworkPathway(ctx context.Context, senderID, ta
 func (m *MockNetworkRepo) DeleteNetworkRoute(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
+}
+
+func (m *MockNetworkRepo) GetOutgoingNetworkHospitals(ctx context.Context, senderID uuid.UUID) ([]entity.Hospital, error) {
+	args := m.Called(ctx, senderID)
+	return args.Get(0).([]entity.Hospital), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: ReferralRedirectionRepository
+// ---------------------------------------------------------------------------
+
+type MockReferralRedirectionRepo struct {
+	mock.Mock
+}
+
+func (m *MockReferralRedirectionRepo) Create(ctx context.Context, r *entity.ReferralRedirection) error {
+	return m.Called(ctx, r).Error(0)
+}
+
+func (m *MockReferralRedirectionRepo) FindByID(ctx context.Context, id interface{}) (*entity.ReferralRedirection, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralRedirection), args.Error(1)
+}
+
+func (m *MockReferralRedirectionRepo) FindAll(ctx context.Context) ([]entity.ReferralRedirection, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.ReferralRedirection), args.Error(1)
+}
+
+func (m *MockReferralRedirectionRepo) Update(ctx context.Context, r *entity.ReferralRedirection) error {
+	return m.Called(ctx, r).Error(0)
+}
+
+func (m *MockReferralRedirectionRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockReferralRedirectionRepo) ListByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralRedirection, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).([]entity.ReferralRedirection), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: DepartmentRepository (minimal - for referral usecase injection)
+// ---------------------------------------------------------------------------
+
+type MockDepartmentRepo struct {
+	mock.Mock
+}
+
+func (m *MockDepartmentRepo) Create(ctx context.Context, d *entity.Department) error {
+	return m.Called(ctx, d).Error(0)
+}
+
+func (m *MockDepartmentRepo) FindByID(ctx context.Context, id interface{}) (*entity.Department, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Department), args.Error(1)
+}
+
+func (m *MockDepartmentRepo) FindAll(ctx context.Context) ([]entity.Department, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.Department), args.Error(1)
+}
+
+func (m *MockDepartmentRepo) Update(ctx context.Context, d *entity.Department) error {
+	return m.Called(ctx, d).Error(0)
+}
+
+func (m *MockDepartmentRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockDepartmentRepo) ListDepartments(ctx context.Context, filter irepository.DepartmentListFilter) ([]entity.Department, int64, error) {
+	args := m.Called(ctx, filter)
+	return args.Get(0).([]entity.Department), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockDepartmentRepo) LinkToHospital(ctx context.Context, link *entity.HospitalDepartment) error {
+	return m.Called(ctx, link).Error(0)
+}
+
+func (m *MockDepartmentRepo) UnlinkFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error {
+	return m.Called(ctx, hospitalID, departmentID).Error(0)
+}
+
+func (m *MockDepartmentRepo) ListHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.HospitalDepartment, error) {
+	args := m.Called(ctx, hospitalID)
+	return args.Get(0).([]entity.HospitalDepartment), args.Error(1)
+}
+
+func (m *MockDepartmentRepo) FindHospitalDepartment(ctx context.Context, hospitalID, departmentID uuid.UUID) (*entity.HospitalDepartment, error) {
+	args := m.Called(ctx, hospitalID, departmentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.HospitalDepartment), args.Error(1)
+}
+
+func (m *MockDepartmentRepo) UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error {
+	return m.Called(ctx, link).Error(0)
 }
 
 func (m *MockReferralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*dto.ReferralCreationResponse, error) {
@@ -418,6 +534,26 @@ func (m *MockReferralUseCase) SpecialistRelease(ctx context.Context, id, special
 
 func (m *MockReferralUseCase) SpecialistRerunML(ctx context.Context, id, specialistID, hospID uuid.UUID) error {
 	args := m.Called(ctx, id, specialistID, hospID)
+	return args.Error(0)
+}
+
+func (m *MockReferralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string) error {
+	args := m.Called(ctx, id, specialistID, hospID, targetHospitalID, reason)
+	return args.Error(0)
+}
+
+func (m *MockReferralUseCase) ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID) ([]entity.Hospital, error) {
+	args := m.Called(ctx, id, specialistID, hospID)
+	return args.Get(0).([]entity.Hospital), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetRedirectionHistory(ctx context.Context, referralID, userID uuid.UUID, role string, hospID uuid.UUID) ([]entity.ReferralRedirection, error) {
+	args := m.Called(ctx, referralID, userID, role, hospID)
+	return args.Get(0).([]entity.ReferralRedirection), args.Error(1)
+}
+
+func (m *MockReferralUseCase) ChangeDepartment(ctx context.Context, referralID, specialistID, hospID, newDeptID uuid.UUID) error {
+	args := m.Called(ctx, referralID, specialistID, hospID, newDeptID)
 	return args.Error(0)
 }
 

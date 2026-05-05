@@ -77,6 +77,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	configRepo := repository.NewSystemConfigRepository(db)
 	referralAccessRepo := repository.NewReferralAccessRepository(db)
 	checkpointRepo := repository.NewSchedulerCheckpointRepository(db)
+	redirectionRepo := repository.NewReferralRedirectionRepository(db)
 
 	// Infrastructure Clients
 	smsClient := sms.NewAfroMessageClient()
@@ -104,9 +105,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	dailyWeightUseCase := usecase.NewDailyWeightUseCase(configRepo, triageRepo, auditLogRepo)
 	schedulerServiceUseCase := usecase.NewSchedulerServiceUseCase(checkpointRepo, configRepo, schedUseCase)
 
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, attachmentUseCase, notifUseCase, cryptoSvc)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, cryptoSvc, departmentRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
-	netUseCase := usecase.NewNetworkUseCase(netRepo)
+	netUseCase := usecase.NewNetworkUseCase(netRepo, hospitalRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo, cryptoSvc, auditLogRepo)
 
 	// ---- Dependency Injection (Handlers) ----
@@ -114,6 +115,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	userHandler := handlers.NewUserHandler(userUseCase)
 	hospitalHandler := handlers.NewHospitalHandler(hospitalUseCase)
 	departmentHandler := handlers.NewDepartmentHandler(departmentUseCase)
+	redirectionHandler := handlers.NewRedirectionHandler(referralUseCase)
 
 	// Role-Based State Machine Handlers
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase)
@@ -280,6 +282,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				specialistGroup.POST("/:id/reject", specialistHandler.Reject)
 				specialistGroup.POST("/:id/release", specialistHandler.Release)
 				specialistGroup.POST("/:id/rerun-ml", specialistHandler.RerunML)
+				specialistGroup.POST("/:id/redirect", specialistHandler.RedirectReferral)
+				specialistGroup.GET("/:id/redirect-options", specialistHandler.ListRedirectionOptions)
+				specialistGroup.PUT("/:id/department", specialistHandler.ChangeDepartment)
 
 				// Triage & Scheduling
 				specialistGroup.GET("/triage-queue", specialistHandler.GetTriageQueue)
@@ -289,6 +294,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				specialistGroup.POST("/:id/schedule", specialistHandler.Schedule)
 				specialistGroup.POST("/:id/emergency-schedule", specialistHandler.ManualEmergencySchedule)
 			}
+
+			// Shared Referral Routes
+			protected.GET("/referrals/:id/redirections", redirectionHandler.GetRedirectionHistory)
 
 			// RECEPTIONIST
 			receptionistGroup := protected.Group("/receptionist/referrals")

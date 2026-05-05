@@ -53,7 +53,8 @@ type ReferralRepository interface {
 	ListOutboundForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter ReferralFilter) ([]entity.Referral, int64, error)
 	ListByStatusesForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter ReferralFilter, statuses []entity.ReferralStatus) ([]entity.Referral, int64, error)
 	GetDetailsForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID) (*entity.Referral, error)
-	CountByStatusForHospitalAdmin(ctx context.Context, hospID uuid.UUID) ([]ReferralStatusCount, error)
+	GetReferralStatusCounts(ctx context.Context, hospitalID uuid.UUID) ([]ReferralStatusCount, error)
+	UpdateTargetAndStatus(ctx context.Context, referralID, targetID uuid.UUID, status entity.ReferralStatus) error
 	GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]MonthlyReferralTotal, error)
 	GetAcceptanceRejectionRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (acceptedRate float64, rejectedRate float64, err error)
 	GetMissedAppointmentRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error)
@@ -82,7 +83,7 @@ type ReferralOutcomeRepository interface {
 type ReferralRedirectionRepository interface {
 	BaseRepository[entity.ReferralRedirection]
 	Create(ctx context.Context, redirection *entity.ReferralRedirection) error
-	GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.ReferralRedirection, error)
+	ListByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralRedirection, error)
 }
 
 // ReferralAccessRepository tracks which doctors have been granted access to a referral (treating vs. consulted).
