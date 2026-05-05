@@ -139,6 +139,7 @@ func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 // GetSchedule godoc
 // @Summary      Get Receptionist Schedule
 // @Description  Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.
+// @Description  **Access Scope:** Receptionists can view scheduled/operational queue items only; full triage prioritization queue is restricted to RECEIVING_SPECIALIST and DEPT_HEAD roles.
 // @Description  **Roles:** RECEPTIONIST
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized

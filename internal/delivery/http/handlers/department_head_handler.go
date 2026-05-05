@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,18 +12,69 @@ import (
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
-
-
 type DepartmentHeadHandler struct {
 	capacityUC iusecase.CapacityManagementUseCase
 	schedUC    iusecase.SchedulingUseCase
+	triageUC   iusecase.TriageUseCase
 }
 
-func NewDepartmentHeadHandler(capacityUC iusecase.CapacityManagementUseCase, schedUC iusecase.SchedulingUseCase) *DepartmentHeadHandler {
+func NewDepartmentHeadHandler(capacityUC iusecase.CapacityManagementUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase) *DepartmentHeadHandler {
 	return &DepartmentHeadHandler{
 		capacityUC: capacityUC,
 		schedUC:    schedUC,
+		triageUC:   triageUC,
 	}
+}
+
+// GetTriageQueue godoc
+// @Summary      Get department triage queue
+// @Description  Returns triage queue entries scoped to the authenticated department head's hospital and department.
+// @Description  **Roles:** DEPT_HEAD
+// @Description  **Visibility:** Department-scoped queue only.
+// @Tags         Department Head
+// @Produce      json
+// @Param        limit query int false "Pagination limit" default(50)
+// @Param        page query int false "Page number" default(1)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/department-head/triage-queue [get]
+func (h *DepartmentHeadHandler) GetTriageQueue(c *gin.Context) {
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	deptIdVal, _ := c.Get("deptID")
+	deptID := uuid.Nil
+	if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
+		deptID = *dID
+	}
+
+	if hospID == uuid.Nil || deptID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid user scopes (hospital/department missing)"})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	offset := (page - 1) * limit
+
+	queues, total, err := h.triageUC.ListForTriageByDepartment(c.Request.Context(), hospID, deptID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    queues,
+		"total":   total,
+		"page":    page,
+		"limit":   limit,
+	})
 }
 
 // BatchSchedule godoc
@@ -105,7 +157,6 @@ func (h *DepartmentHeadHandler) ListOverrides(c *gin.Context) {
 		"data":    overrides,
 	})
 }
-
 
 // CreateOverride godoc
 // @Summary      Create Capacity Override
@@ -243,4 +294,3 @@ func (h *DepartmentHeadHandler) DeleteOverride(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Capacity override deleted successfully"})
 }
-
