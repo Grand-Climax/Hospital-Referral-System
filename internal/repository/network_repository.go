@@ -44,6 +44,15 @@ func (r *networkRepository) VerifyNetworkPathway(ctx context.Context, senderID, 
 	return count > 0, err
 }
 
+func (r *networkRepository) GetOutgoingNetworkHospitals(ctx context.Context, senderID uuid.UUID) ([]entity.Hospital, error) {
+	var hospitals []entity.Hospital
+	err := r.db.WithContext(ctx).
+		Joins("JOIN referral_networks ON hospitals.id = referral_networks.receiver_hospital_id").
+		Where("referral_networks.sender_hospital_id = ?", senderID).
+		Find(&hospitals).Error
+	return hospitals, err
+}
+
 func (r *networkRepository) DeleteNetworkRoute(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&entity.ReferralNetwork{}, id).Error
 }

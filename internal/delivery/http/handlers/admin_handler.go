@@ -462,6 +462,7 @@ func (h *AdminHandler) HospitalAdminReferralDetails(c *gin.Context) {
 			Success: true,
 			Message: "Referral details retrieved successfully",
 		},
+		Redirections: toRedirectionResponseSlice(ref.Redirections),
 	})
 }
 

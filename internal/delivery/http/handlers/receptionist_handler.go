@@ -49,7 +49,7 @@ func (h *ReceptionistHandler) getHospitalAndDept(c *gin.Context) (uuid.UUID, uui
 // @Summary      List Referrals for Receptionist
 // @Description  Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.
 // @Description  **Roles:** RECEPTIONIST
-// @Description  **Visibility:** ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED.
+// @Description  **Visibility:** ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, ADMITTED.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
@@ -104,7 +104,7 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 // @Summary      Get Referral Details for Receptionist
 // @Description  Get detailed information about an accepted or scheduled referral.
 // @Description  **Roles:** RECEPTIONIST
-// @Description  **Prerequisites:** Referral must be in ACCEPTED or later status.
+// @Description  **Prerequisites:** Status must be ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, or ADMITTED.
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid ID format
 // @Description  - 403 Forbidden (wrong hospital or invalid status)

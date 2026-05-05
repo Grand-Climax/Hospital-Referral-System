@@ -10,7 +10,7 @@ type CreatePatientRequest struct {
 	NationalID string `json:"national_id" example:"NAT-SEED-001"`
 
 	// Required fields
-	PhoneNumber string     `json:"phone_number" binding:"required,e164"          example:"+251911000001"`
+	PhoneNumber string     `json:"phone_number" binding:"required"          example:"+251911000001"`
 	FirstName   string     `json:"first_name"   binding:"required,min=2,max=100" example:"Abebe"`
 	LastName    string     `json:"last_name"    binding:"required,min=2,max=100" example:"Balcha"`
 	Sex         string     `json:"sex"          binding:"required,oneof=male female unknown" example:"male"`

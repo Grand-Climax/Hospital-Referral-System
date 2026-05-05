@@ -19,25 +19,37 @@ type referralUseCase struct {
 	clinicalRepo      irepository.ClinicalUpdateRepository
 	outcomeRepo       irepository.ReferralOutcomeRepository
 	networkRepo       irepository.NetworkRepository
+	redirectionRepo   irepository.ReferralRedirectionRepository
+	triageRepo        irepository.TriageQueueRepository
+	deptRepo          irepository.DepartmentRepository
 	attachmentUseCase iusecase.AttachmentUseCase
 	notifUC           iusecase.NotificationUseCase
 	cryptoSvc         *crypto.PatientCryptoService
 }
+
+// ReferralUseCaseFacade is an alias used in tests to reference the interface
+type ReferralUseCaseFacade = iusecase.ReferralUseCase
 
 func NewReferralUseCase(
 	rRepo irepository.ReferralRepository,
 	cRepo irepository.ClinicalUpdateRepository,
 	oRepo irepository.ReferralOutcomeRepository,
 	nRepo irepository.NetworkRepository,
+	redirRepo irepository.ReferralRedirectionRepository,
+	triageRepo irepository.TriageQueueRepository,
 	aUC iusecase.AttachmentUseCase,
 	notifUC iusecase.NotificationUseCase,
 	cryptoSvc *crypto.PatientCryptoService,
+	deptRepo irepository.DepartmentRepository,
 ) iusecase.ReferralUseCase {
 	return &referralUseCase{
 		referralRepo:      rRepo,
 		clinicalRepo:      cRepo,
 		outcomeRepo:       oRepo,
 		networkRepo:       nRepo,
+		redirectionRepo:   redirRepo,
+		triageRepo:        triageRepo,
+		deptRepo:          deptRepo,
 		attachmentUseCase: aUC,
 		notifUC:           notifUC,
 		cryptoSvc:         cryptoSvc,
@@ -64,6 +76,10 @@ func (u *referralUseCase) IsValidStatus(status string) bool {
 		entity.StatusRejectedBySpecialist:  true,
 		entity.StatusMissed:                true,
 		entity.StatusRescheduled:           true,
+		entity.StatusRedirected:            true,
+		entity.StatusDeceased:              true,
+		entity.StatusAdmitted:              true,
+		entity.StatusRejectedAfterSend:     true,
 	}
 	return validStatuses[entity.ReferralStatus(status)]
 }
@@ -733,6 +749,8 @@ func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospI
 		entity.StatusRejectedBySpecialist:  true,
 		entity.StatusMissed:                true,
 		entity.StatusRescheduled:           true,
+		entity.StatusRedirected:            true,
+		entity.StatusRejectedAfterSend:     true,
 	}
 
 	if !allowedStatuses[ref.Status] {
@@ -939,6 +957,7 @@ func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hos
 		entity.StatusCompleted:   true,
 		entity.StatusMissed:      true,
 		entity.StatusRescheduled: true,
+		entity.StatusAdmitted:    true,
 	}
 
 	if !allowedStatuses[ref.Status] {
@@ -1056,7 +1075,7 @@ func (u *referralUseCase) GetDetailsForHospitalAdmin(ctx context.Context, hospID
 }
 
 func (u *referralUseCase) GetReferralStatusCountsForHospitalAdmin(ctx context.Context, hospID uuid.UUID) ([]irepository.ReferralStatusCount, error) {
-	return u.referralRepo.CountByStatusForHospitalAdmin(ctx, hospID)
+	return u.referralRepo.GetReferralStatusCounts(ctx, hospID)
 }
 
 func (u *referralUseCase) GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]irepository.MonthlyReferralTotal, error) {
@@ -1091,3 +1110,167 @@ func (u *referralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx context.C
 	return u.referralRepo.GetReferralStatusHistoryForHospital(ctx, hospID, referralID, limit, page)
 }
 
+func (u *referralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.TargetHospitalID != hospID {
+		return errors.New("unauthorized: referral is not at your hospital")
+	}
+
+	// Only UNDER_SPECIALIST_REVIEW or ACCEPTED statuses are redirectable
+	if ref.Status != entity.StatusUnderSpecialistReview && ref.Status != entity.StatusAccepted {
+		return fmt.Errorf("invalid referral status for redirection: %s", ref.Status)
+	}
+
+	// Check forbidden chain
+	forbiddenHospitals := make(map[uuid.UUID]bool)
+	forbiddenHospitals[ref.SenderHospitalID] = true
+	forbiddenHospitals[ref.TargetHospitalID] = true // current hospital
+
+	redirections, _ := u.redirectionRepo.ListByReferralID(ctx, id)
+	for _, r := range redirections {
+		forbiddenHospitals[r.RedirectedToHospitalID] = true
+	}
+
+	if forbiddenHospitals[targetHospitalID] {
+		return errors.New("circular redirection detected: hospital already involved in this referral chain")
+	}
+
+	// Verify target exists in outgoing network
+	ok, err := u.networkRepo.VerifyNetworkPathway(ctx, hospID, targetHospitalID)
+	if err != nil || !ok {
+		return errors.New("target hospital is not in your referral network")
+	}
+
+	// Department-lock: verify target hospital has the required department
+	if u.deptRepo != nil {
+		_, deptErr := u.deptRepo.FindHospitalDepartment(ctx, targetHospitalID, ref.TargetDeptID)
+		if deptErr != nil {
+			return errors.New("target hospital does not have the required department")
+		}
+	}
+
+	// Update referral
+	err = u.referralRepo.UpdateTargetAndStatus(ctx, id, targetHospitalID, entity.StatusRedirected)
+	if err != nil {
+		return err
+	}
+
+	// Create redirection record
+	redirection := &entity.ReferralRedirection{
+		ReferralID:               id,
+		RedirectedFromHospitalID: hospID,
+		RedirectedToHospitalID:   targetHospitalID,
+		RedirectedBySpecialistID: specialistID,
+		RedirectionReason:        &reason,
+	}
+	if err := u.redirectionRepo.Create(ctx, redirection); err != nil {
+		return err
+	}
+
+	// Delete triage queue entry
+	_ = u.triageRepo.DeleteByReferralID(ctx, id)
+
+	return nil
+}
+
+func (u *referralUseCase) ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID) ([]entity.Hospital, error) {
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check forbidden chain
+	forbiddenHospitals := make(map[uuid.UUID]bool)
+	forbiddenHospitals[ref.SenderHospitalID] = true
+	forbiddenHospitals[ref.TargetHospitalID] = true
+
+	redirections, _ := u.redirectionRepo.ListByReferralID(ctx, id)
+	for _, r := range redirections {
+		forbiddenHospitals[r.RedirectedToHospitalID] = true
+	}
+
+	networkHospitals, err := u.networkRepo.GetOutgoingNetworkHospitals(ctx, hospID)
+	if err != nil {
+		return nil, err
+	}
+
+	var options []entity.Hospital
+	for _, h := range networkHospitals {
+		if forbiddenHospitals[h.ID] {
+			continue
+		}
+		// Department-lock: only include hospitals that have the required department
+		if u.deptRepo != nil {
+			_, deptErr := u.deptRepo.FindHospitalDepartment(ctx, h.ID, ref.TargetDeptID)
+			if deptErr != nil {
+				continue // Hospital doesn't have the required department
+			}
+		}
+		options = append(options, h)
+	}
+
+	return options, nil
+}
+
+func (u *referralUseCase) GetRedirectionHistory(ctx context.Context, referralID, userID uuid.UUID, role string, hospID uuid.UUID) ([]entity.ReferralRedirection, error) {
+	// Re-use existing auth logic
+	var err error
+	switch role {
+	case string(entity.RoleReferringDoctor):
+		_, err = u.GetDetailsForDoctor(ctx, referralID, userID)
+	case string(entity.RoleLiaisonOfficer):
+		_, err = u.GetDetailsForLiaison(ctx, referralID, hospID)
+	case string(entity.RoleReceivingSpecialist):
+		_, err = u.GetDetailsForSpecialist(ctx, referralID, hospID)
+	case string(entity.RoleSystemSuperAdmin):
+		_, err = u.referralRepo.GetReferralByID(ctx, referralID)
+	default:
+		return nil, errors.New("unauthorized role")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return u.redirectionRepo.ListByReferralID(ctx, referralID)
+}
+
+// ChangeDepartment allows a specialist at the target hospital to update the referral's target department,
+// as long as the referral is in ACCEPTED or UNDER_SPECIALIST_REVIEW status and the new department
+// exists at the current hospital.
+func (u *referralUseCase) ChangeDepartment(ctx context.Context, referralID, specialistID, hospID, newDeptID uuid.UUID) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
+		return err
+	}
+
+	if ref.TargetHospitalID != hospID {
+		return errors.New("unauthorized: referral is not at your hospital")
+	}
+
+	if ref.Status != entity.StatusUnderSpecialistReview && ref.Status != entity.StatusAccepted {
+		return fmt.Errorf("cannot change department: referral must be ACCEPTED or UNDER_SPECIALIST_REVIEW, current status: %s", ref.Status)
+	}
+
+	// Verify the new department exists at the current hospital
+	if u.deptRepo != nil {
+		_, deptErr := u.deptRepo.FindHospitalDepartment(ctx, hospID, newDeptID)
+		if deptErr != nil {
+			return errors.New("the specified department does not exist at your hospital")
+		}
+	}
+
+	oldDeptID := ref.TargetDeptID
+	ref.TargetDeptID = newDeptID
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+
+	// Audit log the department change
+	reason := fmt.Sprintf("Department changed from %s to %s by specialist", oldDeptID, newDeptID)
+	return u.logStatusChange(ctx, referralID, specialistID, &ref.Status, ref.Status, reason)
+}

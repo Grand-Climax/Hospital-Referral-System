@@ -166,9 +166,32 @@ type PaginatedLogResponse struct {
 type ReferralDetailResponse struct {
 	entity.Referral
 	BaseResponse
+	Redirections []RedirectionResponse `json:"redirections,omitempty"`
 }
 
 type ReferralCreationResponse struct {
 	Referral *entity.Referral `json:"referral"`
 	BaseResponse
+}
+
+type RedirectReferralRequest struct {
+	TargetHospitalID uuid.UUID `json:"target_hospital_id" binding:"required" example:"a3000000-0000-0000-0000-000000000003"`
+	Reason           string    `json:"reason" example:"Requires advanced cardiovascular intervention not available here"`
+}
+
+type RedirectionResponse struct {
+	ID                         uuid.UUID `json:"id"`
+	ReferralID                 uuid.UUID `json:"referral_id"`
+	RedirectedFromHospitalID   uuid.UUID `json:"redirected_from_hospital_id"`
+	RedirectedFromHospitalName string    `json:"redirected_from_hospital_name"`
+	RedirectedToHospitalID     uuid.UUID `json:"redirected_to_hospital_id"`
+	RedirectedToHospitalName   string    `json:"redirected_to_hospital_name"`
+	RedirectedBySpecialistID   uuid.UUID `json:"redirected_by_specialist_id"`
+	RedirectionReason          string    `json:"redirection_reason"`
+	CreatedAt                  time.Time `json:"created_at"`
+}
+
+// ChangeDepartmentRequest is the body for PUT /specialist/referrals/:id/department
+type ChangeDepartmentRequest struct {
+	DepartmentID uuid.UUID `json:"department_id" binding:"required" example:"b1000000-0000-0000-0000-000000000001"`
 }

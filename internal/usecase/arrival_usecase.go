@@ -102,6 +102,15 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 	// In some implementations, users have multiple hospital affiliations via a mapping table.
 	// For now, we check the user's primary hospital if available, or just skip if not explicitly modeled.
 
+	if queue.AppointmentDate != nil {
+		if queue.AppointmentDate.Truncate(24 * time.Hour).After(time.Now().Truncate(24 * time.Hour)) {
+			return errors.New("cannot assign doctor for a future appointment")
+		}
+		if queue.AppointmentDate.Truncate(24 * time.Hour).Before(time.Now().Truncate(24 * time.Hour)) {
+			return errors.New("cannot assign doctor for a past appointment")
+		}
+	}
+
 	now := time.Now()
 	queue.AssignedDoctorID = &doctorID
 	queue.DoctorAssignedAt = &now
@@ -195,6 +204,10 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
 	if err != nil {
 		return err
+	}
+
+	if queue.AppointmentDate != nil && queue.AppointmentDate.After(time.Now()) {
+		return errors.New("cannot mark a future appointment as missed")
 	}
 
 	queue.ArrivalStatus = entity.ArrivalMissed

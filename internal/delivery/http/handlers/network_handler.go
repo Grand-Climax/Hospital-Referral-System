@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -46,7 +47,11 @@ func (h *NetworkHandler) Create(c *gin.Context) {
 
 	route, err := h.networkUseCase.CreateRoute(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+		statusCode := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "cannot create") || strings.Contains(err.Error(), "already exists") {
+			statusCode = http.StatusBadRequest
+		}
+		c.JSON(statusCode, dto.ErrorResponse{
 			Success: false,
 			Error:   "Failed to create network route: " + err.Error(),
 		})

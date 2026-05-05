@@ -117,10 +117,10 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 }
 
 // DEPRECATED: ListIncoming is now handled via specialists or specific monitoring tools.
-/*
 // ListIncoming godoc
 // @Summary      List Incoming Referrals for Liaison
 // @Description  Get a paginated list of referrals sent TO the liaison's hospital for monitoring.
+// @Description  **Visibility:** Includes FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, REJECTED_AFTER_SEND, and ADMITTED.
 // @Tags         Liaison Referrals
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
@@ -131,7 +131,6 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 // @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/liaison/referrals/incoming [get]
-*/
 func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
@@ -291,6 +290,7 @@ func (h *LiaisonHandler) GetReferral(c *gin.Context) {
 			Success: true,
 			Message: "Referral details retrieved successfully",
 		},
+		Redirections: toRedirectionResponseSlice(ref.Redirections),
 	})
 }
 
