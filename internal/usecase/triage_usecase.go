@@ -152,7 +152,8 @@ func (u *triageUseCase) ListForTriageByDepartment(ctx context.Context, hospitalI
 		targetDept := deptID.String()
 		if ref != nil {
 			if ref.Patient != nil {
-				name = fmt.Sprintf("%s %s", ref.Patient.FirstName, ref.Patient.LastName)
+				_ = ref.Patient.DecryptFields(u.cryptoSvc)
+				name = fmt.Sprintf("%s %s", ref.Patient.FirstNamePlain, ref.Patient.LastNamePlain)
 			}
 			targetDept = ref.TargetDeptID.String()
 		}
