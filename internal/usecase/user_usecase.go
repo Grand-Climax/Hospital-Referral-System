@@ -31,20 +31,22 @@ var (
 type userUseCase struct {
 	repo     irepository.UserRepository
 	storage  iinfra.StorageService
-	authRepo irepository.AuthRepository
-	sessions cache.SessionStore
+	authRepo     irepository.AuthRepository
+	sessions     cache.SessionStore
+	inAppNotifUC iusecase.InAppNotificationUseCase
 }
 
-func NewUserUseCase(repo irepository.UserRepository, storage iinfra.StorageService) iusecase.UserUseCase {
-	return &userUseCase{repo: repo, storage: storage}
+func NewUserUseCase(repo irepository.UserRepository, storage iinfra.StorageService, inAppNotifUC iusecase.InAppNotificationUseCase) iusecase.UserUseCase {
+	return &userUseCase{repo: repo, storage: storage, inAppNotifUC: inAppNotifUC}
 }
 
-func NewUserUseCaseWithSecurity(repo irepository.UserRepository, storage iinfra.StorageService, authRepo irepository.AuthRepository, sessions cache.SessionStore) iusecase.UserUseCase {
+func NewUserUseCaseWithSecurity(repo irepository.UserRepository, storage iinfra.StorageService, authRepo irepository.AuthRepository, sessions cache.SessionStore, inAppNotifUC iusecase.InAppNotificationUseCase) iusecase.UserUseCase {
 	return &userUseCase{
 		repo:     repo,
 		storage:  storage,
-		authRepo: authRepo,
-		sessions: sessions,
+		authRepo:     authRepo,
+		sessions:     sessions,
+		inAppNotifUC: inAppNotifUC,
 	}
 }
 
@@ -104,6 +106,9 @@ func (u *userUseCase) CreateUser(ctx context.Context, user *entity.User, rawPass
 		}
 		return err
 	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "STAFF_ADDED", uuid.Nil, uuid.Nil)
+
 	return nil
 }
 
@@ -206,7 +211,11 @@ func (u *userUseCase) AssignRole(ctx context.Context, userID uuid.UUID, role ent
 	}
 
 	user.Role = role
-	return u.repo.Update(ctx, user)
+	err = u.repo.Update(ctx, user)
+	if err == nil {
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "ROLE_CHANGED", uuid.Nil, uuid.Nil)
+	}
+	return err
 }
 
 func (u *userUseCase) DeleteProfileImage(ctx context.Context, userID uuid.UUID) error {
@@ -375,7 +384,11 @@ func (u *userUseCase) HospitalAdminChangeStaffRole(ctx context.Context, adminID,
 	}
 
 	target.Role = role
-	return u.repo.Update(ctx, target)
+	err = u.repo.Update(ctx, target)
+	if err == nil {
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "ROLE_CHANGED", uuid.Nil, adminID)
+	}
+	return err
 }
 
 func (u *userUseCase) HospitalAdminSoftDeleteStaff(ctx context.Context, adminID, staffID uuid.UUID) error {

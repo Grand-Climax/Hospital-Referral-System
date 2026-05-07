@@ -26,6 +26,7 @@ type schedulingUseCase struct {
 	configRepo   irepository.SystemConfigRepository
 	auditRepo    irepository.AuditLogRepository
 	notifUC      iusecase.NotificationUseCase
+	inAppNotifUC iusecase.InAppNotificationUseCase
 }
 
 func NewSchedulingUseCase(
@@ -38,6 +39,7 @@ func NewSchedulingUseCase(
 	configRepo irepository.SystemConfigRepository,
 	auditRepo irepository.AuditLogRepository,
 	notifUC iusecase.NotificationUseCase,
+	inAppNotifUC iusecase.InAppNotificationUseCase,
 ) iusecase.SchedulingUseCase {
 	return &schedulingUseCase{
 		db:           db,
@@ -49,6 +51,7 @@ func NewSchedulingUseCase(
 		configRepo:   configRepo,
 		auditRepo:    auditRepo,
 		notifUC:      notifUC,
+		inAppNotifUC: inAppNotifUC,
 	}
 }
 
@@ -131,6 +134,8 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 
 		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, content)
 
+		_ = u.inAppNotifUC.CreateForEvent(ctx, string(notifType), referralID, userID)
+
 		return nil
 	})
 }
@@ -176,6 +181,8 @@ func (u *schedulingUseCase) ManageCapacityOverride(ctx context.Context, hospital
 	if err := u.overrideRepo.Create(ctx, override); err != nil {
 		return err
 	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "CAPACITY_OVERRIDE_CREATED", uuid.Nil, userID)
 
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, nil, nil, override)
 }
@@ -255,6 +262,8 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		}
 		message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
 		_ = u.notifUC.QueueNotification(ctx, referralID, entity.NotificationType("SCHEDULING"), message)
+
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "APPOINTMENT_SCHEDULED", referralID, userID)
 
 		return nil
 	})
@@ -368,6 +377,12 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 		"department_id": departmentID,
 		"result":        result,
 	})
+
+	if result.ScheduledCount > 0 {
+		// Just use Nil UUID for referral if it's a batch event, or logic inside UseCase handles it
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "BATCH_SCHEDULE_COMPLETED", uuid.Nil, userID)
+	}
+
 	return result, nil
 }
 

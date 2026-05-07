@@ -39,8 +39,8 @@ type ReferralUseCase interface {
 	SpecialistReject(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error
 	SpecialistRelease(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error
 	SpecialistRerunML(ctx context.Context, id, specialistID, hospID uuid.UUID) error
-	RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string) error
-	ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID) ([]entity.Hospital, error)
+	RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string, newDeptID *uuid.UUID) error
+	ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID, filterDeptID *uuid.UUID) ([]entity.Hospital, error)
 	GetRedirectionHistory(ctx context.Context, referralID, userID uuid.UUID, role string, hospID uuid.UUID) ([]entity.ReferralRedirection, error)
 	ChangeDepartment(ctx context.Context, referralID, specialistID, hospID, newDeptID uuid.UUID) error
 

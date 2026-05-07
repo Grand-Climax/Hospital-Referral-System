@@ -40,7 +40,7 @@ type LogoutRequest struct {
 // @Description  **Common Errors:**
 // @Description  - 401 (Invalid Credentials)
 // @Description  - 403 (Account Inactive)
-// @Tags         Auth
+// @Tags         Authentication
 // @Accept       json
 // @Produce      json
 // @Param        body body LoginRequest true "Login credentials"
@@ -95,7 +95,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Description  **Constraints:** Refresh token must not be blacklisted or expired.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized (token invalid/expired)
-// @Tags         Auth
+// @Tags         Authentication
 // @Accept       json
 // @Produce      json
 // @Param        body body RefreshRequest true "Refresh token"
@@ -143,7 +143,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Auth
+// @Tags         Authentication
 // @Accept       json
 // @Produce      json
 // @Param        body body LogoutRequest true "Refresh token to revoke"

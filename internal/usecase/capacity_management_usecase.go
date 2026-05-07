@@ -18,6 +18,7 @@ type capacityManagementUseCase struct {
 	overrideRepo irepository.CapacityOverrideRepository
 	deptRepo     irepository.DepartmentRepository
 	auditRepo    irepository.AuditLogRepository
+	inAppNotifUC iusecase.InAppNotificationUseCase
 }
 
 func NewCapacityManagementUseCase(
@@ -25,12 +26,14 @@ func NewCapacityManagementUseCase(
 	ovRepo irepository.CapacityOverrideRepository,
 	deptRepo irepository.DepartmentRepository,
 	auditRepo irepository.AuditLogRepository,
+	inAppNotifUC iusecase.InAppNotificationUseCase,
 ) iusecase.CapacityManagementUseCase {
 	return &capacityManagementUseCase{
 		scheduleRepo: sRepo,
 		overrideRepo: ovRepo,
 		deptRepo:     deptRepo,
 		auditRepo:    auditRepo,
+		inAppNotifUC: inAppNotifUC,
 	}
 }
 
@@ -77,6 +80,8 @@ func (u *capacityManagementUseCase) CreateOverride(ctx context.Context, hospital
 		return err
 	}
 
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "CAPACITY_OVERRIDE_CREATED", uuid.Nil, userID)
+
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, nil, nil, override)
 }
 
@@ -100,6 +105,8 @@ func (u *capacityManagementUseCase) UpdateOverride(ctx context.Context, override
 		sched.MaxSlots = newLimit
 		_ = u.scheduleRepo.Update(ctx, sched)
 	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "CAPACITY_OVERRIDE_UPDATED", uuid.Nil, userID)
 
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, nil, nil, override)
 }
