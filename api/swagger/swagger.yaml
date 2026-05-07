@@ -1039,9 +1039,6 @@ definitions:
     type: object
   dto.RedirectReferralRequest:
     properties:
-      department_id:
-        example: b1000000-0000-0000-0000-000000000001
-        type: string
       reason:
         example: Requires advanced cardiovascular intervention not available here
         type: string
@@ -2243,7 +2240,7 @@ paths:
       - BearerAuth: []
       summary: Get System Configuration
       tags:
-      - System Admin
+      - Admin/Config
     put:
       consumes:
       - application/json
@@ -2275,7 +2272,7 @@ paths:
       - BearerAuth: []
       summary: Update System Configuration
       tags:
-      - System Admin
+      - Admin/Config
   /api/v1/admin/network-routes:
     get:
       description: |-
@@ -2508,7 +2505,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: User login
       tags:
-      - Authentication
+      - Auth
   /api/v1/auth/logout:
     post:
       consumes:
@@ -2546,7 +2543,7 @@ paths:
       - BearerAuth: []
       summary: User logout
       tags:
-      - Authentication
+      - Auth
   /api/v1/auth/refresh:
     post:
       consumes:
@@ -2581,7 +2578,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Refresh token
       tags:
-      - Authentication
+      - Auth
   /api/v1/cron/cleanup-temp:
     post:
       description: |-
@@ -3124,7 +3121,7 @@ paths:
       - BearerAuth: []
       summary: Get Latest Pending Referrals
       tags:
-      - Doctor
+      - Doctor Dashboard
   /api/v1/doctor/referrals:
     get:
       description: |-
@@ -3180,7 +3177,7 @@ paths:
       - BearerAuth: []
       summary: List Referrals for Doctor
       tags:
-      - Doctor
+      - Doctor Referrals
     post:
       consumes:
       - application/json
@@ -3221,7 +3218,7 @@ paths:
       - BearerAuth: []
       summary: Create or Submit Referral (Pre-Minted Architecture)
       tags:
-      - Doctor
+      - Doctor Referrals
   /api/v1/doctor/referrals/{id}:
     get:
       description: |-
@@ -3256,7 +3253,7 @@ paths:
       - BearerAuth: []
       summary: Get Referral Details for Doctor
       tags:
-      - Doctor
+      - Doctor Referrals
     put:
       consumes:
       - application/json
@@ -3296,7 +3293,7 @@ paths:
       - BearerAuth: []
       summary: Update Referral Draft
       tags:
-      - Doctor
+      - Doctor Referrals
   /api/v1/doctor/referrals/{id}/attachments:
     delete:
       description: |-
@@ -3331,7 +3328,7 @@ paths:
       - BearerAuth: []
       summary: Delete All Attachments
       tags:
-      - Doctor
+      - Doctor Referrals
   /api/v1/doctor/referrals/{id}/cancel:
     post:
       consumes:
@@ -3371,7 +3368,7 @@ paths:
       - BearerAuth: []
       summary: Cancel Referral
       tags:
-      - Doctor
+      - Doctor Referrals
   /api/v1/doctor/referrals/{id}/submit:
     put:
       consumes:
@@ -3411,7 +3408,7 @@ paths:
       - BearerAuth: []
       summary: Submit Referral for Review
       tags:
-      - Doctor
+      - Doctor Referrals
   /api/v1/doctor/stats:
     get:
       description: |-
@@ -3431,7 +3428,7 @@ paths:
       - BearerAuth: []
       summary: Get Doctor Dashboard Stats
       tags:
-      - Doctor
+      - Doctor Dashboard
   /api/v1/hospital-admin/audit-logs:
     get:
       description: |-
@@ -3483,7 +3480,7 @@ paths:
       - BearerAuth: []
       summary: View hospital audit logs (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/departments:
     get:
       description: |-
@@ -3511,7 +3508,7 @@ paths:
       - BearerAuth: []
       summary: View own hospital departments (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Operations
     post:
       consumes:
       - application/json
@@ -3556,7 +3553,7 @@ paths:
       - BearerAuth: []
       summary: Add department to own hospital (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Operations
   /api/v1/hospital-admin/departments/{deptId}/activation:
     patch:
       consumes:
@@ -3603,7 +3600,7 @@ paths:
       - BearerAuth: []
       summary: Activate or deactivate department link (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Operations
   /api/v1/hospital-admin/departments/{deptId}/head:
     patch:
       consumes:
@@ -3650,7 +3647,7 @@ paths:
       - BearerAuth: []
       summary: Assign or change department head (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Operations
   /api/v1/hospital-admin/hospital/profile:
     get:
       description: |-
@@ -3679,7 +3676,7 @@ paths:
       - BearerAuth: []
       summary: Get own hospital profile (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Operations
     patch:
       consumes:
       - application/json
@@ -3721,7 +3718,7 @@ paths:
       - BearerAuth: []
       summary: Update own hospital profile (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Operations
   /api/v1/hospital-admin/referrals-log:
     get:
       description: |-
@@ -3761,7 +3758,7 @@ paths:
       - BearerAuth: []
       summary: Get Referral Logs for Hospital
       tags:
-      - Hospital Admin
+      - Admin Referrals
   /api/v1/hospital-admin/referrals/{id}:
     get:
       description: |-
@@ -3801,7 +3798,7 @@ paths:
       - BearerAuth: []
       summary: Get referral details (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Referral Oversight
   /api/v1/hospital-admin/referrals/{id}/status-history:
     get:
       description: |-
@@ -3850,7 +3847,7 @@ paths:
       - BearerAuth: []
       summary: Get referral status history (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/referrals/inbound:
     get:
       description: |-
@@ -3910,7 +3907,7 @@ paths:
       - BearerAuth: []
       summary: List inbound referrals (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Referral Oversight
   /api/v1/hospital-admin/referrals/outbound:
     get:
       description: |-
@@ -3970,7 +3967,7 @@ paths:
       - BearerAuth: []
       summary: List outbound referrals (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Referral Oversight
   /api/v1/hospital-admin/referrals/pending-approvals:
     get:
       description: |-
@@ -4022,7 +4019,7 @@ paths:
       - BearerAuth: []
       summary: List pending approvals (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Referral Oversight
   /api/v1/hospital-admin/referrals/rejected-redirected:
     get:
       description: |-
@@ -4074,7 +4071,7 @@ paths:
       - BearerAuth: []
       summary: List rejected or redirected referrals (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Referral Oversight
   /api/v1/hospital-admin/referrals/stats/by-status:
     get:
       description: |-
@@ -4103,7 +4100,7 @@ paths:
       - BearerAuth: []
       summary: Get referral counts by status (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Referral Oversight
   /api/v1/hospital-admin/reports/acceptance-rejection-rate:
     get:
       description: |-
@@ -4131,7 +4128,7 @@ paths:
       - BearerAuth: []
       summary: Acceptance and rejection rate (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/reports/average-wait-time:
     get:
       description: |-
@@ -4159,7 +4156,7 @@ paths:
       - BearerAuth: []
       summary: Average wait time (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/reports/busiest-departments:
     get:
       description: |-
@@ -4193,7 +4190,7 @@ paths:
       - BearerAuth: []
       summary: Busiest departments (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/reports/missed-appointment-rate:
     get:
       description: |-
@@ -4221,7 +4218,7 @@ paths:
       - BearerAuth: []
       summary: Missed appointment rate (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/reports/monthly-referrals:
     get:
       description: |-
@@ -4255,7 +4252,7 @@ paths:
       - BearerAuth: []
       summary: Monthly referral totals (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/reports/top-referring-hospitals:
     get:
       description: |-
@@ -4289,7 +4286,7 @@ paths:
       - BearerAuth: []
       summary: Top referring hospitals (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Audit & Reports
   /api/v1/hospital-admin/staff:
     get:
       description: |-
@@ -4345,7 +4342,7 @@ paths:
       - BearerAuth: []
       summary: List staff (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
     post:
       consumes:
       - application/json
@@ -4387,7 +4384,7 @@ paths:
       - BearerAuth: []
       summary: Create staff (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}:
     delete:
       description: |-
@@ -4426,7 +4423,7 @@ paths:
       - BearerAuth: []
       summary: Soft delete staff (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
     get:
       description: |-
         Get a staff profile scoped to the admin's hospital.
@@ -4464,7 +4461,7 @@ paths:
       - BearerAuth: []
       summary: Get staff by ID (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}/activation:
     patch:
       consumes:
@@ -4510,7 +4507,7 @@ paths:
       - BearerAuth: []
       summary: Activate or deactivate staff (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}/department:
     patch:
       consumes:
@@ -4557,7 +4554,7 @@ paths:
       - BearerAuth: []
       summary: Reassign staff department (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}/force-logout:
     post:
       description: |-
@@ -4596,7 +4593,7 @@ paths:
       - BearerAuth: []
       summary: Force logout staff (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}/replace:
     post:
       consumes:
@@ -4648,7 +4645,7 @@ paths:
       - BearerAuth: []
       summary: Replace staff in-place (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/{id}/role:
     patch:
       consumes:
@@ -4695,7 +4692,7 @@ paths:
       - BearerAuth: []
       summary: Change staff role (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospital-admin/staff/sessions:
     get:
       description: |-
@@ -4738,7 +4735,7 @@ paths:
       - BearerAuth: []
       summary: List active staff sessions (Hospital Admin)
       tags:
-      - Hospital Admin
+      - Hospital Admin - Staff Management
   /api/v1/hospitals:
     get:
       description: |-
@@ -5053,7 +5050,7 @@ paths:
       - BearerAuth: []
       summary: Extend Daily Schedule Window
       tags:
-      - Automation Jobs
+      - Internal/Jobs
   /api/v1/internal/jobs/run-scheduler-cycle:
     post:
       description: |-
@@ -5075,7 +5072,7 @@ paths:
       - BearerAuth: []
       summary: Run Automated Batch Scheduling Cycle
       tags:
-      - Automation Jobs
+      - Internal/Jobs
   /api/v1/internal/jobs/send-reminders:
     post:
       description: |-
@@ -5097,7 +5094,7 @@ paths:
       - BearerAuth: []
       summary: Batch Queue Appointment Reminders
       tags:
-      - Automation Jobs
+      - Internal/Jobs
   /api/v1/internal/jobs/update-waiting-weights:
     post:
       description: |-
@@ -5118,7 +5115,7 @@ paths:
       - BearerAuth: []
       summary: Manual Trigger for Waiting Weight Updates
       tags:
-      - Automation Jobs
+      - Internal/Jobs
   /api/v1/internal/notifications:
     get:
       description: |-
@@ -5175,7 +5172,7 @@ paths:
       - BearerAuth: []
       summary: List Notifications
       tags:
-      - SMS Notifications
+      - Internal/Notifications
   /api/v1/internal/notifications/{id}/resend:
     post:
       description: |-
@@ -5202,7 +5199,7 @@ paths:
       - BearerAuth: []
       summary: Manual Resend Notification
       tags:
-      - SMS Notifications
+      - Internal/Notifications
   /api/v1/internal/notifications/send:
     post:
       description: |-
@@ -5232,7 +5229,7 @@ paths:
       - BearerAuth: []
       summary: Manual Trigger Notification Send
       tags:
-      - SMS Notifications
+      - Internal/Notifications
   /api/v1/internal/notifications/update-status:
     post:
       description: |-
@@ -5252,7 +5249,7 @@ paths:
       - BearerAuth: []
       summary: Manual Sync Delivery Status
       tags:
-      - SMS Notifications
+      - Internal/Notifications
   /api/v1/internal/notifications/webhook:
     get:
       description: |-
@@ -5278,7 +5275,7 @@ paths:
             $ref: '#/definitions/dto.BaseResponse'
       summary: SMS Webhook
       tags:
-      - SMS Notifications
+      - Internal/Notifications
   /api/v1/liaison/referrals:
     get:
       description: |-
@@ -5322,7 +5319,7 @@ paths:
       - BearerAuth: []
       summary: List Outgoing Referrals for Liaison
       tags:
-      - Liaison
+      - Liaison Referrals
   /api/v1/liaison/referrals/{id}:
     get:
       description: |-
@@ -5357,7 +5354,7 @@ paths:
       - BearerAuth: []
       summary: Get Referral Details for Liaison
       tags:
-      - Liaison
+      - Liaison Referrals
   /api/v1/liaison/referrals/{id}/forward:
     post:
       description: |-
@@ -5391,7 +5388,7 @@ paths:
       - BearerAuth: []
       summary: Forward Referral to Specialist
       tags:
-      - Liaison
+      - Liaison Referrals
   /api/v1/liaison/referrals/{id}/read:
     post:
       description: |-
@@ -5427,7 +5424,7 @@ paths:
       - BearerAuth: []
       summary: Mark Referral as Read
       tags:
-      - Liaison
+      - Liaison Referrals
   /api/v1/liaison/referrals/{id}/reject:
     post:
       consumes:
@@ -5467,7 +5464,7 @@ paths:
       - BearerAuth: []
       summary: Reject Referral
       tags:
-      - Liaison
+      - Liaison Referrals
   /api/v1/liaison/referrals/{id}/revise:
     post:
       consumes:
@@ -5507,7 +5504,7 @@ paths:
       - BearerAuth: []
       summary: Request Referral Revision
       tags:
-      - Liaison
+      - Liaison Referrals
   /api/v1/liaison/referrals/incoming:
     get:
       description: |-
@@ -5547,7 +5544,7 @@ paths:
       - BearerAuth: []
       summary: List Incoming Referrals for Liaison
       tags:
-      - Liaison
+      - Liaison Referrals
   /api/v1/me/notifications:
     get:
       description: Get a paginated list of notifications for the current authenticated
@@ -5606,7 +5603,7 @@ paths:
       - BearerAuth: []
       summary: List My In-App Notifications
       tags:
-      - In-App Notifications
+      - Notifications
   /api/v1/me/notifications/{id}/read:
     post:
       description: Mark a specific in-app notification as read.
@@ -5635,7 +5632,7 @@ paths:
       - BearerAuth: []
       summary: Mark Notification as Read
       tags:
-      - In-App Notifications
+      - Notifications
   /api/v1/me/notifications/read-all:
     post:
       description: Mark all unread in-app notifications as read for the current user.
@@ -5654,7 +5651,7 @@ paths:
       - BearerAuth: []
       summary: Mark All Notifications as Read
       tags:
-      - In-App Notifications
+      - Notifications
   /api/v1/me/notifications/unread-count:
     get:
       description: Get the count of unread notifications for the current user.
@@ -5673,7 +5670,7 @@ paths:
       - BearerAuth: []
       summary: Get Unread Notification Count
       tags:
-      - In-App Notifications
+      - Notifications
   /api/v1/patients:
     post:
       consumes:
@@ -6659,7 +6656,6 @@ paths:
       description: |-
         Updates the target department of a referral as long as it is ACCEPTED or UNDER_SPECIALIST_REVIEW.
         The new department must exist at the current hospital. This unlocks new redirect options.
-        **After updating the department, call GET /specialist/referrals/{id}/redirect-options again to see the expanded list of eligible hospitals.**
         **Roles:** RECEIVING_SPECIALIST
       parameters:
       - description: Referral ID
@@ -6780,7 +6776,6 @@ paths:
       - application/json
       description: |-
         Redirect an active referral (ACCEPTED/UNDER_SPECIALIST_REVIEW) to another hospital in the network.
-        **The target hospital must have the same department as the referral’s current target_dept_id. If the desired hospital lacks that department, call PUT /specialist/referrals/{id}/department first.**
         **Roles:** RECEIVING_SPECIALIST (non-primary hospital)
         **Constraints:** No loops allowed, target must be in outgoing network.
       parameters:
@@ -6789,8 +6784,7 @@ paths:
         name: id
         required: true
         type: string
-      - description: Redirection details (optional department_id to update target
-          department)
+      - description: Redirection details
         in: body
         name: body
         required: true
@@ -6814,19 +6808,13 @@ paths:
       - Specialist
   /api/v1/specialist/referrals/{id}/redirect-options:
     get:
-      description: |-
-        Get a list of hospitals in the network that haven't handled this referral yet.
-        **If the returned list is empty, the specialist should call PUT /specialist/referrals/{id}/department to select a different target department before retrying.**
+      description: Get a list of hospitals in the network that haven't handled this
+        referral yet.
       parameters:
       - description: Referral ID
         in: path
         name: id
         required: true
-        type: string
-      - description: 'Optional: filter hospitals by this department ID instead of
-          the referral''s current department'
-        in: query
-        name: department_id
         type: string
       produces:
       - application/json
@@ -7052,7 +7040,7 @@ paths:
       - BearerAuth: []
       summary: Review Triage Prediction
       tags:
-      - Specialist
+      - Triage
   /api/v1/specialist/referrals/{id}/triage-severity:
     post:
       consumes:
@@ -7231,7 +7219,7 @@ paths:
       - BearerAuth: []
       summary: System Admin Global Listing
       tags:
-      - System Admin
+      - Admin Referrals
   /api/v1/system-admin/users:
     get:
       description: |-
@@ -7294,7 +7282,7 @@ paths:
       - BearerAuth: []
       summary: Global User List (System Admin Only)
       tags:
-      - System Admin
+      - SystemAdmin
     post:
       consumes:
       - application/json
@@ -7334,7 +7322,7 @@ paths:
       - BearerAuth: []
       summary: Create a new user
       tags:
-      - System Admin
+      - SystemAdmin
   /api/v1/system-admin/users/{id}:
     delete:
       description: |-
@@ -7363,7 +7351,7 @@ paths:
       - BearerAuth: []
       summary: Delete a user
       tags:
-      - System Admin
+      - SystemAdmin
     put:
       consumes:
       - application/json
@@ -7404,7 +7392,7 @@ paths:
       - BearerAuth: []
       summary: Update a user
       tags:
-      - System Admin
+      - SystemAdmin
   /api/v1/system-admin/users/{id}/profile/image:
     delete:
       description: |-
@@ -7434,7 +7422,7 @@ paths:
       - BearerAuth: []
       summary: Moderate Profile Image
       tags:
-      - System Admin
+      - SystemAdmin
   /api/v1/system-admin/users/{id}/role:
     patch:
       consumes:
@@ -7476,7 +7464,7 @@ paths:
       - BearerAuth: []
       summary: Assign role to user
       tags:
-      - System Admin
+      - SystemAdmin
   /api/v1/triage:
     get:
       description: |-
@@ -7517,7 +7505,7 @@ paths:
       - BearerAuth: []
       summary: List Triage Queue
       tags:
-      - Specialist
+      - Triage
   /api/v1/users:
     get:
       description: |-

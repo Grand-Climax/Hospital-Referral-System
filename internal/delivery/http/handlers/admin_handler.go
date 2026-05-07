@@ -71,7 +71,7 @@ func parseReferralFilter(c *gin.Context) irepository.ReferralFilter {
 // @Description  - 400 Invalid status
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Admin Referrals
+// @Tags         System Admin
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -157,7 +157,7 @@ func (h *AdminHandler) SystemAdminList(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Admin Referrals
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -243,7 +243,7 @@ func (h *AdminHandler) HospitalAdminLogs(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Referral Oversight
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -292,7 +292,7 @@ func (h *AdminHandler) HospitalAdminInboundReferrals(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Referral Oversight
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -341,7 +341,7 @@ func (h *AdminHandler) HospitalAdminOutboundReferrals(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Referral Oversight
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -385,7 +385,7 @@ func (h *AdminHandler) HospitalAdminPendingApprovals(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Referral Oversight
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -430,7 +430,7 @@ func (h *AdminHandler) HospitalAdminRejectedRedirected(c *gin.Context) {
 // @Description  - 400 Invalid ID
 // @Description  - 401 Unauthorized
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Referral Oversight
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Success      200 {object} dto.ReferralDetailResponse
@@ -474,7 +474,7 @@ func (h *AdminHandler) HospitalAdminReferralDetails(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Referral Oversight
+// @Tags         Hospital Admin
 // @Produce      json
 // @Success      200 {object} dto.ReferralStatusCountListResponse
 // @Failure      401 {object} dto.ErrorResponse
@@ -515,7 +515,7 @@ func (h *AdminHandler) HospitalAdminReferralStatusCounts(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 503 Service Unavailable
-// @Tags         Hospital Admin - Audit & Reports
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        page query int false "Page number" default(1)
 // @Param        page_size query int false "Page size" default(20)
@@ -596,7 +596,7 @@ func (h *AdminHandler) HospitalAdminAuditLogs(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Audit & Reports
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        months query int false "Number of months" default(6)
 // @Success      200 {object} dto.MonthlyReferralTotalsResponse
@@ -637,7 +637,7 @@ func (h *AdminHandler) HospitalAdminMonthlyReferralTotals(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Audit & Reports
+// @Tags         Hospital Admin
 // @Produce      json
 // @Success      200 {object} dto.AcceptanceRejectionRateResponse
 // @Failure      401 {object} dto.ErrorResponse
@@ -670,7 +670,7 @@ func (h *AdminHandler) HospitalAdminAcceptanceRejectionRate(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Audit & Reports
+// @Tags         Hospital Admin
 // @Produce      json
 // @Success      200 {object} dto.MissedAppointmentRateResponse
 // @Failure      401 {object} dto.ErrorResponse
@@ -702,7 +702,7 @@ func (h *AdminHandler) HospitalAdminMissedAppointmentRate(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Audit & Reports
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        limit query int false "Result size" default(5)
 // @Success      200 {object} dto.DepartmentLoadListResponse
@@ -746,7 +746,7 @@ func (h *AdminHandler) HospitalAdminBusiestDepartments(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Audit & Reports
+// @Tags         Hospital Admin
 // @Produce      json
 // @Success      200 {object} dto.AverageWaitTimeResponse
 // @Failure      401 {object} dto.ErrorResponse
@@ -778,7 +778,7 @@ func (h *AdminHandler) HospitalAdminAverageWaitTime(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Audit & Reports
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        limit query int false "Result size" default(5)
 // @Success      200 {object} dto.TopReferringHospitalListResponse

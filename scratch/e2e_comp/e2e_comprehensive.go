@@ -345,6 +345,42 @@ func main() {
 	code, body = doReq("POST", "/api/v1/internal/notifications/send", adminToken, nil)
 	logStep(StepResult{Step: "8. Admin Notif Send", Method: "POST", Path: "/api/v1/internal/notifications/send", ExpStatus: 200, ActStatus: code, Pass: code == 200, Details: string(body)})
 
+	// 9. In-App Notifications
+	fmt.Println("\nVerifying In-App Notifications...")
+	
+	// List Notifications for Doctor
+	code, body = doReq("GET", "/api/v1/me/notifications?limit=10&page=1", drTAToken, nil)
+	pass = code == 200
+	var notifRes struct {
+		Data        []map[string]interface{} `json:"data"`
+		UnreadCount int                      `json:"unread_count"`
+	}
+	json.Unmarshal(body, &notifRes)
+	asserts = []string{}
+	var firstNotifID string
+	if pass {
+		asserts = append(asserts, fmt.Sprintf("PASS: Found %d notifications", len(notifRes.Data)))
+		if len(notifRes.Data) > 0 {
+			firstNotifID = notifRes.Data[0]["id"].(string)
+			asserts = append(asserts, "PASS: First notification ID: "+firstNotifID)
+		}
+	}
+	logStep(StepResult{Step: "9. List Notifications", Method: "GET", Path: "/api/v1/me/notifications", ExpStatus: 200, ActStatus: code, Pass: pass, Asserts: asserts, Details: string(body)})
+
+	if firstNotifID != "" {
+		// Mark one as read
+		code, body = doReq("POST", "/api/v1/me/notifications/"+firstNotifID+"/read", drTAToken, nil)
+		logStep(StepResult{Step: "9. Mark Notification Read", Method: "POST", Path: "/api/v1/me/notifications/.../read", ExpStatus: 200, ActStatus: code, Pass: code == 200, Details: string(body)})
+	}
+
+	// Get Unread Count
+	code, body = doReq("GET", "/api/v1/me/notifications/unread-count", drTAToken, nil)
+	var countRes struct {
+		UnreadCount int `json:"unread_count"`
+	}
+	json.Unmarshal(body, &countRes)
+	logStep(StepResult{Step: "9. Get Unread Count", Method: "GET", Path: "/api/v1/me/notifications/unread-count", ExpStatus: 200, ActStatus: code, Pass: code == 200, Asserts: []string{fmt.Sprintf("Unread count: %d", countRes.UnreadCount)}, Details: string(body)})
+
 	// Save Report
 	f, _ := os.OpenFile("e2e_report.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer f.Close()

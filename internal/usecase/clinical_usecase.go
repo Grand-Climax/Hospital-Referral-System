@@ -21,6 +21,7 @@ type clinicalUseCase struct {
 	outcomeRepo       irepository.ReferralOutcomeRepository
 	referralAccessRepo irepository.ReferralAccessRepository
 	auditLogRepo      irepository.AuditLogRepository
+	inAppNotifUC      iusecase.InAppNotificationUseCase
 }
 
 func NewClinicalUseCase(
@@ -30,6 +31,7 @@ func NewClinicalUseCase(
 	outcomeRepo irepository.ReferralOutcomeRepository,
 	referralAccessRepo irepository.ReferralAccessRepository,
 	auditLogRepo irepository.AuditLogRepository,
+	inAppNotifUC iusecase.InAppNotificationUseCase,
 ) iusecase.ClinicalUseCase {
 	return &clinicalUseCase{
 		db:                db,
@@ -38,6 +40,7 @@ func NewClinicalUseCase(
 		outcomeRepo:       outcomeRepo,
 		referralAccessRepo: referralAccessRepo,
 		auditLogRepo:      auditLogRepo,
+		inAppNotifUC:       inAppNotifUC,
 	}
 }
 
@@ -138,12 +141,20 @@ func (u *clinicalUseCase) RecordOutcome(ctx context.Context, referralID, userID 
 		})
 
 		// Audit Log
-		return u.auditLogRepo.Create(ctx, &entity.AuditLog{
+		// Audit Log
+		err = u.auditLogRepo.Create(ctx, &entity.AuditLog{
 			UserID:     userID,
 			ReferralID: &referralID,
 			ActionType: entity.ActionRecordOutcome,
 			Timestamp:  time.Now(),
 		})
+		if err != nil {
+			return err
+		}
+
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "OUTCOME_RECORDED", referralID, userID)
+
+		return nil
 	})
 }
 

@@ -492,11 +492,12 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 	return referrals, count, err
 }
 
-func (r *referralRepository) UpdateTargetAndStatus(ctx context.Context, referralID, targetID uuid.UUID, status entity.ReferralStatus) error {
+func (r *referralRepository) UpdateTargetDeptAndStatus(ctx context.Context, referralID, targetHospID, targetDeptID uuid.UUID, status entity.ReferralStatus) error {
 	return r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("id = ?", referralID).
 		Updates(map[string]interface{}{
-			"target_hospital_id": targetID,
+			"target_hospital_id": targetHospID,
+			"target_dept_id":     targetDeptID,
 			"status":             status,
 		}).Error
 }

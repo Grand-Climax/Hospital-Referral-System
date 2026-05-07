@@ -21,6 +21,7 @@ type arrivalUseCase struct {
 	referralAccessRepo irepository.ReferralAccessRepository
 	clinicalRepo       irepository.ClinicalUpdateRepository
 	auditRepo          irepository.AuditLogRepository
+	inAppNotifUC       iusecase.InAppNotificationUseCase
 }
 
 func NewArrivalUseCase(
@@ -31,6 +32,7 @@ func NewArrivalUseCase(
 	accessRepo irepository.ReferralAccessRepository,
 	clinRepo irepository.ClinicalUpdateRepository,
 	auditRepo irepository.AuditLogRepository,
+	inAppNotifUC iusecase.InAppNotificationUseCase,
 ) iusecase.ArrivalUseCase {
 	return &arrivalUseCase{
 		db:                 db,
@@ -40,6 +42,7 @@ func NewArrivalUseCase(
 		referralAccessRepo: accessRepo,
 		clinicalRepo:       clinRepo,
 		auditRepo:          auditRepo,
+		inAppNotifUC:       inAppNotifUC,
 	}
 }
 
@@ -76,6 +79,9 @@ func (u *arrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, 
 		"queue_id": queueID,
 		"status":   "ARRIVED",
 	})
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_ARRIVED", queue.ReferralID, userID)
+
 	return nil
 }
 
@@ -134,6 +140,9 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 			"queue_id":  queueID,
 			"doctor_id": doctorID,
 		})
+
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "DOCTOR_ASSIGNED", queue.ReferralID, userID)
+
 		return nil
 	})
 }
@@ -234,6 +243,9 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 			"queue_id":    queueID,
 			"miss_reason": missReason,
 		})
+
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_MISSED", queue.ReferralID, userID)
+
 		return nil
 	})
 }

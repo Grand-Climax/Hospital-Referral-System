@@ -175,8 +175,9 @@ type ReferralCreationResponse struct {
 }
 
 type RedirectReferralRequest struct {
-	TargetHospitalID uuid.UUID `json:"target_hospital_id" binding:"required" example:"a3000000-0000-0000-0000-000000000003"`
-	Reason           string    `json:"reason" example:"Requires advanced cardiovascular intervention not available here"`
+	TargetHospitalID uuid.UUID  `json:"target_hospital_id" binding:"required" example:"a3000000-0000-0000-0000-000000000003"`
+	DepartmentID     *uuid.UUID `json:"department_id,omitempty" example:"b1000000-0000-0000-0000-000000000001"`
+	Reason           string     `json:"reason" example:"Requires advanced cardiovascular intervention not available here"`
 }
 
 type RedirectionResponse struct {

@@ -24,6 +24,7 @@ type referralUseCase struct {
 	deptRepo          irepository.DepartmentRepository
 	attachmentUseCase iusecase.AttachmentUseCase
 	notifUC           iusecase.NotificationUseCase
+	inAppNotifUC      iusecase.InAppNotificationUseCase
 	cryptoSvc         *crypto.PatientCryptoService
 }
 
@@ -39,6 +40,7 @@ func NewReferralUseCase(
 	triageRepo irepository.TriageQueueRepository,
 	aUC iusecase.AttachmentUseCase,
 	notifUC iusecase.NotificationUseCase,
+	inAppNotifUC iusecase.InAppNotificationUseCase,
 	cryptoSvc *crypto.PatientCryptoService,
 	deptRepo irepository.DepartmentRepository,
 ) iusecase.ReferralUseCase {
@@ -52,6 +54,7 @@ func NewReferralUseCase(
 		deptRepo:          deptRepo,
 		attachmentUseCase: aUC,
 		notifUC:           notifUC,
+		inAppNotifUC:      inAppNotifUC,
 		cryptoSvc:         cryptoSvc,
 	}
 }
@@ -207,6 +210,7 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 	draftStatus := entity.StatusDraft
 	if status == entity.StatusSubmitted {
 		_ = u.logStatusChange(ctx, referral.ID, doctorID, &draftStatus, entity.StatusSubmitted, "")
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_SUBMITTED", referral.ID, doctorID)
 	}
 
 	return &dto.ReferralCreationResponse{
@@ -345,6 +349,9 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 
 	if oldStatus != nextStatus {
 		_ = u.logStatusChange(ctx, existing.ID, doctorID, &oldStatus, nextStatus, "")
+		if nextStatus == entity.StatusSubmitted {
+			_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_SUBMITTED", existing.ID, doctorID)
+		}
 	}
 
 	return &dto.ReferralCreationResponse{
@@ -590,7 +597,13 @@ func (u *referralUseCase) LiaisonForward(ctx context.Context, id, liaisonID, hos
 		ToStatus:    entity.StatusForwarded,
 		Reason:      &comment,
 	}
-	return u.referralRepo.CreateStatusHistory(ctx, history)
+	if err := u.referralRepo.CreateStatusHistory(ctx, history); err != nil {
+		return err
+	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_FORWARDED", id, liaisonID)
+
+	return nil
 }
 
 func (u *referralUseCase) LiaisonReject(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error {
@@ -632,7 +645,13 @@ func (u *referralUseCase) LiaisonReject(ctx context.Context, id, liaisonID, hosp
 		ToStatus:    entity.StatusRejectedByLiaison,
 		Reason:      &reason,
 	}
-	return u.referralRepo.CreateStatusHistory(ctx, history)
+	if err := u.referralRepo.CreateStatusHistory(ctx, history); err != nil {
+		return err
+	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_REJECTED_BY_LIAISON", id, liaisonID)
+
+	return nil
 }
 
 func (u *referralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error {
@@ -835,6 +854,8 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 		return err
 	}
 
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_ACCEPTED", id, specialistID)
+
 	// Queue Notification
 	hospitalName := "the hospital"
 	deptName := "the department"
@@ -884,7 +905,13 @@ func (u *referralUseCase) SpecialistReject(ctx context.Context, id, specialistID
 		ToStatus:    entity.StatusRejectedBySpecialist,
 		Reason:      &reason,
 	}
-	return u.referralRepo.CreateStatusHistory(ctx, history)
+	if err := u.referralRepo.CreateStatusHistory(ctx, history); err != nil {
+		return err
+	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_REJECTED_BY_SPECIALIST", id, specialistID)
+
+	return nil
 }
 
 func (u *referralUseCase) SpecialistRelease(ctx context.Context, id, specialistID, hospID uuid.UUID, reason string) error {
@@ -1110,7 +1137,7 @@ func (u *referralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx context.C
 	return u.referralRepo.GetReferralStatusHistoryForHospital(ctx, hospID, referralID, limit, page)
 }
 
-func (u *referralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string) error {
+func (u *referralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string, newDeptID *uuid.UUID) error {
 	ref, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return err
@@ -1145,15 +1172,20 @@ func (u *referralUseCase) RedirectReferral(ctx context.Context, id, specialistID
 	}
 
 	// Department-lock: verify target hospital has the required department
+	effectiveDeptID := ref.TargetDeptID
+	if newDeptID != nil {
+		effectiveDeptID = *newDeptID
+	}
+
 	if u.deptRepo != nil {
-		_, deptErr := u.deptRepo.FindHospitalDepartment(ctx, targetHospitalID, ref.TargetDeptID)
+		_, deptErr := u.deptRepo.FindHospitalDepartment(ctx, targetHospitalID, effectiveDeptID)
 		if deptErr != nil {
 			return errors.New("target hospital does not have the required department")
 		}
 	}
 
 	// Update referral
-	err = u.referralRepo.UpdateTargetAndStatus(ctx, id, targetHospitalID, entity.StatusRedirected)
+	err = u.referralRepo.UpdateTargetDeptAndStatus(ctx, id, targetHospitalID, effectiveDeptID, entity.StatusRedirected)
 	if err != nil {
 		return err
 	}
@@ -1173,10 +1205,12 @@ func (u *referralUseCase) RedirectReferral(ctx context.Context, id, specialistID
 	// Delete triage queue entry
 	_ = u.triageRepo.DeleteByReferralID(ctx, id)
 
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_REDIRECTED", id, specialistID)
+
 	return nil
 }
 
-func (u *referralUseCase) ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID) ([]entity.Hospital, error) {
+func (u *referralUseCase) ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID, filterDeptID *uuid.UUID) ([]entity.Hospital, error) {
 	ref, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -1197,6 +1231,11 @@ func (u *referralUseCase) ListRedirectionOptions(ctx context.Context, id, specia
 		return nil, err
 	}
 
+	effectiveDeptID := ref.TargetDeptID
+	if filterDeptID != nil {
+		effectiveDeptID = *filterDeptID
+	}
+
 	var options []entity.Hospital
 	for _, h := range networkHospitals {
 		if forbiddenHospitals[h.ID] {
@@ -1204,7 +1243,7 @@ func (u *referralUseCase) ListRedirectionOptions(ctx context.Context, id, specia
 		}
 		// Department-lock: only include hospitals that have the required department
 		if u.deptRepo != nil {
-			_, deptErr := u.deptRepo.FindHospitalDepartment(ctx, h.ID, ref.TargetDeptID)
+			_, deptErr := u.deptRepo.FindHospitalDepartment(ctx, h.ID, effectiveDeptID)
 			if deptErr != nil {
 				continue // Hospital doesn't have the required department
 			}
