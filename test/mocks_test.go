@@ -182,8 +182,8 @@ func (m *MockReferralRepo) GetReferralStatusCounts(ctx context.Context, hospID u
 	return args.Get(0).([]irepository.ReferralStatusCount), args.Error(1)
 }
 
-func (m *MockReferralRepo) UpdateTargetAndStatus(ctx context.Context, referralID, targetID uuid.UUID, status entity.ReferralStatus) error {
-	args := m.Called(ctx, referralID, targetID, status)
+func (m *MockReferralRepo) UpdateTargetDeptAndStatus(ctx context.Context, referralID, targetHospID, targetDeptID uuid.UUID, status entity.ReferralStatus) error {
+	args := m.Called(ctx, referralID, targetHospID, targetDeptID, status)
 	return args.Error(0)
 }
 
@@ -537,13 +537,13 @@ func (m *MockReferralUseCase) SpecialistRerunML(ctx context.Context, id, special
 	return args.Error(0)
 }
 
-func (m *MockReferralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string) error {
-	args := m.Called(ctx, id, specialistID, hospID, targetHospitalID, reason)
+func (m *MockReferralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string, newDeptID *uuid.UUID) error {
+	args := m.Called(ctx, id, specialistID, hospID, targetHospitalID, reason, newDeptID)
 	return args.Error(0)
 }
 
-func (m *MockReferralUseCase) ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID) ([]entity.Hospital, error) {
-	args := m.Called(ctx, id, specialistID, hospID)
+func (m *MockReferralUseCase) ListRedirectionOptions(ctx context.Context, id, specialistID, hospID uuid.UUID, filterDeptID *uuid.UUID) ([]entity.Hospital, error) {
+	args := m.Called(ctx, id, specialistID, hospID, filterDeptID)
 	return args.Get(0).([]entity.Hospital), args.Error(1)
 }
 
@@ -1647,4 +1647,93 @@ func (m *MockDepartmentUseCase) ListHospitalDepartments(ctx context.Context, hos
 func (m *MockDepartmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentID uuid.UUID, isActive bool) error {
 	args := m.Called(ctx, hospitalID, departmentID, isActive)
 	return args.Error(0)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: InAppNotificationRepository
+// ---------------------------------------------------------------------------
+
+type MockInAppNotificationRepo struct {
+	mock.Mock
+}
+
+func (m *MockInAppNotificationRepo) Create(ctx context.Context, n *entity.InAppNotification) error {
+	args := m.Called(ctx, n)
+	return args.Error(0)
+}
+
+func (m *MockInAppNotificationRepo) ListByUser(ctx context.Context, userID uuid.UUID, filter irepository.InAppNotificationFilter, limit, offset int) ([]entity.InAppNotification, int64, error) {
+	args := m.Called(ctx, userID, filter, limit, offset)
+	return args.Get(0).([]entity.InAppNotification), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockInAppNotificationRepo) MarkRead(ctx context.Context, id, userID uuid.UUID) error {
+	args := m.Called(ctx, id, userID)
+	return args.Error(0)
+}
+
+func (m *MockInAppNotificationRepo) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *MockInAppNotificationRepo) CountUnread(ctx context.Context, userID uuid.UUID) (int64, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockInAppNotificationRepo) FindByID(ctx context.Context, id interface{}) (*entity.InAppNotification, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.InAppNotification), args.Error(1)
+}
+
+func (m *MockInAppNotificationRepo) FindAll(ctx context.Context) ([]entity.InAppNotification, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.InAppNotification), args.Error(1)
+}
+
+func (m *MockInAppNotificationRepo) Update(ctx context.Context, n *entity.InAppNotification) error {
+	args := m.Called(ctx, n)
+	return args.Error(0)
+}
+
+func (m *MockInAppNotificationRepo) Delete(ctx context.Context, id interface{}) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: InAppNotificationUseCase
+// ---------------------------------------------------------------------------
+
+type MockInAppNotificationUseCase struct {
+	mock.Mock
+}
+
+func (m *MockInAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType string, referralID uuid.UUID, actorID uuid.UUID) error {
+	args := m.Called(ctx, eventType, referralID, actorID)
+	return args.Error(0)
+}
+
+func (m *MockInAppNotificationUseCase) ListForUser(ctx context.Context, userID uuid.UUID, filter irepository.InAppNotificationFilter, limit, page int) ([]entity.InAppNotification, int64, int64, error) {
+	args := m.Called(ctx, userID, filter, limit, page)
+	return args.Get(0).([]entity.InAppNotification), args.Get(1).(int64), args.Get(2).(int64), args.Error(3)
+}
+
+func (m *MockInAppNotificationUseCase) MarkRead(ctx context.Context, id, userID uuid.UUID) error {
+	args := m.Called(ctx, id, userID)
+	return args.Error(0)
+}
+
+func (m *MockInAppNotificationUseCase) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *MockInAppNotificationUseCase) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int64), args.Error(1)
 }

@@ -713,13 +713,14 @@ func (h *SpecialistHandler) Schedule(c *gin.Context) {
 // RedirectReferral godoc
 // @Summary      Redirect Referral to another hospital
 // @Description  Redirect an active referral (ACCEPTED/UNDER_SPECIALIST_REVIEW) to another hospital in the network.
+// @Description  **The target hospital must have the same department as the referral’s current target_dept_id. If the desired hospital lacks that department, call PUT /specialist/referrals/{id}/department first.**
 // @Description  **Roles:** RECEIVING_SPECIALIST (non-primary hospital)
 // @Description  **Constraints:** No loops allowed, target must be in outgoing network.
 // @Tags         Specialist
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
-// @Param        body body dto.RedirectReferralRequest true "Redirection details"
+// @Param        body body dto.RedirectReferralRequest true "Redirection details (optional department_id to update target department)"
 // @Success      200 {object} dto.BaseResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
@@ -754,7 +755,7 @@ func (h *SpecialistHandler) RedirectReferral(c *gin.Context) {
 		hospID = *hID
 	}
 
-	if err := h.referralUC.RedirectReferral(c.Request.Context(), id, specialistID, hospID, req.TargetHospitalID, req.Reason); err != nil {
+	if err := h.referralUC.RedirectReferral(c.Request.Context(), id, specialistID, hospID, req.TargetHospitalID, req.Reason, req.DepartmentID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
@@ -765,9 +766,11 @@ func (h *SpecialistHandler) RedirectReferral(c *gin.Context) {
 // ListRedirectionOptions godoc
 // @Summary      List possible hospitals for redirection
 // @Description  Get a list of hospitals in the network that haven't handled this referral yet.
+// @Description  **If the returned list is empty, the specialist should call PUT /specialist/referrals/{id}/department to select a different target department before retrying.**
 // @Tags         Specialist
 // @Produce      json
 // @Param        id path string true "Referral ID"
+// @Param        department_id query string false "Optional: filter hospitals by this department ID instead of the referral's current department"
 // @Success      200 {object} map[string]interface{}
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
@@ -780,6 +783,13 @@ func (h *SpecialistHandler) ListRedirectionOptions(c *gin.Context) {
 		return
 	}
 
+	var filterDeptID *uuid.UUID
+	if depIDStr := c.Query("department_id"); depIDStr != "" {
+		if dID, err := uuid.Parse(depIDStr); err == nil {
+			filterDeptID = &dID
+		}
+	}
+
 	userIdVal, _ := c.Get("userID")
 	specialistID, _ := userIdVal.(uuid.UUID)
 
@@ -789,7 +799,7 @@ func (h *SpecialistHandler) ListRedirectionOptions(c *gin.Context) {
 		hospID = *hID
 	}
 
-	hospitals, err := h.referralUC.ListRedirectionOptions(c.Request.Context(), id, specialistID, hospID)
+	hospitals, err := h.referralUC.ListRedirectionOptions(c.Request.Context(), id, specialistID, hospID, filterDeptID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
@@ -805,6 +815,7 @@ func (h *SpecialistHandler) ListRedirectionOptions(c *gin.Context) {
 // @Summary      Change Referral Target Department
 // @Description  Updates the target department of a referral as long as it is ACCEPTED or UNDER_SPECIALIST_REVIEW.
 // @Description  The new department must exist at the current hospital. This unlocks new redirect options.
+// @Description  **After updating the department, call GET /specialist/referrals/{id}/redirect-options again to see the expanded list of eligible hospitals.**
 // @Description  **Roles:** RECEIVING_SPECIALIST
 // @Tags         Specialist
 // @Accept       json

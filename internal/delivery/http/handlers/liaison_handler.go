@@ -29,7 +29,7 @@ func NewLiaisonHandler(referralUC iusecase.ReferralUseCase) *LiaisonHandler {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -121,7 +121,7 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 // @Summary      List Incoming Referrals for Liaison
 // @Description  Get a paginated list of referrals sent TO the liaison's hospital for monitoring.
 // @Description  **Visibility:** Includes FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, REJECTED_AFTER_SEND, and ADMITTED.
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -248,7 +248,7 @@ func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid ID format
 // @Description  - 403 Forbidden (DRAFT status or wrong hospital)
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Success      200 {object} dto.ReferralDetailResponse
@@ -303,7 +303,7 @@ func (h *LiaisonHandler) GetReferral(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 invalid format
 // @Description  - 403 (not sender hospital)
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Success      200 {object} map[string]string
@@ -358,7 +358,7 @@ func (h *LiaisonHandler) Read(c *gin.Context) {
 // @Description  - 400 invalid format
 // @Description  - 403 (wrong hospital)
 // @Description  - 422 (attachments not verified)
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Success      200 {object} dto.BaseResponse
@@ -411,7 +411,7 @@ func (h *LiaisonHandler) Forward(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 invalid format
 // @Description  - 403 (wrong hospital)
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -472,7 +472,7 @@ func (h *LiaisonHandler) Reject(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 invalid format
 // @Description  - 403 (wrong hospital)
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -529,7 +529,7 @@ func (h *LiaisonHandler) Revise(c *gin.Context) {
 // UnassignSpecialist godoc
 // @Summary      Unassign Specialist from Referral
 // @Description  Allows a Liaison to break the lock on a referral if a specialist has gone inactive. Only available for incoming referrals.
-// @Tags         Liaison Referrals
+// @Tags         Liaison
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"

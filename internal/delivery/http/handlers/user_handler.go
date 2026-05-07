@@ -122,7 +122,7 @@ func toUserResponse(u *entity.User) dto.UserResponse {
 // @Description  **Common Errors:**
 // @Description  - 400 invalid input
 // @Description  - 409 conflict (email/national_id)
-// @Tags         SystemAdmin
+// @Tags         System Admin
 // @Accept       json
 // @Produce      json
 // @Param        body body CreateUserRequest true "User creation payload"
@@ -323,7 +323,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 invalid input
 // @Description  - 404 Not Found
-// @Tags         SystemAdmin
+// @Tags         System Admin
 // @Accept       json
 // @Produce      json
 // @Param        id   path string            true "User ID"
@@ -430,7 +430,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Description  **Roles:** SYSTEM_SUPER_ADMIN
 // @Description  **Common Errors:**
 // @Description  - 404 Not Found
-// @Tags         SystemAdmin
+// @Tags         System Admin
 // @Produce      json
 // @Param        id path string true "User ID"
 // @Success      200 {object} dto.BaseResponse
@@ -516,7 +516,7 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 // @Description  **Visibility:** Global access to all users.
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden (not super admin)
-// @Tags         SystemAdmin
+// @Tags         System Admin
 // @Produce      json
 // @Param        page      query int    false "Page number" default(1)
 // @Param        page_size query int    false "Page size"   default(20)
@@ -596,7 +596,7 @@ func (h *UserHandler) SystemAdminListUsers(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 invalid role
 // @Description  - 404 Not Found
-// @Tags         SystemAdmin
+// @Tags         System Admin
 // @Accept       json
 // @Produce      json
 // @Param        id   path string           true "User ID"
@@ -742,7 +742,7 @@ func (h *UserHandler) DeleteMyProfileImage(c *gin.Context) {
 // @Description  **Prerequisites:** Hospital Admin can only moderate users in their own hospital.
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden (out of scope)
-// @Tags         SystemAdmin
+// @Tags         System Admin
 // @Produce      json
 // @Param        id path string true "User ID to moderate"
 // @Success      200 {object} dto.BaseResponse

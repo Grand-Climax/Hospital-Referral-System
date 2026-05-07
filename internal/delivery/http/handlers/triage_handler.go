@@ -27,7 +27,7 @@ func NewTriageHandler(triageUC iusecase.TriageUseCase) *TriageHandler {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Triage
+// @Tags         Specialist
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(10)
 // @Param        offset query int false "Pagination offset" default(0)
@@ -70,7 +70,7 @@ func (h *TriageHandler) ListForTriage(c *gin.Context) {
 // @Description  - 400 invalid format or input
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Triage
+// @Tags         Specialist
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"

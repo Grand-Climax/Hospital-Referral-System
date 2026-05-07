@@ -78,6 +78,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	referralAccessRepo := repository.NewReferralAccessRepository(db)
 	checkpointRepo := repository.NewSchedulerCheckpointRepository(db)
 	redirectionRepo := repository.NewReferralRedirectionRepository(db)
+	inAppNotifRepo := repository.NewInAppNotificationRepository(db)
 
 	// Infrastructure Clients
 	smsClient := sms.NewAfroMessageClient()
@@ -89,23 +90,26 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	}
 
 	// ---- Dependency Injection (Use Cases) ----
+	// Initialize In-App Notification Use Case early as it's needed by others
+	inAppNotifUseCase := usecase.NewInAppNotificationUseCase(inAppNotifRepo, userRepo, referralRepo)
+
 	authUseCase := usecase.NewAuthUseCase(authRepo, tokenBlacklist, sessionStore)
-	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc)
+	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc, inAppNotifUseCase)
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo, configRepo, auditLogRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
 	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc)
 	// Post-acceptance Use Cases
 	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, smsClient, cryptoSvc)
 	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, cryptoSvc)
-	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase)
-	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo)
-	clinicalUseCase := usecase.NewClinicalUseCase(db, referralRepo, clinicalRepo, outcomeRepo, referralAccessRepo, auditLogRepo)
-	capacityManagementUseCase := usecase.NewCapacityManagementUseCase(scheduleRepo, overrideRepo, departmentRepo, auditLogRepo)
-	adminConfigUseCase := usecase.NewAdminConfigUseCase(configRepo, auditLogRepo)
+	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase, inAppNotifUseCase)
+	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo, inAppNotifUseCase)
+	clinicalUseCase := usecase.NewClinicalUseCase(db, referralRepo, clinicalRepo, outcomeRepo, referralAccessRepo, auditLogRepo, inAppNotifUseCase)
+	capacityManagementUseCase := usecase.NewCapacityManagementUseCase(scheduleRepo, overrideRepo, departmentRepo, auditLogRepo, inAppNotifUseCase)
+	adminConfigUseCase := usecase.NewAdminConfigUseCase(configRepo, auditLogRepo, inAppNotifUseCase)
 	dailyWeightUseCase := usecase.NewDailyWeightUseCase(configRepo, triageRepo, auditLogRepo)
 	schedulerServiceUseCase := usecase.NewSchedulerServiceUseCase(checkpointRepo, configRepo, schedUseCase)
 
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, cryptoSvc, departmentRepo)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, inAppNotifUseCase, cryptoSvc, departmentRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo, hospitalRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo, cryptoSvc, auditLogRepo)
@@ -138,6 +142,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	jobHandler := handlers.NewJobHandler(capacityManagementUseCase, notifUseCase, dailyWeightUseCase, schedulerServiceUseCase)
 	clinicalHandler := handlers.NewClinicalHandler(clinicalUseCase)
 	notifHandler := handlers.NewNotificationHandler(notifUseCase)
+	inAppNotifHandler := handlers.NewInAppNotificationHandler(inAppNotifUseCase)
 	adminConfigHandler := handlers.NewAdminConfigHandler(adminConfigUseCase)
 
 	// ---- API v1 Routes ----
@@ -425,6 +430,15 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				userAccesses.GET("/:id", userHandler.GetUser)
 				userAccesses.PUT("/profile/image", userHandler.UpdateProfileImage)
 				userAccesses.DELETE("/profile/image", userHandler.DeleteMyProfileImage)
+			}
+
+			// ---- In-App Notifications ----
+			notificationRoutes := protected.Group("/me/notifications")
+			{
+				notificationRoutes.GET("", inAppNotifHandler.ListNotifications)
+				notificationRoutes.POST("/:id/read", inAppNotifHandler.MarkRead)
+				notificationRoutes.POST("/read-all", inAppNotifHandler.MarkAllRead)
+				notificationRoutes.GET("/unread-count", inAppNotifHandler.GetUnreadCount)
 			}
 
 			// ---- Hospital Management ----

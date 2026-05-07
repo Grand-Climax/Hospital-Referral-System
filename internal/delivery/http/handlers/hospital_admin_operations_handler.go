@@ -34,7 +34,7 @@ func NewHospitalAdminOperationsHandler(userUC iusecase.UserUseCase, hospitalUC i
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Operations
+// @Tags         Hospital Admin
 // @Produce      json
 // @Success      200 {object} dto.HospitalResponse
 // @Failure      403 {object} dto.ErrorResponse
@@ -67,7 +67,7 @@ func (h *HospitalAdminOperationsHandler) GetMyHospitalProfile(c *gin.Context) {
 // @Description  - 400 Invalid input
 // @Description  - 403 Forbidden
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Operations
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        body body dto.HospitalAdminUpdateHospitalProfileRequest true "Hospital profile update payload"
@@ -123,7 +123,7 @@ func (h *HospitalAdminOperationsHandler) UpdateMyHospitalProfile(c *gin.Context)
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden
 // @Description  - 409 Link already exists
-// @Tags         Hospital Admin - Operations
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        body body dto.HospitalAdminLinkDepartmentRequest true "Department link payload"
@@ -176,7 +176,7 @@ func (h *HospitalAdminOperationsHandler) LinkDepartmentToMyHospital(c *gin.Conte
 // @Description  **Visibility:** Hospital scoped department listing.
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden
-// @Tags         Hospital Admin - Operations
+// @Tags         Hospital Admin
 // @Produce      json
 // @Success      200 {object} dto.HospitalDepartmentListResponse
 // @Failure      403 {object} dto.ErrorResponse
@@ -218,7 +218,7 @@ func (h *HospitalAdminOperationsHandler) ListMyHospitalDepartments(c *gin.Contex
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Operations
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        deptId path string true "Department ID"
@@ -271,7 +271,7 @@ func (h *HospitalAdminOperationsHandler) SetDepartmentActive(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden
 // @Description  - 404 Department/Staff not found
-// @Tags         Hospital Admin - Operations
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        deptId path string true "Department ID"

@@ -25,8 +25,13 @@ func newTestUC() (*MockReferralRepo, *MockNetworkRepo, *MockReferralRedirectionR
 	deptRepo := new(MockDepartmentRepo)
 	aUC := new(MockAttachmentUseCase)
 	notifUC := new(MockNotificationUseCase)
+	inAppNotifUC := new(MockInAppNotificationUseCase)
 	triageRepo := new(MockTriageQueueRepo)
-	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, redirRepo, triageRepo, aUC, notifUC, nil, deptRepo)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, redirRepo, triageRepo, aUC, notifUC, inAppNotifUC, nil, deptRepo)
+	
+	// Default expectations for inAppNotifUC to avoid panics on unexpected calls
+	inAppNotifUC.On("CreateForEvent", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
+	
 	return rRepo, nRepo, redirRepo, deptRepo, uc
 }
 
@@ -96,8 +101,10 @@ func TestDeleteAttachments_Ownership_Success(t *testing.T) {
 	deptRepo := new(MockDepartmentRepo)
 	aUC := new(MockAttachmentUseCase)
 	notifUC := new(MockNotificationUseCase)
+	inAppNotifUC := new(MockInAppNotificationUseCase)
 	triageRepo := new(MockTriageQueueRepo)
-	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, redirRepo, triageRepo, aUC, notifUC, nil, deptRepo)
+	uc := usecase.NewReferralUseCase(rRepo, cRepo, oRepo, nRepo, redirRepo, triageRepo, aUC, notifUC, inAppNotifUC, nil, deptRepo)
+	inAppNotifUC.On("CreateForEvent", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	doctorID := uuid.New()
 	refID := uuid.New()

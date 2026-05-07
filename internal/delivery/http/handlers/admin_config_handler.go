@@ -26,7 +26,7 @@ func NewAdminConfigHandler(adminConfigUC iusecase.AdminConfigUseCase) *AdminConf
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 403 Forbidden (not super admin)
-// @Tags         Admin/Config
+// @Tags         System Admin
 // @Produce      json
 // @Success      200 {object} map[string]string
 // @Security     BearerAuth
@@ -53,7 +53,7 @@ func (h *AdminConfigHandler) GetConfig(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 invalid key or value format
 // @Description  - 403 forbidden (not super admin)
-// @Tags         Admin/Config
+// @Tags         System Admin
 // @Accept       json
 // @Produce      json
 // @Param        updates body map[string]string true "Key-value pairs to update"

@@ -18,7 +18,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 )
 
-func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase) {
+func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase, *MockInAppNotificationUseCase) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -30,13 +30,15 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	mockCapacityUC := new(MockCapacityManagementUseCase)
 	mockDailyWeightUC := new(MockDailyWeightUseCase)
 	mockSchedulerUC := new(MockSchedulerServiceUseCase)
+	mockInAppNotifUC := new(MockInAppNotificationUseCase)
 
 	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC)
 	scheduleHandler := handlers.NewScheduleHandler(mockCapacityUC)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC, mockTriageUC)
 	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC)
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
-	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC) // notifUC not needed for this test
+	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC)
+	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
 
 	// Mock JWT Middleware equivalent
 	authMiddleware := func(c *gin.Context) {
@@ -98,13 +100,22 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 			internalJobs.POST("/update-waiting-weights", jobHandler.UpdateWaitingWeights)
 			internalJobs.POST("/run-scheduler-cycle", jobHandler.RunSchedulerCycle)
 		}
+
+		// In-App Notifications
+		notif := api.Group("/me/notifications")
+		{
+			notif.GET("", inAppNotifHandler.ListNotifications)
+			notif.POST("/:id/read", inAppNotifHandler.MarkRead)
+			notif.POST("/read-all", inAppNotifHandler.MarkAllRead)
+			notif.GET("/unread-count", inAppNotifHandler.GetUnreadCount)
+		}
 	}
 
-	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC
+	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC
 }
 
 func TestSpecialistEndpoints(t *testing.T) {
-	r, _, mockTriage, mockSched, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, mockTriage, mockSched, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Set Manual Severity", func(t *testing.T) {
@@ -164,7 +175,7 @@ func TestSpecialistEndpoints(t *testing.T) {
 }
 
 func TestDepartmentHeadEndpoints(t *testing.T) {
-	r, _, _, mockSched, _, _, mockCapacity, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, mockSched, _, _, mockCapacity, _, _, _ := setupPostAcceptanceTestRouter()
 	scheduleID := uuid.New()
 	overrideID := uuid.New()
 
@@ -260,7 +271,7 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 }
 
 func TestReceptionistEndpoints(t *testing.T) {
-	r, _, _, _, mockArrival, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, mockArrival, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	queueID := uuid.New()
 	referralID := uuid.New()
 
@@ -328,7 +339,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 }
 
 func TestClinicalEndpoints(t *testing.T) {
-	r, _, _, _, _, mockClinical, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, mockClinical, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Add Clinical Update", func(t *testing.T) {
@@ -376,7 +387,7 @@ func TestClinicalEndpoints(t *testing.T) {
 }
 
 func TestInternalJobEndpoints(t *testing.T) {
-	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler, _ := setupPostAcceptanceTestRouter()
 
 	t.Run("Update Waiting Weights - Success", func(t *testing.T) {
 		mockDailyWeight.On("Execute", mock.Anything, mock.Anything).Return("Successfully updated 5 records", nil).Once()
@@ -423,5 +434,58 @@ func TestInternalJobEndpoints(t *testing.T) {
 		data := body["data"].(map[string]interface{})
 		assert.Equal(t, float64(3), data["scheduled_count"])
 		mockScheduler.AssertExpectations(t)
+	})
+}
+
+func TestInAppNotificationEndpoints(t *testing.T) {
+	r, _, _, _, _, _, _, _, _, mockInAppNotif := setupPostAcceptanceTestRouter()
+	notifID := uuid.New()
+
+	t.Run("List Notifications - Success", func(t *testing.T) {
+		mockInAppNotif.On("ListForUser", mock.Anything, mock.Anything, mock.Anything, 20, 1).
+			Return([]entity.InAppNotification{}, int64(0), int64(0), nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/me/notifications?limit=20&page=1", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockInAppNotif.AssertExpectations(t)
+	})
+
+	t.Run("Mark Read", func(t *testing.T) {
+		mockInAppNotif.On("MarkRead", mock.Anything, notifID, mock.Anything).Return(nil)
+
+		req, _ := http.NewRequest("POST", "/api/v1/me/notifications/"+notifID.String()+"/read", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockInAppNotif.AssertExpectations(t)
+	})
+
+	t.Run("Mark All Read", func(t *testing.T) {
+		mockInAppNotif.On("MarkAllRead", mock.Anything, mock.Anything).Return(nil)
+
+		req, _ := http.NewRequest("POST", "/api/v1/me/notifications/read-all", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockInAppNotif.AssertExpectations(t)
+	})
+
+	t.Run("Get Unread Count", func(t *testing.T) {
+		mockInAppNotif.On("GetUnreadCount", mock.Anything, mock.Anything).Return(int64(5), nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/me/notifications/unread-count", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		var body map[string]interface{}
+		json.Unmarshal(resp.Body.Bytes(), &body)
+		assert.Equal(t, float64(5), body["unread_count"])
+		mockInAppNotif.AssertExpectations(t)
 	})
 }
