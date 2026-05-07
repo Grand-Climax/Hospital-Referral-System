@@ -16,12 +16,17 @@ import (
 type adminConfigUseCase struct {
 	configRepo   irepository.SystemConfigRepository
 	auditLogRepo irepository.AuditLogRepository
+	inAppNotifUC iusecase.InAppNotificationUseCase
 }
 
-func NewAdminConfigUseCase(configRepo irepository.SystemConfigRepository, auditLogRepo irepository.AuditLogRepository) iusecase.AdminConfigUseCase {
+func NewAdminConfigUseCase(configRepo irepository.SystemConfigRepository,
+	auditLogRepo irepository.AuditLogRepository,
+	inAppNotifUC iusecase.InAppNotificationUseCase,
+) iusecase.AdminConfigUseCase {
 	return &adminConfigUseCase{
 		configRepo:   configRepo,
 		auditLogRepo: auditLogRepo,
+		inAppNotifUC: inAppNotifUC,
 	}
 }
 
@@ -70,7 +75,13 @@ func (u *adminConfigUseCase) UpdateConfig(ctx context.Context, updates map[strin
 		NewValue:   &newStr,
 	}
 
-	return u.auditLogRepo.Create(ctx, auditLog)
+	if err := u.auditLogRepo.Create(ctx, auditLog); err != nil {
+		return err
+	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "SYSTEM_CONFIG_UPDATED", uuid.Nil, userID)
+
+	return nil
 }
 
 func validateConfig(key, value string) error {

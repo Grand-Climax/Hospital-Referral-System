@@ -54,7 +54,7 @@ type ReferralRepository interface {
 	ListByStatusesForHospitalAdmin(ctx context.Context, hospID uuid.UUID, filter ReferralFilter, statuses []entity.ReferralStatus) ([]entity.Referral, int64, error)
 	GetDetailsForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID) (*entity.Referral, error)
 	GetReferralStatusCounts(ctx context.Context, hospitalID uuid.UUID) ([]ReferralStatusCount, error)
-	UpdateTargetAndStatus(ctx context.Context, referralID, targetID uuid.UUID, status entity.ReferralStatus) error
+	UpdateTargetDeptAndStatus(ctx context.Context, referralID, targetHospID, targetDeptID uuid.UUID, status entity.ReferralStatus) error
 	GetMonthlyReferralTotalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, months int) ([]MonthlyReferralTotal, error)
 	GetAcceptanceRejectionRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (acceptedRate float64, rejectedRate float64, err error)
 	GetMissedAppointmentRateForHospitalAdmin(ctx context.Context, hospID uuid.UUID) (float64, error)

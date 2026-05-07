@@ -34,6 +34,12 @@ func newUser(role entity.UserRole, hospID *uuid.UUID) *entity.User {
 	}
 }
 
+func newTestUserUC(repo *MockUserRepo, svc *MockStorageService) iusecase.UserUseCase {
+	mnotif := new(MockInAppNotificationUseCase)
+	mnotif.On("CreateForEvent", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
+	return usecase.NewUserUseCase(repo, svc, mnotif)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: canSeeTarget visibility matrix (exercised via GetUserByID)
 // ---------------------------------------------------------------------------
@@ -41,7 +47,7 @@ func newUser(role entity.UserRole, hospID *uuid.UUID) *entity.User {
 func TestGetUserByID_MohAnalyst_CannotViewOthers(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	requester := newUser(entity.RoleMohAnalyst, nil)
 	target := newUser(entity.RoleReferringDoctor, hospitalID())
@@ -57,7 +63,7 @@ func TestGetUserByID_MohAnalyst_CannotViewOthers(t *testing.T) {
 func TestGetUserByID_MohAnalyst_CanViewSelf(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	requester := newUser(entity.RoleMohAnalyst, nil)
 
@@ -72,7 +78,7 @@ func TestGetUserByID_MohAnalyst_CanViewSelf(t *testing.T) {
 func TestGetUserByID_Receptionist_CannotViewOtherHospital(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	hospA := hospitalID()
 	hospB := hospitalID()
@@ -90,7 +96,7 @@ func TestGetUserByID_Receptionist_CannotViewOtherHospital(t *testing.T) {
 func TestGetUserByID_Receptionist_CanViewSameHospital(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	hosp := hospitalID()
 	requester := newUser(entity.RoleReceptionist, hosp)
@@ -107,7 +113,7 @@ func TestGetUserByID_Receptionist_CanViewSameHospital(t *testing.T) {
 func TestGetUserByID_Doctor_CannotViewSystemAdmin(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	requester := newUser(entity.RoleReferringDoctor, hospitalID())
 	target := newUser(entity.RoleSystemSuperAdmin, nil)
@@ -123,7 +129,7 @@ func TestGetUserByID_Doctor_CannotViewSystemAdmin(t *testing.T) {
 func TestGetUserByID_Doctor_CanViewOtherHospitalSpecialist(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	hospA := hospitalID()
 	hospB := hospitalID()
@@ -141,7 +147,7 @@ func TestGetUserByID_Doctor_CanViewOtherHospitalSpecialist(t *testing.T) {
 func TestGetUserByID_SystemAdmin_CanViewAnyone(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	requester := newUser(entity.RoleSystemSuperAdmin, nil)
 	target := newUser(entity.RoleMohAnalyst, nil)
@@ -157,7 +163,7 @@ func TestGetUserByID_SystemAdmin_CanViewAnyone(t *testing.T) {
 func TestGetUserByID_Doctor_CannotViewReceptionistFromOtherHospital(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	hospA := hospitalID()
 	hospB := hospitalID()
@@ -179,7 +185,7 @@ func TestGetUserByID_Doctor_CannotViewReceptionistFromOtherHospital(t *testing.T
 func TestListUsers_MohAnalyst_ReturnsEmpty(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	requester := newUser(entity.RoleMohAnalyst, nil)
 	repo.On("FindByID", mock.Anything, requester.ID).Return(requester, nil)
@@ -195,7 +201,7 @@ func TestListUsers_MohAnalyst_ReturnsEmpty(t *testing.T) {
 func TestListUsers_Receptionist_FiltersToOwnHospital(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	hosp := hospitalID()
 	requester := newUser(entity.RoleReceptionist, hosp)
@@ -215,7 +221,7 @@ func TestListUsers_Receptionist_FiltersToOwnHospital(t *testing.T) {
 func TestListUsers_Doctor_ExcludesSystemAdminRole(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	hosp := hospitalID()
 	requester := newUser(entity.RoleReferringDoctor, hosp)
@@ -237,7 +243,7 @@ func TestListUsers_Doctor_ExcludesSystemAdminRole(t *testing.T) {
 func TestListUsers_SystemAdmin_NoHospitalFilter(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	requester := newUser(entity.RoleSystemSuperAdmin, nil)
 	repo.On("FindByID", mock.Anything, requester.ID).Return(requester, nil)
@@ -257,7 +263,7 @@ func TestListUsers_SystemAdmin_NoHospitalFilter(t *testing.T) {
 func TestCreateUser_DuplicateEmail_ReturnsError(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	existing := newUser(entity.RoleReferringDoctor, nil)
 	repo.On("FindByEmail", mock.Anything, "test@example.com").Return(existing, nil)
@@ -270,7 +276,7 @@ func TestCreateUser_DuplicateEmail_ReturnsError(t *testing.T) {
 func TestCreateUser_InvalidRole_ReturnsError(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	newU := &entity.User{Email: "test@example.com", Role: "INVALID_ROLE"}
 	err := uc.CreateUser(context.Background(), newU, "password123")
@@ -280,7 +286,7 @@ func TestCreateUser_InvalidRole_ReturnsError(t *testing.T) {
 func TestCreateUser_RequesterNotFound_OnList(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	repo.On("FindByID", mock.Anything, mock.Anything).Return(nil, errors.New("not found"))
 
@@ -292,7 +298,7 @@ func TestCreateUser_RequesterNotFound_OnList(t *testing.T) {
 func TestHospitalAdminCreateStaff_ScopesToAdminHospital(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	adminHosp := hospitalID()
 	admin := newUser(entity.RoleHospitalAdmin, adminHosp)
@@ -317,7 +323,7 @@ func TestHospitalAdminCreateStaff_ScopesToAdminHospital(t *testing.T) {
 func TestHospitalAdminChangeRole_DeniesCrossHospital(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	adminHosp := hospitalID()
 	otherHosp := hospitalID()
@@ -334,7 +340,7 @@ func TestHospitalAdminChangeRole_DeniesCrossHospital(t *testing.T) {
 func TestHospitalAdminSoftDeleteStaff_SetsSoftDeleteFlags(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	adminHosp := hospitalID()
 	admin := newUser(entity.RoleHospitalAdmin, adminHosp)
@@ -353,7 +359,7 @@ func TestHospitalAdminSoftDeleteStaff_SetsSoftDeleteFlags(t *testing.T) {
 func TestHospitalAdminReplaceStaff_InPlaceAndLogged(t *testing.T) {
 	repo := new(MockUserRepo)
 	svc := new(MockStorageService)
-	uc := usecase.NewUserUseCase(repo, svc)
+	uc := newTestUserUC(repo, svc)
 
 	adminHosp := hospitalID()
 	admin := newUser(entity.RoleHospitalAdmin, adminHosp)

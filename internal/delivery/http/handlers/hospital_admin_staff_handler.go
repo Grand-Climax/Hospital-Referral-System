@@ -80,7 +80,7 @@ func mapHospitalAdminStaffError(err error) int {
 // @Description  - 400 Invalid input
 // @Description  - 403 Forbidden (wrong hospital or not admin)
 // @Description  - 409 Email/NationalID already exists
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        body body dto.HospitalAdminCreateStaffRequest true "Staff creation payload"
@@ -137,7 +137,7 @@ func (h *HospitalAdminStaffHandler) CreateStaff(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden
 // @Description  - 500 Internal Server Error
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        page query int false "Page number" default(1)
 // @Param        page_size query int false "Page size" default(20)
@@ -208,7 +208,7 @@ func (h *HospitalAdminStaffHandler) ListStaff(c *gin.Context) {
 // @Description  - 400 Invalid ID
 // @Description  - 403 Forbidden (trying to access staff from another hospital)
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        id path string true "Staff user ID"
 // @Success      200 {object} dto.UserResponse
@@ -247,7 +247,7 @@ func (h *HospitalAdminStaffHandler) GetStaff(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid role
 // @Description  - 403 Forbidden (managing self or outside scope)
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -291,7 +291,7 @@ func (h *HospitalAdminStaffHandler) ChangeStaffRole(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden (managing self or outside scope)
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        id path string true "Staff user ID"
 // @Success      200 {object} dto.BaseResponse
@@ -326,7 +326,7 @@ func (h *HospitalAdminStaffHandler) DeleteStaff(c *gin.Context) {
 // @Description  **State Transition:** User.IsActive toggled.
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden (managing self or outside scope)
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -375,7 +375,7 @@ func (h *HospitalAdminStaffHandler) SetStaffActive(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid department
 // @Description  - 403 Forbidden (outside scope)
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -428,7 +428,7 @@ func (h *HospitalAdminStaffHandler) ReassignDepartment(c *gin.Context) {
 // @Description  **Visibility:** Hospital scoped sessions.
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        page query int false "Page number" default(1)
 // @Param        page_size query int false "Page size" default(20)
@@ -497,7 +497,7 @@ func (h *HospitalAdminStaffHandler) ListActiveStaffSessions(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden (managing self or outside scope)
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        id path string true "Staff user ID"
 // @Success      200 {object} dto.HospitalAdminForceLogoutResponse
@@ -538,7 +538,7 @@ func (h *HospitalAdminStaffHandler) ForceLogoutStaff(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden (managing self or outside scope)
 // @Description  - 409 Conflict (email exists)
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Staff user ID"
@@ -591,7 +591,7 @@ func (h *HospitalAdminStaffHandler) ReplaceStaff(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 403 Forbidden (not connected)
 // @Description  - 404 Not Found
-// @Tags         Hospital Admin - Staff Management
+// @Tags         Hospital Admin
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Param        limit query int false "Pagination limit" default(20)

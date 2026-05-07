@@ -33,7 +33,7 @@ func NewNotificationHandler(notifUC iusecase.NotificationUseCase) *NotificationH
 // @Description  - 401 Unauthorized
 // @Description  - 403 Forbidden
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Notifications
+// @Tags         SMS Notifications
 // @Param        page            query int    false "Page number" default(1)
 // @Param        page_size       query int    false "Page size"   default(20)
 // @Param        referral_id     query string false "Filter by Referral ID"
@@ -138,7 +138,7 @@ func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Notifications
+// @Tags         SMS Notifications
 // @Param        hospital_id   query string false "Filter by Hospital ID"
 // @Param        department_id query string false "Filter by Department ID"
 // @Produce      json
@@ -179,7 +179,7 @@ func (h *NotificationHandler) TriggerManualSend(c *gin.Context) {
 // @Description  - 400 invalid notification ID
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Notifications
+// @Tags         SMS Notifications
 // @Param        id path string true "Notification ID"
 // @Produce      json
 // @Success      200 {object} dto.BaseResponse
@@ -213,7 +213,7 @@ func (h *NotificationHandler) Resend(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Notifications
+// @Tags         SMS Notifications
 // @Produce      json
 // @Success      200 {object} dto.NotificationStatusSummary
 // @Security     BearerAuth
@@ -237,7 +237,7 @@ func (h *NotificationHandler) UpdateStatus(c *gin.Context) {
 // @Description  **Roles:** SMS_PROVIDER (Public)
 // @Description  **Common Errors:**
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Notifications
+// @Tags         SMS Notifications
 // @Param        message_id query string true "Provider Message ID"
 // @Param        status     query string true "Delivery Status"
 // @Success      200 {object} dto.BaseResponse

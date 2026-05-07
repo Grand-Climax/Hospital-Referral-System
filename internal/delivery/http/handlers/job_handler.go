@@ -39,7 +39,7 @@ func NewJobHandler(
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Jobs
+// @Tags         Automation Jobs
 // @Produce      json
 // @Success      200 {object} dto.BaseResponse
 // @Security     BearerAuth
@@ -68,7 +68,7 @@ func (h *JobHandler) ExtendDailySchedule(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Jobs
+// @Tags         Automation Jobs
 // @Produce      json
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth
@@ -100,7 +100,7 @@ func (h *JobHandler) SendReminders(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Jobs
+// @Tags         Automation Jobs
 // @Produce      json
 // @Success      200 {object} dto.BaseResponse
 // @Security     BearerAuth
@@ -131,7 +131,7 @@ func (h *JobHandler) UpdateWaitingWeights(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Internal/Jobs
+// @Tags         Automation Jobs
 // @Produce      json
 // @Success      200 {object} map[string]interface{}
 // @Security     BearerAuth

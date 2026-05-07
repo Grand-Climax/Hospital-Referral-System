@@ -31,7 +31,7 @@ func NewDoctorHandler(referralUC iusecase.ReferralUseCase) *DoctorHandler {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Doctor Referrals
+// @Tags         Doctor
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(20)
 // @Param        page query int false "Page number" default(1)
@@ -128,7 +128,7 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid ID format
 // @Description  - 403 Forbidden (not the creator)
-// @Tags         Doctor Referrals
+// @Tags         Doctor
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Success      200 {object} dto.ReferralDetailResponse
@@ -182,7 +182,7 @@ func (h *DoctorHandler) GetReferral(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Doctor Dashboard
+// @Tags         Doctor
 // @Produce      json
 // @Success      200 {object} dto.DoctorDashboardStatsResponse
 // @Security     BearerAuth
@@ -218,7 +218,7 @@ func (h *DoctorHandler) GetStats(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
-// @Tags         Doctor Dashboard
+// @Tags         Doctor
 // @Produce      json
 // @Param        limit query int false "Number of records to fetch" default(5)
 // @Success      200 {object} dto.LatestPendingReferralsResponse
@@ -286,7 +286,7 @@ func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
 // @Description  - Role: DOCTOR (Sender hospital)
 // @Description  - Constraint: Cannot create a new referral if the patient already has an active referral (not COMPLETED, CANCELLED, REJECTED_*, DECEASED) for the same target department.
 // @Description  - Errors: 409 (Conflict if active referral exists).
-// @Tags         Doctor Referrals
+// @Tags         Doctor
 // @Accept       json
 // @Produce      json
 // @Param        request body dto.CreateReferralRequest true "Referral Details (Include pre-minted referral_id)"
@@ -358,7 +358,7 @@ func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
 // @Description  - 400 Invalid input or status field included
 // @Description  - 403 Forbidden (not the creator)
 // @Description  - 422 Invalid state transition (already submitted)
-// @Tags         Doctor Referrals
+// @Tags         Doctor
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -380,7 +380,7 @@ func (h *DoctorHandler) UpdateDraft(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 Missing clinical data
 // @Description  - 403 Forbidden (not the creator)
-// @Tags         Doctor Referrals
+// @Tags         Doctor
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -453,7 +453,7 @@ func (h *DoctorHandler) handleUpdate(c *gin.Context, submit bool) {
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid status
 // @Description  - 403 Forbidden
-// @Tags         Doctor Referrals
+// @Tags         Doctor
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
@@ -503,7 +503,7 @@ func (h *DoctorHandler) Cancel(c *gin.Context) {
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid status
 // @Description  - 403 Forbidden
-// @Tags         Doctor Referrals
+// @Tags         Doctor
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Success      200 {object} dto.BaseResponse
