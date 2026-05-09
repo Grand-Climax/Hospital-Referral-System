@@ -1,0 +1,48 @@
+
+== Seed DB (internal/seeds/full_seeder.go) ==
+PASS (6m15.675s)
+
+== 0. Health Check: GET /health -> 200 ==
+PASS (16ms)
+
+== 1. System Admin – Configuration ==
+PASS (7.369s)
+
+== 2. Patient Creation: doctor.ta POST /api/v1/patients -> 201 ==
+PASS (3.709s)
+
+== 3. Doctor – Create & Submit Referrals (TA1, TA2) ==
+Created refTA1=4323041b-f7ef-467f-8ccb-cf7cd1ae5d46, refTA2=851bf09f-7308-4329-8f39-cdf702f7f0c4
+PASS (23.463s)
+
+== 4. Liaison – Read & Forward (TA1, TA2) ==
+PASS (25.696s)
+
+== 5. Specialist – Severity Gate & Acceptance (TA1, TA2) ==
+PASS (1m3.408s)
+
+== 6. Department Head – Capacity Management & Batch Scheduling ==
+PASS (28.232s)
+
+== 7. Receptionist – Arrival, Doctor Assignment, Missed, Walk-in ==
+PASS (27.144s)
+
+== 8. Clinical Updates & Outcome ==
+PASS (16.534s)
+
+== 9. Department‑Aware Redirection (refTA3) ==
+PASS (1m29.523s)
+
+== 10. Network Route Validation (self-loop rejected) ==
+PASS (1.459s)
+
+== 11. In‑App Notifications (list/read/unread-count/read-all) ==
+PASS (4.389s)
+
+== 12. SMS Notifications: superadmin POST /api/v1/internal/notifications/send -> 200 ==
+PASS (4.247s)
+
+== 13. Final Admin Config Check: buffer_days still 3 ==
+PASS (503ms)
+
+Summary: 15 passed, 0 failed, duration=11m11.376s

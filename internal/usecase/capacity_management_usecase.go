@@ -50,9 +50,17 @@ func (u *capacityManagementUseCase) CreateOverride(ctx context.Context, hospital
 		return errors.New("new limit must be 0 or greater")
 	}
 
+	// Resolve the hospital_department link so we can populate deprecated FK fields safely.
+	// Some databases enforce a FK constraint on dept_id even though it's marked deprecated.
+	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID)
+	if err != nil {
+		return err
+	}
+
 	override := &entity.CapacityOverride{
 		HospitalID:   hospitalID,
 		DepartmentID: deptID,
+		DeptID:       dept.ID,
 		TargetDate:   date,
 		NewLimit:     newLimit,
 		Reason:       &reason,
@@ -65,11 +73,6 @@ func (u *capacityManagementUseCase) CreateOverride(ctx context.Context, hospital
 	}
 
 	// Synchronize DailySchedule
-	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID)
-	if err != nil {
-		return err
-	}
-
 	sched, err := u.scheduleRepo.GetOrCreate(ctx, hospitalID, deptID, date, dept.StandardDailyLimit)
 	if err != nil {
 		return err

@@ -104,17 +104,12 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 		return errors.New("selected user is not a receiving specialist")
 	}
 
-	// Assuming doctor must belong to the same hospital as the queue entry
-	// In some implementations, users have multiple hospital affiliations via a mapping table.
-	// For now, we check the user's primary hospital if available, or just skip if not explicitly modeled.
+	if doctor.HospitalID == nil || *doctor.HospitalID != queue.HospitalID {
+		return errors.New("doctor does not belong to the same hospital")
+	}
 
-	if queue.AppointmentDate != nil {
-		if queue.AppointmentDate.Truncate(24 * time.Hour).After(time.Now().Truncate(24 * time.Hour)) {
-			return errors.New("cannot assign doctor for a future appointment")
-		}
-		if queue.AppointmentDate.Truncate(24 * time.Hour).Before(time.Now().Truncate(24 * time.Hour)) {
-			return errors.New("cannot assign doctor for a past appointment")
-		}
+	if queue.ArrivalStatus != entity.ArrivalArrived {
+		return errors.New("cannot assign doctor before patient arrives")
 	}
 
 	now := time.Now()
@@ -152,6 +147,13 @@ func (u *arrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUI
 	if err != nil {
 		return nil, errors.New("referral not found")
 	}
+	var hospDept entity.HospitalDepartment
+	if err := u.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).First(&hospDept).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("department does not exist in this hospital")
+		}
+		return nil, err
+	}
 
 	// Allowed statuses for walk-in
 	allowed := false
@@ -188,10 +190,7 @@ func (u *arrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUI
 		AssignedAt:      now,
 	}
 
-	var hospDept entity.HospitalDepartment
-	if err := u.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).First(&hospDept).Error; err == nil {
-		queue.DeptID = hospDept.ID
-	}
+	queue.DeptID = hospDept.ID
 
 	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(queue).Error; err != nil {
@@ -215,6 +214,12 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 		return err
 	}
 
+	if queue.ArrivalStatus == entity.ArrivalMissed {
+		return errors.New("appointment already marked as missed")
+	}
+	if queue.ArrivalStatus != entity.ArrivalExpected && queue.ArrivalStatus != entity.ArrivalArrived {
+		return errors.New("cannot mark missed: patient is not in expected or arrived state")
+	}
 	if queue.AppointmentDate != nil && queue.AppointmentDate.After(time.Now()) {
 		return errors.New("cannot mark a future appointment as missed")
 	}

@@ -322,6 +322,7 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 
 					q.AppointmentDate = &targetDate
 					q.QueueStatus = entity.QueueScheduled
+					q.ArrivalStatus = entity.ArrivalExpected
 					if err := tx.Save(&q).Error; err != nil {
 						return err
 					}
