@@ -52,7 +52,9 @@ func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.
 func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 	if hospID == uuid.Nil {
@@ -64,7 +66,12 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	specialistID, _ := userIdVal.(uuid.UUID)
+	specialistID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		specialistID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		specialistID = *uID
+	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	if limit <= 0 {
@@ -156,7 +163,9 @@ func (h *SpecialistHandler) GetReferral(c *gin.Context) {
 
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 
@@ -600,10 +609,10 @@ func (h *SpecialistHandler) SetManualSeverity(c *gin.Context) {
 func (h *SpecialistHandler) GetTriageQueue(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
-		hospID = *hID
-	} else if hID, ok := hospIdVal.(uuid.UUID); ok {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
 		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
 	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
@@ -644,12 +653,16 @@ func (h *SpecialistHandler) GetTriageQueue(c *gin.Context) {
 func (h *SpecialistHandler) GetCapacity(c *gin.Context) {
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 	deptIdVal, _ := c.Get("deptID")
 	deptID := uuid.Nil
-	if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
+	if dID, ok := deptIdVal.(uuid.UUID); ok {
+		deptID = dID
+	} else if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
 		deptID = *dID
 	}
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "14"))
@@ -694,7 +707,12 @@ func (h *SpecialistHandler) Schedule(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	userID, _ := userIdVal.(uuid.UUID)
+	userID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		userID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		userID = *uID
+	}
 
 	var req dto.SchedulingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -791,11 +809,18 @@ func (h *SpecialistHandler) ListRedirectionOptions(c *gin.Context) {
 	}
 
 	userIdVal, _ := c.Get("userID")
-	specialistID, _ := userIdVal.(uuid.UUID)
+	specialistID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		specialistID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		specialistID = *uID
+	}
 
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 
@@ -836,11 +861,18 @@ func (h *SpecialistHandler) ChangeDepartment(c *gin.Context) {
 	}
 
 	specialistIDVal, _ := c.Get("userID")
-	specialistID, _ := specialistIDVal.(uuid.UUID)
+	specialistID := uuid.Nil
+	if uID, ok := specialistIDVal.(uuid.UUID); ok {
+		specialistID = uID
+	} else if uID, ok := specialistIDVal.(*uuid.UUID); ok && uID != nil {
+		specialistID = *uID
+	}
 
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
 

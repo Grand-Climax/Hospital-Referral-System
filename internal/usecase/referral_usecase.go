@@ -793,8 +793,8 @@ func (u *referralUseCase) SpecialistRead(ctx context.Context, id, specialistID, 
 	if ref.Status == entity.StatusUnderSpecialistReview {
 		return errors.New("referral is already under specialist review")
 	}
-	if ref.Status != entity.StatusForwarded {
-		return errors.New("invalid status: must be FORWARDED")
+	if ref.Status != entity.StatusForwarded && ref.Status != entity.StatusRedirected {
+		return errors.New("invalid status: must be FORWARDED or REDIRECTED")
 	}
 
 	oldStatus := ref.Status
