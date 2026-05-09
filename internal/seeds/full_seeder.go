@@ -30,6 +30,7 @@ func SeedAll(db *gorm.DB) error {
 	// 0. Clean up legacy UUID mismatches and AutoMigrate
 	db.Exec("DROP TABLE IF EXISTS referral_outcomes CASCADE;")
 	db.Exec("DROP TABLE IF EXISTS clinical_updates CASCADE;")
+	db.Exec("DROP TABLE IF EXISTS scheduler_checkpoints CASCADE;")
 	db.Exec("ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_department;")
 	db.Exec("UPDATE users SET department_id = NULL;")
 
@@ -74,7 +75,7 @@ func SeedAll(db *gorm.DB) error {
 		"referral_diagnoses", "referral_status_histories", "vitals", "referral_emergency_details",
 		"referral_forms", "attachments", "referrals", "patients", "scheduler_checkpoints", "system_configs",
 		"hospital_departments", "departments", "referral_networks", "sessions", "users", "hospitals",
-		"icd_codes", "staff_replacement_logs",
+		"icd_codes", "staff_replacement_logs", "in_app_notifications",
 	}
 
 	for _, table := range tables {
@@ -219,6 +220,7 @@ func seedHospitalDepartmentsAndSchedules(ctx context.Context, db *gorm.DB) error
 		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b2000000-0000-0000-0000-000000000002"), StandardDailyLimit: 20},
 		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), StandardDailyLimit: 15},
 		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), StandardDailyLimit: 10},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 15},
 		// St. Paul's (Specialized) - Orthopedics, Internal Med, OB/GYN
 		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 20},
 		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 22},
@@ -269,7 +271,7 @@ func seedHospitalDepartmentsAndSchedules(ctx context.Context, db *gorm.DB) error
 	for _, hd := range hdList {
 		db.FirstOrCreate(&entity.SchedulerCheckpoint{
 			HospitalID: hd.HospitalID,
-			DeptID:     hd.DepartmentID, // may be zero if column nullable
+			DeptID:     hd.DepartmentID,
 		}, entity.SchedulerCheckpoint{HospitalID: hd.HospitalID, DeptID: hd.DepartmentID})
 	}
 	return nil
@@ -451,6 +453,7 @@ func seedNetworks(ctx context.Context, db *gorm.DB) error {
 		// TERTIARY ↔ TERTIARY
 		{SenderHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReceiverHospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), ReferralType: "routine"},
 		{SenderHospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), ReceiverHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReferralType: "routine"},
+		{SenderHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReceiverHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReferralType: "routine"},
 		// TERTIARY → SPECIALIZED
 		{SenderHospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), ReceiverHospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), ReferralType: "routine"},
 	}
