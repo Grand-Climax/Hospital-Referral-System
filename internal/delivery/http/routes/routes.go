@@ -157,10 +157,12 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 		}
 
 		// Internal Cron Scheduler Routes (Protected by GCP OIDC in production)
+		// Note: kept outside RequireAuth because production protects via OIDC/IAP.
+		// Must match Swagger paths under /api/v1/cron/*.
 		cronHandler := handlers.NewCronHandler(attachmentUseCase)
-		cronRoutes := v1.Group("/internal/cron")
+		cronRoutes := v1.Group("/cron")
 		{
-			cronRoutes.POST("/validate-attachments", cronHandler.ValidateAttachments)
+			cronRoutes.POST("/verify-attachments", cronHandler.ValidateAttachments)
 			cronRoutes.POST("/cleanup-temp", cronHandler.CleanupTemp)
 		}
 

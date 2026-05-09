@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	"log"
 
 	"github.com/gin-gonic/gin"
 
@@ -143,6 +144,7 @@ func (h *PatientHandler) CreatePatient(c *gin.Context) {
 
 	patient, err := h.patientUC.CreatePatient(c.Request.Context(), req)
 	if err != nil {
+		log.Printf("[PatientHandler.CreatePatient] error: %v", err)
 		if strings.Contains(err.Error(), "already exists") {
 			c.JSON(http.StatusConflict, dto.ErrorResponse{
 				Success: false,
@@ -152,7 +154,7 @@ func (h *PatientHandler) CreatePatient(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Success: false,
-			Error:   "Failed to create patient",
+			Error:   "Failed to create patient: " + err.Error(),
 		})
 		return
 	}

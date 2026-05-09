@@ -59,6 +59,7 @@ func (u *triageUseCase) LandInQueue(ctx context.Context, referralID uuid.UUID) e
 		HospitalID:   ref.TargetHospitalID,
 		DepartmentID: ref.TargetDeptID,
 		QueueStatus:  entity.QueueWaiting,
+		ArrivalStatus: entity.ArrivalExpected,
 	}
 
 	var hospDept entity.HospitalDepartment
@@ -76,6 +77,9 @@ func (u *triageUseCase) CalculateCompositeScore(ctx context.Context, referralID 
 	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
 		return 0, err
+	}
+	if ref.ReferralForm == nil {
+		return 0, errors.New("referral form missing")
 	}
 
 	var triageScore float64
