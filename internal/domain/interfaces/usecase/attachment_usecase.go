@@ -5,25 +5,17 @@ import (
 
 	"github.com/google/uuid"
 
-	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
+	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 )
 
 type AttachmentUseCase interface {
-	SaveAttachment(ctx context.Context, referralID uuid.UUID, fileName, fileType, storagePath, publicID, category string, fileSize int64) (*entity.Attachment, error)
 	PrepareAttachmentEntity(referralID uuid.UUID, fileName, fileType, storagePath, publicID, category string, fileSize int64) *entity.Attachment
 	GetAttachment(ctx context.Context, id uuid.UUID) (*entity.Attachment, error)
 	GetAttachmentsByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.Attachment, error)
 	DeleteAttachment(ctx context.Context, id uuid.UUID) error
-	// GenerateSignature creates a pre-minted referral ID (if nil) and an upload signature for the 'temp/<referral_id>' folder.
-	GenerateSignature(referralID *uuid.UUID) (map[string]interface{}, uuid.UUID, error)
-
-	// New secure methods
-	AddAttachmentsToReferral(ctx context.Context, referralID, doctorID uuid.UUID, reqs []dto.CreateAttachmentRequest) ([]entity.Attachment, error)
 	DeleteAttachmentFromReferral(ctx context.Context, referralID, attachmentID, doctorID uuid.UUID) error
-	UploadAndAddAttachment(ctx context.Context, referralID, doctorID uuid.UUID, file interface{}, fileName, fileType, category string, fileSize int64) (*entity.Attachment, error)
-	VerifyPendingAttachments(ctx context.Context) error
-	VerifyAttachment(ctx context.Context, id uuid.UUID) (*entity.Attachment, error)
-	VerifyReferralAttachments(ctx context.Context, referralID uuid.UUID) error
-	CleanupTempAttachments(ctx context.Context) error
+	UploadAndAddAttachment(ctx context.Context, referralID, doctorID uuid.UUID, fileBytes []byte, fileName, fileType, category string, fileSize int64) (*entity.Attachment, error)
+	VerifyAttachmentBytes(att *entity.Attachment, data []byte) (status string, metadata map[string]interface{}, reason string)
+	Storage() iinfra.StorageService
 }

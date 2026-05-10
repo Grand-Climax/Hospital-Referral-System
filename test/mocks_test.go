@@ -11,6 +11,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 )
 
 // ---------------------------------------------------------------------------
@@ -272,6 +273,14 @@ type MockReferralUseCase struct {
 
 func (m *MockReferralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*dto.ReferralCreationResponse, error) {
 	args := m.Called(ctx, doctorID, senderHospitalID, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.ReferralCreationResponse), args.Error(1)
+}
+
+func (m *MockReferralUseCase) CreateReferralWithAttachments(ctx context.Context, doctorID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest, refID uuid.UUID, uploads []iusecase.UploadedFileData) (*dto.ReferralCreationResponse, error) {
+	args := m.Called(ctx, doctorID, senderHospitalID, req, refID, uploads)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -659,19 +668,95 @@ func (m *MockReferralUseCase) IsValidStatus(status string) bool {
 }
 
 // ---------------------------------------------------------------------------
+// Mock: AttachmentRepository
+// ---------------------------------------------------------------------------
+
+type MockAttachmentRepo struct {
+	mock.Mock
+}
+
+func (m *MockAttachmentRepo) Create(ctx context.Context, att *entity.Attachment) error {
+	args := m.Called(ctx, att)
+	return args.Error(0)
+}
+
+func (m *MockAttachmentRepo) FindByID(ctx context.Context, id interface{}) (*entity.Attachment, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Attachment), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) Update(ctx context.Context, att *entity.Attachment) error {
+	args := m.Called(ctx, att)
+	return args.Error(0)
+}
+
+func (m *MockAttachmentRepo) Delete(ctx context.Context, id interface{}) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockAttachmentRepo) List(ctx context.Context) ([]entity.Attachment, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.Attachment), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) CountByReferralID(ctx context.Context, referralID uuid.UUID) (int64, error) {
+	args := m.Called(ctx, referralID)
+	return int64(args.Int(0)), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) GetByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.Attachment, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).([]entity.Attachment), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) HardDelete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockAttachmentRepo) FindByPublicID(ctx context.Context, publicID string) (*entity.Attachment, error) {
+	args := m.Called(ctx, publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Attachment), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) GetPendingAttachments(ctx context.Context) ([]entity.Attachment, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.Attachment), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) GetPendingAttachmentsBatch(ctx context.Context, limit int) ([]entity.Attachment, error) {
+	args := m.Called(ctx, limit)
+	return args.Get(0).([]entity.Attachment), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) UpdateVerificationStatus(ctx context.Context, id uuid.UUID, status string, metadata map[string]interface{}, storagePath string, publicID string, rejectionReason string, rejectedAt *time.Time) error {
+	args := m.Called(ctx, id, status, metadata, storagePath, publicID, rejectionReason, rejectedAt)
+	return args.Error(0)
+}
+
+func (m *MockAttachmentRepo) CountByPublicIDPrefix(ctx context.Context, prefix string) (int64, error) {
+	args := m.Called(ctx, prefix)
+	return int64(args.Int(0)), args.Error(1)
+}
+
+func (m *MockAttachmentRepo) FindAll(ctx context.Context) ([]entity.Attachment, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.Attachment), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
 // Mock: AttachmentUseCase
 // ---------------------------------------------------------------------------
 
 type MockAttachmentUseCase struct {
 	mock.Mock
-}
-
-func (m *MockAttachmentUseCase) SaveAttachment(ctx context.Context, referralID uuid.UUID, fileName, fileType, storagePath, publicID, category string, fileSize int64) (*entity.Attachment, error) {
-	args := m.Called(ctx, referralID, fileName, fileType, storagePath, publicID, category, fileSize)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.Attachment), args.Error(1)
 }
 
 func (m *MockAttachmentUseCase) PrepareAttachmentEntity(referralID uuid.UUID, fileName, fileType, storagePath, publicID, category string, fileSize int64) *entity.Attachment {
@@ -697,51 +782,32 @@ func (m *MockAttachmentUseCase) DeleteAttachment(ctx context.Context, id uuid.UU
 	return args.Error(0)
 }
 
-func (m *MockAttachmentUseCase) GenerateSignature(referralID *uuid.UUID) (map[string]interface{}, uuid.UUID, error) {
-	args := m.Called(referralID)
-	return args.Get(0).(map[string]interface{}), args.Get(1).(uuid.UUID), args.Error(2)
-}
 
-func (m *MockAttachmentUseCase) AddAttachmentsToReferral(ctx context.Context, referralID, doctorID uuid.UUID, reqs []dto.CreateAttachmentRequest) ([]entity.Attachment, error) {
-	args := m.Called(ctx, referralID, doctorID, reqs)
-	return args.Get(0).([]entity.Attachment), args.Error(1)
-}
 
 func (m *MockAttachmentUseCase) DeleteAttachmentFromReferral(ctx context.Context, referralID, attachmentID, doctorID uuid.UUID) error {
 	args := m.Called(ctx, referralID, attachmentID, doctorID)
 	return args.Error(0)
 }
 
-func (m *MockAttachmentUseCase) VerifyPendingAttachments(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
 
-func (m *MockAttachmentUseCase) VerifyAttachment(ctx context.Context, id uuid.UUID) (*entity.Attachment, error) {
-	args := m.Called(ctx, id)
+func (m *MockAttachmentUseCase) UploadAndAddAttachment(ctx context.Context, referralID, doctorID uuid.UUID, fileBytes []byte, fileName, fileType, category string, fileSize int64) (*entity.Attachment, error) {
+	args := m.Called(ctx, referralID, doctorID, fileBytes, fileName, fileType, category, fileSize)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.Attachment), args.Error(1)
 }
 
-func (m *MockAttachmentUseCase) CleanupTempAttachments(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
+func (m *MockAttachmentUseCase) VerifyAttachmentBytes(att *entity.Attachment, data []byte) (status string, metadata map[string]interface{}, reason string) {
+	args := m.Called(att, data)
+	return args.String(0), args.Get(1).(map[string]interface{}), args.String(2)
 }
 
-func (m *MockAttachmentUseCase) UploadAndAddAttachment(ctx context.Context, referralID, doctorID uuid.UUID, file interface{}, fileName, fileType, category string, fileSize int64) (*entity.Attachment, error) {
-	args := m.Called(ctx, referralID, doctorID, file, fileName, fileType, category, fileSize)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.Attachment), args.Error(1)
+func (m *MockAttachmentUseCase) Storage() iinfra.StorageService {
+	args := m.Called()
+	return args.Get(0).(iinfra.StorageService)
 }
 
-func (m *MockAttachmentUseCase) VerifyReferralAttachments(ctx context.Context, referralID uuid.UUID) error {
-	args := m.Called(ctx, referralID)
-	return args.Error(0)
-}
 
 // ---------------------------------------------------------------------------
 // Mock: StorageService
@@ -776,84 +842,16 @@ func (m *MockStorageService) UploadFile(ctx context.Context, file interface{}, f
 	return args.String(0), args.String(1), args.Error(2)
 }
 
+func (m *MockStorageService) UploadBytes(ctx context.Context, data []byte, folder, fileName string) (string, string, error) {
+	args := m.Called(ctx, data, folder, fileName)
+	return args.String(0), args.String(1), args.Error(2)
+}
+
 func (m *MockStorageService) ListFolders(ctx context.Context, prefix string) ([]string, error) {
 	args := m.Called(ctx, prefix)
 	return args.Get(0).([]string), args.Error(1)
 }
 
-// ---------------------------------------------------------------------------
-// Mock: AttachmentRepository
-// ---------------------------------------------------------------------------
-
-type MockAttachmentRepo struct {
-	mock.Mock
-}
-
-func (m *MockAttachmentRepo) Create(ctx context.Context, a *entity.Attachment) error {
-	return m.Called(ctx, a).Error(0)
-}
-
-func (m *MockAttachmentRepo) FindByID(ctx context.Context, id uuid.UUID) (*entity.Attachment, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.Attachment), args.Error(1)
-}
-
-func (m *MockAttachmentRepo) GetByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.Attachment, error) {
-	args := m.Called(ctx, referralID)
-	return args.Get(0).([]entity.Attachment), args.Error(1)
-}
-
-func (m *MockAttachmentRepo) GetPendingAttachments(ctx context.Context) ([]entity.Attachment, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]entity.Attachment), args.Error(1)
-}
-
-func (m *MockAttachmentRepo) GetPendingAttachmentsBatch(ctx context.Context, limit int) ([]entity.Attachment, error) {
-	args := m.Called(ctx, limit)
-	return args.Get(0).([]entity.Attachment), args.Error(1)
-}
-
-func (m *MockAttachmentRepo) UpdateVerificationStatus(ctx context.Context, id uuid.UUID, status string, metadata map[string]interface{}, storagePath string, publicID string, rejectionReason string, rejectedAt *time.Time) error {
-	return m.Called(ctx, id, status, metadata, storagePath, publicID, rejectionReason, rejectedAt).Error(0)
-}
-
-func (m *MockAttachmentRepo) CountByPublicIDPrefix(ctx context.Context, prefix string) (int64, error) {
-	args := m.Called(ctx, prefix)
-	return int64(args.Int(0)), args.Error(1)
-}
-
-func (m *MockAttachmentRepo) CountByReferralID(ctx context.Context, referralID uuid.UUID) (int64, error) {
-	args := m.Called(ctx, referralID)
-	return int64(args.Int(0)), args.Error(1)
-}
-
-func (m *MockAttachmentRepo) FindByPublicID(ctx context.Context, publicID string) (*entity.Attachment, error) {
-	args := m.Called(ctx, publicID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.Attachment), args.Error(1)
-}
-
-func (m *MockAttachmentRepo) HardDelete(ctx context.Context, id uuid.UUID) error {
-	return m.Called(ctx, id).Error(0)
-}
-
-func (m *MockAttachmentRepo) Update(ctx context.Context, a *entity.Attachment) error {
-	return m.Called(ctx, a).Error(0)
-}
-
-func (m *MockAttachmentRepo) Delete(ctx context.Context, id uuid.UUID) error {
-	return m.Called(ctx, id).Error(0)
-}
-
-func (m *MockAttachmentRepo) FindAll(ctx context.Context) ([]entity.Attachment, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]entity.Attachment), args.Error(1)
-}
 
 // ---------------------------------------------------------------------------
 // Mock: TriageQueueRepository

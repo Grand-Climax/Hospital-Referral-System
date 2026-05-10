@@ -25,6 +25,7 @@ type referralUseCase struct {
 	attachmentUseCase iusecase.AttachmentUseCase
 	notifUC           iusecase.NotificationUseCase
 	inAppNotifUC      iusecase.InAppNotificationUseCase
+	attachmentRepo    irepository.AttachmentRepository
 	cryptoSvc         *crypto.PatientCryptoService
 }
 
@@ -43,6 +44,7 @@ func NewReferralUseCase(
 	inAppNotifUC iusecase.InAppNotificationUseCase,
 	cryptoSvc *crypto.PatientCryptoService,
 	deptRepo irepository.DepartmentRepository,
+	attRepo irepository.AttachmentRepository,
 ) iusecase.ReferralUseCase {
 	return &referralUseCase{
 		referralRepo:      rRepo,
@@ -55,6 +57,7 @@ func NewReferralUseCase(
 		attachmentUseCase: aUC,
 		notifUC:           notifUC,
 		inAppNotifUC:      inAppNotifUC,
+		attachmentRepo:    attRepo,
 		cryptoSvc:         cryptoSvc,
 	}
 }
@@ -105,13 +108,7 @@ func (u *referralUseCase) logStatusChange(ctx context.Context, id, userID uuid.U
 // Doctor Actions
 // ---------------------------------------------------------
 
-func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*dto.ReferralCreationResponse, error) {
-	// Verify Network
-	isValidRoute, err := u.networkRepo.VerifyNetworkPathway(ctx, senderHospitalID, req.TargetHospitalID)
-	if err != nil || !isValidRoute {
-		return nil, errors.New("forbidden: no active referral network established between sender and target hospitals")
-	}
-
+func (u *referralUseCase) buildReferralEntity(doctorID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest, refID uuid.UUID) (*entity.Referral, error) {
 	var diagnoses []entity.ReferralDiagnosis
 	for _, d := range req.Diagnoses {
 		diagnoses = append(diagnoses, entity.ReferralDiagnosis{
@@ -141,14 +138,6 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 		status = entity.StatusSubmitted
 	}
 
-	// Handle Pre-minted ID
-	var refID uuid.UUID
-	if req.ID != nil {
-		refID = *req.ID
-	} else {
-		refID = uuid.New()
-	}
-
 	referral := &entity.Referral{
 		ID:                refID,
 		ReferringDoctorID: doctorID,
@@ -165,6 +154,7 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 	if req.Vitals != nil {
 		referral.Vitals = []entity.Vital{
 			{
+				ReferralID:      refID,
 				SystolicBP:      req.Vitals.SystolicBP,
 				DiastolicBP:     req.Vitals.DiastolicBP,
 				HeartRate:       req.Vitals.HeartRate,
@@ -182,17 +172,29 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 		}
 	}
 
-	// Bulk Attachments (Backward compatibility / Sync)
-	if len(req.Attachments) > 10 {
-		return nil, errors.New("cannot add more than 10 attachments")
+	return referral, nil
+}
+
+func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*dto.ReferralCreationResponse, error) {
+	// Verify Network
+	isValidRoute, err := u.networkRepo.VerifyNetworkPathway(ctx, senderHospitalID, req.TargetHospitalID)
+	if err != nil || !isValidRoute {
+		return nil, errors.New("forbidden: no active referral network established between sender and target hospitals")
 	}
-	for _, a := range req.Attachments {
-		attachment := u.attachmentUseCase.PrepareAttachmentEntity(referral.ID, a.FileName, a.FileType, a.FileURL, a.PublicID, a.Category, a.FileSize)
-		referral.Attachments = append(referral.Attachments, *attachment)
+
+	// Handle optional pre-minted ID
+	refID := uuid.New()
+	if req.ID != nil {
+		refID = *req.ID
+	}
+
+	referral, err := u.buildReferralEntity(doctorID, senderHospitalID, req, refID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Validation constraints
-	if status == entity.StatusSubmitted {
+	if referral.Status == entity.StatusSubmitted {
 		if len(referral.Diagnoses) == 0 {
 			return nil, errors.New("cannot submit: at least one clinical diagnosis is required")
 		}
@@ -207,18 +209,79 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 	}
 
 	// Log if submitted immediately
-	draftStatus := entity.StatusDraft
-	if status == entity.StatusSubmitted {
-		_ = u.logStatusChange(ctx, referral.ID, doctorID, &draftStatus, entity.StatusSubmitted, "")
+	if referral.Status == entity.StatusSubmitted {
+		_ = u.logStatusChange(ctx, referral.ID, doctorID, nil, entity.StatusSubmitted, "Initial submission")
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_SUBMITTED", referral.ID, doctorID)
 	}
 
+	// Load full referral for response
+	ref, err := u.referralRepo.GetReferralByID(ctx, referral.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &dto.ReferralCreationResponse{
-		Referral: referral,
+		Referral: ref,
 		BaseResponse: dto.BaseResponse{
 			Success: true,
 			Message: "Referral created successfully",
 		},
+	}, nil
+}
+
+func (u *referralUseCase) CreateReferralWithAttachments(ctx context.Context, doctorID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest, refID uuid.UUID, uploads []iusecase.UploadedFileData) (*dto.ReferralCreationResponse, error) {
+	// 1. Validate network pathway
+	isValid, err := u.networkRepo.VerifyNetworkPathway(ctx, senderHospitalID, req.TargetHospitalID)
+	if err != nil || !isValid {
+		return nil, errors.New("forbidden: no active referral network established")
+	}
+
+	// 2. Build referral entity
+	referral, err := u.buildReferralEntity(doctorID, senderHospitalID, req, refID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Start transaction
+	err = u.referralRepo.CreateReferralTransaction(ctx, referral)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Create attachment records
+	for _, up := range uploads {
+		att := &entity.Attachment{
+			ReferralID:         refID,
+			FileName:           up.FileName,
+			FileType:           up.FileType,
+			FileSize:           up.FileSize,
+			Category:           up.Category,
+			StoragePath:        up.URL,
+			PublicID:           up.PublicID,
+			VerificationStatus: up.Status,
+			Metadata:           up.Metadata,
+			RejectionReason:    up.Reason,
+		}
+		if err := u.attachmentRepo.Create(ctx, att); err != nil {
+			return nil, fmt.Errorf("failed to save attachment: %w", err)
+		}
+		if up.Status == entity.VerificationRejected && referral.Status == entity.StatusSubmitted {
+			referral.Status = entity.StatusNeedRevision
+			msg := fmt.Sprintf("Attachment '%s' was rejected: %s", up.FileName, up.Reason)
+			referral.RevisionReason = &msg
+			u.referralRepo.UpdateReferralTransaction(ctx, referral)
+		}
+	}
+
+	// 5. Reload referral with preloads
+	ref, err := u.referralRepo.GetReferralByID(ctx, refID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.ReferralCreationResponse{
+		Referral: ref,
+		BaseResponse: dto.BaseResponse{Success: true, Message: "Referral created successfully"},
 	}, nil
 }
 
@@ -322,16 +385,6 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 		existing.Vitals = nil
 	}
 
-	// Bulk Append New Attachments
-	if len(req.Attachments) > 0 {
-		if len(existing.Attachments)+len(req.Attachments) > 10 {
-			return nil, errors.New("total attachments cannot exceed 10")
-		}
-		for _, a := range req.Attachments {
-			att := u.attachmentUseCase.PrepareAttachmentEntity(existing.ID, a.FileName, a.FileType, a.FileURL, a.PublicID, a.Category, a.FileSize)
-			existing.Attachments = append(existing.Attachments, *att)
-		}
-	}
 
 	if nextStatus == entity.StatusSubmitted {
 		if len(existing.Diagnoses) == 0 {

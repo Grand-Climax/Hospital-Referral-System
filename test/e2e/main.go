@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"sort"
@@ -147,6 +148,46 @@ func (c *client) doJSON(method, path, token string, body any) (*httpResult, erro
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	raw, _ := io.ReadAll(resp.Body)
+	var parsed any
+	_ = json.Unmarshal(raw, &parsed)
+
+	return &httpResult{status: resp.StatusCode, body: raw, json: parsed}, nil
+}
+
+func (c *client) doMultipart(method, path, token string, fields map[string]string, files map[string][]byte) (*httpResult, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for k, v := range fields {
+		_ = writer.WriteField(k, v)
+	}
+
+	for fieldName, fileBytes := range files {
+		part, err := writer.CreateFormFile("attachments", fieldName)
+		if err != nil {
+			return nil, err
+		}
+		_, _ = part.Write(fileBytes)
+	}
+
+	_ = writer.Close()
+
+	req, err := http.NewRequest(method, c.baseURL+path, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -550,7 +591,10 @@ func main() {
 		}
 
 		// Create TA1
-		r1, err := c.doJSON("POST", "/api/v1/doctor/referrals", docToken, referral1)
+		ref1JSON, _ := json.Marshal(referral1)
+		r1, err := c.doMultipart("POST", "/api/v1/doctor/referrals", docToken, map[string]string{
+			"referral": string(ref1JSON),
+		}, nil)
 		if err != nil {
 			return err
 		}
@@ -579,7 +623,10 @@ func main() {
 		}
 
 		// Create TA2
-		r2, err := c.doJSON("POST", "/api/v1/doctor/referrals", docToken, referral2)
+		ref2JSON, _ := json.Marshal(referral2)
+		r2, err := c.doMultipart("POST", "/api/v1/doctor/referrals", docToken, map[string]string{
+			"referral": string(ref2JSON),
+		}, nil)
 		if err != nil {
 			return err
 		}
@@ -1175,7 +1222,10 @@ func main() {
 				return err
 			}
 		}
-		cr, err := c.doJSON("POST", "/api/v1/doctor/referrals", docToken, ref3)
+		ref3JSON, _ := json.Marshal(ref3)
+		cr, err := c.doMultipart("POST", "/api/v1/doctor/referrals", docToken, map[string]string{
+			"referral": string(ref3JSON),
+		}, nil)
 		if err != nil {
 			return err
 		}

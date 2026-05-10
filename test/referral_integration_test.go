@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,14 +24,15 @@ import (
 func TestDoctorOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	handler := handlers.NewDoctorHandler(mockUC)
+	mockAttUC := new(MockAttachmentUseCase)
+	handler := handlers.NewDoctorHandler(mockUC, mockAttUC)
 	doctorID := uuid.New()
 	hospID := uuid.New()
 
 	router := gin.Default()
 	router.POST("/api/v1/doctor/referrals", func(c *gin.Context) {
 		c.Set("userID", doctorID)
-		c.Set("hospID", &hospID)
+		c.Set("hospID", hospID)
 		c.Next()
 	}, handler.CreateOrSubmit)
 
@@ -58,13 +60,19 @@ func TestDoctorOperations(t *testing.T) {
 			TargetDeptID: uuid.New(),
 			LiaisonOfficerID: &liaisonID,
 		}
-		mockUC.On("CreateDraftOrSubmit", mock.Anything, doctorID, hospID, reqPayload).Return(&dto.ReferralCreationResponse{
-			Referral: &entity.Referral{ID: uuid.New()},
+		mockUC.On("CreateReferralWithAttachments", mock.Anything, doctorID, hospID, reqPayload, mock.Anything, mock.Anything).Return(&dto.ReferralCreationResponse{
+			Referral: &entity.Referral{ID: uuid.New(), Status: entity.StatusDraft},
 		}, nil)
 
-		body, _ := json.Marshal(reqPayload)
-		req, _ := http.NewRequest(http.MethodPost, "/api/v1/doctor/referrals", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
+		// Send as multipart
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		payloadBytes, _ := json.Marshal(reqPayload)
+		_ = writer.WriteField("referral", string(payloadBytes))
+		_ = writer.Close()
+
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/doctor/referrals", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -119,13 +127,19 @@ func TestDoctorOperations(t *testing.T) {
 		// Expectation should have Status: "SUBMITTED"
 		expectedReq := reqPayload
 		expectedReq.Status = "SUBMITTED"
-		mockUC.On("CreateDraftOrSubmit", mock.Anything, doctorID, hospID, expectedReq).Return(&dto.ReferralCreationResponse{
-			Referral: &entity.Referral{ID: uuid.New()},
+		mockUC.On("CreateReferralWithAttachments", mock.Anything, doctorID, hospID, expectedReq, mock.Anything, mock.Anything).Return(&dto.ReferralCreationResponse{
+			Referral: &entity.Referral{ID: uuid.New(), Status: entity.StatusSubmitted},
 		}, nil)
 
-		body, _ := json.Marshal(reqPayload)
-		req, _ := http.NewRequest(http.MethodPost, "/api/v1/doctor/referrals", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
+		// Send as multipart
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		payloadBytes, _ := json.Marshal(reqPayload)
+		_ = writer.WriteField("referral", string(payloadBytes))
+		_ = writer.Close()
+
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/doctor/referrals", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
