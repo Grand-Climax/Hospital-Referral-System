@@ -143,15 +143,6 @@ definitions:
         example: true
         type: boolean
     type: object
-  dto.BulkAttachmentRequest:
-    properties:
-      attachments:
-        items:
-          $ref: '#/definitions/dto.CreateAttachmentRequest'
-        type: array
-    required:
-    - attachments
-    type: object
   dto.CancelReferralRequest:
     properties:
       reason:
@@ -165,32 +156,6 @@ definitions:
         type: string
     required:
     - department_id
-    type: object
-  dto.CreateAttachmentRequest:
-    properties:
-      category:
-        example: RADIOLOGY
-        type: string
-      file_name:
-        example: xray_chest.dcm
-        type: string
-      file_size:
-        example: 4587210
-        type: integer
-      file_type:
-        example: application/dicom
-        type: string
-      file_url:
-        example: https://res.cloudinary.com/...
-        type: string
-      public_id:
-        example: referrals/hosp_123/ref_456/abc123
-        type: string
-    required:
-    - file_name
-    - file_type
-    - file_url
-    - public_id
     type: object
   dto.CreateNetworkRouteRequest:
     properties:
@@ -263,91 +228,6 @@ definitions:
     - last_name
     - phone_number
     - sex
-    type: object
-  dto.CreateReferralRequest:
-    properties:
-      accompanying_person_name:
-        example: Sarah Kebede
-        type: string
-      accompanying_person_phone:
-        example: "+251922334455"
-        type: string
-      attachments:
-        items:
-          $ref: '#/definitions/dto.CreateAttachmentRequest'
-        type: array
-      clinical_summary:
-        description: Annex IV Clinical Data
-        example: Patient complains of severe chest pain for 2 hours
-        type: string
-      condition_at_referral:
-        example: UNSTABLE
-        type: string
-      diagnoses:
-        description: Diagnoses
-        items:
-          $ref: '#/definitions/dto.DiagnosisDTO'
-        type: array
-      emergency_detail:
-        $ref: '#/definitions/dto.EmergencyDetailDTO'
-      id:
-        description: Pre-minted ID (Optional)
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      investigation_results:
-        example: ECG shows ST elevation
-        type: string
-      liaison_officer_id:
-        example: d1000000-0000-0000-0000-000000000002
-        type: string
-      medication_on_transfer:
-        example: IV Nitroglycerin
-        type: string
-      mode_of_transport:
-        example: AMBULANCE
-        type: string
-      patient_history:
-        example: Hypertension diagnosed 5 years ago
-        type: string
-      patient_id:
-        description: Patient Logic
-        example: e0000000-0000-0000-0000-000000000001
-        type: string
-      physical_examination_findings:
-        example: BP 180/110, HR 105
-        type: string
-      reason_for_referral_category:
-        example: EMERGENCY
-        type: string
-      reason_of_referral:
-        example: Requires immediate cardiological intervention
-        type: string
-      status:
-        description: Status tracking
-        enum:
-        - DRAFT
-        - SUBMITTED
-        example: SUBMITTED
-        type: string
-      target_dept_id:
-        example: b5000000-0000-0000-0000-000000000005
-        type: string
-      target_hospital_id:
-        description: Routing Information
-        example: a3000000-0000-0000-0000-000000000003
-        type: string
-      treatment_given_before_referral:
-        example: Aspirin 300mg
-        type: string
-      vitals:
-        allOf:
-        - $ref: '#/definitions/dto.VitalsDTO'
-        description: Optional Extensions
-    required:
-    - liaison_officer_id
-    - patient_id
-    - target_dept_id
-    - target_hospital_id
     type: object
   dto.DepartmentListResponse:
     properties:
@@ -1311,10 +1191,6 @@ definitions:
       accompanying_person_phone:
         example: "+251922334455"
         type: string
-      attachments:
-        items:
-          $ref: '#/definitions/dto.CreateAttachmentRequest'
-        type: array
       clinical_summary:
         description: Annex IV Clinical Data
         example: Patient complains of severe chest pain for 2 hours
@@ -1378,32 +1254,6 @@ definitions:
     - patient_id
     - target_dept_id
     - target_hospital_id
-    type: object
-  dto.UploadSignatureResponse:
-    properties:
-      api_key:
-        example: "123456789"
-        type: string
-      cloud_name:
-        example: hospital-system
-        type: string
-      folder:
-        example: temp/550e8400-e29b-41d4-a716-446655440000
-        type: string
-      message:
-        type: string
-      referral_id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      signature:
-        example: a92425642...
-        type: string
-      success:
-        example: true
-        type: boolean
-      timestamp:
-        example: 1649684700
-        type: integer
     type: object
   dto.UserListResponse:
     properties:
@@ -2408,68 +2258,6 @@ paths:
       summary: Get Attachment Details
       tags:
       - Attachments
-  /api/v1/attachments/{id}/verify:
-    post:
-      description: |-
-        Immediately triggers metadata extraction and folder promotion for a specific attachment.
-        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
-        **State Transition:** Verified files are moved from `temp/` to permanent hospital storage. Failed files mark referral as NEED_REVISION.
-        **Common Errors:**
-        - 500 Internal Server Error
-      parameters:
-      - description: Attachment ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.AttachmentListResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Manual Verification & Promotion
-      tags:
-      - Attachments
-  /api/v1/attachments/signature:
-    get:
-      description: |-
-        The first step in creating/updating a referral with attachments.
-        1. Generates a unique **Pre-Minted Referral ID**.
-        2. Provides a cryptographic signature for Cloudinary.
-        3. Frontend MUST upload files to the folder path: `temp/{referral_id}/`.
-        4. Use the returned `referral_id` when calling the Referral Creation API.
-        **Roles:** REFERRING_DOCTOR
-        **Common Errors:**
-        - 500 Internal Server Error
-      parameters:
-      - description: Existing Referral ID (for updates)
-        in: query
-        name: referral_id
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.UploadSignatureResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get Secure Upload Signature (Pre-Minted Flow)
-      tags:
-      - Attachments
   /api/v1/auth/login:
     post:
       consumes:
@@ -2582,48 +2370,6 @@ paths:
       summary: Refresh token
       tags:
       - Authentication
-  /api/v1/cron/cleanup-temp:
-    post:
-      description: |-
-        Internal endpoint triggered by GCP Cloud Scheduler. Deletes empty temp folders in Cloudinary to keep the storage clean.
-        **Roles:** INTERNAL_CRON (Protected by GCP OIDC)
-        **Common Errors:**
-        - 500 Internal Server Error
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.BaseResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Cleanup Temporary Folders
-      tags:
-      - Cron
-  /api/v1/cron/verify-attachments:
-    post:
-      description: |-
-        Internal endpoint triggered by GCP Cloud Scheduler. Extracts metadata from PENDING attachments and promotes valid files to permanent storage.
-        **Roles:** INTERNAL_CRON (Protected by GCP OIDC)
-        **Common Errors:**
-        - 500 Internal Server Error
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.BaseResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Batch Verification Cron
-      tags:
-      - Cron
   /api/v1/department-head/capacity/overrides:
     get:
       description: |-
@@ -3183,29 +2929,74 @@ paths:
       - Doctor
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: |-
-        Finalizes a referral that was initiated via the `signature` endpoint.
+        Create a referral in DRAFT or SUBMITTED state and upload attachment files in a single synchronous call.
 
-        ### Hybrid-Upload Flow:
-        1. **Aquire ID**: Call `/api/v1/attachments/signature` to get a `referral_id`.
-        2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that `referral_id` as context.
-        3. **Finalize**: Call this endpoint with the same `id` to register the referral.
+        ### Request format: multipart/form-data
+        - **referral**: JSON string matching the `CreateReferralRequest` schema. Example:
+        ```json
+        {
+        "accompanying_person_name": "Sarah Kebede",
+        "accompanying_person_phone": "+251922334455",
+        "clinical_summary": "Patient complains of severe chest pain for 2 hours",
+        "condition_at_referral": "UNSTABLE",
+        "diagnoses": [
+        {
+        "diagnosis_certainty": "SUSPECTED",
+        "icd_code": "J18.9",
+        "is_primary": true
+        }
+        ],
+        "emergency_detail": {
+        "emergency_justification": "Patient requires immediate intubation and bypass surgery"
+        },
+        "investigation_results": "ECG shows ST elevation",
+        "liaison_officer_id": "d1000000-0000-0000-0000-000000000002",
+        "medication_on_transfer": "IV Nitroglycerin",
+        "mode_of_transport": "AMBULANCE",
+        "patient_history": "Hypertension diagnosed 5 years ago",
+        "patient_id": "e0000000-0000-0000-0000-000000000001",
+        "physical_examination_findings": "BP 180/110, HR 105",
+        "reason_for_referral_category": "EMERGENCY",
+        "reason_of_referral": "Requires immediate cardiological intervention",
+        "status": "SUBMITTED",
+        "target_dept_id": "b5000000-0000-0000-0000-000000000005",
+        "target_hospital_id": "a3000000-0000-0000-0000-000000000003",
+        "treatment_given_before_referral": "Aspirin 300mg",
+        "vitals": {
+        "diastolic_bp": 200,
+        "gcs_score": 15,
+        "heart_rate": 300,
+        "respiratory_rate": 60,
+        "sp_o2": 100,
+        "systolic_bp": 300,
+        "temperature": 45
+        }
+        }
+        ```
+        - **attachments**: One or more files (optional).
+        - **attachment_category**: Category for all attachments (default: GENERAL_CLINICAL).
 
-        ### Status Guide:
-        - Use `status=DRAFT` to save information without entering the review pipeline.
-        - Use `status=SUBMITTED` to officially send the referral to the hospital Liaison.
-        ### Rules:
-        - Role: DOCTOR (Sender hospital)
-        - Constraint: Cannot create a new referral if the patient already has an active referral (not COMPLETED, CANCELLED, REJECTED_*, DECEASED) for the same target department.
-        - Errors: 409 (Conflict if active referral exists).
+        **Validation:**
+        - DICOM/PDF files are verified for metadata.
+        - If a file is rejected during a SUBMITTED request, the referral moves to NEED_REVISION.
+
+        **Roles:** REFERRING_DOCTOR
       parameters:
-      - description: Referral Details (Include pre-minted referral_id)
-        in: body
-        name: request
+      - description: Referral JSON payload
+        in: formData
+        name: referral
         required: true
-        schema:
-          $ref: '#/definitions/dto.CreateReferralRequest'
+        type: string
+      - description: Attachment files
+        in: formData
+        name: attachments
+        type: file
+      - description: Category for attachments
+        in: formData
+        name: attachment_category
+        type: string
       produces:
       - application/json
       responses:
@@ -3219,7 +3010,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create or Submit Referral (Pre-Minted Architecture)
+      summary: Create or Submit Referral (Multipart)
       tags:
       - Doctor
   /api/v1/doctor/referrals/{id}:
@@ -6244,33 +6035,33 @@ paths:
       - Attachments
     post:
       consumes:
-      - application/json
       - multipart/form-data
       description: |-
-        Supports two modes for associating clinical data with a referral:
-        1. **Hybrid/Bulk JSON**: Register multiple files already uploaded to Cloudinary.
-        - Requires the `referral_id` pre-minted from the `/attachments/signature` endpoint.
-        - Files MUST be at the `temp/{referral_id}/` path in Cloudinary.
-        2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.
+        Upload a single clinical file to an existing referral. The file is immediately verified and stored permanently.
+
+        **Request format:** multipart/form-data
+        - **file**: The file to upload (max 20MB).
+        - **category**: Category for the attachment (e.g., RADIOLOGY, LAB_REPORT, DICOM_XRAY). Defaults to GENERAL_CLINICAL.
+
+        **Verification:** DICOM and PDF files are checked for valid metadata.
+        - On success: attachment status set to VERIFIED.
+        - On failure: attachment status set to REJECTED and referral moves to NEED_REVISION.
+
         **Roles:** REFERRING_DOCTOR
-        **Prerequisites:** Allowed only when referral status is DRAFT or NEED_REVISION.
+        **Prerequisites:** Referral must be in DRAFT or NEED_REVISION status.
         **Common Errors:**
-        - 400 Invalid ID or file too large
+        - 400 Invalid ID or file too large (> 20MB)
         - 403 Forbidden (not the creator or invalid status)
       parameters:
-      - description: Referral ID (Pre-minted or Existing)
+      - description: Referral ID
         in: path
         name: id
         required: true
         type: string
-      - description: Bulk JSON payload for Hybrid Flow
-        in: body
-        name: body
-        schema:
-          $ref: '#/definitions/dto.BulkAttachmentRequest'
-      - description: Direct file upload payload
+      - description: File to upload
         in: formData
         name: file
+        required: true
         type: file
       - description: Category (e.g. RADIOLOGY, LAB_REPORT, DICOM_XRAY)
         in: formData
@@ -6293,7 +6084,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Register or Upload Referral Attachments
+      summary: Upload Attachment to Referral
       tags:
       - Attachments
   /api/v1/referrals/{id}/attachments/{attachment_id}:
@@ -6488,36 +6279,6 @@ paths:
       summary: Get Redirection History
       tags:
       - Referrals
-  /api/v1/referrals/{id}/verify-attachments:
-    post:
-      description: |-
-        Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.
-        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, REFERRING_DOCTOR
-        **State Transition:** Ensures the system moves the referral out of PENDING states before Liaison review.
-        **Common Errors:**
-        - 500 Internal Server Error
-      parameters:
-      - description: Referral ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.BaseResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Verify All Referral Attachments
-      tags:
-      - Attachments
   /api/v1/specialist/referrals:
     get:
       description: |-

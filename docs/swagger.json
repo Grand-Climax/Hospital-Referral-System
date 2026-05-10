@@ -216,45 +216,6 @@
                 }
             }
         },
-        "/api/v1/attachments/signature": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "The first step in creating/updating a referral with attachments.\n1. Generates a unique **Pre-Minted Referral ID**.\n2. Provides a cryptographic signature for Cloudinary.\n3. Frontend MUST upload files to the folder path: `temp/{referral_id}/`.\n4. Use the returned `referral_id` when calling the Referral Creation API.\n**Roles:** REFERRING_DOCTOR\n**Common Errors:**\n- 500 Internal Server Error",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Attachments"
-                ],
-                "summary": "Get Secure Upload Signature (Pre-Minted Flow)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Existing Referral ID (for updates)",
-                        "name": "referral_id",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.UploadSignatureResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/attachments/{id}": {
             "get": {
                 "security": [
@@ -288,46 +249,6 @@
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/attachments/{id}/verify": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Immediately triggers metadata extraction and folder promotion for a specific attachment.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**State Transition:** Verified files are moved from `temp/` to permanent hospital storage. Failed files mark referral as NEED_REVISION.\n**Common Errors:**\n- 500 Internal Server Error",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Attachments"
-                ],
-                "summary": "Manual Verification \u0026 Promotion",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Attachment ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.AttachmentListResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -477,58 +398,6 @@
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/cron/cleanup-temp": {
-            "post": {
-                "description": "Internal endpoint triggered by GCP Cloud Scheduler. Deletes empty temp folders in Cloudinary to keep the storage clean.\n**Roles:** INTERNAL_CRON (Protected by GCP OIDC)\n**Common Errors:**\n- 500 Internal Server Error",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Cron"
-                ],
-                "summary": "Cleanup Temporary Folders",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/cron/verify-attachments": {
-            "post": {
-                "description": "Internal endpoint triggered by GCP Cloud Scheduler. Extracts metadata from PENDING attachments and promotes valid files to permanent storage.\n**Roles:** INTERNAL_CRON (Protected by GCP OIDC)\n**Common Errors:**\n- 500 Internal Server Error",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Cron"
-                ],
-                "summary": "Batch Verification Cron",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -1285,9 +1154,9 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Finalizes a referral that was initiated via the `signature` endpoint.\n\n### Hybrid-Upload Flow:\n1. **Aquire ID**: Call `/api/v1/attachments/signature` to get a `referral_id`.\n2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that `referral_id` as context.\n3. **Finalize**: Call this endpoint with the same `id` to register the referral.\n\n### Status Guide:\n- Use `status=DRAFT` to save information without entering the review pipeline.\n- Use `status=SUBMITTED` to officially send the referral to the hospital Liaison.\n### Rules:\n- Role: DOCTOR (Sender hospital)\n- Constraint: Cannot create a new referral if the patient already has an active referral (not COMPLETED, CANCELLED, REJECTED_*, DECEASED) for the same target department.\n- Errors: 409 (Conflict if active referral exists).",
+                "description": "Create a referral in DRAFT or SUBMITTED state and upload attachment files in a single synchronous call.\n\n### Request format: multipart/form-data\n- **referral**: JSON string matching the `CreateReferralRequest` schema. Example:\n```json\n{\n\"accompanying_person_name\": \"Sarah Kebede\",\n\"accompanying_person_phone\": \"+251922334455\",\n\"clinical_summary\": \"Patient complains of severe chest pain for 2 hours\",\n\"condition_at_referral\": \"UNSTABLE\",\n\"diagnoses\": [\n{\n\"diagnosis_certainty\": \"SUSPECTED\",\n\"icd_code\": \"J18.9\",\n\"is_primary\": true\n}\n],\n\"emergency_detail\": {\n\"emergency_justification\": \"Patient requires immediate intubation and bypass surgery\"\n},\n\"investigation_results\": \"ECG shows ST elevation\",\n\"liaison_officer_id\": \"d1000000-0000-0000-0000-000000000002\",\n\"medication_on_transfer\": \"IV Nitroglycerin\",\n\"mode_of_transport\": \"AMBULANCE\",\n\"patient_history\": \"Hypertension diagnosed 5 years ago\",\n\"patient_id\": \"e0000000-0000-0000-0000-000000000001\",\n\"physical_examination_findings\": \"BP 180/110, HR 105\",\n\"reason_for_referral_category\": \"EMERGENCY\",\n\"reason_of_referral\": \"Requires immediate cardiological intervention\",\n\"status\": \"SUBMITTED\",\n\"target_dept_id\": \"b5000000-0000-0000-0000-000000000005\",\n\"target_hospital_id\": \"a3000000-0000-0000-0000-000000000003\",\n\"treatment_given_before_referral\": \"Aspirin 300mg\",\n\"vitals\": {\n\"diastolic_bp\": 200,\n\"gcs_score\": 15,\n\"heart_rate\": 300,\n\"respiratory_rate\": 60,\n\"sp_o2\": 100,\n\"systolic_bp\": 300,\n\"temperature\": 45\n}\n}\n```\n- **attachments**: One or more files (optional).\n- **attachment_category**: Category for all attachments (default: GENERAL_CLINICAL).\n\n**Validation:**\n- DICOM/PDF files are verified for metadata.\n- If a file is rejected during a SUBMITTED request, the referral moves to NEED_REVISION.\n\n**Roles:** REFERRING_DOCTOR",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -1295,16 +1164,26 @@
                 "tags": [
                     "Doctor"
                 ],
-                "summary": "Create or Submit Referral (Pre-Minted Architecture)",
+                "summary": "Create or Submit Referral (Multipart)",
                 "parameters": [
                     {
-                        "description": "Referral Details (Include pre-minted referral_id)",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateReferralRequest"
-                        }
+                        "type": "string",
+                        "description": "Referral JSON payload",
+                        "name": "referral",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Attachment files",
+                        "name": "attachments",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category for attachments",
+                        "name": "attachment_category",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -5358,9 +5237,8 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Supports two modes for associating clinical data with a referral:\n1. **Hybrid/Bulk JSON**: Register multiple files already uploaded to Cloudinary.\n- Requires the `referral_id` pre-minted from the `/attachments/signature` endpoint.\n- Files MUST be at the `temp/{referral_id}/` path in Cloudinary.\n2. **Direct File**: Upload a single file (Max 20MB) directly to the backend.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Allowed only when referral status is DRAFT or NEED_REVISION.\n**Common Errors:**\n- 400 Invalid ID or file too large\n- 403 Forbidden (not the creator or invalid status)",
+                "description": "Upload a single clinical file to an existing referral. The file is immediately verified and stored permanently.\n\n**Request format:** multipart/form-data\n- **file**: The file to upload (max 20MB).\n- **category**: Category for the attachment (e.g., RADIOLOGY, LAB_REPORT, DICOM_XRAY). Defaults to GENERAL_CLINICAL.\n\n**Verification:** DICOM and PDF files are checked for valid metadata.\n- On success: attachment status set to VERIFIED.\n- On failure: attachment status set to REJECTED and referral moves to NEED_REVISION.\n\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Referral must be in DRAFT or NEED_REVISION status.\n**Common Errors:**\n- 400 Invalid ID or file too large (\u003e 20MB)\n- 403 Forbidden (not the creator or invalid status)",
                 "consumes": [
-                    "application/json",
                     "multipart/form-data"
                 ],
                 "produces": [
@@ -5369,28 +5247,21 @@
                 "tags": [
                     "Attachments"
                 ],
-                "summary": "Register or Upload Referral Attachments",
+                "summary": "Upload Attachment to Referral",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Referral ID (Pre-minted or Existing)",
+                        "description": "Referral ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Bulk JSON payload for Hybrid Flow",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BulkAttachmentRequest"
-                        }
-                    },
-                    {
                         "type": "file",
-                        "description": "Direct file upload payload",
+                        "description": "File to upload",
                         "name": "file",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5671,46 +5542,6 @@
                     },
                     "403": {
                         "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/referrals/{id}/verify-attachments": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Triggers verification and Cloudinary promotion for ALL pending attachments of a specific referral.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, REFERRING_DOCTOR\n**State Transition:** Ensures the system moves the referral out of PENDING states before Liaison review.\n**Common Errors:**\n- 500 Internal Server Error",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Attachments"
-                ],
-                "summary": "Verify All Referral Attachments",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Referral ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -7494,20 +7325,6 @@
                 }
             }
         },
-        "dto.BulkAttachmentRequest": {
-            "type": "object",
-            "required": [
-                "attachments"
-            ],
-            "properties": {
-                "attachments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.CreateAttachmentRequest"
-                    }
-                }
-            }
-        },
         "dto.CancelReferralRequest": {
             "type": "object",
             "properties": {
@@ -7526,41 +7343,6 @@
                 "department_id": {
                     "type": "string",
                     "example": "b1000000-0000-0000-0000-000000000001"
-                }
-            }
-        },
-        "dto.CreateAttachmentRequest": {
-            "type": "object",
-            "required": [
-                "file_name",
-                "file_type",
-                "file_url",
-                "public_id"
-            ],
-            "properties": {
-                "category": {
-                    "type": "string",
-                    "example": "RADIOLOGY"
-                },
-                "file_name": {
-                    "type": "string",
-                    "example": "xray_chest.dcm"
-                },
-                "file_size": {
-                    "type": "integer",
-                    "example": 4587210
-                },
-                "file_type": {
-                    "type": "string",
-                    "example": "application/dicom"
-                },
-                "file_url": {
-                    "type": "string",
-                    "example": "https://res.cloudinary.com/..."
-                },
-                "public_id": {
-                    "type": "string",
-                    "example": "referrals/hosp_123/ref_456/abc123"
                 }
             }
         },
@@ -7658,122 +7440,6 @@
                         "unknown"
                     ],
                     "example": "male"
-                }
-            }
-        },
-        "dto.CreateReferralRequest": {
-            "type": "object",
-            "required": [
-                "liaison_officer_id",
-                "patient_id",
-                "target_dept_id",
-                "target_hospital_id"
-            ],
-            "properties": {
-                "accompanying_person_name": {
-                    "type": "string",
-                    "example": "Sarah Kebede"
-                },
-                "accompanying_person_phone": {
-                    "type": "string",
-                    "example": "+251922334455"
-                },
-                "attachments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.CreateAttachmentRequest"
-                    }
-                },
-                "clinical_summary": {
-                    "description": "Annex IV Clinical Data",
-                    "type": "string",
-                    "example": "Patient complains of severe chest pain for 2 hours"
-                },
-                "condition_at_referral": {
-                    "type": "string",
-                    "example": "UNSTABLE"
-                },
-                "diagnoses": {
-                    "description": "Diagnoses",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.DiagnosisDTO"
-                    }
-                },
-                "emergency_detail": {
-                    "$ref": "#/definitions/dto.EmergencyDetailDTO"
-                },
-                "id": {
-                    "description": "Pre-minted ID (Optional)",
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "investigation_results": {
-                    "type": "string",
-                    "example": "ECG shows ST elevation"
-                },
-                "liaison_officer_id": {
-                    "type": "string",
-                    "example": "d1000000-0000-0000-0000-000000000002"
-                },
-                "medication_on_transfer": {
-                    "type": "string",
-                    "example": "IV Nitroglycerin"
-                },
-                "mode_of_transport": {
-                    "type": "string",
-                    "example": "AMBULANCE"
-                },
-                "patient_history": {
-                    "type": "string",
-                    "example": "Hypertension diagnosed 5 years ago"
-                },
-                "patient_id": {
-                    "description": "Patient Logic",
-                    "type": "string",
-                    "example": "e0000000-0000-0000-0000-000000000001"
-                },
-                "physical_examination_findings": {
-                    "type": "string",
-                    "example": "BP 180/110, HR 105"
-                },
-                "reason_for_referral_category": {
-                    "type": "string",
-                    "example": "EMERGENCY"
-                },
-                "reason_of_referral": {
-                    "type": "string",
-                    "example": "Requires immediate cardiological intervention"
-                },
-                "status": {
-                    "description": "Status tracking",
-                    "type": "string",
-                    "enum": [
-                        "DRAFT",
-                        "SUBMITTED"
-                    ],
-                    "example": "SUBMITTED"
-                },
-                "target_dept_id": {
-                    "type": "string",
-                    "example": "b5000000-0000-0000-0000-000000000005"
-                },
-                "target_hospital_id": {
-                    "description": "Routing Information",
-                    "type": "string",
-                    "example": "a3000000-0000-0000-0000-000000000003"
-                },
-                "treatment_given_before_referral": {
-                    "type": "string",
-                    "example": "Aspirin 300mg"
-                },
-                "vitals": {
-                    "description": "Optional Extensions",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dto.VitalsDTO"
-                        }
-                    ]
                 }
             }
         },
@@ -9213,12 +8879,6 @@
                     "type": "string",
                     "example": "+251922334455"
                 },
-                "attachments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.CreateAttachmentRequest"
-                    }
-                },
                 "clinical_summary": {
                     "description": "Annex IV Clinical Data",
                     "type": "string",
@@ -9295,42 +8955,6 @@
                             "$ref": "#/definitions/dto.VitalsDTO"
                         }
                     ]
-                }
-            }
-        },
-        "dto.UploadSignatureResponse": {
-            "type": "object",
-            "properties": {
-                "api_key": {
-                    "type": "string",
-                    "example": "123456789"
-                },
-                "cloud_name": {
-                    "type": "string",
-                    "example": "hospital-system"
-                },
-                "folder": {
-                    "type": "string",
-                    "example": "temp/550e8400-e29b-41d4-a716-446655440000"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "referral_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "signature": {
-                    "type": "string",
-                    "example": "a92425642..."
-                },
-                "success": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "timestamp": {
-                    "type": "integer",
-                    "example": 1649684700
                 }
             }
         },
