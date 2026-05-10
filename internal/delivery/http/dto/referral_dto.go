@@ -8,8 +8,8 @@ import (
 )
 
 type CreateReferralRequest struct {
-	// Pre-minted ID (Optional)
-	ID *uuid.UUID `json:"id" binding:"omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// Optional pre-minted ID
+	ID *uuid.UUID `json:"id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 
 	// Patient Logic
 	PatientID uuid.UUID `json:"patient_id" binding:"required" example:"e0000000-0000-0000-0000-000000000001"`
@@ -42,7 +42,6 @@ type CreateReferralRequest struct {
 	// Optional Extensions
 	Vitals          *VitalsDTO                `json:"vitals"`
 	EmergencyDetail *EmergencyDetailDTO       `json:"emergency_detail"`
-	Attachments     []CreateAttachmentRequest `json:"attachments" binding:"omitempty,dive"`
 }
 
 type UpdateReferralRequest struct {
@@ -75,7 +74,6 @@ type UpdateReferralRequest struct {
 	// Optional Extensions
 	Vitals          *VitalsDTO                `json:"vitals"`
 	EmergencyDetail *EmergencyDetailDTO       `json:"emergency_detail"`
-	Attachments     []CreateAttachmentRequest `json:"attachments" binding:"omitempty,dive"`
 }
 
 type DiagnosisDTO struct {

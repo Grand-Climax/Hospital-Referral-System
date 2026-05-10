@@ -97,7 +97,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc, inAppNotifUseCase)
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo, configRepo, auditLogRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
-	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc)
+	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc, inAppNotifUseCase)
 	// Post-acceptance Use Cases
 	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, smsClient, cryptoSvc)
 	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, cryptoSvc)
@@ -109,7 +109,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	dailyWeightUseCase := usecase.NewDailyWeightUseCase(configRepo, triageRepo, auditLogRepo)
 	schedulerServiceUseCase := usecase.NewSchedulerServiceUseCase(checkpointRepo, configRepo, schedUseCase)
 
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, inAppNotifUseCase, cryptoSvc, departmentRepo)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, inAppNotifUseCase, cryptoSvc, departmentRepo, attachmentRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo, hospitalRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo, cryptoSvc, auditLogRepo)
@@ -122,7 +122,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	redirectionHandler := handlers.NewRedirectionHandler(referralUseCase)
 
 	// Role-Based State Machine Handlers
-	doctorHandler := handlers.NewDoctorHandler(referralUseCase)
+	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase)
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase)
@@ -156,15 +156,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			authRoutes.POST("/logout", authHandler.Logout)
 		}
 
-		// Internal Cron Scheduler Routes (Protected by GCP OIDC in production)
-		// Note: kept outside RequireAuth because production protects via OIDC/IAP.
-		// Must match Swagger paths under /api/v1/cron/*.
-		cronHandler := handlers.NewCronHandler(attachmentUseCase)
-		cronRoutes := v1.Group("/cron")
-		{
-			cronRoutes.POST("/verify-attachments", cronHandler.ValidateAttachments)
-			cronRoutes.POST("/cleanup-temp", cronHandler.CleanupTemp)
-		}
 
 		// Protected routes (require authentication + audit logging)
 		protected := v1.Group("/")
@@ -400,16 +391,12 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				deptHeadGroup.POST("/schedule/batch", deptHeadHandler.BatchSchedule)
 			}
 
-			// Attachments
 			attachmentGroup := protected.Group("/attachments")
 			{
-				attachmentGroup.GET("/signature", attachmentHandler.GetUploadSignature)
 				attachmentGroup.GET("/:id", attachmentHandler.GetAttachment)
-				attachmentGroup.POST("/:id/verify", attachmentHandler.ManualVerifyAttachment)
 			}
 			// Referral-specific attachments
 			protected.POST("/referrals/:id/attachments", attachmentHandler.UploadAttachment)
-			protected.POST("/referrals/:id/verify-attachments", attachmentHandler.ManualVerifyReferralAttachments)
 			protected.GET("/referrals/:id/attachments", attachmentHandler.GetReferralAttachments)
 			protected.DELETE("/referrals/:id/attachments/:attachment_id", attachmentHandler.DeleteFromReferral)
 
