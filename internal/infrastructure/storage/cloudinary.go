@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -106,12 +107,39 @@ func (s *cloudinaryStorage) ListFolders(ctx context.Context, prefix string) ([]s
 }
 
 func (s *cloudinaryStorage) UploadFile(ctx context.Context, file interface{}, folder string) (string, string, error) {
-	uploadResult, err := s.client.Upload.Upload(ctx, file, uploader.UploadParams{
-		Folder: folder,
-	})
-	if err != nil {
-		return "", "", fmt.Errorf("failed to upload file: %w", err)
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(5 * time.Second)
+		}
+		uploadResult, err := s.client.Upload.Upload(ctx, file, uploader.UploadParams{
+			Folder:       folder,
+			ResourceType: "raw",
+		})
+		if err == nil {
+			return uploadResult.SecureURL, uploadResult.PublicID, nil
+		}
+		lastErr = err
 	}
+	return "", "", fmt.Errorf("upload failed after 3 attempts: %w", lastErr)
+}
 
-	return uploadResult.SecureURL, uploadResult.PublicID, nil
+func (s *cloudinaryStorage) UploadBytes(ctx context.Context, data []byte, folder, fileName string) (string, string, error) {
+	reader := bytes.NewReader(data)
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(5 * time.Second)
+		}
+		uploadResult, err := s.client.Upload.Upload(ctx, reader, uploader.UploadParams{
+			Folder:       folder,
+			PublicID:     fileName,
+			ResourceType: "raw",
+		})
+		if err == nil {
+			return uploadResult.SecureURL, uploadResult.PublicID, nil
+		}
+		lastErr = err
+	}
+	return "", "", fmt.Errorf("upload bytes failed after 3 attempts: %w", lastErr)
 }

@@ -10,9 +10,18 @@ import (
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
 
+type UploadedFileData struct {
+	URL, PublicID, FileName, FileType, Category string
+	FileSize int64
+	Status   string
+	Metadata map[string]interface{}
+	Reason   string
+}
+
 type ReferralUseCase interface {
 	// --- Doctor Actions ---
 	CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*dto.ReferralCreationResponse, error)
+	CreateReferralWithAttachments(ctx context.Context, doctorID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest, refID uuid.UUID, uploads []UploadedFileData) (*dto.ReferralCreationResponse, error)
 	ListForDoctor(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error)
 	GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error)
 	UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*dto.ReferralCreationResponse, error)

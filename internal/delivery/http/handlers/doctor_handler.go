@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,14 +16,26 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/pkg/utils"
 )
 
 type DoctorHandler struct {
-	referralUC iusecase.ReferralUseCase
+	referralUC   iusecase.ReferralUseCase
+	attachmentUC iusecase.AttachmentUseCase
 }
 
-func NewDoctorHandler(referralUC iusecase.ReferralUseCase) *DoctorHandler {
-	return &DoctorHandler{referralUC: referralUC}
+func NewDoctorHandler(referralUC iusecase.ReferralUseCase, attachmentUC iusecase.AttachmentUseCase) *DoctorHandler {
+	return &DoctorHandler{referralUC: referralUC, attachmentUC: attachmentUC}
+}
+
+func extractUUID(val interface{}) uuid.UUID {
+	if uID, ok := val.(uuid.UUID); ok {
+		return uID
+	}
+	if uID, ok := val.(*uuid.UUID); ok && uID != nil {
+		return *uID
+	}
+	return uuid.Nil
 }
 
 // ListReferrals godoc
@@ -271,78 +286,177 @@ func (h *DoctorHandler) GetLatestPending(c *gin.Context) {
 }
 
 // CreateOrSubmit godoc
-// @Summary      Create or Submit Referral (Pre-Minted Architecture)
-// @Description  Finalizes a referral that was initiated via the `signature` endpoint.
-// @Description
-// @Description  ### Hybrid-Upload Flow:
-// @Description  1. **Aquire ID**: Call `/api/v1/attachments/signature` to get a `referral_id`.
-// @Description  2. **Direct Upload**: Upload clinical data (X-rays, etc.) to Cloudinary using that `referral_id` as context.
-// @Description  3. **Finalize**: Call this endpoint with the same `id` to register the referral.
-// @Description
-// @Description  ### Status Guide:
-// @Description  - Use `status=DRAFT` to save information without entering the review pipeline.
-// @Description  - Use `status=SUBMITTED` to officially send the referral to the hospital Liaison.
-// @Description  ### Rules:
-// @Description  - Role: DOCTOR (Sender hospital)
-// @Description  - Constraint: Cannot create a new referral if the patient already has an active referral (not COMPLETED, CANCELLED, REJECTED_*, DECEASED) for the same target department.
-// @Description  - Errors: 409 (Conflict if active referral exists).
+// @Summary      Create or Submit Referral (Multipart)
+// @Description  Create a referral in DRAFT or SUBMITTED state and upload attachment files in a single synchronous call.
+// @Description  
+// @Description  ### Request format: multipart/form-data
+// @Description  - **referral**: JSON string matching the `CreateReferralRequest` schema. Example:
+// @Description    ```json
+// @Description    {
+// @Description      "accompanying_person_name": "Sarah Kebede",
+// @Description      "accompanying_person_phone": "+251922334455",
+// @Description      "clinical_summary": "Patient complains of severe chest pain for 2 hours",
+// @Description      "condition_at_referral": "UNSTABLE",
+// @Description      "diagnoses": [
+// @Description        {
+// @Description          "diagnosis_certainty": "SUSPECTED",
+// @Description          "icd_code": "J18.9",
+// @Description          "is_primary": true
+// @Description        }
+// @Description      ],
+// @Description      "emergency_detail": {
+// @Description        "emergency_justification": "Patient requires immediate intubation and bypass surgery"
+// @Description      },
+// @Description      "investigation_results": "ECG shows ST elevation",
+// @Description      "liaison_officer_id": "d1000000-0000-0000-0000-000000000002",
+// @Description      "medication_on_transfer": "IV Nitroglycerin",
+// @Description      "mode_of_transport": "AMBULANCE",
+// @Description      "patient_history": "Hypertension diagnosed 5 years ago",
+// @Description      "patient_id": "e0000000-0000-0000-0000-000000000001",
+// @Description      "physical_examination_findings": "BP 180/110, HR 105",
+// @Description      "reason_for_referral_category": "EMERGENCY",
+// @Description      "reason_of_referral": "Requires immediate cardiological intervention",
+// @Description      "status": "SUBMITTED",
+// @Description      "target_dept_id": "b5000000-0000-0000-0000-000000000005",
+// @Description      "target_hospital_id": "a3000000-0000-0000-0000-000000000003",
+// @Description      "treatment_given_before_referral": "Aspirin 300mg",
+// @Description      "vitals": {
+// @Description        "diastolic_bp": 200,
+// @Description        "gcs_score": 15,
+// @Description        "heart_rate": 300,
+// @Description        "respiratory_rate": 60,
+// @Description        "sp_o2": 100,
+// @Description        "systolic_bp": 300,
+// @Description        "temperature": 45
+// @Description      }
+// @Description    }
+// @Description    ```
+// @Description  - **attachments**: One or more files (optional).
+// @Description  - **attachment_category**: Category for all attachments (default: GENERAL_CLINICAL).
+// @Description  
+// @Description  **Validation:**
+// @Description  - DICOM/PDF files are verified for metadata.
+// @Description  - If a file is rejected during a SUBMITTED request, the referral moves to NEED_REVISION.
+// @Description  
+// @Description  **Roles:** REFERRING_DOCTOR
 // @Tags         Doctor
-// @Accept       json
+// @Accept       mpfd
 // @Produce      json
-// @Param        request body dto.CreateReferralRequest true "Referral Details (Include pre-minted referral_id)"
+// @Param        referral formData string true "Referral JSON payload"
+// @Param        attachments formData file false "Attachment files"
+// @Param        attachment_category formData string false "Category for attachments"
 // @Success      201 {object} dto.ReferralCreationResponse
 // @Failure      400 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/doctor/referrals [post]
 func (h *DoctorHandler) CreateOrSubmit(c *gin.Context) {
-	userIdVal, _ := c.Get("userID")
-	doctorID := uuid.Nil
-	if uID, ok := userIdVal.(uuid.UUID); ok {
-		doctorID = uID
-	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
-		doctorID = *uID
-	}
+	userIDVal, _ := c.Get("userID")
+	doctorID := extractUUID(userIDVal)
+	hospIDVal, _ := c.Get("hospID")
+	hospID := extractUUID(hospIDVal)
 
-	hospIdVal, _ := c.Get("hospID")
-	hospID := uuid.Nil
-	if hID, ok := hospIdVal.(uuid.UUID); ok {
-		hospID = hID
-	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
-		hospID = *hID
-	}
-
-	var req dto.CreateReferralRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+	// 1. Parse multipart form (large limit for attachments)
+	if err := c.Request.ParseMultipartForm(200 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Failed to parse form: " + err.Error()})
 		return
 	}
 
-	// Default to SUBMITTED if status is missing
+	// 2. Extract referral JSON
+	referralStr := c.PostForm("referral")
+	if referralStr == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "referral field is required"})
+		return
+	}
+	var req dto.CreateReferralRequest
+	if err := json.Unmarshal([]byte(referralStr), &req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral JSON: " + err.Error()})
+		return
+	}
 	if req.Status == "" {
 		req.Status = string(entity.StatusSubmitted)
 	}
-
-	// Validate status is only DRAFT or SUBMITTED
 	if req.Status != string(entity.StatusDraft) && req.Status != string(entity.StatusSubmitted) {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid status: only DRAFT or SUBMITTED are allowed during creation",
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid status: only DRAFT or SUBMITTED allowed"})
+		return
+	}
+
+	// 3. Generate referral ID
+	refID := uuid.New()
+	if req.ID != nil {
+		refID = *req.ID
+	}
+
+	// 4. Process attachments
+	fileHeaders := c.Request.MultipartForm.File["attachments"]
+	category := c.PostForm("attachment_category")
+	if category == "" {
+		category = "GENERAL_CLINICAL"
+	}
+
+	var uploads []iusecase.UploadedFileData
+
+	for _, fh := range fileHeaders {
+		// Validate file extension
+		if _, err := utils.ValidateFileExtension(fh.Filename); err != nil {
+			// Clean up already-uploaded files
+			for _, u := range uploads {
+				_ = h.attachmentUC.Storage().DeleteFile(c.Request.Context(), u.PublicID)
+			}
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+			return
+		}
+
+		file, err := fh.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to open file"})
+			return
+		}
+		fileBytes, err := io.ReadAll(file)
+		file.Close()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to read file"})
+			return
+		}
+
+		// Upload to Cloudinary
+		folder := fmt.Sprintf("referrals/%s/attachments", refID.String())
+		reader := bytes.NewReader(fileBytes)
+		url, publicID, err := h.attachmentUC.Storage().UploadFile(c.Request.Context(), reader, folder)
+		if err != nil {
+			for _, u := range uploads {
+				_ = h.attachmentUC.Storage().DeleteFile(c.Request.Context(), u.PublicID)
+			}
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Cloudinary upload failed: " + err.Error()})
+			return
+		}
+
+		// Metadata verification (first 256 KB)
+		metaBuf := fileBytes
+		if len(metaBuf) > 256*1024 {
+			metaBuf = metaBuf[:256*1024]
+		}
+		att := &entity.Attachment{FileName: fh.Filename, FileType: fh.Header.Get("Content-Type"), FileSize: fh.Size}
+		status, meta, reason := h.attachmentUC.VerifyAttachmentBytes(att, metaBuf)
+
+		uploads = append(uploads, iusecase.UploadedFileData{
+			URL: url, PublicID: publicID, FileName: fh.Filename, FileType: fh.Header.Get("Content-Type"),
+			Category: category, FileSize: fh.Size, Status: status, Metadata: meta, Reason: reason,
 		})
-		return
 	}
 
-	ref, err := h.referralUC.CreateDraftOrSubmit(c.Request.Context(), doctorID, hospID, req)
+	// 5. Create referral + attachments in a transaction
+	ref, err := h.referralUC.CreateReferralWithAttachments(c.Request.Context(), doctorID, hospID, req, refID, uploads)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		for _, u := range uploads {
+			_ = h.attachmentUC.Storage().DeleteFile(c.Request.Context(), u.PublicID)
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	msg := "New referral draft created (DRAFT)"
-	if req.Status == string(entity.StatusSubmitted) {
-		msg = "New referral submitted for review (SUBMITTED)"
+	msg := "Referral created (DRAFT)"
+	if ref.Referral.Status == entity.StatusSubmitted {
+		msg = "Referral submitted (SUBMITTED)"
 	}
 	ref.Message = msg
 	c.JSON(http.StatusCreated, ref)
