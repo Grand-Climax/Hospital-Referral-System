@@ -55,6 +55,14 @@ func (m *MockPatientUseCase) SearchPatients(ctx context.Context, query string) (
 	return nil, args.Error(1)
 }
 
+func (m *MockPatientUseCase) LookupByNationalID(ctx context.Context, nationalID string) (*uuid.UUID, error) {
+	args := m.Called(ctx, nationalID)
+	if id := args.Get(0); id != nil {
+		return id.(*uuid.UUID), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 
 func setupPatientRouter(mockUC *MockPatientUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
