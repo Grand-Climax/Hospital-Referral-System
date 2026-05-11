@@ -3163,6 +3163,39 @@ paths:
       summary: Cancel Referral
       tags:
       - Doctor
+  /api/v1/doctor/referrals/{id}/reject-after-send:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Cancel a referral that has already been submitted but not yet scheduled.
+        **Roles:** REFERRING_DOCTOR
+        **Prerequisites:** Status must be SUBMITTED, UNDER_LIAISON_REVIEW, FORWARDED, UNDER_SPECIALIST_REVIEW, or ACCEPTED.
+        **State Transition:** → REJECTED_AFTER_SEND. Removes from triage queue.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RejectDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject Referral After Sending
+      tags:
+      - Doctor
   /api/v1/doctor/referrals/{id}/submit:
     put:
       consumes:
@@ -5257,6 +5290,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Reject Referral
+      tags:
+      - Liaison
+  /api/v1/liaison/referrals/{id}/reject-after-send:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Cancel a referral that has already been submitted but not yet scheduled.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** Status must be SUBMITTED, UNDER_LIAISON_REVIEW, FORWARDED, UNDER_SPECIALIST_REVIEW, or ACCEPTED.
+        **State Transition:** → REJECTED_AFTER_SEND. Removes from triage queue.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RejectDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject Referral After Sending
       tags:
       - Liaison
   /api/v1/liaison/referrals/{id}/revise:

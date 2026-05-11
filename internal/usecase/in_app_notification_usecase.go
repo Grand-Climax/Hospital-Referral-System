@@ -92,6 +92,17 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 		for _, s := range specialists {
 			recipientIDs = append(recipientIDs, s.ID)
 		}
+		// Also notify the referring doctor
+		recipientIDs = append(recipientIDs, referral.ReferringDoctorID)
+
+	case "REFERRAL_NEEDS_REVISION":
+		title = "Referral Needs Revision"
+		reason := "No reason provided"
+		if referral.RevisionReason != nil {
+			reason = *referral.RevisionReason
+		}
+		message = fmt.Sprintf("Your referral for patient %s requires revision. Reason: %s", patientName, reason)
+		recipientIDs = append(recipientIDs, referral.ReferringDoctorID)
 
 	case "REFERRAL_ACCEPTED":
 		title = "Referral Accepted"
@@ -114,6 +125,23 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 			reason = *referral.RejectionReason
 		}
 		message = fmt.Sprintf("Your referral for patient %s was rejected by the specialist at %s. Reason: %s", patientName, targetHospitalName, reason)
+		recipientIDs = append(recipientIDs, referral.ReferringDoctorID)
+
+	case "REFERRAL_REJECTED_AFTER_SEND":
+		title = "Referral Cancelled After Submission"
+		message = fmt.Sprintf("A referral for patient %s from %s has been cancelled by the referring doctor.", patientName, senderHospitalName)
+		liaisons, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:       ptrRole(entity.RoleLiaisonOfficer),
+			HospitalID: ptrStr(referral.SenderHospitalID.String()),
+			PageSize:   100,
+		})
+		for _, l := range liaisons {
+			recipientIDs = append(recipientIDs, l.ID)
+		}
+
+	case "REFERRAL_REJECTED_AFTER_SEND_BY_LIAISON":
+		title = "Referral Cancelled by Liaison"
+		message = fmt.Sprintf("Your referral for patient %s has been cancelled by the liaison at %s.", patientName, senderHospitalName)
 		recipientIDs = append(recipientIDs, referral.ReferringDoctorID)
 
 	case "REFERRAL_REDIRECTED":
@@ -200,10 +228,35 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 			recipientIDs = append(recipientIDs, h.ID)
 		}
 
+	case "CAPACITY_OVERRIDE_UPDATED":
+		title = "Capacity Override Updated"
+		message = "A capacity override has been updated for your department."
+		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:         ptrRole(entity.RoleDeptHead),
+			HospitalID:   ptrStr(referral.TargetHospitalID.String()),
+			DepartmentID: ptrStr(referral.TargetDeptID.String()),
+			PageSize:     10,
+		})
+		for _, h := range heads {
+			recipientIDs = append(recipientIDs, h.ID)
+		}
+
 	case "STAFF_ADDED":
 		title = "New Staff Added"
 		message = "A new staff member has been registered at your hospital."
 		// Notify Hospital Admins
+		admins, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:       ptrRole(entity.RoleHospitalAdmin),
+			HospitalID: ptrStr(referral.TargetHospitalID.String()),
+			PageSize:   10,
+		})
+		for _, a := range admins {
+			recipientIDs = append(recipientIDs, a.ID)
+		}
+
+	case "STAFF_ROLE_CHANGED":
+		title = "Staff Role Changed"
+		message = "A staff member's role has been changed at your hospital."
 		admins, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
 			Role:       ptrRole(entity.RoleHospitalAdmin),
 			HospitalID: ptrStr(referral.TargetHospitalID.String()),

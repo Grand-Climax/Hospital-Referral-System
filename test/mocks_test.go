@@ -503,6 +503,11 @@ func (m *MockReferralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, 
 	return args.Error(0)
 }
 
+func (m *MockReferralUseCase) RejectAfterSend(ctx context.Context, referralID, userID, hospID uuid.UUID, role entity.UserRole, reason string) error {
+	args := m.Called(ctx, referralID, userID, hospID, role, reason)
+	return args.Error(0)
+}
+
 func (m *MockReferralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error {
 	args := m.Called(ctx, id, liaisonID, hospID, reason)
 	return args.Error(0)

@@ -1403,6 +1403,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/doctor/referrals/{id}/reject-after-send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel a referral that has already been submitted but not yet scheduled.\n**Roles:** REFERRING_DOCTOR\n**Prerequisites:** Status must be SUBMITTED, UNDER_LIAISON_REVIEW, FORWARDED, UNDER_SPECIALIST_REVIEW, or ACCEPTED.\n**State Transition:** → REJECTED_AFTER_SEND. Removes from triage queue.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor"
+                ],
+                "summary": "Reject Referral After Sending",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection Reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RejectDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/doctor/referrals/{id}/submit": {
             "put": {
                 "security": [
@@ -4239,6 +4285,52 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/liaison/referrals/{id}/reject-after-send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel a referral that has already been submitted but not yet scheduled.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** Status must be SUBMITTED, UNDER_LIAISON_REVIEW, FORWARDED, UNDER_SPECIALIST_REVIEW, or ACCEPTED.\n**State Transition:** → REJECTED_AFTER_SEND. Removes from triage queue.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison"
+                ],
+                "summary": "Reject Referral After Sending",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection Reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RejectDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
                         }
                     }
                 }

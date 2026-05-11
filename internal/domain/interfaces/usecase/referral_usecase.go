@@ -26,6 +26,7 @@ type ReferralUseCase interface {
 	GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error)
 	UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*dto.ReferralCreationResponse, error)
 	CancelReferral(ctx context.Context, id, doctorID uuid.UUID, reason string) error
+	RejectAfterSend(ctx context.Context, referralID, userID, hospID uuid.UUID, role entity.UserRole, reason string) error
 	GetDoctorDashboardStats(ctx context.Context, doctorID uuid.UUID) (*dto.DoctorDashboardStats, error)
 	GetLatestPendingReferrals(ctx context.Context, doctorID uuid.UUID, limit int) ([]dto.ListReferralResponse, error)
 	DeleteAttachmentsByReferralID(ctx context.Context, id, doctorID uuid.UUID) error
