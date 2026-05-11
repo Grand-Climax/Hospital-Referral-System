@@ -251,6 +251,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				doctorGroup.DELETE("/referrals/:id/attachments", doctorHandler.DeleteAttachments)
 				doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateDraft)
 				doctorGroup.PUT("/referrals/:id/submit", doctorHandler.SubmitReferral)
+				doctorGroup.POST("/referrals/:id/reject-after-send", doctorHandler.RejectAfterSend)
 			}
 
 			// LIAISON
@@ -265,6 +266,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				liaisonGroup.POST("/:id/forward", liaisonHandler.Forward)
 				liaisonGroup.POST("/:id/reject", liaisonHandler.Reject)
 				liaisonGroup.POST("/:id/revise", liaisonHandler.Revise)
+				liaisonGroup.POST("/:id/reject-after-send", liaisonHandler.RejectAfterSend)
 				// Deprecated
 				// liaisonGroup.POST("/incoming/:id/unassign", liaisonHandler.UnassignSpecialist)
 			}
