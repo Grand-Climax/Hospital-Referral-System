@@ -169,6 +169,11 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 			recipientIDs = append(recipientIDs, s.ID)
 		}
 
+	case "PATIENT_DECEASED":
+		title = "Patient Deceased"
+		message = fmt.Sprintf("The patient %s has been reported deceased.", patientName)
+		recipientIDs = append(recipientIDs, referral.ReferringDoctorID)
+
 	case "APPOINTMENT_SCHEDULED":
 		title = "Appointment Scheduled"
 		message = fmt.Sprintf("An appointment has been scheduled for your patient %s at %s.", patientName, targetHospitalName)

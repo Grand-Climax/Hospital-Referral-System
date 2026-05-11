@@ -5365,6 +5365,33 @@ paths:
       summary: Request Referral Revision
       tags:
       - Liaison
+  /api/v1/liaison/referrals/dashboard/stats:
+    get:
+      description: |-
+        Returns aggregated dashboard statistics for the liaison's hospital.
+        **Metrics:**
+        - **Total Referrals**: All non‑DRAFT referrals from the sender hospital (last 30 days).
+        - **Pending Review**: Referrals in SUBMITTED or UNDER_LIAISON_REVIEW status.
+        - **Approved Today**: Referrals that were accepted or completed today.
+        - **Rejected**: Referrals rejected by liaison, specialist, or after sending.
+        **Percentage changes** compare the last 30 days with the previous 30‑day period.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Liaison Dashboard Stats
+      tags:
+      - Liaison
   /api/v1/liaison/referrals/incoming:
     get:
       description: |-
@@ -6313,6 +6340,42 @@ paths:
       summary: Add Clinical Update
       tags:
       - Clinical
+  /api/v1/referrals/{id}/deceased:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Immediately closes a referral because the patient has died. Bypasses all status restrictions.
+        **Roles:** REFERRING_DOCTOR, LIAISON_OFFICER, RECEIVING_SPECIALIST, SYSTEM_SUPER_ADMIN
+        **State Transition:** Any status → DECEASED. Referral is archived and removed from active queues.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RejectDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark Referral as Deceased
+      tags:
+      - Referrals
   /api/v1/referrals/{id}/redirections:
     get:
       description: |-
