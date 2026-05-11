@@ -248,6 +248,16 @@ func (m *MockReferralRepo) ListForSpecialist(ctx context.Context, hospID uuid.UU
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockReferralRepo) CountBySenderHospitalAndStatuses(ctx context.Context, hospID uuid.UUID, statuses []entity.ReferralStatus, excludeDraft bool, startDate, endDate *time.Time) (int64, error) {
+	args := m.Called(ctx, hospID, statuses, excludeDraft, startDate, endDate)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockReferralRepo) CountAcceptedOrCompletedToday(ctx context.Context, hospID uuid.UUID) (int64, error) {
+	args := m.Called(ctx, hospID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func (m *MockReferralRepo) ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	args := m.Called(ctx, hospID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
@@ -513,6 +523,14 @@ func (m *MockReferralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id,
 	return args.Error(0)
 }
 
+func (m *MockReferralUseCase) GetLiaisonDashboardStats(ctx context.Context, hospID uuid.UUID) (*iusecase.LiaisonDashboardStats, error) {
+	args := m.Called(ctx, hospID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*iusecase.LiaisonDashboardStats), args.Error(1)
+}
+
 func (m *MockReferralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	args := m.Called(ctx, hospID, specialistID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
@@ -670,6 +688,11 @@ func (m *MockReferralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx conte
 func (m *MockReferralUseCase) IsValidStatus(status string) bool {
 	args := m.Called(status)
 	return args.Bool(0)
+}
+
+func (m *MockReferralUseCase) MarkDeceased(ctx context.Context, referralID, userID uuid.UUID, role entity.UserRole, hospID uuid.UUID, reason string) error {
+	args := m.Called(ctx, referralID, userID, role, hospID, reason)
+	return args.Error(0)
 }
 
 // ---------------------------------------------------------------------------

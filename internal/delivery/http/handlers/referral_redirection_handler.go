@@ -84,3 +84,51 @@ func (h *RedirectionHandler) GetRedirectionHistory(c *gin.Context) {
 		"data":    resp,
 	})
 }
+
+// MarkDeceased godoc
+// @Summary      Mark Referral as Deceased
+// @Description  Immediately closes a referral because the patient has died. Bypasses all status restrictions.
+// @Description  **Roles:** REFERRING_DOCTOR, LIAISON_OFFICER, RECEIVING_SPECIALIST, SYSTEM_SUPER_ADMIN
+// @Description  **State Transition:** Any status → DECEASED. Referral is archived and removed from active queues.
+// @Tags         Referrals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.RejectDTO true "Reason"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/referrals/{id}/deceased [post]
+func (h *RedirectionHandler) MarkDeceased(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral ID"})
+		return
+	}
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(entity.UserRole)
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	var req dto.RejectDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if err := h.referralUC.MarkDeceased(c.Request.Context(), referralID, userID, role, hospID, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Referral marked as deceased"})
+}

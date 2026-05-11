@@ -87,7 +87,8 @@ func (r *referralRepository) ListReferrals(ctx context.Context, filter map[strin
 		Preload("Diagnoses").
 		Preload("Diagnoses.CodeInfo").
 		Preload("Vitals").
-		Preload("EmergencyDetail")
+		Preload("EmergencyDetail").
+		Where("is_archived = false")
 
 	if status, ok := filter["status"]; ok {
 		query = query.Where("status = ?", status)
@@ -122,6 +123,8 @@ func (r *referralRepository) ListReferrals(ctx context.Context, filter map[strin
 }
 
 func (r *referralRepository) applyFilter(query *gorm.DB, filter irepository.ReferralFilter) *gorm.DB {
+	query = query.Where("is_archived = false")
+
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)
 	}
@@ -231,7 +234,7 @@ func (r *referralRepository) GetReferralStatusCounts(ctx context.Context, hospID
 	err := r.db.WithContext(ctx).
 		Model(&entity.Referral{}).
 		Select("status, COUNT(*) as count").
-		Where("sender_hospital_id = ? OR target_hospital_id = ?", hospID, hospID).
+		Where("(sender_hospital_id = ? OR target_hospital_id = ?) AND is_archived = false", hospID, hospID).
 		Group("status").
 		Scan(&rows).Error
 	return rows, err
@@ -652,4 +655,55 @@ func (r *referralAccessRepository) CheckAccess(ctx context.Context, referralID, 
 	}
 
 	return count > 0, nil
+}
+
+func (r *referralRepository) CountBySenderHospitalAndStatuses(
+	ctx context.Context,
+	hospID uuid.UUID,
+	statuses []entity.ReferralStatus,
+	excludeDraft bool,
+	startDate, endDate *time.Time,
+) (int64, error) {
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("sender_hospital_id = ? AND is_archived = false", hospID)
+
+	if len(statuses) > 0 {
+		query = query.Where("status IN ?", statuses)
+	}
+
+	if excludeDraft {
+		query = query.Where("status != ?", entity.StatusDraft)
+	}
+
+	if startDate != nil {
+		query = query.Where("created_at >= ?", *startDate)
+	}
+	if endDate != nil {
+		query = query.Where("created_at <= ?", *endDate)
+	}
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *referralRepository) CountAcceptedOrCompletedToday(ctx context.Context, hospID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("referrals").
+		Where("sender_hospital_id = ? AND is_archived = false", hospID).
+		Where("id IN (?)",
+			r.db.WithContext(ctx).
+				Table("referral_status_histories").
+				Select("referral_id").
+				Where("to_status IN ?", []entity.ReferralStatus{
+					entity.StatusAccepted,
+					entity.StatusCompleted,
+				}).
+				Where("CAST(changed_at AS DATE) = CURRENT_DATE"),
+		).
+		Count(&count).Error
+	return count, err
 }

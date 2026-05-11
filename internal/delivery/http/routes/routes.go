@@ -260,13 +260,14 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			{
 				liaisonGroup.GET("/", liaisonHandler.ListOutgoing)
 				// Deprecated
-				// liaisonGroup.GET("/incoming", liaisonHandler.ListIncoming)
+				liaisonGroup.GET("/incoming", liaisonHandler.ListIncoming)
 				liaisonGroup.GET("/:id", liaisonHandler.GetReferral)
 				liaisonGroup.POST("/:id/read", liaisonHandler.Read)
 				liaisonGroup.POST("/:id/forward", liaisonHandler.Forward)
 				liaisonGroup.POST("/:id/reject", liaisonHandler.Reject)
 				liaisonGroup.POST("/:id/revise", liaisonHandler.Revise)
 				liaisonGroup.POST("/:id/reject-after-send", liaisonHandler.RejectAfterSend)
+				liaisonGroup.GET("/dashboard/stats", liaisonHandler.GetDashboardStats)
 				// Deprecated
 				// liaisonGroup.POST("/incoming/:id/unassign", liaisonHandler.UnassignSpecialist)
 			}
@@ -297,6 +298,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 
 			// Shared Referral Routes
 			protected.GET("/referrals/:id/redirections", redirectionHandler.GetRedirectionHistory)
+			protected.POST("/referrals/:id/deceased", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleLiaisonOfficer, entity.RoleReceivingSpecialist, entity.RoleSystemSuperAdmin), redirectionHandler.MarkDeceased)
 
 			// RECEPTIONIST
 			receptionistGroup := protected.Group("/receptionist/referrals")

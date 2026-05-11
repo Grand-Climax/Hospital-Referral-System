@@ -18,6 +18,18 @@ type UploadedFileData struct {
 	Reason   string
 }
 
+type StatItem struct {
+	Count  int64   `json:"count"`
+	Change float64 `json:"change"` // percentage change, e.g., 12.5 means +12.5%
+}
+
+type LiaisonDashboardStats struct {
+	TotalReferrals StatItem `json:"total_referrals"`
+	PendingReview  StatItem `json:"pending_review"`
+	ApprovedToday  StatItem `json:"approved_today"`
+	Rejected       StatItem `json:"rejected"`
+}
+
 type ReferralUseCase interface {
 	// --- Doctor Actions ---
 	CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*dto.ReferralCreationResponse, error)
@@ -40,6 +52,7 @@ type ReferralUseCase interface {
 	LiaisonReject(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
 	LiaisonRevise(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
 	LiaisonUnassignSpecialist(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
+	GetLiaisonDashboardStats(ctx context.Context, hospID uuid.UUID) (*LiaisonDashboardStats, error)
 
 	// --- Specialist Actions ---
 	ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error)
@@ -76,6 +89,9 @@ type ReferralUseCase interface {
 	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 	GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 
+
+	// --- Shared Actions ---
+	MarkDeceased(ctx context.Context, referralID, userID uuid.UUID, role entity.UserRole, hospID uuid.UUID, reason string) error
 
 	// --- Helpers ---
 	IsValidStatus(status string) bool
