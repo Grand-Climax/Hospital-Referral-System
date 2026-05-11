@@ -16,12 +16,14 @@ import (
 type ReceptionistHandler struct {
 	referralUC iusecase.ReferralUseCase
 	arrivalUC  iusecase.ArrivalUseCase
+	patientUC  iusecase.PatientUseCase
 }
 
-func NewReceptionistHandler(referralUC iusecase.ReferralUseCase, arrivalUC iusecase.ArrivalUseCase) *ReceptionistHandler {
+func NewReceptionistHandler(referralUC iusecase.ReferralUseCase, arrivalUC iusecase.ArrivalUseCase, patientUC iusecase.PatientUseCase) *ReceptionistHandler {
 	return &ReceptionistHandler{
 		referralUC: referralUC,
 		arrivalUC:  arrivalUC,
+		patientUC:  patientUC,
 	}
 }
 
@@ -59,8 +61,10 @@ func (h *ReceptionistHandler) getHospitalAndDept(c *gin.Context) (uuid.UUID, uui
 // @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
 // @Param        region query string false "Filter by patient region"
-// @Param        patient_name query string false "Filter by patient name (any order)"
-// @Param        sort query string false "Sort order (asc/desc)"
+// @Param        patient_id query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient national ID"
+// @Param        sort_by query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order query string false "Sort order (asc, desc)" default(desc)
 // @Success      200 {object} dto.PaginatedReferralResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
@@ -77,12 +81,38 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 
 	filter := irepository.ReferralFilter{
-		Status:      c.Query("status"),
-		Region:      c.Query("region"),
-		PatientName: c.Query("patient_name"),
-		Sort:        c.Query("sort"),
-		Limit:       limit,
-		Page:        page,
+		Status:    c.Query("status"),
+		Region:    c.Query("region"),
+		SortBy:    c.Query("sort_by"),
+		SortOrder: c.Query("sort_order"),
+		Limit:     limit,
+		Page:      page,
+	}
+
+	if pID := c.Query("patient_id"); pID != "" {
+		parsedID, err := uuid.Parse(pID)
+		if err == nil {
+			filter.PatientID = &parsedID
+		}
+	}
+
+	if nID := c.Query("national_id"); nID != "" && filter.PatientID == nil {
+		pID, err := h.patientUC.LookupByNationalID(c.Request.Context(), nID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "failed to lookup patient"})
+			return
+		}
+		if pID == nil {
+			c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+				BaseResponse: dto.BaseResponse{Success: false, Message: "Patient not found"},
+				Data:         []dto.ListReferralResponse{},
+				Total:        0,
+				Page:         page,
+				PageSize:     limit,
+			})
+			return
+		}
+		filter.PatientID = pID
 	}
 
 	referrals, total, err := h.referralUC.ListForReceptionist(c.Request.Context(), hospID, filter)

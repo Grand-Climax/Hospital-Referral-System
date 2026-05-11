@@ -16,10 +16,14 @@ import (
 
 type LiaisonHandler struct {
 	referralUC iusecase.ReferralUseCase
+	patientUC  iusecase.PatientUseCase
 }
 
-func NewLiaisonHandler(referralUC iusecase.ReferralUseCase) *LiaisonHandler {
-	return &LiaisonHandler{referralUC: referralUC}
+func NewLiaisonHandler(referralUC iusecase.ReferralUseCase, patientUC iusecase.PatientUseCase) *LiaisonHandler {
+	return &LiaisonHandler{
+		referralUC: referralUC,
+		patientUC:  patientUC,
+	}
 }
 
 // ListOutgoing godoc
@@ -32,9 +36,12 @@ func NewLiaisonHandler(referralUC iusecase.ReferralUseCase) *LiaisonHandler {
 // @Description  - 500 Internal Server Error
 // @Tags         Liaison
 // @Produce      json
-// @Param        limit query int false "Pagination limit" default(20)
-// @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
+// @Param        region query string false "Filter by patient region"
+// @Param        patient_id query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient national ID"
+// @Param        sort_by query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order query string false "Sort order (asc, desc)" default(desc)
 // @Success      200 {object} dto.PaginatedReferralResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
@@ -63,12 +70,38 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 	}
 
 	filter := irepository.ReferralFilter{
-		Status:      c.Query("status"),
-		Region:      c.Query("region"),
-		PatientName: c.Query("patient_name"),
-		Sort:        c.Query("sort"),
-		Limit:       limit,
-		Page:        page,
+		Status:    c.Query("status"),
+		Region:    c.Query("region"),
+		SortBy:    c.Query("sort_by"),
+		SortOrder: c.Query("sort_order"),
+		Limit:     limit,
+		Page:      page,
+	}
+
+	if pID := c.Query("patient_id"); pID != "" {
+		parsedID, err := uuid.Parse(pID)
+		if err == nil {
+			filter.PatientID = &parsedID
+		}
+	}
+
+	if nID := c.Query("national_id"); nID != "" && filter.PatientID == nil {
+		pID, err := h.patientUC.LookupByNationalID(c.Request.Context(), nID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "failed to lookup patient"})
+			return
+		}
+		if pID == nil {
+			c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+				BaseResponse: dto.BaseResponse{Success: false, Message: "Patient not found"},
+				Data:         []dto.ListReferralResponse{},
+				Total:        0,
+				Page:         page,
+				PageSize:     limit,
+			})
+			return
+		}
+		filter.PatientID = pID
 	}
 
 	if filter.Status != "" && !h.referralUC.IsValidStatus(filter.Status) {
@@ -117,6 +150,156 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 	})
 }
 
+// ListApprovedReferrals godoc
+// @Summary      List Approved Referrals for Liaison
+// @Description  Returns outgoing referrals from the hospital with status ACCEPTED, SCHEDULED, or COMPLETED.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Statuses:** ACCEPTED, SCHEDULED, COMPLETED (pre-applied filter).
+// @Tags         Liaison
+// @Produce      json
+// @Param        limit       query int    false "Pagination limit" default(20)
+// @Param        page        query int    false "Page number" default(1)
+// @Param        patient_id  query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient's national ID"
+// @Param        region      query string false "Filter by patient region"
+// @Param        sort_by     query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order  query string false "Sort order (asc, desc)" default(desc)
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/liaison/referrals/approved [get]
+func (h *LiaisonHandler) ListApprovedReferrals(c *gin.Context) {
+	h.listFilteredReferrals(c, []entity.ReferralStatus{
+		entity.StatusAccepted,
+		entity.StatusScheduled,
+		entity.StatusCompleted,
+	})
+}
+
+// ListRejectedReferrals godoc
+// @Summary      List Rejected Referrals for Liaison
+// @Description  Returns outgoing referrals from the hospital with status REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, or REJECTED_AFTER_SEND.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Statuses:** REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, REJECTED_AFTER_SEND (pre-applied filter).
+// @Tags         Liaison
+// @Produce      json
+// @Param        limit       query int    false "Pagination limit" default(20)
+// @Param        page        query int    false "Page number" default(1)
+// @Param        patient_id  query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient's national ID"
+// @Param        region      query string false "Filter by patient region"
+// @Param        sort_by     query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order  query string false "Sort order (asc, desc)" default(desc)
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/liaison/referrals/rejected [get]
+func (h *LiaisonHandler) ListRejectedReferrals(c *gin.Context) {
+	h.listFilteredReferrals(c, []entity.ReferralStatus{
+		entity.StatusRejectedByLiaison,
+		entity.StatusRejectedBySpecialist,
+		entity.StatusRejectedAfterSend,
+	})
+}
+
+func (h *LiaisonHandler) listFilteredReferrals(c *gin.Context, statuses []entity.ReferralStatus) {
+	if c.Query("status") != "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "status filter is not allowed on this endpoint; the statuses are pre-defined",
+		})
+		return
+	}
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+	if hospID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid user scopes"})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if limit <= 0 {
+		limit = 20
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page <= 0 {
+		page = 1
+	}
+
+	filter := irepository.ReferralFilter{
+		Statuses:  statuses,
+		Region:    c.Query("region"),
+		SortBy:    c.Query("sort_by"),
+		SortOrder: c.Query("sort_order"),
+		Limit:     limit,
+		Page:      page,
+	}
+
+	if pID := c.Query("patient_id"); pID != "" {
+		parsedID, err := uuid.Parse(pID)
+		if err == nil {
+			filter.PatientID = &parsedID
+		}
+	}
+
+	if nID := c.Query("national_id"); nID != "" && filter.PatientID == nil {
+		pID, err := h.patientUC.LookupByNationalID(c.Request.Context(), nID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "failed to lookup patient"})
+			return
+		}
+		if pID == nil {
+			c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+				BaseResponse: dto.BaseResponse{Success: false, Message: "Patient not found"},
+				Data:         []dto.ListReferralResponse{},
+				Total:        0,
+				Page:         page,
+				PageSize:     limit,
+			})
+			return
+		}
+		filter.PatientID = pID
+	}
+
+	referrals, total, err := h.referralUC.ListOutgoingForLiaison(c.Request.Context(), hospID, filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+			BaseResponse: dto.BaseResponse{
+				Success: false,
+				Message: "No referrals found matching your criteria",
+			},
+			Data:     []dto.ListReferralResponse{},
+			Total:    0,
+			Page:     page,
+			PageSize: limit,
+		})
+		return
+	}
+
+	responseData := toListReferralResponseSlice(referrals)
+	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referrals retrieved successfully",
+		},
+		Data:         responseData,
+		Total:        total,
+		Page:         page,
+		PageSize:     limit,
+	})
+}
+
 // DEPRECATED: ListIncoming is now handled via specialists or specific monitoring tools.
 // ListIncoming godoc
 // @Summary      List Incoming Referrals for Liaison
@@ -124,9 +307,12 @@ func (h *LiaisonHandler) ListOutgoing(c *gin.Context) {
 // @Description  **Visibility:** Includes FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, REJECTED_AFTER_SEND, and ADMITTED.
 // @Tags         Liaison
 // @Produce      json
-// @Param        limit query int false "Pagination limit" default(20)
-// @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
+// @Param        region query string false "Filter by patient region"
+// @Param        patient_id query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient national ID"
+// @Param        sort_by query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order query string false "Sort order (asc, desc)" default(desc)
 // @Success      200 {object} dto.PaginatedReferralResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
@@ -155,12 +341,38 @@ func (h *LiaisonHandler) ListIncoming(c *gin.Context) {
 	}
 
 	filter := irepository.ReferralFilter{
-		Status:      c.Query("status"),
-		Region:      c.Query("region"),
-		PatientName: c.Query("patient_name"),
-		Sort:        c.Query("sort"),
-		Limit:       limit,
-		Page:        page,
+		Status:    c.Query("status"),
+		Region:    c.Query("region"),
+		SortBy:    c.Query("sort_by"),
+		SortOrder: c.Query("sort_order"),
+		Limit:     limit,
+		Page:      page,
+	}
+
+	if pID := c.Query("patient_id"); pID != "" {
+		parsedID, err := uuid.Parse(pID)
+		if err == nil {
+			filter.PatientID = &parsedID
+		}
+	}
+
+	if nID := c.Query("national_id"); nID != "" && filter.PatientID == nil {
+		pID, err := h.patientUC.LookupByNationalID(c.Request.Context(), nID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "failed to lookup patient"})
+			return
+		}
+		if pID == nil {
+			c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+				BaseResponse: dto.BaseResponse{Success: false, Message: "Patient not found"},
+				Data:         []dto.ListReferralResponse{},
+				Total:        0,
+				Page:         page,
+				PageSize:     limit,
+			})
+			return
+		}
+		filter.PatientID = pID
 	}
 
 	referrals, total, err := h.referralUC.ListIncomingForLiaison(c.Request.Context(), hospID, filter)

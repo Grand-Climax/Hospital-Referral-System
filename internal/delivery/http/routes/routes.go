@@ -122,11 +122,11 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	redirectionHandler := handlers.NewRedirectionHandler(referralUseCase)
 
 	// Role-Based State Machine Handlers
-	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase)
-	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase)
-	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase)
-	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase)
-	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo)
+	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase, patientUseCase)
+	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase, patientUseCase)
+	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase)
+	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase)
+	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo, patientUseCase)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
 	hospitalAdminOpsHandler := handlers.NewHospitalAdminOperationsHandler(userUseCase, hospitalUseCase, departmentUseCase)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase, triageUseCase)
@@ -245,6 +245,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				doctorGroup.GET("/stats", doctorHandler.GetStats)
 				doctorGroup.GET("/latest-pending", doctorHandler.GetLatestPending)
 				doctorGroup.GET("/referrals", doctorHandler.ListReferrals)
+				doctorGroup.GET("/referrals/approved", doctorHandler.ListApprovedReferrals)
+				doctorGroup.GET("/referrals/rejected", doctorHandler.ListRejectedReferrals)
 				doctorGroup.GET("/referrals/:id", doctorHandler.GetReferral)
 				doctorGroup.POST("/referrals", doctorHandler.CreateOrSubmit)
 				doctorGroup.POST("/referrals/:id/cancel", doctorHandler.Cancel)
@@ -259,6 +261,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			liaisonGroup.Use(middleware.RequireRole(entity.RoleLiaisonOfficer))
 			{
 				liaisonGroup.GET("/", liaisonHandler.ListOutgoing)
+				liaisonGroup.GET("/approved", liaisonHandler.ListApprovedReferrals)
+				liaisonGroup.GET("/rejected", liaisonHandler.ListRejectedReferrals)
 				// Deprecated
 				liaisonGroup.GET("/incoming", liaisonHandler.ListIncoming)
 				liaisonGroup.GET("/:id", liaisonHandler.GetReferral)
@@ -277,6 +281,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			specialistGroup.Use(middleware.RequireRole(entity.RoleReceivingSpecialist))
 			{
 				specialistGroup.GET("", specialistHandler.ListReferrals)
+				specialistGroup.GET("/approved", specialistHandler.ListApprovedReferrals)
+				specialistGroup.GET("/rejected", specialistHandler.ListRejectedReferrals)
 				specialistGroup.GET("/:id", specialistHandler.GetReferral)
 				specialistGroup.POST("/:id/read", specialistHandler.Read)
 				specialistGroup.POST("/:id/accept", specialistHandler.Accept)
@@ -318,6 +324,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			systemAdminGroup.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin))
 			{
 				systemAdminGroup.GET("", adminHandler.SystemAdminList)
+				systemAdminGroup.GET("/approved", adminHandler.ListApprovedReferrals)
+				systemAdminGroup.GET("/rejected", adminHandler.ListRejectedReferrals)
 			}
 
 			// Global User Management (System Admin Only)
