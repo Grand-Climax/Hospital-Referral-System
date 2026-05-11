@@ -386,7 +386,7 @@ func (u *userUseCase) HospitalAdminChangeStaffRole(ctx context.Context, adminID,
 	target.Role = role
 	err = u.repo.Update(ctx, target)
 	if err == nil {
-		_ = u.inAppNotifUC.CreateForEvent(ctx, "ROLE_CHANGED", uuid.Nil, adminID)
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "STAFF_ROLE_CHANGED", uuid.Nil, adminID)
 	}
 	return err
 }

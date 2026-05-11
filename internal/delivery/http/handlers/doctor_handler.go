@@ -609,6 +609,40 @@ func (h *DoctorHandler) Cancel(c *gin.Context) {
 	})
 }
 
+// RejectAfterSend godoc
+// @Summary      Reject Referral After Sending
+// @Description  Cancel a referral that has already been submitted but not yet scheduled.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Prerequisites:** Status must be SUBMITTED, UNDER_LIAISON_REVIEW, FORWARDED, UNDER_SPECIALIST_REVIEW, or ACCEPTED.
+// @Description  **State Transition:** → REJECTED_AFTER_SEND. Removes from triage queue.
+// @Tags         Doctor
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.RejectDTO true "Rejection Reason"
+// @Success      200 {object} dto.BaseResponse
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/{id}/reject-after-send [post]
+func (h *DoctorHandler) RejectAfterSend(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid id format"})
+		return
+	}
+	userID, _ := c.Get("userID")
+	hospID, _ := c.Get("hospID")
+	var req dto.RejectDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+	if err := h.referralUC.RejectAfterSend(c.Request.Context(), id, userID.(uuid.UUID), extractUUID(hospID), entity.RoleReferringDoctor, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Referral rejected after send"})
+}
+
 // DeleteAttachments godoc
 // @Summary      Delete All Attachments
 // @Description  Bulk delete all attachments associated with a referral.

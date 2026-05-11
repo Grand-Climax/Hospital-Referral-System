@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
+	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
@@ -461,6 +462,54 @@ func (h *LiaisonHandler) Reject(c *gin.Context) {
 		Success: true,
 		Message: "Referral rejected",
 	})
+}
+
+// RejectAfterSend godoc
+// @Summary      Reject Referral After Sending
+// @Description  Cancel a referral that has already been submitted but not yet scheduled.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** Status must be SUBMITTED, UNDER_LIAISON_REVIEW, FORWARDED, UNDER_SPECIALIST_REVIEW, or ACCEPTED.
+// @Description  **State Transition:** → REJECTED_AFTER_SEND. Removes from triage queue.
+// @Tags         Liaison
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.RejectDTO true "Rejection Reason"
+// @Success      200 {object} dto.BaseResponse
+// @Security     BearerAuth
+// @Router       /api/v1/liaison/referrals/{id}/reject-after-send [post]
+func (h *LiaisonHandler) RejectAfterSend(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid id format"})
+		return
+	}
+	userIdVal, _ := c.Get("userID")
+	liaisonID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		liaisonID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		liaisonID = *uID
+	}
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	var req dto.RejectDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+	if err := h.referralUC.RejectAfterSend(c.Request.Context(), id, liaisonID, hospID, entity.RoleLiaisonOfficer, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Referral rejected after send"})
 }
 
 // Revise godoc

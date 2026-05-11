@@ -441,6 +441,56 @@ func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.
 	return u.logStatusChange(ctx, id, doctorID, &oldStatus, entity.StatusCancelled, reason)
 }
 
+func (u *referralUseCase) RejectAfterSend(ctx context.Context, referralID, userID, hospID uuid.UUID, role entity.UserRole, reason string) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
+		return err
+	}
+
+	// Authorization: only referring doctor or liaison of sender hospital
+	isDoctor := ref.ReferringDoctorID == userID
+	isLiaison := role == entity.RoleLiaisonOfficer && ref.SenderHospitalID == hospID
+
+	if !isDoctor && !isLiaison {
+		return errors.New("unauthorized: only the referring doctor or a liaison of the sender hospital can reject after send")
+	}
+
+	// Allowed statuses
+	allowed := map[entity.ReferralStatus]bool{
+		entity.StatusSubmitted:             true,
+		entity.StatusUnderLiaisonReview:    true,
+		entity.StatusForwarded:             true,
+		entity.StatusUnderSpecialistReview: true,
+		entity.StatusAccepted:              true,
+	}
+	if !allowed[ref.Status] {
+		return fmt.Errorf("cannot reject after send: referral is already %s", ref.Status)
+	}
+
+	oldStatus := ref.Status
+	ref.Status = entity.StatusRejectedAfterSend
+	ref.RejectionReason = &reason
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+
+	// Remove from triage queue if present
+	_ = u.triageRepo.DeleteByReferralID(ctx, referralID)
+
+	// Log status change
+	_ = u.logStatusChange(ctx, referralID, userID, &oldStatus, entity.StatusRejectedAfterSend, reason)
+
+	// Notification
+	if isDoctor {
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_REJECTED_AFTER_SEND", referralID, userID)
+	} else {
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_REJECTED_AFTER_SEND_BY_LIAISON", referralID, userID)
+	}
+
+	return nil
+}
+
 func (u *referralUseCase) DeleteAttachmentsByReferralID(ctx context.Context, id, doctorID uuid.UUID) error {
 	existing, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
@@ -746,7 +796,14 @@ func (u *referralUseCase) LiaisonRevise(ctx context.Context, id, liaisonID, hosp
 		ToStatus:    entity.StatusNeedRevision,
 		Reason:      &reason,
 	}
-	return u.referralRepo.CreateStatusHistory(ctx, history)
+
+	if err := u.referralRepo.CreateStatusHistory(ctx, history); err != nil {
+		return err
+	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_NEEDS_REVISION", id, liaisonID)
+
+	return nil
 }
 
 func (u *referralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error {
