@@ -3,9 +3,7 @@ package repository
 import (
 	"context"
 
-	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -125,35 +123,31 @@ func (r *referralRepository) ListReferrals(ctx context.Context, filter map[strin
 func (r *referralRepository) applyFilter(query *gorm.DB, filter irepository.ReferralFilter) *gorm.DB {
 	query = query.Where("is_archived = false")
 
-	if filter.Status != "" {
+	if len(filter.Statuses) > 0 {
+		query = query.Where("status IN ?", filter.Statuses)
+	} else if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)
 	}
 
+	if filter.PatientID != nil {
+		query = query.Where("patient_id = ?", *filter.PatientID)
+	}
+
 	if filter.Region != "" {
-		// Case-insensitive region search using Joins to Patient
-		query = query.Joins("JOIN patients ON patients.id = referrals.patient_id").
-			Where("LOWER(patients.home_region) LIKE LOWER(?)", "%"+filter.Region+"%")
+		// Joins to Patient to filter by region
+		query = query.Joins("Patient").Where("\"Patient\".home_region = ?", filter.Region)
 	}
 
-	if filter.PatientName != "" {
-		// Split name into tokens to support any order (e.g., "Doe John" matches "John ... Doe")
-		tokens := strings.Fields(strings.ToLower(filter.PatientName))
-		// If region JOIN wasn't already added
-		if filter.Region == "" {
-			query = query.Joins("JOIN patients ON patients.id = referrals.patient_id")
-		}
-		for _, token := range tokens {
-			pattern := "%" + token + "%"
-			query = query.Where("(LOWER(patients.first_name) LIKE ? OR LOWER(patients.middle_name) LIKE ? OR LOWER(patients.last_name) LIKE ?)", pattern, pattern, pattern)
-		}
+	// Dynamic Sorting
+	sortBy := "created_at"
+	if filter.SortBy == "updated_at" {
+		sortBy = "updated_at"
 	}
-
-	// Sorting
 	sortOrder := "desc"
-	if strings.ToLower(filter.Sort) == "asc" {
+	if filter.SortOrder == "asc" {
 		sortOrder = "asc"
 	}
-	query = query.Order(fmt.Sprintf("referrals.created_at %s", sortOrder))
+	query = query.Order(sortBy + " " + sortOrder)
 
 	return query
 }

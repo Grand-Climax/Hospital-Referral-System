@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
+	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
@@ -18,13 +19,15 @@ type SpecialistHandler struct {
 	referralUC iusecase.ReferralUseCase
 	schedUC    iusecase.SchedulingUseCase
 	triageUC   iusecase.TriageUseCase
+	patientUC  iusecase.PatientUseCase
 }
 
-func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase) *SpecialistHandler {
+func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase, patientUC iusecase.PatientUseCase) *SpecialistHandler {
 	return &SpecialistHandler{
 		referralUC: referralUC,
 		schedUC:    schedUC,
 		triageUC:   triageUC,
+		patientUC:  patientUC,
 	}
 }
 
@@ -42,8 +45,10 @@ func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.
 // @Param        page query int false "Page number" default(1)
 // @Param        status query string false "Filter by status"
 // @Param        region query string false "Filter by patient region"
-// @Param        patient_name query string false "Filter by patient name (any order)"
-// @Param        sort query string false "Sort order (asc/desc)"
+// @Param        patient_id query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient national ID"
+// @Param        sort_by query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order query string false "Sort order (asc, desc)" default(desc)
 // @Success      200 {object} dto.PaginatedReferralResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
@@ -83,12 +88,38 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 	}
 
 	filter := irepository.ReferralFilter{
-		Status:      c.Query("status"),
-		Region:      c.Query("region"),
-		PatientName: c.Query("patient_name"),
-		Sort:        c.Query("sort"),
-		Limit:       limit,
-		Page:        page,
+		Status:    c.Query("status"),
+		Region:    c.Query("region"),
+		SortBy:    c.Query("sort_by"),
+		SortOrder: c.Query("sort_order"),
+		Limit:     limit,
+		Page:      page,
+	}
+
+	if pID := c.Query("patient_id"); pID != "" {
+		parsedID, err := uuid.Parse(pID)
+		if err == nil {
+			filter.PatientID = &parsedID
+		}
+	}
+
+	if nID := c.Query("national_id"); nID != "" && filter.PatientID == nil {
+		pID, err := h.patientUC.LookupByNationalID(c.Request.Context(), nID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "failed to lookup patient"})
+			return
+		}
+		if pID == nil {
+			c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+				BaseResponse: dto.BaseResponse{Success: false, Message: "Patient not found"},
+				Data:         []dto.ListReferralResponse{},
+				Total:        0,
+				Page:         page,
+				PageSize:     limit,
+			})
+			return
+		}
+		filter.PatientID = pID
 	}
 
 	if filter.Status != "" && !h.referralUC.IsValidStatus(filter.Status) {
@@ -125,6 +156,167 @@ func (h *SpecialistHandler) ListReferrals(c *gin.Context) {
 
 	responseData := toListReferralResponseSlice(referrals)
 
+	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Referrals retrieved successfully",
+		},
+		Data:         responseData,
+		Total:        total,
+		Page:         page,
+		PageSize:     limit,
+	})
+}
+
+// ListApprovedReferrals godoc
+// @Summary      List Approved Referrals for Specialist
+// @Description  Returns referrals forwarded to the specialist's hospital with status ACCEPTED, SCHEDULED, or COMPLETED.
+// @Description  **Roles:** SPECIALIST
+// @Description  **Statuses:** ACCEPTED, SCHEDULED, COMPLETED (pre-applied filter).
+// @Tags         Specialist
+// @Produce      json
+// @Param        limit       query int    false "Pagination limit" default(20)
+// @Param        page        query int    false "Page number" default(1)
+// @Param        patient_id  query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient's national ID"
+// @Param        region      query string false "Filter by patient region"
+// @Param        sort_by     query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order  query string false "Sort order (asc, desc)" default(desc)
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/approved [get]
+func (h *SpecialistHandler) ListApprovedReferrals(c *gin.Context) {
+	h.listFilteredReferrals(c, []entity.ReferralStatus{
+		entity.StatusAccepted,
+		entity.StatusScheduled,
+		entity.StatusCompleted,
+	})
+}
+
+// ListRejectedReferrals godoc
+// @Summary      List Rejected Referrals for Specialist
+// @Description  Returns referrals forwarded to the specialist's hospital with status REJECTED_BY_SPECIALIST, or REJECTED_AFTER_SEND.
+// @Description  **Roles:** SPECIALIST
+// @Description  **Statuses:** REJECTED_BY_SPECIALIST, REJECTED_AFTER_SEND (pre-applied filter).
+// @Tags         Specialist
+// @Produce      json
+// @Param        limit       query int    false "Pagination limit" default(20)
+// @Param        page        query int    false "Page number" default(1)
+// @Param        patient_id  query string false "Filter by patient ID"
+// @Param        national_id query string false "Filter by patient's national ID"
+// @Param        region      query string false "Filter by patient region"
+// @Param        sort_by     query string false "Sort by field (created_at, updated_at)" default(created_at)
+// @Param        sort_order  query string false "Sort order (asc, desc)" default(desc)
+// @Success      200 {object} dto.PaginatedReferralResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/rejected [get]
+func (h *SpecialistHandler) ListRejectedReferrals(c *gin.Context) {
+	h.listFilteredReferrals(c, []entity.ReferralStatus{
+		entity.StatusRejectedBySpecialist,
+		entity.StatusRejectedAfterSend,
+	})
+}
+
+func (h *SpecialistHandler) listFilteredReferrals(c *gin.Context, statuses []entity.ReferralStatus) {
+	if c.Query("status") != "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "status filter is not allowed on this endpoint; the statuses are pre-defined",
+		})
+		return
+	}
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	userIdVal, _ := c.Get("userID")
+	specialistID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		specialistID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		specialistID = *uID
+	}
+
+	if hospID == uuid.Nil || specialistID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Success: false,
+			Error:   "invalid user scopes",
+		})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if limit <= 0 {
+		limit = 20
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page <= 0 {
+		page = 1
+	}
+
+	filter := irepository.ReferralFilter{
+		Statuses:  statuses,
+		Region:    c.Query("region"),
+		SortBy:    c.Query("sort_by"),
+		SortOrder: c.Query("sort_order"),
+		Limit:     limit,
+		Page:      page,
+	}
+
+	if pID := c.Query("patient_id"); pID != "" {
+		parsedID, err := uuid.Parse(pID)
+		if err == nil {
+			filter.PatientID = &parsedID
+		}
+	}
+
+	if nID := c.Query("national_id"); nID != "" && filter.PatientID == nil {
+		pID, err := h.patientUC.LookupByNationalID(c.Request.Context(), nID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "failed to lookup patient"})
+			return
+		}
+		if pID == nil {
+			c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+				BaseResponse: dto.BaseResponse{Success: false, Message: "Patient not found"},
+				Data:         []dto.ListReferralResponse{},
+				Total:        0,
+				Page:         page,
+				PageSize:     limit,
+			})
+			return
+		}
+		filter.PatientID = pID
+	}
+
+	referrals, total, err := h.referralUC.ListForSpecialist(c.Request.Context(), hospID, specialistID, filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
+			BaseResponse: dto.BaseResponse{
+				Success: false,
+				Message: "No referrals found matching your criteria",
+			},
+			Data:     []dto.ListReferralResponse{},
+			Total:    0,
+			Page:     page,
+			PageSize: limit,
+		})
+		return
+	}
+
+	responseData := toListReferralResponseSlice(referrals)
 	c.JSON(http.StatusOK, dto.PaginatedReferralResponse{
 		BaseResponse: dto.BaseResponse{
 			Success: true,

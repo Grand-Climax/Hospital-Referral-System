@@ -11,9 +11,13 @@ import (
 
 type ReferralFilter struct {
 	Status      string
+	Statuses    []entity.ReferralStatus
+	PatientID   *uuid.UUID
 	PatientName string
 	Region      string
-	Sort        string // "asc" or "desc"
+	SortBy      string // "created_at" or "updated_at"
+	SortOrder   string // "asc" or "desc"
+	Sort        string // DEPRECATED
 	Limit       int
 	Page        int
 }
