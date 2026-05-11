@@ -25,7 +25,8 @@ func TestDoctorOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
 	mockAttUC := new(MockAttachmentUseCase)
-	handler := handlers.NewDoctorHandler(mockUC, mockAttUC)
+	mockPatientUC := new(MockPatientUseCase)
+	handler := handlers.NewDoctorHandler(mockUC, mockAttUC, mockPatientUC)
 	doctorID := uuid.New()
 	hospID := uuid.New()
 
@@ -226,7 +227,8 @@ func TestDoctorOperations(t *testing.T) {
 func TestLiaisonOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	handler := handlers.NewLiaisonHandler(mockUC)
+	mockPatientUC := new(MockPatientUseCase)
+	handler := handlers.NewLiaisonHandler(mockUC, mockPatientUC)
 	liaisonID := uuid.New()
 	hospID := uuid.New()
 
@@ -255,7 +257,8 @@ func TestSpecialistOperations(t *testing.T) {
 	mockUC := new(MockReferralUseCase)
 	mockSched := new(MockSchedulingUseCase)
 	mockTriage := new(MockTriageUseCase)
-	handler := handlers.NewSpecialistHandler(mockUC, mockSched, mockTriage)
+	mockPatientUC := new(MockPatientUseCase)
+	handler := handlers.NewSpecialistHandler(mockUC, mockSched, mockTriage, mockPatientUC)
 	specialistID := uuid.New()
 	hospID := uuid.New()
 
@@ -285,7 +288,8 @@ func TestReceptionistOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
 	mockArrival := new(MockArrivalUseCase)
-	handler := handlers.NewReceptionistHandler(mockUC, mockArrival)
+	mockPatientUC := new(MockPatientUseCase)
+	handler := handlers.NewReceptionistHandler(mockUC, mockArrival, mockPatientUC)
 	receptionistID := uuid.New()
 	hospID := uuid.New()
 	deptID := uuid.New()
@@ -315,7 +319,8 @@ func TestReceptionistOperations(t *testing.T) {
 func TestAdminOperations(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(MockReferralUseCase)
-	handler := handlers.NewAdminHandler(mockUC)
+	mockPatientUC := new(MockPatientUseCase)
+	handler := handlers.NewAdminHandler(mockUC, mockPatientUC)
 	hospID := uuid.New()
 
 	router := gin.Default()

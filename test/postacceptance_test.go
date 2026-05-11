@@ -31,16 +31,17 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	mockDailyWeightUC := new(MockDailyWeightUseCase)
 	mockSchedulerUC := new(MockSchedulerServiceUseCase)
 	mockInAppNotifUC := new(MockInAppNotificationUseCase)
+	mockPatientUC := new(MockPatientUseCase)
 
-	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC)
+	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC, mockPatientUC)
 	scheduleHandler := handlers.NewScheduleHandler(mockCapacityUC)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC, mockTriageUC)
-	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC)
+	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC, mockPatientUC)
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
 	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
-	doctorHandler := handlers.NewDoctorHandler(mockReferralUC, nil)
-	liaisonHandler := handlers.NewLiaisonHandler(mockReferralUC)
+	doctorHandler := handlers.NewDoctorHandler(mockReferralUC, nil, mockPatientUC)
+	liaisonHandler := handlers.NewLiaisonHandler(mockReferralUC, mockPatientUC)
 
 	// Mock JWT Middleware equivalent
 	authMiddleware := func(c *gin.Context) {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
@@ -59,6 +61,21 @@ func (u *patientUseCase) GetByNationalID(ctx context.Context, nationalID string)
 	}
 
 	return patient, nil
+}
+
+func (u *patientUseCase) LookupByNationalID(ctx context.Context, nationalID string) (*uuid.UUID, error) {
+	if nationalID == "" {
+		return nil, nil
+	}
+	hash := u.cryptoSvc.GenerateHMAC(nationalID)
+	patient, err := u.patientRepo.FindByNationalIDHash(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	if patient == nil {
+		return nil, nil
+	}
+	return &patient.ID, nil
 }
 
 func (u *patientUseCase) LookupPatient(ctx context.Context, nationalID, phone string) (*entity.Patient, error) {

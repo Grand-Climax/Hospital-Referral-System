@@ -2899,13 +2899,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name (any order)
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -3234,6 +3244,116 @@ paths:
       security:
       - BearerAuth: []
       summary: Submit Referral for Review
+      tags:
+      - Doctor
+  /api/v1/doctor/referrals/approved:
+    get:
+      description: |-
+        Returns referrals created by the doctor with status ACCEPTED, SCHEDULED, or COMPLETED.
+        **Roles:** REFERRING_DOCTOR
+        **Statuses:** ACCEPTED, SCHEDULED, COMPLETED (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Approved Referrals for Doctor
+      tags:
+      - Doctor
+  /api/v1/doctor/referrals/rejected:
+    get:
+      description: |-
+        Returns referrals created by the doctor with status REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, or REJECTED_AFTER_SEND.
+        **Roles:** REFERRING_DOCTOR
+        **Statuses:** REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, REJECTED_AFTER_SEND (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Rejected Referrals for Doctor
       tags:
       - Doctor
   /api/v1/doctor/stats:
@@ -3703,13 +3823,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -3763,13 +3893,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -3819,13 +3959,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -3871,13 +4021,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -5113,19 +5273,31 @@ paths:
         - 401 Unauthorized
         - 500 Internal Server Error
       parameters:
-      - default: 20
-        description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
       - description: Filter by status
         in: query
         name: status
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient national ID
+        in: query
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -5365,6 +5537,61 @@ paths:
       summary: Request Referral Revision
       tags:
       - Liaison
+  /api/v1/liaison/referrals/approved:
+    get:
+      description: |-
+        Returns outgoing referrals from the hospital with status ACCEPTED, SCHEDULED, or COMPLETED.
+        **Roles:** LIAISON_OFFICER
+        **Statuses:** ACCEPTED, SCHEDULED, COMPLETED (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Approved Referrals for Liaison
+      tags:
+      - Liaison
   /api/v1/liaison/referrals/dashboard/stats:
     get:
       description: |-
@@ -5398,19 +5625,31 @@ paths:
         Get a paginated list of referrals sent TO the liaison's hospital for monitoring.
         **Visibility:** Includes FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, REJECTED_AFTER_SEND, and ADMITTED.
       parameters:
-      - default: 20
-        description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
       - description: Filter by status
         in: query
         name: status
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient national ID
+        in: query
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -5430,6 +5669,61 @@ paths:
       security:
       - BearerAuth: []
       summary: List Incoming Referrals for Liaison
+      tags:
+      - Liaison
+  /api/v1/liaison/referrals/rejected:
+    get:
+      description: |-
+        Returns outgoing referrals from the hospital with status REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, or REJECTED_AFTER_SEND.
+        **Roles:** LIAISON_OFFICER
+        **Statuses:** REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, REJECTED_AFTER_SEND (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Rejected Referrals for Liaison
       tags:
       - Liaison
   /api/v1/me/notifications:
@@ -5696,13 +5990,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name (any order)
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -6436,13 +6740,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name (any order)
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -6987,6 +7301,61 @@ paths:
       summary: Set Manual Severity Score
       tags:
       - Specialist
+  /api/v1/specialist/referrals/approved:
+    get:
+      description: |-
+        Returns referrals forwarded to the specialist's hospital with status ACCEPTED, SCHEDULED, or COMPLETED.
+        **Roles:** SPECIALIST
+        **Statuses:** ACCEPTED, SCHEDULED, COMPLETED (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Approved Referrals for Specialist
+      tags:
+      - Specialist
   /api/v1/specialist/referrals/capacity:
     get:
       description: |-
@@ -7021,6 +7390,61 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Department Capacity Status
+      tags:
+      - Specialist
+  /api/v1/specialist/referrals/rejected:
+    get:
+      description: |-
+        Returns referrals forwarded to the specialist's hospital with status REJECTED_BY_SPECIALIST, or REJECTED_AFTER_SEND.
+        **Roles:** SPECIALIST
+        **Statuses:** REJECTED_BY_SPECIALIST, REJECTED_AFTER_SEND (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Rejected Referrals for Specialist
       tags:
       - Specialist
   /api/v1/specialist/referrals/triage-queue:
@@ -7094,13 +7518,23 @@ paths:
         in: query
         name: region
         type: string
-      - description: Filter by patient name (any order)
+      - description: Filter by patient ID
         in: query
-        name: patient_name
+        name: patient_id
         type: string
-      - description: Sort order (asc/desc)
+      - description: Filter by patient national ID
         in: query
-        name: sort
+        name: national_id
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
         type: string
       produces:
       - application/json
@@ -7120,6 +7554,116 @@ paths:
       security:
       - BearerAuth: []
       summary: System Admin Global Listing
+      tags:
+      - System Admin
+  /api/v1/system-admin/referrals/approved:
+    get:
+      description: |-
+        Returns all referrals in the system with status ACCEPTED, SCHEDULED, or COMPLETED.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Statuses:** ACCEPTED, SCHEDULED, COMPLETED (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Approved Referrals (System Admin)
+      tags:
+      - System Admin
+  /api/v1/system-admin/referrals/rejected:
+    get:
+      description: |-
+        Returns all referrals in the system with status REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, or REJECTED_AFTER_SEND.
+        **Roles:** SYSTEM_SUPER_ADMIN
+        **Statuses:** REJECTED_BY_LIAISON, REJECTED_BY_SPECIALIST, REJECTED_AFTER_SEND (pre-applied filter).
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Filter by patient ID
+        in: query
+        name: patient_id
+        type: string
+      - description: Filter by patient's national ID
+        in: query
+        name: national_id
+        type: string
+      - description: Filter by patient region
+        in: query
+        name: region
+        type: string
+      - default: created_at
+        description: Sort by field (created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedReferralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Rejected Referrals (System Admin)
       tags:
       - System Admin
   /api/v1/system-admin/users:
