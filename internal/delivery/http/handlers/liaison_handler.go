@@ -625,3 +625,44 @@ func (h *LiaisonHandler) UnassignSpecialist(c *gin.Context) {
 		Message: "Specialist successfully unassigned from referral",
 	})
 }
+
+// GetDashboardStats godoc
+// @Summary      Get Liaison Dashboard Stats
+// @Description  Returns aggregated dashboard statistics for the liaison's hospital.
+// @Description  **Metrics:**
+// @Description  - **Total Referrals**: All non‑DRAFT referrals from the sender hospital (last 30 days).
+// @Description  - **Pending Review**: Referrals in SUBMITTED or UNDER_LIAISON_REVIEW status.
+// @Description  - **Approved Today**: Referrals that were accepted or completed today.
+// @Description  - **Rejected**: Referrals rejected by liaison, specialist, or after sending.
+// @Description  **Percentage changes** compare the last 30 days with the previous 30‑day period.
+// @Tags         Liaison
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/liaison/referrals/dashboard/stats [get]
+func (h *LiaisonHandler) GetDashboardStats(c *gin.Context) {
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	if hospID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid hospital scope"})
+		return
+	}
+
+	stats, err := h.referralUC.GetLiaisonDashboardStats(c.Request.Context(), hospID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
+	})
+}

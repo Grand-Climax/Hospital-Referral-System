@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -441,6 +442,48 @@ func (u *referralUseCase) CancelReferral(ctx context.Context, id, doctorID uuid.
 	return u.logStatusChange(ctx, id, doctorID, &oldStatus, entity.StatusCancelled, reason)
 }
 
+func (u *referralUseCase) MarkDeceased(ctx context.Context, referralID, userID uuid.UUID, role entity.UserRole, hospID uuid.UUID, reason string) error {
+	// Authorization: only referring doctor, liaison of sender hospital, specialist of target hospital, or system admin
+	switch role {
+	case entity.RoleReferringDoctor, entity.RoleLiaisonOfficer, entity.RoleReceivingSpecialist, entity.RoleSystemSuperAdmin:
+		// allowed
+	default:
+		return errors.New("unauthorized: only clinical staff can mark a referral as deceased")
+	}
+
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
+		return err
+	}
+
+	// Verify the user has a legitimate connection to this referral
+	if role == entity.RoleLiaisonOfficer && ref.SenderHospitalID != hospID {
+		return errors.New("unauthorized: liaison belongs to a different hospital")
+	}
+	if role == entity.RoleReceivingSpecialist && ref.TargetHospitalID != hospID {
+		return errors.New("unauthorized: specialist belongs to a different hospital")
+	}
+	if role == entity.RoleReferringDoctor && ref.ReferringDoctorID != userID {
+		return errors.New("unauthorized: you are not the referring doctor")
+	}
+
+	oldStatus := ref.Status
+	ref.Status = entity.StatusDeceased
+	ref.IsArchived = true
+	now := time.Now()
+	ref.ArchivedAt = &now
+
+	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		return err
+	}
+
+	_ = u.triageRepo.DeleteByReferralID(ctx, referralID)
+	_ = u.logStatusChange(ctx, referralID, userID, &oldStatus, entity.StatusDeceased, reason)
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_DECEASED", referralID, userID)
+
+	return nil
+}
+
 func (u *referralUseCase) RejectAfterSend(ctx context.Context, referralID, userID, hospID uuid.UUID, role entity.UserRole, reason string) error {
 	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
@@ -617,6 +660,66 @@ func (u *referralUseCase) ListIncomingForLiaison(ctx context.Context, hospID uui
 		}
 	}
 	return referrals, count, nil
+}
+
+func (u *referralUseCase) GetLiaisonDashboardStats(ctx context.Context, hospID uuid.UUID) (*iusecase.LiaisonDashboardStats, error) {
+	now := time.Now()
+	currentStart := now.AddDate(0, 0, -30)
+	previousStart := now.AddDate(0, 0, -60)
+
+	// --- Total Referrals ---
+	currentTotal, _ := u.referralRepo.CountBySenderHospitalAndStatuses(ctx, hospID, nil, true, &currentStart, nil)
+	previousTotal, _ := u.referralRepo.CountBySenderHospitalAndStatuses(ctx, hospID, nil, true, &previousStart, &currentStart)
+
+	// --- Pending Review ---
+	pendingStatuses := []entity.ReferralStatus{
+		entity.StatusSubmitted,
+		entity.StatusUnderLiaisonReview,
+	}
+	currentPending, _ := u.referralRepo.CountBySenderHospitalAndStatuses(ctx, hospID, pendingStatuses, false, &currentStart, nil)
+	previousPending, _ := u.referralRepo.CountBySenderHospitalAndStatuses(ctx, hospID, pendingStatuses, false, &previousStart, &currentStart)
+
+	// --- Approved Today ---
+	currentApprovedToday, _ := u.referralRepo.CountAcceptedOrCompletedToday(ctx, hospID)
+
+	// --- Rejected ---
+	rejectedStatuses := []entity.ReferralStatus{
+		entity.StatusRejectedByLiaison,
+		entity.StatusRejectedBySpecialist,
+		entity.StatusRejectedAfterSend,
+	}
+	currentRejected, _ := u.referralRepo.CountBySenderHospitalAndStatuses(ctx, hospID, rejectedStatuses, false, &currentStart, nil)
+	previousRejected, _ := u.referralRepo.CountBySenderHospitalAndStatuses(ctx, hospID, rejectedStatuses, false, &previousStart, &currentStart)
+
+	// Helper: calculate percentage change
+	calcChange := func(current, previous int64) float64 {
+		if previous == 0 {
+			if current == 0 {
+				return 0
+			}
+			return 100.0 // first time data, treat as 100% increase
+		}
+		return float64(current-previous) / float64(previous) * 100.0
+	}
+
+	return &iusecase.LiaisonDashboardStats{
+		TotalReferrals: iusecase.StatItem{
+			Count:  currentTotal,
+			Change: calcChange(currentTotal, previousTotal),
+		},
+		PendingReview: iusecase.StatItem{
+			Count:  currentPending,
+			Change: calcChange(currentPending, previousPending),
+		},
+		ApprovedToday: iusecase.StatItem{
+			Count:  currentApprovedToday,
+			Change: 0, // daily metric, no historical comparison for now
+		},
+		Rejected: iusecase.StatItem{
+			Count:  currentRejected,
+			Change: calcChange(currentRejected, previousRejected),
+		},
+	}, nil
 }
 
 func (u *referralUseCase) GetDetailsForLiaison(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {

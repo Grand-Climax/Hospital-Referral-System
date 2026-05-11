@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -70,6 +71,10 @@ type ReferralRepository interface {
 	ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter ReferralFilter) ([]entity.Referral, int64, error)
 	GetDoctorStats(ctx context.Context, doctorID uuid.UUID) (total, pending, accepted, critical int64, err error)
 	GetLatestPendingForDoctor(ctx context.Context, doctorID uuid.UUID, limit int) ([]entity.Referral, error)
+
+	// Dashboard Stats
+	CountBySenderHospitalAndStatuses(ctx context.Context, hospID uuid.UUID, statuses []entity.ReferralStatus, excludeDraft bool, startDate, endDate *time.Time) (int64, error)
+	CountAcceptedOrCompletedToday(ctx context.Context, hospID uuid.UUID) (int64, error)
 }
 
 // ReferralOutcomeRepository persists the final clinical outcome of a referral episode.
