@@ -39,6 +39,8 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
 	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
+	doctorHandler := handlers.NewDoctorHandler(mockReferralUC, nil)
+	liaisonHandler := handlers.NewLiaisonHandler(mockReferralUC)
 
 	// Mock JWT Middleware equivalent
 	authMiddleware := func(c *gin.Context) {
@@ -109,6 +111,10 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 			notif.POST("/read-all", inAppNotifHandler.MarkAllRead)
 			notif.GET("/unread-count", inAppNotifHandler.GetUnreadCount)
 		}
+
+		// Rejection After Send
+		api.POST("/doctor/referrals/:id/reject-after-send", doctorHandler.RejectAfterSend)
+		api.POST("/liaison/referrals/:id/reject-after-send", liaisonHandler.RejectAfterSend)
 	}
 
 	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC
@@ -487,5 +493,36 @@ func TestInAppNotificationEndpoints(t *testing.T) {
 		json.Unmarshal(resp.Body.Bytes(), &body)
 		assert.Equal(t, float64(5), body["unread_count"])
 		mockInAppNotif.AssertExpectations(t)
+	})
+}
+
+func TestRejectionAfterSendEndpoints(t *testing.T) {
+	r, mockReferral, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	referralID := uuid.New()
+
+	t.Run("Doctor Reject After Send", func(t *testing.T) {
+		reqBody := dto.RejectDTO{Reason: "Patient decided to stay home"}
+		mockReferral.On("RejectAfterSend", mock.Anything, referralID, mock.Anything, mock.Anything, entity.RoleReferringDoctor, "Patient decided to stay home").Return(nil)
+
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/v1/doctor/referrals/"+referralID.String()+"/reject-after-send", bytes.NewBuffer(body))
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockReferral.AssertExpectations(t)
+	})
+
+	t.Run("Liaison Reject After Send", func(t *testing.T) {
+		reqBody := dto.RejectDTO{Reason: "Clerical error in department selection"}
+		mockReferral.On("RejectAfterSend", mock.Anything, referralID, mock.Anything, mock.Anything, entity.RoleLiaisonOfficer, "Clerical error in department selection").Return(nil)
+
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/v1/liaison/referrals/"+referralID.String()+"/reject-after-send", bytes.NewBuffer(body))
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockReferral.AssertExpectations(t)
 	})
 }
