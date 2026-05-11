@@ -4047,6 +4047,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/liaison/referrals/dashboard/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns aggregated dashboard statistics for the liaison's hospital.\n**Metrics:**\n- **Total Referrals**: All non‑DRAFT referrals from the sender hospital (last 30 days).\n- **Pending Review**: Referrals in SUBMITTED or UNDER_LIAISON_REVIEW status.\n- **Approved Today**: Referrals that were accepted or completed today.\n- **Rejected**: Referrals rejected by liaison, specialist, or after sending.\n**Percentage changes** compare the last 30 days with the previous 30‑day period.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison"
+                ],
+                "summary": "Get Liaison Dashboard Stats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/liaison/referrals/incoming": {
             "get": {
                 "security": [
@@ -5594,6 +5626,58 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/referrals/{id}/deceased": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Immediately closes a referral because the patient has died. Bypasses all status restrictions.\n**Roles:** REFERRING_DOCTOR, LIAISON_OFFICER, RECEIVING_SPECIALIST, SYSTEM_SUPER_ADMIN\n**State Transition:** Any status → DECEASED. Referral is archived and removed from active queues.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Mark Referral as Deceased",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RejectDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
