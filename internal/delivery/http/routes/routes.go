@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"os"
-	"net/http"
-	"time"
 	"log"
+	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -16,10 +16,10 @@ import (
 	"Hospital-Referral-System/internal/delivery/http/handlers"
 	"Hospital-Referral-System/internal/domain/entity"
 	"Hospital-Referral-System/internal/infrastructure/cache"
+	"Hospital-Referral-System/internal/infrastructure/crypto"
 	"Hospital-Referral-System/internal/infrastructure/middleware"
 	"Hospital-Referral-System/internal/infrastructure/sms"
 	"Hospital-Referral-System/internal/infrastructure/storage"
-	"Hospital-Referral-System/internal/infrastructure/crypto"
 	"Hospital-Referral-System/internal/repository"
 	"Hospital-Referral-System/internal/usecase"
 )
@@ -127,6 +127,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase)
 	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo, patientUseCase)
+	mohAnalyticsHandler := handlers.NewMohAnalyticsHandler(referralUseCase)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
 	hospitalAdminOpsHandler := handlers.NewHospitalAdminOperationsHandler(userUseCase, hospitalUseCase, departmentUseCase)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase, triageUseCase)
@@ -155,7 +156,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			authRoutes.POST("/refresh", authHandler.Refresh)
 			authRoutes.POST("/logout", authHandler.Logout)
 		}
-
 
 		// Protected routes (require authentication + audit logging)
 		protected := v1.Group("/")
@@ -326,6 +326,18 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				systemAdminGroup.GET("", adminHandler.SystemAdminList)
 				systemAdminGroup.GET("/approved", adminHandler.ListApprovedReferrals)
 				systemAdminGroup.GET("/rejected", adminHandler.ListRejectedReferrals)
+			}
+
+			// MoH Analytics
+			mohGroup := protected.Group("/moh")
+			mohGroup.Use(middleware.RequireRole(entity.RoleMohAnalyst))
+			{
+				mohGroup.GET("/dashboard/summary", mohAnalyticsHandler.GetDashboardSummary)
+				mohGroup.GET("/referral-trends", mohAnalyticsHandler.GetReferralTrends)
+				mohGroup.GET("/hospital-load", mohAnalyticsHandler.GetHospitalLoad)
+				mohGroup.GET("/disease-hotspots", mohAnalyticsHandler.GetDiseaseHotspots)
+				mohGroup.GET("/severity-distribution", mohAnalyticsHandler.GetSeverityDistribution)
+				mohGroup.GET("/reports/export", mohAnalyticsHandler.ExportReport)
 			}
 
 			// Global User Management (System Admin Only)
