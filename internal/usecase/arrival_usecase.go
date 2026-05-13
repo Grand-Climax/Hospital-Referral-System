@@ -65,8 +65,15 @@ func (u *arrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, 
 		return errors.New("patient already marked as missed")
 	}
 
+	if queue.AppointmentDate == nil {
+		return errors.New("no scheduled appointment")
+	}
+
+	if queue.AppointmentDate.Truncate(24 * time.Hour).Unix() != time.Now().Truncate(24 * time.Hour).Unix() {
+		return errors.New("can only arrive on scheduled date")
+	}
+
 	queue.ArrivalStatus = entity.ArrivalArrived
-	queue.QueueStatus = entity.QueueArrived
 	now := time.Now()
 	queue.ArrivedAt = &now
 	queue.MarkedBy = &userID
@@ -108,7 +115,7 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 		return errors.New("doctor does not belong to the same hospital")
 	}
 
-	if queue.ArrivalStatus != entity.ArrivalArrived {
+	if queue.ArrivalStatus != entity.ArrivalArrived && queue.ArrivalStatus != entity.ArrivalAdmitted {
 		return errors.New("cannot assign doctor before patient arrives")
 	}
 
@@ -142,71 +149,6 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 	})
 }
 
-func (u *arrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUID, hospitalID uuid.UUID, deptID uuid.UUID, userID uuid.UUID) (*entity.TriageQueue, error) {
-	ref, err := u.referralRepo.FindByID(ctx, referralID)
-	if err != nil {
-		return nil, errors.New("referral not found")
-	}
-	var hospDept entity.HospitalDepartment
-	if err := u.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).First(&hospDept).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("department does not exist in this hospital")
-		}
-		return nil, err
-	}
-
-	// Allowed statuses for walk-in
-	allowed := false
-	for _, s := range []entity.ReferralStatus{entity.StatusAccepted, entity.StatusScheduled} {
-		if ref.Status == s {
-			allowed = true
-			break
-		}
-	}
-	if !allowed {
-		return nil, errors.New("referral status does not allow walk-in registration")
-	}
-
-	// Calculate score: (ml_severity_score * 0.7) + (waiting_hours_weight * 0.3) + 20
-	// For walk-in, we use current severity and 0 waiting weight (new in queue)
-	mlScore := 0.0
-	if ref.MLSeverityScore != nil {
-		mlScore = *ref.MLSeverityScore
-	}
-	score := (mlScore * 0.7) + 20
-
-	now := time.Now()
-	queue := &entity.TriageQueue{
-		ReferralID:      referralID,
-		HospitalID:      hospitalID,
-		DepartmentID:    deptID,
-		CompositeScore:  score,
-		QueueStatus:     entity.QueueArrived,
-		ArrivalStatus:   entity.ArrivalArrived,
-		ArrivalBoost:    20,
-		AppointmentDate: nil,
-		ArrivedAt:       &now,
-		MarkedBy:        &userID,
-		AssignedAt:      now,
-	}
-
-	queue.DeptID = hospDept.ID
-
-	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(queue).Error; err != nil {
-			return err
-		}
-
-		u.auditRepo.LogWithContext(ctx, userID, entity.ActionWalkInRegistered, &referralID, nil, map[string]interface{}{
-			"hospital_id": hospitalID,
-			"dept_id":     deptID,
-			"score":       score,
-		})
-		return nil
-	})
-
-	return queue, err
-}
 
 func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
@@ -217,15 +159,14 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 	if queue.ArrivalStatus == entity.ArrivalMissed {
 		return errors.New("appointment already marked as missed")
 	}
-	if queue.ArrivalStatus != entity.ArrivalExpected && queue.ArrivalStatus != entity.ArrivalArrived {
-		return errors.New("cannot mark missed: patient is not in expected or arrived state")
+	if queue.ArrivalStatus != entity.ArrivalExpected {
+		return errors.New("cannot mark missed: patient is not in expected state")
 	}
 	if queue.AppointmentDate != nil && queue.AppointmentDate.After(time.Now()) {
 		return errors.New("cannot mark a future appointment as missed")
 	}
 
 	queue.ArrivalStatus = entity.ArrivalMissed
-	queue.QueueStatus = entity.QueueMissed
 	queue.MissReason = &missReason
 
 	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
