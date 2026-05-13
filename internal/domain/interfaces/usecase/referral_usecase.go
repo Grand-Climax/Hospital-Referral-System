@@ -12,10 +12,10 @@ import (
 
 type UploadedFileData struct {
 	URL, PublicID, FileName, FileType, Category string
-	FileSize int64
-	Status   string
-	Metadata map[string]interface{}
-	Reason   string
+	FileSize                                    int64
+	Status                                      string
+	Metadata                                    map[string]interface{}
+	Reason                                      string
 }
 
 type StatItem struct {
@@ -88,7 +88,11 @@ type ReferralUseCase interface {
 	GetTopReferringHospitalsForHospitalAdmin(ctx context.Context, hospID uuid.UUID, limit int) ([]irepository.ReferringHospitalCount, error)
 	GetHospitalLogsForAdmin(ctx context.Context, hospID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
 	GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error)
-
+	GetMohDashboardSummary(ctx context.Context, filter irepository.MohAnalyticsFilter) (*irepository.MohDashboardSummary, error)
+	GetMohReferralTrends(ctx context.Context, filter irepository.MohAnalyticsFilter, granularity string) ([]irepository.MohReferralTrendPoint, error)
+	GetMohHospitalLoad(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohHospitalLoadMetric, error)
+	GetMohDiseaseHotspots(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohDiseaseHotspot, error)
+	GetMohSeverityDistribution(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohSeverityDistribution, error)
 
 	// --- Shared Actions ---
 	MarkDeceased(ctx context.Context, referralID, userID uuid.UUID, role entity.UserRole, hospID uuid.UUID, reason string) error
