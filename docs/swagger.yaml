@@ -731,6 +731,148 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.MohAnalyticsExportResponse:
+    properties:
+      hospital_load:
+        items:
+          $ref: '#/definitions/dto.MohHospitalLoadMetricResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+      summary:
+        $ref: '#/definitions/dto.MohDashboardSummaryResponse'
+    type: object
+  dto.MohDashboardSummaryResponse:
+    properties:
+      acceptance_rate_percentage:
+        type: number
+      average_ml_severity_score:
+        type: number
+      average_turnaround_hours:
+        type: number
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+      total_accepted:
+        type: integer
+      total_admitted:
+        type: integer
+      total_referrals:
+        type: integer
+      total_rejected:
+        type: integer
+    type: object
+  dto.MohDiseaseHotspotResponseItem:
+    properties:
+      average_severity_score:
+        type: number
+      department_name:
+        type: string
+      referral_count:
+        type: integer
+      region:
+        type: string
+    type: object
+  dto.MohDiseaseHotspotsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.MohDiseaseHotspotResponseItem'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MohHospitalLoadMetricResponse:
+    properties:
+      average_severity_score:
+        type: number
+      hospital_id:
+        type: string
+      hospital_name:
+        type: string
+      region:
+        type: string
+      rejection_rate_percentage:
+        type: number
+      tier_level:
+        type: string
+      total_accepted:
+        type: integer
+      total_referrals_received:
+        type: integer
+      total_rejected:
+        type: integer
+    type: object
+  dto.MohHospitalLoadResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.MohHospitalLoadMetricResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MohReferralTrendPointResponse:
+    properties:
+      accepted_referrals:
+        type: integer
+      emergency_referrals:
+        type: integer
+      period:
+        type: string
+      rejected_referrals:
+        type: integer
+      total_referrals:
+        type: integer
+    type: object
+  dto.MohReferralTrendsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.MohReferralTrendPointResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MohSeverityDistributionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.MohSeverityDistributionResponseItem'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MohSeverityDistributionResponseItem:
+    properties:
+      critical_count:
+        type: integer
+      region:
+        type: string
+      routine_count:
+        type: integer
+      total_referrals:
+        type: integer
+      urgent_count:
+        type: integer
+    type: object
   dto.MonthlyReferralTotalResponse:
     properties:
       count:
@@ -5852,6 +5994,277 @@ paths:
       summary: Get Unread Notification Count
       tags:
       - In-App Notifications
+  /api/v1/moh/dashboard/summary:
+    get:
+      description: |-
+        Aggregated MoH KPI metrics for referrals in the selected range.
+        **Roles:** MOH_ANALYST
+        **Privacy:** Aggregate-only response, no patient PII.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Patient home region filter
+        in: query
+        name: region
+        type: string
+      - description: Hospital ID filter
+        in: query
+        name: hospital_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MohDashboardSummaryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: MoH dashboard summary
+      tags:
+      - MoH Analytics
+  /api/v1/moh/disease-hotspots:
+    get:
+      description: |-
+        Geographic referral concentration grouped by patient region and department specialty.
+        **Roles:** MOH_ANALYST
+        **Privacy:** Aggregate-only response, no patient PII.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Patient home region filter
+        in: query
+        name: region
+        type: string
+      - description: Hospital ID filter
+        in: query
+        name: hospital_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MohDiseaseHotspotsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: MoH disease hotspots
+      tags:
+      - MoH Analytics
+  /api/v1/moh/hospital-load:
+    get:
+      description: |-
+        Per-hospital referral load and performance metrics.
+        **Roles:** MOH_ANALYST
+        **Privacy:** Aggregate-only response, no patient PII.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Hospital region filter
+        in: query
+        name: region
+        type: string
+      - description: Hospital ID filter
+        in: query
+        name: hospital_id
+        type: string
+      - description: Hospital tier level (PRIMARY, SECONDARY, SPECIALIZED, TERTIARY)
+        in: query
+        name: tier_level
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MohHospitalLoadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: MoH hospital load analytics
+      tags:
+      - MoH Analytics
+  /api/v1/moh/referral-trends:
+    get:
+      description: |-
+        Time-series referral trends grouped by day/week/month.
+        **Roles:** MOH_ANALYST
+        **Privacy:** Aggregate-only response, no patient PII.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Patient home region filter
+        in: query
+        name: region
+        type: string
+      - description: Hospital ID filter
+        in: query
+        name: hospital_id
+        type: string
+      - default: month
+        description: day, week, month
+        in: query
+        name: granularity
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MohReferralTrendsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: MoH referral trends
+      tags:
+      - MoH Analytics
+  /api/v1/moh/reports/export:
+    get:
+      description: |-
+        Combined aggregate report of dashboard summary and hospital load metrics.
+        **Roles:** MOH_ANALYST
+        **Privacy:** Aggregate-only response, no patient PII.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Region filter
+        in: query
+        name: region
+        type: string
+      - description: Hospital ID filter
+        in: query
+        name: hospital_id
+        type: string
+      - description: Hospital tier level (PRIMARY, SECONDARY, SPECIALIZED, TERTIARY)
+        in: query
+        name: tier_level
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MohAnalyticsExportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export MoH analytics report
+      tags:
+      - MoH Analytics
+  /api/v1/moh/severity-distribution:
+    get:
+      description: |-
+        Severity-tier distribution (critical, urgent, routine) grouped by patient region.
+        **Roles:** MOH_ANALYST
+        **Privacy:** Aggregate-only response, no patient PII.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Patient home region filter
+        in: query
+        name: region
+        type: string
+      - description: Hospital ID filter
+        in: query
+        name: hospital_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MohSeverityDistributionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: MoH severity distribution
+      tags:
+      - MoH Analytics
   /api/v1/patients:
     post:
       consumes:
@@ -6837,7 +7250,6 @@ paths:
         name: request
         schema:
           additionalProperties:
-            format: float64
             type: number
           type: object
       produces:
