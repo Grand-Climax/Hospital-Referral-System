@@ -5039,6 +5039,403 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/moh/dashboard/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Aggregated MoH KPI metrics for referrals in the selected range.\n**Roles:** MOH_ANALYST\n**Privacy:** Aggregate-only response, no patient PII.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MoH Analytics"
+                ],
+                "summary": "MoH dashboard summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Patient home region filter",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital ID filter",
+                        "name": "hospital_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MohDashboardSummaryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/moh/disease-hotspots": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Geographic referral concentration grouped by patient region and department specialty.\n**Roles:** MOH_ANALYST\n**Privacy:** Aggregate-only response, no patient PII.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MoH Analytics"
+                ],
+                "summary": "MoH disease hotspots",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Patient home region filter",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital ID filter",
+                        "name": "hospital_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MohDiseaseHotspotsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/moh/hospital-load": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Per-hospital referral load and performance metrics.\n**Roles:** MOH_ANALYST\n**Privacy:** Aggregate-only response, no patient PII.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MoH Analytics"
+                ],
+                "summary": "MoH hospital load analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital region filter",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital ID filter",
+                        "name": "hospital_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital tier level (PRIMARY, SECONDARY, SPECIALIZED, TERTIARY)",
+                        "name": "tier_level",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MohHospitalLoadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/moh/referral-trends": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Time-series referral trends grouped by day/week/month.\n**Roles:** MOH_ANALYST\n**Privacy:** Aggregate-only response, no patient PII.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MoH Analytics"
+                ],
+                "summary": "MoH referral trends",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Patient home region filter",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital ID filter",
+                        "name": "hospital_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "month",
+                        "description": "day, week, month",
+                        "name": "granularity",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MohReferralTrendsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/moh/reports/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Combined aggregate report of dashboard summary and hospital load metrics.\n**Roles:** MOH_ANALYST\n**Privacy:** Aggregate-only response, no patient PII.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MoH Analytics"
+                ],
+                "summary": "Export MoH analytics report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Region filter",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital ID filter",
+                        "name": "hospital_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital tier level (PRIMARY, SECONDARY, SPECIALIZED, TERTIARY)",
+                        "name": "tier_level",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MohAnalyticsExportResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/moh/severity-distribution": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Severity-tier distribution (critical, urgent, routine) grouped by patient region.\n**Roles:** MOH_ANALYST\n**Privacy:** Aggregate-only response, no patient PII.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MoH Analytics"
+                ],
+                "summary": "MoH severity distribution",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Patient home region filter",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hospital ID filter",
+                        "name": "hospital_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MohSeverityDistributionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/patients": {
             "post": {
                 "security": [
@@ -6597,8 +6994,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number",
-                                "format": "float64"
+                                "type": "number"
                             }
                         }
                     }
@@ -9146,6 +9542,221 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "dto.MohAnalyticsExportResponse": {
+            "type": "object",
+            "properties": {
+                "hospital_load": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MohHospitalLoadMetricResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "summary": {
+                    "$ref": "#/definitions/dto.MohDashboardSummaryResponse"
+                }
+            }
+        },
+        "dto.MohDashboardSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "acceptance_rate_percentage": {
+                    "type": "number"
+                },
+                "average_ml_severity_score": {
+                    "type": "number"
+                },
+                "average_turnaround_hours": {
+                    "type": "number"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "total_accepted": {
+                    "type": "integer"
+                },
+                "total_admitted": {
+                    "type": "integer"
+                },
+                "total_referrals": {
+                    "type": "integer"
+                },
+                "total_rejected": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.MohDiseaseHotspotResponseItem": {
+            "type": "object",
+            "properties": {
+                "average_severity_score": {
+                    "type": "number"
+                },
+                "department_name": {
+                    "type": "string"
+                },
+                "referral_count": {
+                    "type": "integer"
+                },
+                "region": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.MohDiseaseHotspotsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MohDiseaseHotspotResponseItem"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MohHospitalLoadMetricResponse": {
+            "type": "object",
+            "properties": {
+                "average_severity_score": {
+                    "type": "number"
+                },
+                "hospital_id": {
+                    "type": "string"
+                },
+                "hospital_name": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "rejection_rate_percentage": {
+                    "type": "number"
+                },
+                "tier_level": {
+                    "type": "string"
+                },
+                "total_accepted": {
+                    "type": "integer"
+                },
+                "total_referrals_received": {
+                    "type": "integer"
+                },
+                "total_rejected": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.MohHospitalLoadResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MohHospitalLoadMetricResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MohReferralTrendPointResponse": {
+            "type": "object",
+            "properties": {
+                "accepted_referrals": {
+                    "type": "integer"
+                },
+                "emergency_referrals": {
+                    "type": "integer"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "rejected_referrals": {
+                    "type": "integer"
+                },
+                "total_referrals": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.MohReferralTrendsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MohReferralTrendPointResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MohSeverityDistributionResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MohSeverityDistributionResponseItem"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MohSeverityDistributionResponseItem": {
+            "type": "object",
+            "properties": {
+                "critical_count": {
+                    "type": "integer"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "routine_count": {
+                    "type": "integer"
+                },
+                "total_referrals": {
+                    "type": "integer"
+                },
+                "urgent_count": {
+                    "type": "integer"
                 }
             }
         },
