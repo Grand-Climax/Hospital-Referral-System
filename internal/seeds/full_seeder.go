@@ -253,7 +253,6 @@ func seedHospitalDepartmentsAndSchedules(ctx context.Context, db *gorm.DB) error
 			sched := entity.DailySchedule{
 				HospitalID:    m.HospitalID,
 				DepartmentID:  m.DepartmentID,
-				DeptID:        m.ID, // Link to hospital_departments
 				ScheduleDate:  scheduleDate,
 				MaxSlots:      m.StandardDailyLimit,
 				OverbookLimit: 2,
@@ -270,9 +269,9 @@ func seedHospitalDepartmentsAndSchedules(ctx context.Context, db *gorm.DB) error
 	db.Find(&hdList)
 	for _, hd := range hdList {
 		db.FirstOrCreate(&entity.SchedulerCheckpoint{
-			HospitalID: hd.HospitalID,
-			DeptID:     hd.DepartmentID,
-		}, entity.SchedulerCheckpoint{HospitalID: hd.HospitalID, DeptID: hd.DepartmentID})
+			HospitalID:   hd.HospitalID,
+			DepartmentID: hd.DepartmentID,
+		}, entity.SchedulerCheckpoint{HospitalID: hd.HospitalID, DepartmentID: hd.DepartmentID})
 	}
 	return nil
 }
