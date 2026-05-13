@@ -297,7 +297,7 @@ func (r *referralRepository) GetMissedAppointmentRateForHospitalAdmin(ctx contex
 	var tracked int64
 
 	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
-		Where("target_hospital_id = ? AND status = ?", hospID, entity.StatusMissed).
+		Where("target_hospital_id = ? AND status = 'COMPLETED' AND is_archived = true", hospID).
 		Count(&missed).Error
 	if err != nil {
 		return 0, err
@@ -306,10 +306,7 @@ func (r *referralRepository) GetMissedAppointmentRateForHospitalAdmin(ctx contex
 	err = r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("target_hospital_id = ? AND status IN ?", hospID, []entity.ReferralStatus{
 			entity.StatusScheduled,
-			entity.StatusAssigned,
 			entity.StatusCompleted,
-			entity.StatusMissed,
-			entity.StatusRescheduled,
 		}).
 		Count(&tracked).Error
 	if err != nil {
@@ -430,14 +427,10 @@ func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID 
 		entity.StatusUnderSpecialistReview,
 		entity.StatusAccepted,
 		entity.StatusScheduled,
-		entity.StatusAssigned,
 		entity.StatusCompleted,
 		entity.StatusRejectedBySpecialist,
-		entity.StatusMissed,
-		entity.StatusRescheduled,
 		entity.StatusRedirected,
 		entity.StatusRejectedAfterSend,
-		entity.StatusAdmitted,
 	}
 
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
@@ -456,8 +449,7 @@ func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.
 	offset := (filter.Page - 1) * filter.Limit
 	allowedStatuses := []entity.ReferralStatus{
 		entity.StatusForwarded, entity.StatusUnderSpecialistReview, entity.StatusAccepted,
-		entity.StatusScheduled, entity.StatusAssigned, entity.StatusCompleted,
-		entity.StatusRejectedBySpecialist, entity.StatusMissed, entity.StatusRescheduled,
+		entity.StatusRejectedBySpecialist,
 		entity.StatusRedirected, entity.StatusRejectedAfterSend,
 	}
 
@@ -476,8 +468,7 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 	var count int64
 	offset := (filter.Page - 1) * filter.Limit
 	allowedStatuses := []entity.ReferralStatus{
-		entity.StatusAccepted, entity.StatusScheduled, entity.StatusAssigned,
-		entity.StatusMissed, entity.StatusRescheduled, entity.StatusAdmitted,
+		entity.StatusAccepted, entity.StatusScheduled,
 	}
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("target_hospital_id = ? AND status IN ?", hospID, allowedStatuses)
@@ -516,7 +507,7 @@ func (r *referralRepository) GetDoctorStats(ctx context.Context, doctorID uuid.U
 
 	// Accepted
 	acceptedStatuses := []entity.ReferralStatus{
-		entity.StatusAccepted, entity.StatusScheduled, entity.StatusAssigned, entity.StatusCompleted,
+		entity.StatusAccepted, entity.StatusScheduled, entity.StatusCompleted,
 	}
 	if err := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ? AND status IN ?", doctorID, acceptedStatuses).Count(&accepted).Error; err != nil {
 		return 0, 0, 0, 0, err
@@ -700,4 +691,8 @@ func (r *referralRepository) CountAcceptedOrCompletedToday(ctx context.Context, 
 		).
 		Count(&count).Error
 	return count, err
+}
+
+func (r *referralRepository) UpdateFields(ctx context.Context, referralID uuid.UUID, updates irepository.ReferralUpdateFields) error {
+	return r.db.WithContext(ctx).Model(&entity.Referral{}).Where("id = ?", referralID).Updates(updates).Error
 }
