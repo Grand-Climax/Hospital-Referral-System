@@ -100,7 +100,6 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 			return err
 		}
 		queue.AppointmentDate = &req.AppointmentDate
-		queue.QueueStatus = entity.QueueScheduled
 		if err := u.triageRepo.Update(ctx, queue); err != nil {
 			return err
 		}
@@ -125,16 +124,23 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 		}
 
 		notifType := entity.NotificationType("SCHEDULING")
+		eventType := "APPOINTMENT_SCHEDULED"
 		content := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
 		
-		if queue.QueueStatus == entity.QueueScheduled {
+		if queue.ArrivalStatus == entity.ArrivalMissed {
 			notifType = entity.NotificationType("RESCHEDULE")
+			eventType = "APPOINTMENT_RESCHEDULED"
 			content = fmt.Sprintf("Your appointment at %s, %s has been rescheduled to %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
+			// Reset arrival status for rescheduled appointment
+			queue.ArrivalStatus = entity.ArrivalExpected
+			if err := u.triageRepo.Update(ctx, queue); err != nil {
+				return err
+			}
 		}
 
 		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, content)
 
-		_ = u.inAppNotifUC.CreateForEvent(ctx, string(notifType), referralID, userID)
+		_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
 
 		return nil
 	})
@@ -231,9 +237,6 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 
 		// 4. Update TriageQueue
 		queue.AppointmentDate = &appointmentDate
-		queue.QueueStatus = entity.QueueScheduled
-		reschedReason := "EMERGENCY_MANUAL"
-		queue.RescheduleReason = &reschedReason
 		if err := tx.Save(queue).Error; err != nil {
 			return err
 		}
@@ -260,10 +263,27 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		if ref.TargetDepartment != nil {
 			deptName = ref.TargetDepartment.Name
 		}
-		message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
-		_ = u.notifUC.QueueNotification(ctx, referralID, entity.NotificationType("SCHEDULING"), message)
 
-		_ = u.inAppNotifUC.CreateForEvent(ctx, "APPOINTMENT_SCHEDULED", referralID, userID)
+		wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
+
+		// Reset arrival status if previously missed
+		if wasMissed {
+			queue.ArrivalStatus = entity.ArrivalExpected
+		}
+
+		notifType := entity.NotificationType("SCHEDULING")
+		eventType := "APPOINTMENT_SCHEDULED"
+		message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
+
+		if wasMissed {
+			notifType = entity.NotificationType("RESCHEDULE")
+			eventType = "APPOINTMENT_RESCHEDULED"
+			message = fmt.Sprintf("Your appointment at %s, %s has been rescheduled to %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
+		}
+
+		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, message)
+
+		_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
 
 		return nil
 	})
@@ -321,7 +341,6 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 					}
 
 					q.AppointmentDate = &targetDate
-					q.QueueStatus = entity.QueueScheduled
 					q.ArrivalStatus = entity.ArrivalExpected
 					if err := tx.Save(&q).Error; err != nil {
 						return err

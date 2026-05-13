@@ -57,15 +57,15 @@ func (u *schedulerServiceUseCase) RunSchedulerCycle(ctx context.Context, leaseHo
 
 	// 3. Run Batch Scheduling
 	// Use uuid.Nil as userID to represent System
-	result, err := u.schedUC.BatchSchedule(ctx, checkpoint.HospitalID, checkpoint.DeptID, uuid.Nil, autoNotify)
+	result, err := u.schedUC.BatchSchedule(ctx, checkpoint.HospitalID, checkpoint.DepartmentID, uuid.Nil, autoNotify)
 	if err != nil {
 		// Release lease on failure so it can be retried later
-		_ = u.checkpointRepo.ReleaseLease(ctx, checkpoint.HospitalID, checkpoint.DeptID, leaseHolder)
+		_ = u.checkpointRepo.ReleaseLease(ctx, checkpoint.HospitalID, checkpoint.DepartmentID, leaseHolder)
 		return nil, err
 	}
 
 	// 4. Update last processed timestamp and release lease
-	err = u.checkpointRepo.UpdateLastProcessed(ctx, checkpoint.HospitalID, checkpoint.DeptID, leaseHolder)
+	err = u.checkpointRepo.UpdateLastProcessed(ctx, checkpoint.HospitalID, checkpoint.DepartmentID, leaseHolder)
 	if err != nil {
 		return nil, err
 	}
