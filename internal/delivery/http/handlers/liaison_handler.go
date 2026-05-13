@@ -507,6 +507,110 @@ func (h *LiaisonHandler) GetReferral(c *gin.Context) {
 	})
 }
 
+// GetReviewChecklist godoc
+// @Summary      Get Review Checklist
+// @Description  Get the current state of the liaison review checklist for a referral.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** Referral must belong to the liaison's hospital.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid format
+// @Description  - 401 Unauthorized
+// @Tags         Liaison
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} dto.ReviewChecklistResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/liaison/referrals/{id}/review-checklist [get]
+func (h *LiaisonHandler) GetReviewChecklist(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid format"})
+		return
+	}
+
+	hospID := h.getHospitalID(c)
+	if hospID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "unauthorized"})
+		return
+	}
+
+	checklist, err := h.referralUC.GetReviewChecklist(c.Request.Context(), id, hospID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, checklist)
+}
+
+// UpdateReviewChecklist godoc
+// @Summary      Update Review Checklist
+// @Description  Update specific items in the liaison review checklist.
+// @Description  **Roles:** LIAISON_OFFICER
+// @Description  **Prerequisites:** Referral must belong to the liaison's hospital; Status must be SUBMITTED or UNDER_LIAISON_REVIEW.
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid format / validation error / invalid status
+// @Description  - 401 Unauthorized
+// @Tags         Liaison
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.ReviewChecklistRequest true "Checklist Updates"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/liaison/referrals/{id}/review-checklist [put]
+func (h *LiaisonHandler) UpdateReviewChecklist(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid format"})
+		return
+	}
+
+	var req dto.ReviewChecklistRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	userID := h.getUserID(c)
+	hospID := h.getHospitalID(c)
+	if hospID == uuid.Nil || userID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "unauthorized"})
+		return
+	}
+
+	if err := h.referralUC.UpdateReviewChecklist(c.Request.Context(), id, userID, hospID, req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Review checklist updated"})
+}
+
+func (h *LiaisonHandler) getHospitalID(c *gin.Context) uuid.UUID {
+	val, _ := c.Get("hospID")
+	if id, ok := val.(uuid.UUID); ok {
+		return id
+	}
+	if id, ok := val.(*uuid.UUID); ok && id != nil {
+		return *id
+	}
+	return uuid.Nil
+}
+
+func (h *LiaisonHandler) getUserID(c *gin.Context) uuid.UUID {
+	val, _ := c.Get("userID")
+	if id, ok := val.(uuid.UUID); ok {
+		return id
+	}
+	if id, ok := val.(*uuid.UUID); ok && id != nil {
+		return *id
+	}
+	return uuid.Nil
+}
+
 // Read godoc
 // @Summary      Mark Referral as Read
 // @Description  Acknowledge receipt and mark the referral as read by the liaison.
@@ -564,11 +668,11 @@ func (h *LiaisonHandler) Read(c *gin.Context) {
 // @Summary      Forward Referral to Specialist
 // @Description  Forward the referral to specialists at the target hospital.
 // @Description  **Roles:** LIAISON_OFFICER
-// @Description  **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED.
+// @Description  **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED; checklist must be COMPLETE (condition-based).
 // @Description  **State Transition:** → FORWARDED.
-// @Description  **Gatekeepers:** Attachment verification (not PENDING/REJECTED).
+// @Description  **Gatekeepers:** Attachment verification; Review Checklist completion.
 // @Description  **Common Errors:**
-// @Description  - 400 invalid format
+// @Description  - 400 invalid format / checklist incomplete
 // @Description  - 403 (wrong hospital)
 // @Description  - 422 (attachments not verified)
 // @Tags         Liaison

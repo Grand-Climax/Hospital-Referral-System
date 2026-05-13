@@ -17,7 +17,6 @@ type ReferralFilter struct {
 	Region      string
 	SortBy      string // "created_at" or "updated_at"
 	SortOrder   string // "asc" or "desc"
-	Sort        string // DEPRECATED
 	Limit       int
 	Page        int
 }
@@ -41,6 +40,13 @@ type ReferringHospitalCount struct {
 	HospitalID   uuid.UUID `json:"hospital_id"`
 	HospitalName string    `json:"hospital_name"`
 	Count        int64     `json:"count"`
+}
+
+type ReferralUpdateFields struct {
+	PatientIdentityVerified *bool
+	ClinicalHistoryAttached *bool
+	VitalsIncluded          *bool
+	AttachmentsIncluded     *bool
 }
 
 type ReferralRepository interface {
@@ -79,6 +85,8 @@ type ReferralRepository interface {
 	// Dashboard Stats
 	CountBySenderHospitalAndStatuses(ctx context.Context, hospID uuid.UUID, statuses []entity.ReferralStatus, excludeDraft bool, startDate, endDate *time.Time) (int64, error)
 	CountAcceptedOrCompletedToday(ctx context.Context, hospID uuid.UUID) (int64, error)
+
+	UpdateFields(ctx context.Context, referralID uuid.UUID, updates ReferralUpdateFields) error
 }
 
 // ReferralOutcomeRepository persists the final clinical outcome of a referral episode.

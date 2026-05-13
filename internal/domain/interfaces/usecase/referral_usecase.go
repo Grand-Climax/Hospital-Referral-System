@@ -53,6 +53,8 @@ type ReferralUseCase interface {
 	LiaisonRevise(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
 	LiaisonUnassignSpecialist(ctx context.Context, id, liaisonID, hospID uuid.UUID, reason string) error
 	GetLiaisonDashboardStats(ctx context.Context, hospID uuid.UUID) (*LiaisonDashboardStats, error)
+	UpdateReviewChecklist(ctx context.Context, referralID, liaisonID, hospID uuid.UUID, req dto.ReviewChecklistRequest) error
+	GetReviewChecklist(ctx context.Context, referralID, hospID uuid.UUID) (*dto.ReviewChecklistResponse, error)
 
 	// --- Specialist Actions ---
 	ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error)
@@ -70,7 +72,6 @@ type ReferralUseCase interface {
 	// --- Receptionist Actions ---
 	ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error)
 	GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error)
-	ConfirmAttendance(ctx context.Context, id, receptionistID, hospID uuid.UUID, status string) error
 
 	// --- Admin Actions ---
 	ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error)
