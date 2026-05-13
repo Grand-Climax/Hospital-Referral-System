@@ -24,6 +24,10 @@ type MLPrediction struct {
 	OverrideJustification *string         `gorm:"type:text" json:"override_justification,omitempty"`
 	OverriddenAt          *time.Time      `json:"overridden_at,omitempty"`
 	IsActive              bool            `gorm:"default:true;index:idx_ml_prediction_referral_active" json:"is_active"`
+
+	// Relationships
+	Referral         *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	OverriddenByUser *User     `gorm:"foreignKey:OverriddenBy" json:"overridden_by_user,omitempty"`
 }
 
 func (m *MLPrediction) BeforeCreate(tx *gorm.DB) (err error) {

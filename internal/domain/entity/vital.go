@@ -18,6 +18,9 @@ type Vital struct {
 	Temperature     *float32   `gorm:"type:numeric(4,1)" json:"temperature,omitempty"`
 	RespiratoryRate *int16     `gorm:"type:smallint" json:"respiratory_rate,omitempty"`
 	GCSScore        *int16     `gorm:"type:smallint" json:"gcs_score,omitempty"`
+
+	// Relationships
+	Referral *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
 }
 
 func (v *Vital) BeforeCreate(tx *gorm.DB) (err error) {

@@ -15,6 +15,10 @@ type ClinicalUpdate struct {
 	ClinicalNotes  string    `gorm:"type:text;not null" json:"clinical_notes"`
 	CreatedAt      time.Time `gorm:"default:now();index" json:"created_at"`
 	RequiresReview bool      `gorm:"default:false" json:"requires_review"`
+
+	// Relationships
+	Referral  *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	UpdatedBy *User     `gorm:"foreignKey:UpdatedByID" json:"updated_by,omitempty"`
 }
 
 func (cu *ClinicalUpdate) BeforeCreate(tx *gorm.DB) (err error) {
