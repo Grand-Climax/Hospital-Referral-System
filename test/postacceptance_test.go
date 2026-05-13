@@ -85,7 +85,6 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 			rec.GET("/schedule", receptionistHandler.GetSchedule)
 			rec.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
 			rec.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
-			rec.POST("/walk-in", receptionistHandler.RegisterWalkIn)
 			rec.POST("/:id/miss", receptionistHandler.MarkMissed)
 		}
 
@@ -280,7 +279,6 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 func TestReceptionistEndpoints(t *testing.T) {
 	r, _, _, _, mockArrival, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	queueID := uuid.New()
-	referralID := uuid.New()
 
 	t.Run("Get Schedule", func(t *testing.T) {
 		mockArrival.On("GetTodayAndTomorrowSchedule", mock.Anything, mock.Anything, mock.Anything).Return([]*entity.TriageQueue{}, nil)
@@ -318,18 +316,6 @@ func TestReceptionistEndpoints(t *testing.T) {
 		mockArrival.AssertExpectations(t)
 	})
 
-	t.Run("Register Walk-in", func(t *testing.T) {
-		reqBody := dto.WalkInRequest{ReferralID: referralID}
-		mockArrival.On("RegisterWalkIn", mock.Anything, referralID, mock.Anything, mock.Anything, mock.Anything).Return(&entity.TriageQueue{}, nil)
-
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/walk-in", bytes.NewBuffer(body))
-		resp := httptest.NewRecorder()
-		r.ServeHTTP(resp, req)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
-		mockArrival.AssertExpectations(t)
-	})
 
 	t.Run("Mark Missed", func(t *testing.T) {
 		reqBody := dto.MarkMissedRequest{MissReason: "PATIENT_NO_SHOW"}
