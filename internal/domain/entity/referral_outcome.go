@@ -16,6 +16,10 @@ type ReferralOutcome struct {
 	OutcomeNotes           *string   `gorm:"type:text" json:"outcome_notes,omitempty"`
 	RecordedByID           uuid.UUID `gorm:"type:uuid;not null" json:"recorded_by_id"`
 	RecordedAt             time.Time `gorm:"default:now()" json:"recorded_at"`
+
+	// Relationships
+	Referral   *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	RecordedBy *User     `gorm:"foreignKey:RecordedByID" json:"recorded_by,omitempty"`
 }
 
 func (ro *ReferralOutcome) BeforeCreate(tx *gorm.DB) (err error) {

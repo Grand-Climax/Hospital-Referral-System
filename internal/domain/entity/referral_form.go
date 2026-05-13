@@ -20,6 +20,9 @@ type ReferralForm struct {
 	ModeOfTransport              *string   `gorm:"type:varchar(50)" json:"mode_of_transport,omitempty"`
 	AccompanyingPersonName       *string   `gorm:"type:varchar(100)" json:"accompanying_person_name,omitempty"`
 	AccompanyingPersonPhone      *string   `gorm:"type:varchar(20)" json:"accompanying_person_phone,omitempty"`
+
+	// Relationships
+	Referral *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
 }
 
 func (r *ReferralForm) BeforeCreate(tx *gorm.DB) (err error) {
