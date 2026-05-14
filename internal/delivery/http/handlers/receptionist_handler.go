@@ -51,7 +51,7 @@ func (h *ReceptionistHandler) getHospitalAndDept(c *gin.Context) (uuid.UUID, uui
 // @Summary      List Referrals for Receptionist
 // @Description  Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.
 // @Description  **Roles:** RECEPTIONIST
-// @Description  **Visibility:** ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, ADMITTED.
+// @Description  **Visibility:** ACCEPTED, SCHEDULED, COMPLETED.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
@@ -134,7 +134,7 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 // @Summary      Get Referral Details for Receptionist
 // @Description  Get detailed information about an accepted or scheduled referral.
 // @Description  **Roles:** RECEPTIONIST
-// @Description  **Prerequisites:** Status must be ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, or ADMITTED.
+// @Description  **Prerequisites:** Status must be ACCEPTED, SCHEDULED, or COMPLETED.
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid ID format
 // @Description  - 403 Forbidden (wrong hospital or invalid status)
@@ -205,7 +205,7 @@ func (h *ReceptionistHandler) GetSchedule(c *gin.Context) {
 // @Description  Mark a patient as arrived.
 // @Description  **Roles:** RECEPTIONIST
 // @Description  **Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.
-// @Description  **State Transition:** arrival_status → ARRIVED, queue_status → ARRIVED.
+// @Description  **State Transition:** arrival_status → ARRIVED.
 // @Description  **Common Errors:**
 // @Description  - 400 invalid format
 // @Description  - 409 already arrived
@@ -289,53 +289,6 @@ func (h *ReceptionistHandler) AssignDoctor(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Doctor assigned successfully"})
 }
 
-// RegisterWalkIn godoc
-// @Summary      Register Walk-in Patient
-// @Description  Register a patient arriving without a prior appointment.
-// @Description  **Roles:** RECEPTIONIST
-// @Description  **Prerequisites:** referral.status must be ACCEPTED or SCHEDULED.
-// @Description  **State Transition:** Creates new TriageQueue entry with arrival_boost=20.
-// @Description  **Gatekeepers:** Status check (must be ACCEPTED or SCHEDULED).
-// @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 422 invalid referral status
-// @Tags         Receptionist
-// @Accept       json
-// @Produce      json
-// @Param        body body dto.WalkInRequest true "Walk-in details"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} dto.ErrorResponse
-// @Failure      401 {object} dto.ErrorResponse
-// @Security     BearerAuth
-// @Router       /api/v1/receptionist/walk-in [post]
-func (h *ReceptionistHandler) RegisterWalkIn(c *gin.Context) {
-	var req dto.WalkInRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
-		return
-	}
-
-	hospID, deptID := h.getHospitalAndDept(c)
-	userIdVal, _ := c.Get("userID")
-	userID := uuid.Nil
-	if uID, ok := userIdVal.(uuid.UUID); ok {
-		userID = uID
-	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
-		userID = *uID
-	}
-
-	queue, err := h.arrivalUC.RegisterWalkIn(c.Request.Context(), req.ReferralID, hospID, deptID, userID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Walk-in registered successfully",
-		"data":    queue,
-	})
-}
 
 // MarkMissed godoc
 // @Summary      Mark Appointment as Missed

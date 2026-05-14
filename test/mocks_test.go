@@ -313,6 +313,11 @@ func (m *MockReferralRepo) GetLatestPendingForDoctor(ctx context.Context, doctor
 	return args.Get(0).([]entity.Referral), args.Error(1)
 }
 
+func (m *MockReferralRepo) UpdateFields(ctx context.Context, referralID uuid.UUID, updates irepository.ReferralUpdateFields) error {
+	args := m.Called(ctx, referralID, updates)
+	return args.Error(0)
+}
+
 // ---------------------------------------------------------------------------
 // Mock: ReferralUseCase
 // ---------------------------------------------------------------------------
@@ -571,6 +576,19 @@ func (m *MockReferralUseCase) GetLiaisonDashboardStats(ctx context.Context, hosp
 	return args.Get(0).(*iusecase.LiaisonDashboardStats), args.Error(1)
 }
 
+func (m *MockReferralUseCase) UpdateReviewChecklist(ctx context.Context, referralID, liaisonID, hospID uuid.UUID, req dto.ReviewChecklistRequest) error {
+	args := m.Called(ctx, referralID, liaisonID, hospID, req)
+	return args.Error(0)
+}
+
+func (m *MockReferralUseCase) GetReviewChecklist(ctx context.Context, referralID, hospID uuid.UUID) (*dto.ReviewChecklistResponse, error) {
+	args := m.Called(ctx, referralID, hospID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.ReviewChecklistResponse), args.Error(1)
+}
+
 func (m *MockReferralUseCase) ListForSpecialist(ctx context.Context, hospID, specialistID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	args := m.Called(ctx, hospID, specialistID, filter)
 	return args.Get(0).([]entity.Referral), args.Get(1).(int64), args.Error(2)
@@ -642,10 +660,6 @@ func (m *MockReferralUseCase) GetDetailsForReceptionist(ctx context.Context, id,
 	return args.Get(0).(*entity.Referral), args.Error(1)
 }
 
-func (m *MockReferralUseCase) ConfirmAttendance(ctx context.Context, id, receptionistID, hospID uuid.UUID, status string) error {
-	args := m.Called(ctx, id, receptionistID, hospID, status)
-	return args.Error(0)
-}
 
 func (m *MockReferralUseCase) ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	args := m.Called(ctx, filter)
@@ -977,10 +991,6 @@ func (m *MockTriageQueueRepo) GetByReferralID(ctx context.Context, referralID uu
 	return args.Get(0).(*entity.TriageQueue), args.Error(1)
 }
 
-func (m *MockTriageQueueRepo) GetByHospitalAndStatus(ctx context.Context, hospitalID uuid.UUID, status entity.QueueStatus) ([]entity.TriageQueue, error) {
-	args := m.Called(ctx, hospitalID, status)
-	return args.Get(0).([]entity.TriageQueue), args.Error(1)
-}
 
 func (m *MockTriageQueueRepo) Update(ctx context.Context, queue *entity.TriageQueue) error {
 	args := m.Called(ctx, queue)
@@ -1222,13 +1232,6 @@ func (m *MockArrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID
 	return m.Called(ctx, queueID, doctorID, userID).Error(0)
 }
 
-func (m *MockArrivalUseCase) RegisterWalkIn(ctx context.Context, referralID uuid.UUID, hospitalID uuid.UUID, deptID uuid.UUID, userID uuid.UUID) (*entity.TriageQueue, error) {
-	args := m.Called(ctx, referralID, hospitalID, deptID, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.TriageQueue), args.Error(1)
-}
 
 func (m *MockArrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
 	return m.Called(ctx, queueID, missReason, userID).Error(0)

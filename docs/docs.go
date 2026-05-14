@@ -4613,7 +4613,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Forward the referral to specialists at the target hospital.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED.\n**State Transition:** → FORWARDED.\n**Gatekeepers:** Attachment verification (not PENDING/REJECTED).\n**Common Errors:**\n- 400 invalid format\n- 403 (wrong hospital)\n- 422 (attachments not verified)",
+                "description": "Forward the referral to specialists at the target hospital.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED; checklist must be COMPLETE (condition-based).\n**State Transition:** → FORWARDED.\n**Gatekeepers:** Attachment verification; Review Checklist completion.\n**Common Errors:**\n- 400 invalid format / checklist incomplete\n- 403 (wrong hospital)\n- 422 (attachments not verified)",
                 "produces": [
                     "application/json"
                 ],
@@ -4785,6 +4785,96 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/liaison/referrals/{id}/review-checklist": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the current state of the liaison review checklist for a referral.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** Referral must belong to the liaison's hospital.\n**Common Errors:**\n- 400 Invalid format\n- 401 Unauthorized",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison"
+                ],
+                "summary": "Get Review Checklist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReviewChecklistResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update specific items in the liaison review checklist.\n**Roles:** LIAISON_OFFICER\n**Prerequisites:** Referral must belong to the liaison's hospital; Status must be SUBMITTED or UNDER_LIAISON_REVIEW.\n**Common Errors:**\n- 400 Invalid format / validation error / invalid status\n- 401 Unauthorized",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Liaison"
+                ],
+                "summary": "Update Review Checklist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Checklist Updates",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReviewChecklistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -5592,7 +5682,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.\n**Roles:** RECEPTIONIST\n**Visibility:** ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, ADMITTED.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.\n**Roles:** RECEPTIONIST\n**Visibility:** ACCEPTED, SCHEDULED, COMPLETED.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -5714,58 +5804,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/walk-in": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Register a patient arriving without a prior appointment.\n**Roles:** RECEPTIONIST\n**Prerequisites:** referral.status must be ACCEPTED or SCHEDULED.\n**State Transition:** Creates new TriageQueue entry with arrival_boost=20.\n**Gatekeepers:** Status check (must be ACCEPTED or SCHEDULED).\n**Common Errors:**\n- 400 invalid format\n- 422 invalid referral status",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Receptionist"
-                ],
-                "summary": "Register Walk-in Patient",
-                "parameters": [
-                    {
-                        "description": "Walk-in details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.WalkInRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/receptionist/{id}": {
             "get": {
                 "security": [
@@ -5773,7 +5811,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information about an accepted or scheduled referral.\n**Roles:** RECEPTIONIST\n**Prerequisites:** Status must be ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, or ADMITTED.\n**Common Errors:**\n- 400 Invalid ID format\n- 403 Forbidden (wrong hospital or invalid status)",
+                "description": "Get detailed information about an accepted or scheduled referral.\n**Roles:** RECEPTIONIST\n**Prerequisites:** Status must be ACCEPTED, SCHEDULED, or COMPLETED.\n**Common Errors:**\n- 400 Invalid ID format\n- 403 Forbidden (wrong hospital or invalid status)",
                 "produces": [
                     "application/json"
                 ],
@@ -5819,7 +5857,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Mark a patient as arrived.\n**Roles:** RECEPTIONIST\n**Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.\n**State Transition:** arrival_status → ARRIVED, queue_status → ARRIVED.\n**Common Errors:**\n- 400 invalid format\n- 409 already arrived",
+                "description": "Mark a patient as arrived.\n**Roles:** RECEPTIONIST\n**Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.\n**State Transition:** arrival_status → ARRIVED.\n**Common Errors:**\n- 400 invalid format\n- 409 already arrived",
                 "produces": [
                     "application/json"
                 ],
@@ -6994,7 +7032,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number"
+                                "type": "number",
+                                "format": "float64"
                             }
                         }
                     }
@@ -10122,6 +10161,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/entity.Attachment"
                     }
                 },
+                "attachments_included": {
+                    "type": "boolean"
+                },
+                "clinical_history_attached": {
+                    "type": "boolean"
+                },
                 "created_at": {
                     "description": "Timestamps",
                     "type": "string"
@@ -10171,6 +10216,10 @@ const docTemplate = `{
                 },
                 "patient_id": {
                     "type": "string"
+                },
+                "patient_identity_verified": {
+                    "description": "Liaison Review Checklist",
+                    "type": "boolean"
                 },
                 "receiver_hospital": {
                     "$ref": "#/definitions/entity.Hospital"
@@ -10231,6 +10280,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/entity.Vital"
                     }
+                },
+                "vitals_included": {
+                    "type": "boolean"
                 },
                 "waiting_hours_weight": {
                     "type": "number"
@@ -10293,6 +10345,44 @@ const docTemplate = `{
                 "reason": {
                     "type": "string",
                     "minLength": 5
+                }
+            }
+        },
+        "dto.ReviewChecklistRequest": {
+            "type": "object",
+            "properties": {
+                "attachments_included": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "clinical_history_attached": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "patient_identity_verified": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "vitals_included": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.ReviewChecklistResponse": {
+            "type": "object",
+            "properties": {
+                "attachments_included": {
+                    "type": "boolean"
+                },
+                "clinical_history_attached": {
+                    "type": "boolean"
+                },
+                "patient_identity_verified": {
+                    "type": "boolean"
+                },
+                "vitals_included": {
+                    "type": "boolean"
                 }
             }
         },
@@ -10653,17 +10743,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.WalkInRequest": {
-            "type": "object",
-            "required": [
-                "referral_id"
-            ],
-            "properties": {
-                "referral_id": {
-                    "type": "string"
-                }
-            }
-        },
         "entity.ActionType": {
             "type": "string",
             "enum": [
@@ -10927,6 +11006,14 @@ const docTemplate = `{
                 "provider_message_id": {
                     "type": "string"
                 },
+                "referral": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    ]
+                },
                 "referral_id": {
                     "type": "string"
                 },
@@ -11005,6 +11092,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/entity.Attachment"
                     }
                 },
+                "attachments_included": {
+                    "type": "boolean"
+                },
+                "clinical_history_attached": {
+                    "type": "boolean"
+                },
                 "created_at": {
                     "description": "Timestamps",
                     "type": "string"
@@ -11051,6 +11144,10 @@ const docTemplate = `{
                 },
                 "patient_id": {
                     "type": "string"
+                },
+                "patient_identity_verified": {
+                    "description": "Liaison Review Checklist",
+                    "type": "boolean"
                 },
                 "receiver_hospital": {
                     "$ref": "#/definitions/entity.Hospital"
@@ -11108,6 +11205,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/entity.Vital"
                     }
                 },
+                "vitals_included": {
+                    "type": "boolean"
+                },
                 "waiting_hours_weight": {
                     "type": "number"
                 }
@@ -11117,7 +11217,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code_info": {
-                    "description": "Relationship",
+                    "description": "Relationships",
                     "allOf": [
                         {
                             "$ref": "#/definitions/entity.ICDCode"
@@ -11135,6 +11235,9 @@ const docTemplate = `{
                 },
                 "is_primary": {
                     "type": "boolean"
+                },
+                "referral": {
+                    "$ref": "#/definitions/entity.Referral"
                 },
                 "referral_id": {
                     "type": "string"
@@ -11197,6 +11300,14 @@ const docTemplate = `{
                 "reason_of_referral": {
                     "type": "string"
                 },
+                "referral": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    ]
+                },
                 "referral_id": {
                     "type": "string"
                 },
@@ -11213,6 +11324,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "redirected_by": {
+                    "$ref": "#/definitions/entity.User"
                 },
                 "redirected_by_specialist_id": {
                     "type": "string"
@@ -11232,6 +11346,9 @@ const docTemplate = `{
                 "redirection_reason": {
                     "type": "string"
                 },
+                "referral": {
+                    "$ref": "#/definitions/entity.Referral"
+                },
                 "referral_id": {
                     "type": "string"
                 },
@@ -11250,16 +11367,12 @@ const docTemplate = `{
                 "UNDER_SPECIALIST_REVIEW",
                 "ACCEPTED",
                 "SCHEDULED",
-                "ASSIGNED",
                 "COMPLETED",
                 "NEED_REVISION",
                 "CANCELLED",
                 "REJECTED_BY_LIAISON",
                 "REJECTED_BY_SPECIALIST",
-                "MISSED",
-                "RESCHEDULED",
                 "REDIRECTED",
-                "ADMITTED",
                 "REJECTED_AFTER_SEND",
                 "DECEASED"
             ],
@@ -11271,16 +11384,12 @@ const docTemplate = `{
                 "StatusUnderSpecialistReview",
                 "StatusAccepted",
                 "StatusScheduled",
-                "StatusAssigned",
                 "StatusCompleted",
                 "StatusNeedRevision",
                 "StatusCancelled",
                 "StatusRejectedByLiaison",
                 "StatusRejectedBySpecialist",
-                "StatusMissed",
-                "StatusRescheduled",
                 "StatusRedirected",
-                "StatusAdmitted",
                 "StatusRejectedAfterSend",
                 "StatusDeceased"
             ]
@@ -11297,6 +11406,61 @@ const docTemplate = `{
                 "TriageReviewed",
                 "TriageOverridden"
             ]
+        },
+        "entity.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "department": {
+                    "$ref": "#/definitions/entity.Department"
+                },
+                "department_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "hospital": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Hospital"
+                        }
+                    ]
+                },
+                "hospital_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "national_id": {
+                    "type": "string"
+                },
+                "profile_image_url": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/entity.UserRole"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
         },
         "entity.UserRole": {
             "type": "string",
@@ -11338,6 +11502,14 @@ const docTemplate = `{
                 },
                 "recorded_at": {
                     "type": "string"
+                },
+                "referral": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    ]
                 },
                 "referral_id": {
                     "type": "string"

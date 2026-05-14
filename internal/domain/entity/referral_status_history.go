@@ -15,6 +15,10 @@ type ReferralStatusHistory struct {
 	ToStatus    ReferralStatus  `gorm:"type:varchar(50);not null" json:"to_status"`
 	Reason      *string         `gorm:"type:text" json:"reason,omitempty"`
 	ChangedAt   time.Time       `gorm:"default:now();index;index:idx_history_ref_created" json:"changed_at"`
+
+	// Relationships
+	Referral  *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	ChangedBy *User     `gorm:"foreignKey:ChangedByID" json:"changed_by,omitempty"`
 }
 
 func (rsh *ReferralStatusHistory) BeforeCreate(tx *gorm.DB) (err error) {

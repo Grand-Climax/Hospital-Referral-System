@@ -21,8 +21,6 @@ type TriageListResponse struct {
 	PatientName     string    `json:"patient_name"`
 	TargetDept      string    `json:"target_dept"`
 	CompositeScore  float64   `json:"composite_score"`
-	QueueStatus     string    `json:"queue_status"`
-	ArrivalBoost    float64   `json:"arrival_boost"`
 	AppointmentDate *time.Time `json:"appointment_date"`
 }
 

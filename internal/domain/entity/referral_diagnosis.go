@@ -20,8 +20,9 @@ type ReferralDiagnosis struct {
 	IsPrimary          bool               `gorm:"default:true" json:"is_primary"`
 	DiagnosisCertainty DiagnosisCertainty `gorm:"type:varchar(20);not null;default:'CONFIRMED'" json:"diagnosis_certainty"`
 
-	// Relationship
-	CodeInfo *ICDCode `gorm:"foreignKey:ICDCode;references:Code" json:"code_info,omitempty"`
+	// Relationships
+	CodeInfo *ICDCode  `gorm:"foreignKey:ICDCode;references:Code" json:"code_info,omitempty"`
+	Referral *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
 }
 
 func (r *ReferralDiagnosis) BeforeCreate(tx *gorm.DB) (err error) {

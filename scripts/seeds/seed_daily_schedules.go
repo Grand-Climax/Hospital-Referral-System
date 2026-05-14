@@ -40,7 +40,7 @@ func main() {
 			
 			schedule := entity.DailySchedule{
 				HospitalID:    link.HospitalID,
-				DeptID:        link.DepartmentID,
+				DepartmentID:  link.DepartmentID,
 				ScheduleDate:  date,
 				MaxSlots:      link.StandardDailyLimit,
 				OverbookLimit: 2,
@@ -49,7 +49,7 @@ func main() {
 
 			// Use ON CONFLICT DO NOTHING (Postgres specific syntax via GORM)
 			err := db.WithContext(ctx).
-				Where("hospital_id = ? AND dept_id = ? AND schedule_date = ?", link.HospitalID, link.DepartmentID, dateStr).
+				Where("hospital_id = ? AND department_id = ? AND schedule_date = ?", link.HospitalID, link.DepartmentID, dateStr).
 				FirstOrCreate(&schedule).Error
 			
 			if err != nil {

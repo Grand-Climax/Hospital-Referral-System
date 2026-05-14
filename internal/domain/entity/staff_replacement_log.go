@@ -19,6 +19,11 @@ type StaffReplacementLog struct {
 	Reason            string    `gorm:"type:text;not null"`
 	ReplacedByAdminID uuid.UUID `gorm:"type:uuid;not null;index"`
 	CreatedAt         time.Time `gorm:"default:now();index"`
+
+	// Relationships
+	Hospital *Hospital `gorm:"foreignKey:HospitalID" json:"hospital,omitempty"`
+	User     *User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Admin    *User     `gorm:"foreignKey:ReplacedByAdminID" json:"admin,omitempty"`
 }
 
 func (s *StaffReplacementLog) BeforeCreate(tx *gorm.DB) (err error) {

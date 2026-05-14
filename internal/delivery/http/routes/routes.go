@@ -272,6 +272,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				liaisonGroup.POST("/:id/revise", liaisonHandler.Revise)
 				liaisonGroup.POST("/:id/reject-after-send", liaisonHandler.RejectAfterSend)
 				liaisonGroup.GET("/dashboard/stats", liaisonHandler.GetDashboardStats)
+				liaisonGroup.GET("/:id/review-checklist", liaisonHandler.GetReviewChecklist)
+				liaisonGroup.PUT("/:id/review-checklist", liaisonHandler.UpdateReviewChecklist)
 				// Deprecated
 				// liaisonGroup.POST("/incoming/:id/unassign", liaisonHandler.UnassignSpecialist)
 			}
@@ -315,7 +317,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				receptionistGroup.GET("/schedule", receptionistHandler.GetSchedule)
 				receptionistGroup.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
 				receptionistGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
-				receptionistGroup.POST("/walk-in", receptionistHandler.RegisterWalkIn)
 				receptionistGroup.POST("/:id/miss", receptionistHandler.MarkMissed)
 			}
 

@@ -23,6 +23,11 @@ type ReferralAccess struct {
 	GrantedAt  time.Time  `gorm:"default:now()" json:"granted_at"`
 	RevokedAt  *time.Time `gorm:"index:idx_active_access" json:"revoked_at,omitempty"`
 	RevokeReason *string   `gorm:"type:text" json:"revoke_reason,omitempty"`
+
+	// Relationships
+	Referral      *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	User          *User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	GrantedByUser *User     `gorm:"foreignKey:GrantedBy" json:"granted_by_user,omitempty"`
 }
 
 func (ra *ReferralAccess) BeforeCreate(tx *gorm.DB) (err error) {

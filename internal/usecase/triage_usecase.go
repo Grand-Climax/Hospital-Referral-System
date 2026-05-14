@@ -55,16 +55,10 @@ func (u *triageUseCase) LandInQueue(ctx context.Context, referralID uuid.UUID) e
 
 	queue := &entity.TriageQueue{
 		ReferralID:   referralID,
-		DeptID:       ref.TargetDeptID,
 		HospitalID:   ref.TargetHospitalID,
 		DepartmentID: ref.TargetDeptID,
-		QueueStatus:  entity.QueueWaiting,
 		ArrivalStatus: entity.ArrivalExpected,
-	}
-
-	var hospDept entity.HospitalDepartment
-	if err := u.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", ref.TargetHospitalID, ref.TargetDeptID).First(&hospDept).Error; err == nil {
-		queue.DeptID = hospDept.ID
+		AppointmentDate: nil,
 	}
 
 	score, _ := u.CalculateCompositeScore(ctx, referralID)
@@ -135,8 +129,6 @@ func (u *triageUseCase) ListForTriage(ctx context.Context, hospitalID uuid.UUID,
 			PatientName:     name,
 			TargetDept:      ref.TargetDeptID.String(),
 			CompositeScore:  q.CompositeScore,
-			QueueStatus:     string(q.QueueStatus),
-			ArrivalBoost:    float64(q.ArrivalBoost),
 			AppointmentDate: q.AppointmentDate,
 		})
 	}
@@ -167,8 +159,6 @@ func (u *triageUseCase) ListForTriageByDepartment(ctx context.Context, hospitalI
 			PatientName:     name,
 			TargetDept:      targetDept,
 			CompositeScore:  q.CompositeScore,
-			QueueStatus:     string(q.QueueStatus),
-			ArrivalBoost:    float64(q.ArrivalBoost),
 			AppointmentDate: q.AppointmentDate,
 		})
 	}
