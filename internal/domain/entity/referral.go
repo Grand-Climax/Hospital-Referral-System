@@ -17,7 +17,6 @@ const (
 	StatusUnderSpecialistReview ReferralStatus = "UNDER_SPECIALIST_REVIEW"
 	StatusAccepted              ReferralStatus = "ACCEPTED"
 	StatusScheduled             ReferralStatus = "SCHEDULED"
-	StatusAssigned              ReferralStatus = "ASSIGNED"
 	StatusCompleted             ReferralStatus = "COMPLETED"
 	
 	// Interruption Statuses
@@ -25,10 +24,7 @@ const (
 	StatusCancelled            ReferralStatus = "CANCELLED"
 	StatusRejectedByLiaison    ReferralStatus = "REJECTED_BY_LIAISON"
 	StatusRejectedBySpecialist ReferralStatus = "REJECTED_BY_SPECIALIST"
-	StatusMissed               ReferralStatus = "MISSED"
-	StatusRescheduled          ReferralStatus = "RESCHEDULED"
 	StatusRedirected           ReferralStatus = "REDIRECTED"
-	StatusAdmitted             ReferralStatus = "ADMITTED"
 	StatusRejectedAfterSend    ReferralStatus = "REJECTED_AFTER_SEND"
 	StatusDeceased             ReferralStatus = "DECEASED"
 )
@@ -61,6 +57,12 @@ type Referral struct {
 	MLStatus       string `gorm:"type:varchar(50);default:'PENDING'" json:"ml_status"`
 	MLRetryCount   int    `gorm:"default:0" json:"ml_retry_count"`
 	MLLastError    *string `gorm:"type:text" json:"ml_last_error,omitempty"`
+
+	// Liaison Review Checklist
+	PatientIdentityVerified  bool `gorm:"default:false" json:"patient_identity_verified"`
+	ClinicalHistoryAttached  bool `gorm:"default:false" json:"clinical_history_attached"`
+	VitalsIncluded           bool `gorm:"default:false" json:"vitals_included"`
+	AttachmentsIncluded      bool `gorm:"default:false" json:"attachments_included"`
 
 	// Rejection and Revision
 	RejectionReason *string `gorm:"type:text" json:"rejection_reason,omitempty"`

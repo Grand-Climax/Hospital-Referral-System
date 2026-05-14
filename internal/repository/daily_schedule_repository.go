@@ -54,7 +54,6 @@ func (r *dailyScheduleRepository) GetOrCreate(ctx context.Context, hospitalID, d
 	schedule = entity.DailySchedule{
 		HospitalID:    hospitalID,
 		DepartmentID:  deptID,
-		DeptID:        hospDept.ID,
 		ScheduleDate:  date,
 		MaxSlots:      defaultMaxSlots,
 		OverbookLimit: 2,

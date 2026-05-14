@@ -39,6 +39,9 @@ type Notification struct {
 	NotificationType NotificationType `gorm:"type:notificationtype" json:"notification_type"`
 	ProviderMessageID string           `gorm:"type:varchar(255);index" json:"provider_message_id,omitempty"`
 	RetryCount        int              `gorm:"default:0" json:"retry_count"`
+
+	// Relationships
+	Referral *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
 }
 
 func (n *Notification) BeforeCreate(tx *gorm.DB) (err error) {

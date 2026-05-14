@@ -13,7 +13,6 @@ import (
 type TriageQueueRepository interface {
 	BaseRepository[entity.TriageQueue]
 	GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.TriageQueue, error)
-	GetByHospitalAndStatus(ctx context.Context, hospitalID uuid.UUID, status entity.QueueStatus) ([]entity.TriageQueue, error)
 	DeleteByReferralID(ctx context.Context, referralID uuid.UUID) error
 	ListForTriage(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]entity.TriageQueue, int64, error)
 	ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error)

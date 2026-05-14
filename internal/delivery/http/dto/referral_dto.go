@@ -194,3 +194,17 @@ type RedirectionResponse struct {
 type ChangeDepartmentRequest struct {
 	DepartmentID uuid.UUID `json:"department_id" binding:"required" example:"b1000000-0000-0000-0000-000000000001"`
 }
+
+type ReviewChecklistRequest struct {
+	PatientIdentityVerified *bool `json:"patient_identity_verified,omitempty" example:"true"`
+	ClinicalHistoryAttached *bool `json:"clinical_history_attached,omitempty" example:"true"`
+	VitalsIncluded          *bool `json:"vitals_included,omitempty" example:"true"`
+	AttachmentsIncluded     *bool `json:"attachments_included,omitempty" example:"true"`
+}
+
+type ReviewChecklistResponse struct {
+	PatientIdentityVerified bool `json:"patient_identity_verified"`
+	ClinicalHistoryAttached bool `json:"clinical_history_attached"`
+	VitalsIncluded          bool `json:"vitals_included"`
+	AttachmentsIncluded      bool `json:"attachments_included"`
+}

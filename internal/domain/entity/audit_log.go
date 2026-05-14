@@ -49,13 +49,17 @@ type AuditLog struct {
 	UserID     uuid.UUID  `gorm:"type:uuid;not null;index;index:idx_audit_user_time" json:"user_id"`
 	ReferralID *uuid.UUID `gorm:"type:uuid;index" json:"referral_id,omitempty"`
 	ActionType ActionType `gorm:"type:varchar(50);not null;index" json:"action_type"`
-	Resource   *string    `gorm:"type:varchar(100);index" json:"resource,omitempty"`
-	ResourceID *string    `gorm:"type:varchar(100)" json:"resource_id,omitempty"`
+	Resource   *string    `gorm:"type:varchar(100);index;index:idx_audit_resource" json:"resource,omitempty"`
+	ResourceID *string    `gorm:"type:varchar(100);index:idx_audit_resource" json:"resource_id,omitempty"`
 	OldValue   *string    `gorm:"type:jsonb" json:"old_value,omitempty"`
 	NewValue   *string    `gorm:"type:jsonb" json:"new_value,omitempty"`
 	IPAddress  *string    `gorm:"type:varchar(45)" json:"ip_address,omitempty"`
 	UserAgent  *string    `gorm:"type:text" json:"user_agent,omitempty"`
 	Timestamp  time.Time  `gorm:"default:now();index;index:idx_audit_user_time" json:"timestamp"`
+
+	// Relationships
+	User     *User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Referral *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
 }
 
 func (al *AuditLog) BeforeCreate(tx *gorm.DB) (err error) {

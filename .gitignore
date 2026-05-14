@@ -41,6 +41,7 @@ temp_*.log
 test_build.log
 final_test.log
 e2e_report.txt
+e2e_final_report.txt
 
 # ──────────────────────────────────────────────
 # File Storage (uploaded attachments)

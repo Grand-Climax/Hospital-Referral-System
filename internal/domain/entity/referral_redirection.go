@@ -20,6 +20,8 @@ type ReferralRedirection struct {
 
 	RedirectedFromHospital *Hospital `gorm:"foreignKey:RedirectedFromHospitalID" json:"redirected_from_hospital"`
 	RedirectedToHospital   *Hospital `gorm:"foreignKey:RedirectedToHospitalID" json:"redirected_to_hospital"`
+	Referral               *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	RedirectedBy           *User     `gorm:"foreignKey:RedirectedBySpecialistID" json:"redirected_by,omitempty"`
 }
 
 func (rr *ReferralRedirection) BeforeCreate(tx *gorm.DB) (err error) {

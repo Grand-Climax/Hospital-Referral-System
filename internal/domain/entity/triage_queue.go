@@ -25,22 +25,11 @@ const (
 	MissHospitalCapacityIssue      MissReason = "HOSPITAL_CAPACITY_ISSUE"
 )
 
-type QueueStatus string
-
-const (
-	QueueWaiting   QueueStatus = "WAITING"
-	QueueScheduled QueueStatus = "SCHEDULED"
-	QueueArrived   QueueStatus = "ARRIVED"
-	QueueMissed     QueueStatus = "MISSED"
-	QueueCancelled QueueStatus = "CANCELLED"
-)
-
 type TriageQueue struct {
 	ID               uuid.UUID     `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	ReferralID       uuid.UUID     `gorm:"type:uuid;not null;uniqueIndex:idx_ref_date" json:"referral_id"`
-	HospitalID       uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept_status,priority:1" json:"hospital_id"`
-	DepartmentID     uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept_status,priority:2" json:"department_id"`
-	DeptID           uuid.UUID     `gorm:"type:uuid" json:"dept_id"` // Deprecated link
+	HospitalID       uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept,priority:1" json:"hospital_id"`
+	DepartmentID     uuid.UUID     `gorm:"type:uuid;not null;index:idx_triage_hosp_dept,priority:2" json:"department_id"`
 	AppointmentDate  *time.Time     `gorm:"type:date;uniqueIndex:idx_ref_date;index:idx_triage_dept_score" json:"appointment_date,omitempty"`
 	CompositeScore   float64       `gorm:"type:numeric(5,2);not null;index:idx_triage_dept_score,priority:desc" json:"composite_score"`
 	AssignedAt       time.Time     `gorm:"default:now()" json:"assigned_at"`
@@ -50,14 +39,13 @@ type TriageQueue struct {
 	MissReason       *MissReason   `gorm:"type:missreason" json:"miss_reason,omitempty"`
 	AssignedDoctorID *uuid.UUID    `gorm:"type:uuid;index" json:"assigned_doctor_id,omitempty"`
 	DoctorAssignedAt *time.Time    `json:"doctor_assigned_at,omitempty"`
-	QueueStatus      QueueStatus   `gorm:"type:queuestatus;default:'WAITING';index:idx_triage_hosp_dept_status,priority:3" json:"queue_status"`
-	ArrivalBoost     int           `gorm:"default:0" json:"arrival_boost"`
 	WaitingHoursWeight float64     `gorm:"type:numeric(5,2);default:0.00" json:"waiting_hours_weight"`
-	RescheduleReason *string       `gorm:"type:varchar(50)" json:"reschedule_reason,omitempty"`
 
-	Hospital   *Hospital   `gorm:"foreignKey:HospitalID" json:"hospital,omitempty"`
-	Department *Department `gorm:"foreignKey:DepartmentID" json:"department,omitempty"`
-	Referral   *Referral   `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	Hospital       *Hospital   `gorm:"foreignKey:HospitalID" json:"hospital,omitempty"`
+	Department     *Department `gorm:"foreignKey:DepartmentID" json:"department,omitempty"`
+	Referral       *Referral   `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`
+	MarkedByAdmin  *User       `gorm:"foreignKey:MarkedBy" json:"marked_by_admin,omitempty"`
+	AssignedDoctor *User       `gorm:"foreignKey:AssignedDoctorID" json:"assigned_doctor,omitempty"`
 }
 
 func (tq *TriageQueue) BeforeCreate(tx *gorm.DB) (err error) {

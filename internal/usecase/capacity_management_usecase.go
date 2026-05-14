@@ -60,7 +60,6 @@ func (u *capacityManagementUseCase) CreateOverride(ctx context.Context, hospital
 	override := &entity.CapacityOverride{
 		HospitalID:   hospitalID,
 		DepartmentID: deptID,
-		DeptID:       dept.ID,
 		TargetDate:   date,
 		NewLimit:     newLimit,
 		Reason:       &reason,

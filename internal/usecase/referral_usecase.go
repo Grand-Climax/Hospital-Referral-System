@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -75,17 +76,13 @@ func (u *referralUseCase) IsValidStatus(status string) bool {
 		entity.StatusUnderSpecialistReview: true,
 		entity.StatusAccepted:              true,
 		entity.StatusScheduled:             true,
-		entity.StatusAssigned:              true,
 		entity.StatusCompleted:             true,
 		entity.StatusNeedRevision:          true,
 		entity.StatusCancelled:             true,
 		entity.StatusRejectedByLiaison:     true,
 		entity.StatusRejectedBySpecialist:  true,
-		entity.StatusMissed:                true,
-		entity.StatusRescheduled:           true,
 		entity.StatusRedirected:            true,
 		entity.StatusDeceased:              true,
-		entity.StatusAdmitted:              true,
 		entity.StatusRejectedAfterSend:     true,
 	}
 	return validStatuses[entity.ReferralStatus(status)]
@@ -765,6 +762,47 @@ func (u *referralUseCase) LiaisonRead(ctx context.Context, id, liaisonID, hospID
 	return u.logStatusChange(ctx, id, liaisonID, &oldStatus, entity.StatusUnderLiaisonReview, "")
 }
 
+func (u *referralUseCase) UpdateReviewChecklist(ctx context.Context, referralID, liaisonID, hospID uuid.UUID, req dto.ReviewChecklistRequest) error {
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
+		return err
+	}
+	if ref.SenderHospitalID != hospID {
+		return errors.New("unauthorized: liaison belongs to a different hospital")
+	}
+
+	// Status Restriction: Only allow updates in SUBMITTED or UNDER_LIAISON_REVIEW
+	if ref.Status != entity.StatusSubmitted && ref.Status != entity.StatusUnderLiaisonReview {
+		return fmt.Errorf("forbidden: checklist can only be updated when referral is SUBMITTED or UNDER_LIAISON_REVIEW, current status: %s", ref.Status)
+	}
+
+	updates := irepository.ReferralUpdateFields{
+		PatientIdentityVerified: req.PatientIdentityVerified,
+		ClinicalHistoryAttached: req.ClinicalHistoryAttached,
+		VitalsIncluded:          req.VitalsIncluded,
+		AttachmentsIncluded:     req.AttachmentsIncluded,
+	}
+
+	return u.referralRepo.UpdateFields(ctx, referralID, updates)
+}
+
+func (u *referralUseCase) GetReviewChecklist(ctx context.Context, referralID, hospID uuid.UUID) (*dto.ReviewChecklistResponse, error) {
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
+		return nil, err
+	}
+	if ref.SenderHospitalID != hospID {
+		return nil, errors.New("unauthorized")
+	}
+
+	return &dto.ReviewChecklistResponse{
+		PatientIdentityVerified: ref.PatientIdentityVerified,
+		ClinicalHistoryAttached: ref.ClinicalHistoryAttached,
+		VitalsIncluded:          ref.VitalsIncluded,
+		AttachmentsIncluded:     ref.AttachmentsIncluded,
+	}, nil
+}
+
 func (u *referralUseCase) LiaisonForward(ctx context.Context, id, liaisonID, hospID uuid.UUID, comment string) error {
 	ref, err := u.referralRepo.GetReferralByID(ctx, id)
 	if err != nil {
@@ -786,6 +824,23 @@ func (u *referralUseCase) LiaisonForward(ctx context.Context, id, liaisonID, hos
 		}
 		if att.VerificationStatus == entity.VerificationRejected {
 			return errors.New("referral has rejected attachments and requires revision by the doctor")
+		}
+	}
+
+	// Checklist Enforcement Logic
+	condition := ""
+	if ref.ReferralForm != nil {
+		condition = strings.ToLower(ref.ReferralForm.ConditionAtReferral)
+	}
+
+	switch condition {
+	case "stable":
+		if !ref.PatientIdentityVerified || !ref.ClinicalHistoryAttached || !ref.VitalsIncluded || !ref.AttachmentsIncluded {
+			return errors.New("all 4 review checklist items must be verified before forwarding a stable referral: Patient Identity, Clinical History, Vitals, Attachments")
+		}
+	case "emergency", "critical":
+		if !ref.PatientIdentityVerified {
+			return errors.New("patient identity must be verified before forwarding an emergency/critical referral")
 		}
 	}
 
@@ -975,11 +1030,8 @@ func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospI
 		entity.StatusUnderSpecialistReview: true,
 		entity.StatusAccepted:              true,
 		entity.StatusScheduled:             true,
-		entity.StatusAssigned:              true,
 		entity.StatusCompleted:             true,
 		entity.StatusRejectedBySpecialist:  true,
-		entity.StatusMissed:                true,
-		entity.StatusRescheduled:           true,
 		entity.StatusRedirected:            true,
 		entity.StatusRejectedAfterSend:     true,
 	}
@@ -1192,11 +1244,7 @@ func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hos
 	allowedStatuses := map[entity.ReferralStatus]bool{
 		entity.StatusAccepted:    true,
 		entity.StatusScheduled:   true,
-		entity.StatusAssigned:    true,
 		entity.StatusCompleted:   true,
-		entity.StatusMissed:      true,
-		entity.StatusRescheduled: true,
-		entity.StatusAdmitted:    true,
 	}
 
 	if !allowedStatuses[ref.Status] {
@@ -1206,64 +1254,6 @@ func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hos
 	return ref, nil
 }
 
-func (u *referralUseCase) ConfirmAttendance(ctx context.Context, id, receptionistID, hospID uuid.UUID, status string) error {
-	ref, err := u.referralRepo.GetReferralByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if ref.TargetHospitalID != hospID {
-		return errors.New("unauthorized")
-	}
-
-	// This mapping requires the Referral to be SCHEDULED prior, though some systems allow ACCEPTED -> ASSIGNED skipping SCHEDULED.
-	// We'll enforce ACCEPTED or SCHEDULED or RESCHEDULED -> ASSIGNED, and SCHEDULED->MISSED, etc.
-	oldStatus := ref.Status
-	var newStatus entity.ReferralStatus
-
-	switch status {
-	case string(entity.StatusAssigned):
-		if oldStatus == entity.StatusAssigned {
-			return errors.New("referral is already assigned")
-		}
-		if oldStatus != entity.StatusAccepted && oldStatus != entity.StatusScheduled && oldStatus != entity.StatusRescheduled {
-			return errors.New("invalid transition to ASSIGNED")
-		}
-		newStatus = entity.StatusAssigned
-	case string(entity.StatusMissed):
-		if oldStatus == entity.StatusMissed {
-			return errors.New("referral is already marked as missed")
-		}
-		if oldStatus != entity.StatusScheduled && oldStatus != entity.StatusRescheduled {
-			return errors.New("invalid transition to MISSED")
-		}
-		newStatus = entity.StatusMissed
-	case string(entity.StatusCompleted):
-		if oldStatus == entity.StatusCompleted {
-			return errors.New("referral is already completed")
-		}
-		if oldStatus != entity.StatusAssigned {
-			return errors.New("invalid transition: must be ASSIGNED to COMPLETE")
-		}
-		newStatus = entity.StatusCompleted
-	case string(entity.StatusScheduled):
-		if oldStatus == entity.StatusScheduled {
-			return errors.New("referral is already scheduled")
-		}
-		if oldStatus != entity.StatusAccepted {
-			return errors.New("invalid transition: must be ACCEPTED")
-		}
-		newStatus = entity.StatusScheduled
-	default:
-		return errors.New("invalid status selected")
-	}
-
-	ref.Status = newStatus
-
-	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
-		return err
-	}
-	return u.logStatusChange(ctx, id, receptionistID, &oldStatus, newStatus, "")
-}
 
 // ---------------------------------------------------------
 // Admin Actions

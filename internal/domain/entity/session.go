@@ -16,6 +16,9 @@ type Session struct {
 	ExpiresAt        time.Time `gorm:"not null;index" json:"expires_at"`
 	CreatedAt        time.Time `gorm:"default:now()" json:"created_at"`
 	RevokedAt        *time.Time `json:"revoked_at,omitempty"`
+
+	// Relationships
+	User *User `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
 
 func (s *Session) BeforeCreate(tx *gorm.DB) (err error) {

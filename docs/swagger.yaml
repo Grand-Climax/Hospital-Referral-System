@@ -1115,6 +1115,10 @@ definitions:
         items:
           $ref: '#/definitions/entity.Attachment'
         type: array
+      attachments_included:
+        type: boolean
+      clinical_history_attached:
+        type: boolean
       created_at:
         description: Timestamps
         type: string
@@ -1148,6 +1152,9 @@ definitions:
         description: Relationships
       patient_id:
         type: string
+      patient_identity_verified:
+        description: Liaison Review Checklist
+        type: boolean
       receiver_hospital:
         $ref: '#/definitions/entity.Hospital'
       redirections:
@@ -1189,6 +1196,8 @@ definitions:
         items:
           $ref: '#/definitions/entity.Vital'
         type: array
+      vitals_included:
+        type: boolean
       waiting_hours_weight:
         type: number
     type: object
@@ -1230,6 +1239,32 @@ definitions:
         type: string
     required:
     - reason
+    type: object
+  dto.ReviewChecklistRequest:
+    properties:
+      attachments_included:
+        example: true
+        type: boolean
+      clinical_history_attached:
+        example: true
+        type: boolean
+      patient_identity_verified:
+        example: true
+        type: boolean
+      vitals_included:
+        example: true
+        type: boolean
+    type: object
+  dto.ReviewChecklistResponse:
+    properties:
+      attachments_included:
+        type: boolean
+      clinical_history_attached:
+        type: boolean
+      patient_identity_verified:
+        type: boolean
+      vitals_included:
+        type: boolean
     type: object
   dto.ReviseDTO:
     properties:
@@ -1482,13 +1517,6 @@ definitions:
         minimum: 25
         type: number
     type: object
-  dto.WalkInRequest:
-    properties:
-      referral_id:
-        type: string
-    required:
-    - referral_id
-    type: object
   entity.ActionType:
     enum:
     - CREATE_REFERRAL
@@ -1690,6 +1718,10 @@ definitions:
         type: string
       provider_message_id:
         type: string
+      referral:
+        allOf:
+        - $ref: '#/definitions/entity.Referral'
+        description: Relationships
       referral_id:
         type: string
       retry_count:
@@ -1744,6 +1776,10 @@ definitions:
         items:
           $ref: '#/definitions/entity.Attachment'
         type: array
+      attachments_included:
+        type: boolean
+      clinical_history_attached:
+        type: boolean
       created_at:
         description: Timestamps
         type: string
@@ -1775,6 +1811,9 @@ definitions:
         description: Relationships
       patient_id:
         type: string
+      patient_identity_verified:
+        description: Liaison Review Checklist
+        type: boolean
       receiver_hospital:
         $ref: '#/definitions/entity.Hospital'
       redirections:
@@ -1813,6 +1852,8 @@ definitions:
         items:
           $ref: '#/definitions/entity.Vital'
         type: array
+      vitals_included:
+        type: boolean
       waiting_hours_weight:
         type: number
     type: object
@@ -1821,7 +1862,7 @@ definitions:
       code_info:
         allOf:
         - $ref: '#/definitions/entity.ICDCode'
-        description: Relationship
+        description: Relationships
       diagnosis_certainty:
         $ref: '#/definitions/entity.DiagnosisCertainty'
       icd_code:
@@ -1830,6 +1871,8 @@ definitions:
         type: string
       is_primary:
         type: boolean
+      referral:
+        $ref: '#/definitions/entity.Referral'
       referral_id:
         type: string
     type: object
@@ -1870,6 +1913,10 @@ definitions:
         type: string
       reason_of_referral:
         type: string
+      referral:
+        allOf:
+        - $ref: '#/definitions/entity.Referral'
+        description: Relationships
       referral_id:
         type: string
       treatment_given_before_referral:
@@ -1881,6 +1928,8 @@ definitions:
         type: string
       id:
         type: string
+      redirected_by:
+        $ref: '#/definitions/entity.User'
       redirected_by_specialist_id:
         type: string
       redirected_from_hospital:
@@ -1893,6 +1942,8 @@ definitions:
         type: string
       redirection_reason:
         type: string
+      referral:
+        $ref: '#/definitions/entity.Referral'
       referral_id:
         type: string
       updated_at:
@@ -1907,16 +1958,12 @@ definitions:
     - UNDER_SPECIALIST_REVIEW
     - ACCEPTED
     - SCHEDULED
-    - ASSIGNED
     - COMPLETED
     - NEED_REVISION
     - CANCELLED
     - REJECTED_BY_LIAISON
     - REJECTED_BY_SPECIALIST
-    - MISSED
-    - RESCHEDULED
     - REDIRECTED
-    - ADMITTED
     - REJECTED_AFTER_SEND
     - DECEASED
     type: string
@@ -1928,16 +1975,12 @@ definitions:
     - StatusUnderSpecialistReview
     - StatusAccepted
     - StatusScheduled
-    - StatusAssigned
     - StatusCompleted
     - StatusNeedRevision
     - StatusCancelled
     - StatusRejectedByLiaison
     - StatusRejectedBySpecialist
-    - StatusMissed
-    - StatusRescheduled
     - StatusRedirected
-    - StatusAdmitted
     - StatusRejectedAfterSend
     - StatusDeceased
   entity.TriageStatus:
@@ -1950,6 +1993,41 @@ definitions:
     - TriageAutoScored
     - TriageReviewed
     - TriageOverridden
+  entity.User:
+    properties:
+      created_at:
+        type: string
+      department:
+        $ref: '#/definitions/entity.Department'
+      department_id:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      hospital:
+        allOf:
+        - $ref: '#/definitions/entity.Hospital'
+        description: Relationships
+      hospital_id:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      national_id:
+        type: string
+      profile_image_url:
+        type: string
+      role:
+        $ref: '#/definitions/entity.UserRole'
+      updated_at:
+        type: string
+    type: object
   entity.UserRole:
     enum:
     - REFERRING_DOCTOR
@@ -1982,6 +2060,10 @@ definitions:
         type: string
       recorded_at:
         type: string
+      referral:
+        allOf:
+        - $ref: '#/definitions/entity.Referral'
+        description: Relationships
       referral_id:
         type: string
       respiratory_rate:
@@ -5501,11 +5583,11 @@ paths:
       description: |-
         Forward the referral to specialists at the target hospital.
         **Roles:** LIAISON_OFFICER
-        **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED.
+        **Prerequisites:** status = SUBMITTED or UNDER_LIAISON_REVIEW; all attachments must be VERIFIED; checklist must be COMPLETE (condition-based).
         **State Transition:** → FORWARDED.
-        **Gatekeepers:** Attachment verification (not PENDING/REJECTED).
+        **Gatekeepers:** Attachment verification; Review Checklist completion.
         **Common Errors:**
-        - 400 invalid format
+        - 400 invalid format / checklist incomplete
         - 403 (wrong hospital)
         - 422 (attachments not verified)
       parameters:
@@ -5637,6 +5719,75 @@ paths:
       security:
       - BearerAuth: []
       summary: Reject Referral After Sending
+      tags:
+      - Liaison
+  /api/v1/liaison/referrals/{id}/review-checklist:
+    get:
+      description: |-
+        Get the current state of the liaison review checklist for a referral.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** Referral must belong to the liaison's hospital.
+        **Common Errors:**
+        - 400 Invalid format
+        - 401 Unauthorized
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReviewChecklistResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Review Checklist
+      tags:
+      - Liaison
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Update specific items in the liaison review checklist.
+        **Roles:** LIAISON_OFFICER
+        **Prerequisites:** Referral must belong to the liaison's hospital; Status must be SUBMITTED or UNDER_LIAISON_REVIEW.
+        **Common Errors:**
+        - 400 Invalid format / validation error / invalid status
+        - 401 Unauthorized
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Checklist Updates
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReviewChecklistRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Review Checklist
       tags:
       - Liaison
   /api/v1/liaison/referrals/{id}/revise:
@@ -6380,7 +6531,7 @@ paths:
       description: |-
         Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.
         **Roles:** RECEPTIONIST
-        **Visibility:** ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, ADMITTED.
+        **Visibility:** ACCEPTED, SCHEDULED, COMPLETED.
         **Common Errors:**
         - 401 Unauthorized
         - 500 Internal Server Error
@@ -6446,7 +6597,7 @@ paths:
       description: |-
         Get detailed information about an accepted or scheduled referral.
         **Roles:** RECEPTIONIST
-        **Prerequisites:** Status must be ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, MISSED, RESCHEDULED, or ADMITTED.
+        **Prerequisites:** Status must be ACCEPTED, SCHEDULED, or COMPLETED.
         **Common Errors:**
         - 400 Invalid ID format
         - 403 Forbidden (wrong hospital or invalid status)
@@ -6482,7 +6633,7 @@ paths:
         Mark a patient as arrived.
         **Roles:** RECEPTIONIST
         **Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.
-        **State Transition:** arrival_status → ARRIVED, queue_status → ARRIVED.
+        **State Transition:** arrival_status → ARRIVED.
         **Common Errors:**
         - 400 invalid format
         - 409 already arrived
@@ -6628,47 +6779,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Receptionist Schedule
-      tags:
-      - Receptionist
-  /api/v1/receptionist/walk-in:
-    post:
-      consumes:
-      - application/json
-      description: |-
-        Register a patient arriving without a prior appointment.
-        **Roles:** RECEPTIONIST
-        **Prerequisites:** referral.status must be ACCEPTED or SCHEDULED.
-        **State Transition:** Creates new TriageQueue entry with arrival_boost=20.
-        **Gatekeepers:** Status check (must be ACCEPTED or SCHEDULED).
-        **Common Errors:**
-        - 400 invalid format
-        - 422 invalid referral status
-      parameters:
-      - description: Walk-in details
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.WalkInRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Register Walk-in Patient
       tags:
       - Receptionist
   /api/v1/reference/departments:
@@ -7250,6 +7360,7 @@ paths:
         name: request
         schema:
           additionalProperties:
+            format: float64
             type: number
           type: object
       produces:
