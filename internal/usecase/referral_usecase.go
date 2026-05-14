@@ -278,7 +278,7 @@ func (u *referralUseCase) CreateReferralWithAttachments(ctx context.Context, doc
 	}
 
 	return &dto.ReferralCreationResponse{
-		Referral: ref,
+		Referral:     ref,
 		BaseResponse: dto.BaseResponse{Success: true, Message: "Referral created successfully"},
 	}, nil
 }
@@ -382,7 +382,6 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 	} else {
 		existing.Vitals = nil
 	}
-
 
 	if nextStatus == entity.StatusSubmitted {
 		if len(existing.Diagnoses) == 0 {
@@ -1338,6 +1337,26 @@ func (u *referralUseCase) GetHospitalLogsForAdmin(ctx context.Context, hospID uu
 
 func (u *referralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx context.Context, hospID, referralID uuid.UUID, limit, page int) ([]entity.ReferralStatusHistory, int64, error) {
 	return u.referralRepo.GetReferralStatusHistoryForHospital(ctx, hospID, referralID, limit, page)
+}
+
+func (u *referralUseCase) GetMohDashboardSummary(ctx context.Context, filter irepository.MohAnalyticsFilter) (*irepository.MohDashboardSummary, error) {
+	return u.referralRepo.GetMohDashboardSummary(ctx, filter)
+}
+
+func (u *referralUseCase) GetMohReferralTrends(ctx context.Context, filter irepository.MohAnalyticsFilter, granularity string) ([]irepository.MohReferralTrendPoint, error) {
+	return u.referralRepo.GetMohReferralTrends(ctx, filter, granularity)
+}
+
+func (u *referralUseCase) GetMohHospitalLoad(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohHospitalLoadMetric, error) {
+	return u.referralRepo.GetMohHospitalLoad(ctx, filter)
+}
+
+func (u *referralUseCase) GetMohDiseaseHotspots(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohDiseaseHotspot, error) {
+	return u.referralRepo.GetMohDiseaseHotspots(ctx, filter)
+}
+
+func (u *referralUseCase) GetMohSeverityDistribution(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohSeverityDistribution, error) {
+	return u.referralRepo.GetMohSeverityDistribution(ctx, filter)
 }
 
 func (u *referralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string, newDeptID *uuid.UUID) error {

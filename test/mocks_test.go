@@ -9,9 +9,9 @@ import (
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
+	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
-	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 )
 
 // ---------------------------------------------------------------------------
@@ -256,6 +256,46 @@ func (m *MockReferralRepo) CountBySenderHospitalAndStatuses(ctx context.Context,
 func (m *MockReferralRepo) CountAcceptedOrCompletedToday(ctx context.Context, hospID uuid.UUID) (int64, error) {
 	args := m.Called(ctx, hospID)
 	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetMohDashboardSummary(ctx context.Context, filter irepository.MohAnalyticsFilter) (*irepository.MohDashboardSummary, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*irepository.MohDashboardSummary), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetMohReferralTrends(ctx context.Context, filter irepository.MohAnalyticsFilter, granularity string) ([]irepository.MohReferralTrendPoint, error) {
+	args := m.Called(ctx, filter, granularity)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohReferralTrendPoint), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetMohHospitalLoad(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohHospitalLoadMetric, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohHospitalLoadMetric), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetMohDiseaseHotspots(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohDiseaseHotspot, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohDiseaseHotspot), args.Error(1)
+}
+
+func (m *MockReferralRepo) GetMohSeverityDistribution(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohSeverityDistribution, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohSeverityDistribution), args.Error(1)
 }
 
 func (m *MockReferralRepo) ListForReceptionist(ctx context.Context, hospID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
@@ -699,6 +739,46 @@ func (m *MockReferralUseCase) GetReferralStatusHistoryForHospitalAdmin(ctx conte
 	return args.Get(0).([]entity.ReferralStatusHistory), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockReferralUseCase) GetMohDashboardSummary(ctx context.Context, filter irepository.MohAnalyticsFilter) (*irepository.MohDashboardSummary, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*irepository.MohDashboardSummary), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetMohReferralTrends(ctx context.Context, filter irepository.MohAnalyticsFilter, granularity string) ([]irepository.MohReferralTrendPoint, error) {
+	args := m.Called(ctx, filter, granularity)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohReferralTrendPoint), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetMohHospitalLoad(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohHospitalLoadMetric, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohHospitalLoadMetric), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetMohDiseaseHotspots(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohDiseaseHotspot, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohDiseaseHotspot), args.Error(1)
+}
+
+func (m *MockReferralUseCase) GetMohSeverityDistribution(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohSeverityDistribution, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.MohSeverityDistribution), args.Error(1)
+}
+
 func (m *MockReferralUseCase) IsValidStatus(status string) bool {
 	args := m.Called(status)
 	return args.Bool(0)
@@ -824,13 +904,10 @@ func (m *MockAttachmentUseCase) DeleteAttachment(ctx context.Context, id uuid.UU
 	return args.Error(0)
 }
 
-
-
 func (m *MockAttachmentUseCase) DeleteAttachmentFromReferral(ctx context.Context, referralID, attachmentID, doctorID uuid.UUID) error {
 	args := m.Called(ctx, referralID, attachmentID, doctorID)
 	return args.Error(0)
 }
-
 
 func (m *MockAttachmentUseCase) UploadAndAddAttachment(ctx context.Context, referralID, doctorID uuid.UUID, fileBytes []byte, fileName, fileType, category string, fileSize int64) (*entity.Attachment, error) {
 	args := m.Called(ctx, referralID, doctorID, fileBytes, fileName, fileType, category, fileSize)
@@ -849,7 +926,6 @@ func (m *MockAttachmentUseCase) Storage() iinfra.StorageService {
 	args := m.Called()
 	return args.Get(0).(iinfra.StorageService)
 }
-
 
 // ---------------------------------------------------------------------------
 // Mock: StorageService
@@ -893,7 +969,6 @@ func (m *MockStorageService) ListFolders(ctx context.Context, prefix string) ([]
 	args := m.Called(ctx, prefix)
 	return args.Get(0).([]string), args.Error(1)
 }
-
 
 // ---------------------------------------------------------------------------
 // Mock: TriageQueueRepository
