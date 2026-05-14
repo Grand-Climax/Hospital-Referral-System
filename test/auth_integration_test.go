@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
@@ -18,6 +19,7 @@ import (
 
 	"Hospital-Referral-System/internal/delivery/http/handlers"
 	"Hospital-Referral-System/internal/domain/entity"
+	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/pkg/auth"
 )
 
@@ -29,7 +31,7 @@ func TestDatabaseAuthHashing(t *testing.T) {
 	if dsn == "" {
 		dsn = "host=localhost user=postgres password=6628 dbname=referral port=5432 sslmode=disable TimeZone=Africa/Addis_Ababa"
 	}
-	
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Skipf("Skipping integration test; DB unavailable: %v", err)
@@ -52,12 +54,30 @@ type MockAuthUseCase struct {
 	mock.Mock
 }
 
-func (m *MockAuthUseCase) Login(ctx context.Context, email, password, ipAddress, userAgent string) (*auth.TokenPair, error) {
-	args := m.Called(ctx, email, password, ipAddress, userAgent)
+func (m *MockAuthUseCase) Login(ctx context.Context, email, password string) (*iusecase.LoginResult, error) {
+	args := m.Called(ctx, email, password)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*iusecase.LoginResult), args.Error(1)
+}
+
+func (m *MockAuthUseCase) VerifyMFA(ctx context.Context, userID uuid.UUID, code, ipAddress, userAgent string) (*auth.TokenPair, error) {
+	args := m.Called(ctx, userID, code, ipAddress, userAgent)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*auth.TokenPair), args.Error(1)
+}
+
+func (m *MockAuthUseCase) SetupMFA(ctx context.Context, userID uuid.UUID) (string, error) {
+	args := m.Called(ctx, userID)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockAuthUseCase) ResetMFA(ctx context.Context, adminUserID, targetUserID uuid.UUID) error {
+	args := m.Called(ctx, adminUserID, targetUserID)
+	return args.Error(0)
 }
 
 func (m *MockAuthUseCase) Refresh(ctx context.Context, refreshToken, ipAddress, userAgent string) (*auth.TokenPair, error) {
@@ -87,13 +107,12 @@ func TestAuthHandlerLogin(t *testing.T) {
 		"password": "password123",
 	}
 
-	mockResp := &auth.TokenPair{
-		AccessToken:  "mock-access-token",
-		RefreshToken: "mock-refresh-token",
+	mockResp := &iusecase.LoginResult{
+		MFAToken:         "mock-mfa-token",
+		MFASetupRequired: false,
 	}
 
-	// The handler passes IP and User-Agent parameters extracted from context.
-	mockUC.On("Login", mock.Anything, "superadmin@moh.gov.et", "password123", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(mockResp, nil)
+	mockUC.On("Login", mock.Anything, "superadmin@moh.gov.et", "password123").Return(mockResp, nil)
 
 	body, _ := json.Marshal(reqPayload)
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBuffer(body))
@@ -105,12 +124,12 @@ func TestAuthHandlerLogin(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	// Ensure the response JSON format directly maps the mock.
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "mock-access-token", response["access_token"])
+	assert.Equal(t, "mock-mfa-token", response["mfa_token"])
 	mockUC.AssertExpectations(t)
 }
