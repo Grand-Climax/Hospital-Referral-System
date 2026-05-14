@@ -258,7 +258,7 @@
         },
         "/api/v1/auth/login": {
             "post": {
-                "description": "Authenticate a user using Email and Password. Returns a Bearer Access Token (short-lived) and a Refresh Token (long-lived).\n**Roles:** Any user with an active account.\n**Common Errors:**\n- 401 (Invalid Credentials)\n- 403 (Account Inactive)",
+                "description": "Authenticate with email and password as step 1 of MFA.\nReturns a short-lived intermediate token (`mfa_token`) that is only valid for MFA setup/verification flows.\nIf `mfa_setup_required=true`, client must call MFA setup first, then verify.\n**Roles:** Any user with an active account.\n**Common Errors:**\n- 401 (Invalid Credentials)\n- 401 (Account Inactive)",
                 "consumes": [
                     "application/json"
                 ],
@@ -282,7 +282,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Token pair",
+                        "description": "Intermediate MFA token response",
                         "schema": {
                             "$ref": "#/definitions/dto.LoginResponse"
                         }
@@ -346,6 +346,175 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/reset": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Clear MFA secret for a target user, forcing setup on next login.\nAction is audited with `RESET_MFA`.\n**Roles:** HOSPITAL_ADMIN",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Reset user MFA (Hospital Admin)",
+                "parameters": [
+                    {
+                        "description": "Target user ID",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MFAResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/setup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Initialize MFA for the current user when no MFA secret exists yet.\nGenerates and persists a TOTP secret, then returns an `otpauth://` URI for QR generation.\nAccepts either a full access token or the intermediate MFA token from login.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Setup MFA secret",
+                "responses": {
+                    "200": {
+                        "description": "MFA setup URI",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MFASetupResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Complete step 2 of login by verifying a 6-digit TOTP code.\nRequires the intermediate token from `/api/v1/auth/login`.\nOn success, returns full access and refresh tokens.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify MFA code",
+                "parameters": [
+                    {
+                        "description": "6-digit TOTP code",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MFAVerifyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Full authentication token pair",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MFAVerifyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -7025,8 +7194,7 @@
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number",
-                                "format": "float64"
+                                "type": "number"
                             }
                         }
                     }
@@ -9515,6 +9683,39 @@
         "dto.LoginResponse": {
             "type": "object",
             "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "mfa_setup_required": {
+                    "type": "boolean"
+                },
+                "mfa_token": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MFASetupResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "otpauth_url": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MFAVerifyResponse": {
+            "type": "object",
+            "properties": {
                 "access_token": {
                     "type": "string"
                 },
@@ -11681,6 +11882,28 @@
             ],
             "properties": {
                 "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.MFAResetRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.MFAVerifyRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
                     "type": "string"
                 }
             }
