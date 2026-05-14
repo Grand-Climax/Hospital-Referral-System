@@ -152,6 +152,25 @@ func (r *referralRepository) applyFilter(query *gorm.DB, filter irepository.Refe
 	return query
 }
 
+func (r *referralRepository) applyMohReferralFilter(query *gorm.DB, filter irepository.MohAnalyticsFilter, joinPatients bool) *gorm.DB {
+	query = query.Where("referrals.is_archived = false")
+
+	if filter.From != nil {
+		query = query.Where("referrals.created_at >= ?", *filter.From)
+	}
+	if filter.To != nil {
+		query = query.Where("referrals.created_at <= ?", *filter.To)
+	}
+	if filter.HospitalID != nil {
+		query = query.Where("(referrals.sender_hospital_id = ? OR referrals.target_hospital_id = ?)", *filter.HospitalID, *filter.HospitalID)
+	}
+	if joinPatients && filter.Region != nil && *filter.Region != "" {
+		query = query.Joins("JOIN patients ON patients.id = referrals.patient_id").Where("patients.home_region = ?", *filter.Region)
+	}
+
+	return query
+}
+
 func (r *referralRepository) ListForSystemAdmin(ctx context.Context, filter irepository.ReferralFilter) ([]entity.Referral, int64, error) {
 	var referrals []entity.Referral
 	var count int64
@@ -695,4 +714,286 @@ func (r *referralRepository) CountAcceptedOrCompletedToday(ctx context.Context, 
 
 func (r *referralRepository) UpdateFields(ctx context.Context, referralID uuid.UUID, updates irepository.ReferralUpdateFields) error {
 	return r.db.WithContext(ctx).Model(&entity.Referral{}).Where("id = ?", referralID).Updates(updates).Error
+}
+
+func (r *referralRepository) GetMohDashboardSummary(ctx context.Context, filter irepository.MohAnalyticsFilter) (*irepository.MohDashboardSummary, error) {
+	type row struct {
+		TotalReferrals      int64
+		TotalAccepted       int64
+		TotalRejected       int64
+		TotalAdmitted       int64
+		AverageMLSeverity   float64
+		AverageTurnaroundHr float64
+	}
+
+	var rw row
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select(`
+			COUNT(*) AS total_referrals,
+			COUNT(*) FILTER (WHERE referrals.status = ?) AS total_accepted,
+			COUNT(*) FILTER (WHERE referrals.status IN ?) AS total_rejected,
+			COUNT(*) FILTER (WHERE admitted.admitted_at IS NOT NULL) AS total_admitted,
+			COALESCE(AVG(referrals.ml_severity_score), 0) AS average_ml_severity,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (admitted.admitted_at - referrals.created_at))/3600), 0) AS average_turnaround_hr
+		`,
+			entity.StatusAccepted,
+			[]entity.ReferralStatus{
+				entity.StatusRejectedByLiaison,
+				entity.StatusRejectedBySpecialist,
+				entity.StatusRejectedAfterSend,
+			},
+		).
+		Joins(`
+			LEFT JOIN (
+				SELECT referral_id, MIN(changed_at) AS admitted_at
+				FROM referral_status_histories
+				WHERE to_status = ?
+				GROUP BY referral_id
+			) admitted ON admitted.referral_id = referrals.id
+		`, entity.StatusCompleted) // Replaced StatusAdmitted with StatusCompleted
+
+	query = r.applyMohReferralFilter(query, filter, true)
+	if err := query.Scan(&rw).Error; err != nil {
+		return nil, err
+	}
+
+	acceptanceRate := 0.0
+	if rw.TotalReferrals > 0 {
+		acceptanceRate = (float64(rw.TotalAccepted) / float64(rw.TotalReferrals)) * 100
+	}
+
+	return &irepository.MohDashboardSummary{
+		TotalReferrals:      rw.TotalReferrals,
+		TotalAccepted:       rw.TotalAccepted,
+		TotalRejected:       rw.TotalRejected,
+		TotalAdmitted:       rw.TotalAdmitted,
+		AcceptanceRate:      math.Round(acceptanceRate*100) / 100,
+		AverageMLSeverity:   math.Round(rw.AverageMLSeverity*100) / 100,
+		AverageTurnaroundHr: math.Round(rw.AverageTurnaroundHr*100) / 100,
+	}, nil
+}
+
+func (r *referralRepository) GetMohReferralTrends(ctx context.Context, filter irepository.MohAnalyticsFilter, granularity string) ([]irepository.MohReferralTrendPoint, error) {
+	type row struct {
+		Period             time.Time
+		TotalReferrals     int64
+		AcceptedReferrals  int64
+		RejectedReferrals  int64
+		EmergencyReferrals int64
+	}
+
+	var rows []row
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select(`
+			DATE_TRUNC(?, referrals.created_at) AS period,
+			COUNT(*) AS total_referrals,
+			COUNT(*) FILTER (WHERE referrals.status = ?) AS accepted_referrals,
+			COUNT(*) FILTER (WHERE referrals.status IN ?) AS rejected_referrals,
+			COUNT(*) FILTER (
+				WHERE LOWER(COALESCE(referral_forms.reason_for_referral_category, '')) = 'emergency'
+				   OR LOWER(COALESCE(referral_forms.condition_at_referral, '')) = 'critical'
+			) AS emergency_referrals
+		`,
+			granularity,
+			entity.StatusAccepted,
+			[]entity.ReferralStatus{
+				entity.StatusRejectedByLiaison,
+				entity.StatusRejectedBySpecialist,
+				entity.StatusRejectedAfterSend,
+			},
+		).
+		Joins("LEFT JOIN referral_forms ON referral_forms.referral_id = referrals.id")
+
+	query = r.applyMohReferralFilter(query, filter, true)
+	if err := query.Group("period").Order("period ASC").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	resp := make([]irepository.MohReferralTrendPoint, 0, len(rows))
+	for _, rw := range rows {
+		period := rw.Period.Format("2006-01")
+		switch granularity {
+		case "day":
+			period = rw.Period.Format("2006-01-02")
+		case "week":
+			period = rw.Period.Format("2006-01-02")
+		}
+		resp = append(resp, irepository.MohReferralTrendPoint{
+			Period:             period,
+			TotalReferrals:     rw.TotalReferrals,
+			AcceptedReferrals:  rw.AcceptedReferrals,
+			RejectedReferrals:  rw.RejectedReferrals,
+			EmergencyReferrals: rw.EmergencyReferrals,
+		})
+	}
+
+	return resp, nil
+}
+
+func (r *referralRepository) GetMohHospitalLoad(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohHospitalLoadMetric, error) {
+	type row struct {
+		HospitalID      uuid.UUID
+		HospitalName    string
+		TierLevel       entity.HospitalTier
+		Region          string
+		TotalReceived   int64
+		TotalAccepted   int64
+		TotalRejected   int64
+		RejectionRate   float64
+		AverageSeverity float64
+	}
+
+	var rows []row
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select(`
+			hospitals.id AS hospital_id,
+			hospitals.name AS hospital_name,
+			hospitals.tier_level AS tier_level,
+			hospitals.region AS region,
+			COUNT(*) AS total_received,
+			COUNT(*) FILTER (WHERE referrals.status = ?) AS total_accepted,
+			COUNT(*) FILTER (WHERE referrals.status IN ?) AS total_rejected,
+			CASE
+				WHEN COUNT(*) = 0 THEN 0
+				ELSE (COUNT(*) FILTER (WHERE referrals.status IN ?) * 100.0) / COUNT(*)
+			END AS rejection_rate,
+			COALESCE(AVG(referrals.ml_severity_score), 0) AS average_severity
+		`,
+			entity.StatusAccepted,
+			[]entity.ReferralStatus{
+				entity.StatusRejectedByLiaison,
+				entity.StatusRejectedBySpecialist,
+				entity.StatusRejectedAfterSend,
+			},
+			[]entity.ReferralStatus{
+				entity.StatusRejectedByLiaison,
+				entity.StatusRejectedBySpecialist,
+				entity.StatusRejectedAfterSend,
+			},
+		).
+		Joins("JOIN hospitals ON hospitals.id = referrals.target_hospital_id").
+		Where("referrals.is_archived = false")
+
+	if filter.From != nil {
+		query = query.Where("referrals.created_at >= ?", *filter.From)
+	}
+	if filter.To != nil {
+		query = query.Where("referrals.created_at <= ?", *filter.To)
+	}
+	if filter.Region != nil && *filter.Region != "" {
+		query = query.Where("hospitals.region = ?", *filter.Region)
+	}
+	if filter.TierLevel != nil {
+		query = query.Where("hospitals.tier_level = ?", *filter.TierLevel)
+	}
+	if filter.HospitalID != nil {
+		query = query.Where("hospitals.id = ?", *filter.HospitalID)
+	}
+
+	if err := query.Group("hospitals.id, hospitals.name, hospitals.tier_level, hospitals.region").
+		Order("total_received DESC").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	resp := make([]irepository.MohHospitalLoadMetric, 0, len(rows))
+	for _, rw := range rows {
+		resp = append(resp, irepository.MohHospitalLoadMetric{
+			HospitalID:      rw.HospitalID,
+			HospitalName:    rw.HospitalName,
+			TierLevel:       rw.TierLevel,
+			Region:          rw.Region,
+			TotalReceived:   rw.TotalReceived,
+			TotalAccepted:   rw.TotalAccepted,
+			TotalRejected:   rw.TotalRejected,
+			RejectionRate:   math.Round(rw.RejectionRate*100) / 100,
+			AverageSeverity: math.Round(rw.AverageSeverity*100) / 100,
+		})
+	}
+
+	return resp, nil
+}
+
+func (r *referralRepository) GetMohDiseaseHotspots(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohDiseaseHotspot, error) {
+	type row struct {
+		Region          string
+		DepartmentName  string
+		ReferralCount   int64
+		AverageSeverity float64
+	}
+
+	var rows []row
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select(`
+			COALESCE(patients.home_region, 'Unknown') AS region,
+			departments.name AS department_name,
+			COUNT(*) AS referral_count,
+			COALESCE(AVG(referrals.ml_severity_score), 0) AS average_severity
+		`).
+		Joins("JOIN patients ON patients.id = referrals.patient_id").
+		Joins("JOIN departments ON departments.id = referrals.target_dept_id")
+
+	query = r.applyMohReferralFilter(query, filter, false)
+	if filter.Region != nil && *filter.Region != "" {
+		query = query.Where("patients.home_region = ?", *filter.Region)
+	}
+
+	if err := query.Group("region, departments.name").Order("referral_count DESC").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	resp := make([]irepository.MohDiseaseHotspot, 0, len(rows))
+	for _, rw := range rows {
+		resp = append(resp, irepository.MohDiseaseHotspot{
+			Region:          rw.Region,
+			DepartmentName:  rw.DepartmentName,
+			ReferralCount:   rw.ReferralCount,
+			AverageSeverity: math.Round(rw.AverageSeverity*100) / 100,
+		})
+	}
+
+	return resp, nil
+}
+
+func (r *referralRepository) GetMohSeverityDistribution(ctx context.Context, filter irepository.MohAnalyticsFilter) ([]irepository.MohSeverityDistribution, error) {
+	type row struct {
+		Region         string
+		CriticalCount  int64
+		UrgentCount    int64
+		RoutineCount   int64
+		TotalReferrals int64
+	}
+
+	var rows []row
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Select(`
+			COALESCE(patients.home_region, 'Unknown') AS region,
+			COUNT(*) FILTER (WHERE COALESCE(referrals.ml_severity_score, 0) >= 67) AS critical_count,
+			COUNT(*) FILTER (WHERE COALESCE(referrals.ml_severity_score, 0) >= 34 AND COALESCE(referrals.ml_severity_score, 0) < 67) AS urgent_count,
+			COUNT(*) FILTER (WHERE COALESCE(referrals.ml_severity_score, 0) < 34) AS routine_count,
+			COUNT(*) AS total_referrals
+		`).
+		Joins("JOIN patients ON patients.id = referrals.patient_id")
+
+	query = r.applyMohReferralFilter(query, filter, false)
+	if filter.Region != nil && *filter.Region != "" {
+		query = query.Where("patients.home_region = ?", *filter.Region)
+	}
+
+	if err := query.Group("region").Order("critical_count DESC").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	resp := make([]irepository.MohSeverityDistribution, 0, len(rows))
+	for _, rw := range rows {
+		resp = append(resp, irepository.MohSeverityDistribution{
+			Region:         rw.Region,
+			CriticalCount:  rw.CriticalCount,
+			UrgentCount:    rw.UrgentCount,
+			RoutineCount:   rw.RoutineCount,
+			TotalReferrals: rw.TotalReferrals,
+		})
+	}
+
+	return resp, nil
 }

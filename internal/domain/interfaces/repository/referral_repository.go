@@ -49,6 +49,59 @@ type ReferralUpdateFields struct {
 	AttachmentsIncluded     *bool
 }
 
+type MohAnalyticsFilter struct {
+	From       *time.Time
+	To         *time.Time
+	Region     *string
+	HospitalID *uuid.UUID
+	TierLevel  *entity.HospitalTier
+}
+
+type MohDashboardSummary struct {
+	TotalReferrals      int64   `json:"total_referrals"`
+	TotalAccepted       int64   `json:"total_accepted"`
+	TotalRejected       int64   `json:"total_rejected"`
+	TotalAdmitted       int64   `json:"total_admitted"`
+	AcceptanceRate      float64 `json:"acceptance_rate"`
+	AverageMLSeverity   float64 `json:"average_ml_severity"`
+	AverageTurnaroundHr float64 `json:"average_turnaround_hours"`
+}
+
+type MohReferralTrendPoint struct {
+	Period             string `json:"period"`
+	TotalReferrals     int64  `json:"total_referrals"`
+	AcceptedReferrals  int64  `json:"accepted_referrals"`
+	RejectedReferrals  int64  `json:"rejected_referrals"`
+	EmergencyReferrals int64  `json:"emergency_referrals"`
+}
+
+type MohHospitalLoadMetric struct {
+	HospitalID      uuid.UUID           `json:"hospital_id"`
+	HospitalName    string              `json:"hospital_name"`
+	TierLevel       entity.HospitalTier `json:"tier_level"`
+	Region          string              `json:"region"`
+	TotalReceived   int64               `json:"total_referrals_received"`
+	TotalAccepted   int64               `json:"total_accepted"`
+	TotalRejected   int64               `json:"total_rejected"`
+	RejectionRate   float64             `json:"rejection_rate"`
+	AverageSeverity float64             `json:"average_severity"`
+}
+
+type MohDiseaseHotspot struct {
+	Region          string  `json:"region"`
+	DepartmentName  string  `json:"department_name"`
+	ReferralCount   int64   `json:"referral_count"`
+	AverageSeverity float64 `json:"average_severity"`
+}
+
+type MohSeverityDistribution struct {
+	Region         string `json:"region"`
+	CriticalCount  int64  `json:"critical_count"`
+	UrgentCount    int64  `json:"urgent_count"`
+	RoutineCount   int64  `json:"routine_count"`
+	TotalReferrals int64  `json:"total_referrals"`
+}
+
 type ReferralRepository interface {
 	BaseRepository[entity.Referral]
 	CreateReferralTransaction(ctx context.Context, referral *entity.Referral) error
@@ -85,8 +138,12 @@ type ReferralRepository interface {
 	// Dashboard Stats
 	CountBySenderHospitalAndStatuses(ctx context.Context, hospID uuid.UUID, statuses []entity.ReferralStatus, excludeDraft bool, startDate, endDate *time.Time) (int64, error)
 	CountAcceptedOrCompletedToday(ctx context.Context, hospID uuid.UUID) (int64, error)
-
 	UpdateFields(ctx context.Context, referralID uuid.UUID, updates ReferralUpdateFields) error
+	GetMohDashboardSummary(ctx context.Context, filter MohAnalyticsFilter) (*MohDashboardSummary, error)
+	GetMohReferralTrends(ctx context.Context, filter MohAnalyticsFilter, granularity string) ([]MohReferralTrendPoint, error)
+	GetMohHospitalLoad(ctx context.Context, filter MohAnalyticsFilter) ([]MohHospitalLoadMetric, error)
+	GetMohDiseaseHotspots(ctx context.Context, filter MohAnalyticsFilter) ([]MohDiseaseHotspot, error)
+	GetMohSeverityDistribution(ctx context.Context, filter MohAnalyticsFilter) ([]MohSeverityDistribution, error)
 }
 
 // ReferralOutcomeRepository persists the final clinical outcome of a referral episode.
