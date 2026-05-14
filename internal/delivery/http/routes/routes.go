@@ -89,11 +89,20 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 		log.Fatalf("Failed to initialize PatientCryptoService: %v", err)
 	}
 
+	mfaAESKey := os.Getenv("MFA_AES_KEY")
+	if mfaAESKey == "" {
+		mfaAESKey = os.Getenv("PATIENT_AES_KEY")
+	}
+	mfaCryptoSvc, err := crypto.NewMFASecretCryptoService(mfaAESKey)
+	if err != nil {
+		log.Fatalf("Failed to initialize MFASecretCryptoService: %v", err)
+	}
+
 	// ---- Dependency Injection (Use Cases) ----
 	// Initialize In-App Notification Use Case early as it's needed by others
 	inAppNotifUseCase := usecase.NewInAppNotificationUseCase(inAppNotifRepo, userRepo, referralRepo)
 
-	authUseCase := usecase.NewAuthUseCase(authRepo, tokenBlacklist, sessionStore)
+	authUseCase := usecase.NewAuthUseCase(authRepo, auditLogRepo, tokenBlacklist, sessionStore, mfaCryptoSvc)
 	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc, inAppNotifUseCase)
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo, configRepo, auditLogRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
@@ -153,6 +162,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 		authRoutes := v1.Group("/auth")
 		{
 			authRoutes.POST("/login", middleware.RateLimiter(redisClient, 100, time.Minute), authHandler.Login)
+			authRoutes.POST("/mfa/verify", middleware.RequireMFAPending(tokenBlacklist, userRepo), authHandler.VerifyMFA)
+			authRoutes.POST("/mfa/setup", middleware.RequireAuthOrMFAPending(tokenBlacklist, userRepo), authHandler.SetupMFA)
+			authRoutes.POST("/mfa/reset", middleware.RequireAuth(tokenBlacklist, userRepo), middleware.RequireRole(entity.RoleHospitalAdmin), authHandler.ResetMFA)
 			authRoutes.POST("/refresh", authHandler.Refresh)
 			authRoutes.POST("/logout", authHandler.Logout)
 		}
