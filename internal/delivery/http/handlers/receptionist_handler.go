@@ -51,7 +51,7 @@ func (h *ReceptionistHandler) getHospitalAndDept(c *gin.Context) (uuid.UUID, uui
 // @Summary      List Referrals for Receptionist
 // @Description  Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.
 // @Description  **Roles:** RECEPTIONIST
-// @Description  **Visibility:** ACCEPTED, SCHEDULED, COMPLETED.
+// @Description  **Visibility:** ACCEPTED, SCHEDULED.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
@@ -69,7 +69,7 @@ func (h *ReceptionistHandler) getHospitalAndDept(c *gin.Context) (uuid.UUID, uui
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/receptionist [get]
+// @Router       /api/v1/receptionist/referrals [get]
 func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 	hospID, _ := h.getHospitalAndDept(c)
 	if hospID == uuid.Nil {
@@ -134,7 +134,7 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 // @Summary      Get Referral Details for Receptionist
 // @Description  Get detailed information about an accepted or scheduled referral.
 // @Description  **Roles:** RECEPTIONIST
-// @Description  **Prerequisites:** Status must be ACCEPTED, SCHEDULED, or COMPLETED.
+// @Description  **Prerequisites:** Status must be ACCEPTED or SCHEDULED.
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid ID format
 // @Description  - 403 Forbidden (wrong hospital or invalid status)
@@ -145,7 +145,7 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      403 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/receptionist/{id} [get]
+// @Router       /api/v1/receptionist/referrals/{id} [get]
 func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -180,7 +180,7 @@ func (h *ReceptionistHandler) GetReferral(c *gin.Context) {
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/receptionist/schedule [get]
+// @Router       /api/v1/receptionist/referrals/schedule [get]
 func (h *ReceptionistHandler) GetSchedule(c *gin.Context) {
 	hospID, deptID := h.getHospitalAndDept(c)
 	if hospID == uuid.Nil || deptID == uuid.Nil {
@@ -216,7 +216,7 @@ func (h *ReceptionistHandler) GetSchedule(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/receptionist/{id}/arrive [post]
+// @Router       /api/v1/receptionist/referrals/{id}/arrive [post]
 func (h *ReceptionistHandler) ConfirmArrival(c *gin.Context) {
 	queueID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -259,7 +259,7 @@ func (h *ReceptionistHandler) ConfirmArrival(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/receptionist/{id}/assign-doctor [post]
+// @Router       /api/v1/receptionist/referrals/{id}/assign-doctor [post]
 func (h *ReceptionistHandler) AssignDoctor(c *gin.Context) {
 	queueID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -307,7 +307,7 @@ func (h *ReceptionistHandler) AssignDoctor(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/v1/receptionist/{id}/miss [post]
+// @Router       /api/v1/receptionist/referrals/{id}/miss [post]
 func (h *ReceptionistHandler) MarkMissed(c *gin.Context) {
 	queueID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
