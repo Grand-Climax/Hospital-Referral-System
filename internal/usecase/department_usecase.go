@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -116,3 +117,12 @@ func (u *departmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hos
 	existing.IsActive = isActive
 	return u.repo.UpdateHospitalDepartment(ctx, existing)
 }
+
+func (u *departmentUseCase) ValidateDepartmentForHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error {
+	_, err := u.repo.FindHospitalDepartment(ctx, hospitalID, departmentID)
+	if err != nil {
+		return fmt.Errorf("department %s does not belong to hospital %s", departmentID, hospitalID)
+	}
+	return nil
+}
+

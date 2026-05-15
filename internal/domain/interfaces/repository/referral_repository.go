@@ -166,4 +166,15 @@ type ReferralAccessRepository interface {
 	Create(ctx context.Context, access *entity.ReferralAccess) error
 	GetAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error)
 	CheckAccess(ctx context.Context, referralID, userID uuid.UUID) (bool, error)
+	ListActiveByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error)
+
+	// RevokeAllByReferral sets revoked_at = now() and revoke_reason = reason for all active (revoked_at IS NULL) access grants of a referral.
+	RevokeAllByReferral(ctx context.Context, referralID uuid.UUID, reason string) error
+
+	// ListByDoctor returns all access grants (active and revoked) for a doctor, ordered by granted_at desc.
+	ListByDoctor(ctx context.Context, doctorID uuid.UUID) ([]entity.ReferralAccess, error)
+
+	// GetActiveAccess returns the active (non-revoked) access grant for a specific user+referral, or nil if none.
+	GetActiveAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error)
 }
+

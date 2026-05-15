@@ -42,6 +42,9 @@ const (
 	ActionBatchSchedule       ActionType = "BATCH_SCHEDULE_RUN"
 	ActionEmergencySchedule    ActionType = "MANUAL_EMERGENCY_SCHEDULE"
 	ActionDailyWeightUpdate   ActionType = "DAILY_WEIGHT_UPDATE"
+	ActionUnassignDoctor      ActionType = "UNASSIGN_DOCTOR"
+	ActionGrantConsultAccess  ActionType = "GRANT_CONSULT_ACCESS"
+	ActionRevokeConsultAccess ActionType = "REVOKE_CONSULT_ACCESS"
 )
 
 type AuditLog struct {
