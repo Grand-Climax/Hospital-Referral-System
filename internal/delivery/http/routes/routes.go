@@ -109,7 +109,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	dailyWeightUseCase := usecase.NewDailyWeightUseCase(configRepo, triageRepo, auditLogRepo)
 	schedulerServiceUseCase := usecase.NewSchedulerServiceUseCase(checkpointRepo, configRepo, schedUseCase)
 
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, inAppNotifUseCase, cryptoSvc, departmentRepo, attachmentRepo)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, inAppNotifUseCase, cryptoSvc, departmentRepo, attachmentRepo, referralAccessRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo, hospitalRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo, cryptoSvc, auditLogRepo)
@@ -125,7 +125,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase, patientUseCase, arrivalUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase, patientUseCase)
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase)
-	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase)
+	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase, userUseCase)
 	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo, patientUseCase)
 	mohAnalyticsHandler := handlers.NewMohAnalyticsHandler(referralUseCase)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase, departmentUseCase)
@@ -247,6 +247,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				doctorGroup.GET("/referrals", doctorHandler.ListReferrals)
 				doctorGroup.GET("/referrals/approved", doctorHandler.ListApprovedReferrals)
 				doctorGroup.GET("/referrals/rejected", doctorHandler.ListRejectedReferrals)
+				doctorGroup.GET("/referrals/assigned", doctorHandler.ListAssignedReferrals)
 				doctorGroup.GET("/referrals/:id", doctorHandler.GetReferral)
 				doctorGroup.POST("/referrals", doctorHandler.CreateOrSubmit)
 				doctorGroup.POST("/referrals/:id/cancel", doctorHandler.Cancel)
@@ -311,17 +312,23 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			protected.POST("/referrals/:id/deceased", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleLiaisonOfficer, entity.RoleReceivingSpecialist, entity.RoleSystemSuperAdmin), redirectionHandler.MarkDeceased)
 
 			// RECEPTIONIST
-			receptionistGroup := protected.Group("/receptionist/referrals")
+			receptionistGroup := protected.Group("/receptionist")
 			receptionistGroup.Use(middleware.RequireRole(entity.RoleReceptionist))
 			{
-				receptionistGroup.GET("", receptionistHandler.ListReferrals)
-				receptionistGroup.GET("/missed", receptionistHandler.ListMissedReferrals)
-				receptionistGroup.GET("/:id", receptionistHandler.GetReferral)
-				receptionistGroup.GET("/schedule", receptionistHandler.GetSchedule)
-				receptionistGroup.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
-				receptionistGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
-				receptionistGroup.POST("/:id/revoke-doctor", receptionistHandler.RevokeDoctor)
-				receptionistGroup.POST("/:id/miss", receptionistHandler.MarkMissed)
+				receptionistGroup.GET("/doctors", receptionistHandler.ListDoctors)
+
+				refGroup := receptionistGroup.Group("/referrals")
+				{
+					refGroup.GET("", receptionistHandler.ListReferrals)
+					refGroup.GET("/missed", receptionistHandler.ListMissedReferrals)
+					refGroup.GET("/:id", receptionistHandler.GetReferral)
+					refGroup.GET("/upcoming", receptionistHandler.GetSchedule)
+					refGroup.GET("/offline-data", receptionistHandler.GetOfflineData)
+					refGroup.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
+					refGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
+					refGroup.POST("/:id/revoke-doctor", receptionistHandler.RevokeDoctor)
+					refGroup.POST("/:id/miss", receptionistHandler.MarkMissed)
+				}
 			}
 
 			// ADMINS

@@ -36,6 +36,52 @@ definitions:
     required:
     - doctor_id
     type: object
+  dto.AssignedReferralListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.AssignedReferralResponse'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.AssignedReferralResponse:
+    properties:
+      access_granted_at:
+        type: string
+      access_revoked_at:
+        type: string
+      access_type:
+        type: string
+      condition_at_referral:
+        type: string
+      created_at:
+        type: string
+      department:
+        type: string
+      diagnosis:
+        description: Typically the primary diagnosis CodeInfo name
+        type: string
+      icd_code:
+        type: string
+      id:
+        type: string
+      patient_first_name:
+        type: string
+      patient_last_name:
+        type: string
+      patient_middle_name:
+        type: string
+      patient_region:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.AttachmentListResponse:
     properties:
       data:
@@ -319,6 +365,27 @@ definitions:
         type: boolean
       total_referrals:
         type: integer
+    type: object
+  dto.DoctorInfo:
+    properties:
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+    type: object
+  dto.DoctorListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.DoctorInfo'
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   dto.EmergencyDetailDTO:
     properties:
@@ -1050,6 +1117,17 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.ReceptionistOfflineDataResponse:
+    properties:
+      doctors:
+        items:
+          $ref: '#/definitions/dto.DoctorInfo'
+        type: array
+      schedule:
+        items:
+          $ref: '#/definitions/entity.TriageQueue'
+        type: array
+    type: object
   dto.RecordOutcomeRequest:
     properties:
       length_of_stay_days:
@@ -1617,6 +1695,18 @@ definitions:
     - ActionUnassignDoctor
     - ActionGrantConsultAccess
     - ActionRevokeConsultAccess
+  entity.ArrivalStatus:
+    enum:
+    - EXPECTED
+    - ARRIVED
+    - ADMITTED
+    - MISSED
+    type: string
+    x-enum-varnames:
+    - ArrivalExpected
+    - ArrivalArrived
+    - ArrivalAdmitted
+    - ArrivalMissed
   entity.Attachment:
     properties:
       category:
@@ -1732,6 +1822,18 @@ definitions:
       description:
         type: string
     type: object
+  entity.MissReason:
+    enum:
+    - PATIENT_NO_SHOW
+    - PATIENT_CONTACTED_RESCHEDULE
+    - HOSPITAL_CANCELLED
+    - HOSPITAL_CAPACITY_ISSUE
+    type: string
+    x-enum-varnames:
+    - MissPatientNoShow
+    - MissPatientContactedResched
+    - MissHospitalCancelled
+    - MissHospitalCapacityIssue
   entity.Notification:
     properties:
       content:
@@ -2015,6 +2117,47 @@ definitions:
     - StatusRedirected
     - StatusRejectedAfterSend
     - StatusDeceased
+  entity.TriageQueue:
+    properties:
+      appointment_date:
+        type: string
+      arrival_status:
+        $ref: '#/definitions/entity.ArrivalStatus'
+      arrived_at:
+        type: string
+      assigned_at:
+        type: string
+      assigned_doctor:
+        $ref: '#/definitions/entity.User'
+      assigned_doctor_id:
+        type: string
+      composite_score:
+        type: number
+      department:
+        $ref: '#/definitions/entity.Department'
+      department_id:
+        type: string
+      doctor_assigned_at:
+        type: string
+      hospital:
+        $ref: '#/definitions/entity.Hospital'
+      hospital_id:
+        type: string
+      id:
+        type: string
+      marked_by:
+        type: string
+      marked_by_admin:
+        $ref: '#/definitions/entity.User'
+      miss_reason:
+        $ref: '#/definitions/entity.MissReason'
+      referral:
+        $ref: '#/definitions/entity.Referral'
+      referral_id:
+        type: string
+      waiting_hours_weight:
+        type: number
+    type: object
   entity.TriageStatus:
     enum:
     - AUTO_SCORED
@@ -3635,6 +3778,49 @@ paths:
       security:
       - BearerAuth: []
       summary: List Approved Referrals for Doctor
+      tags:
+      - Doctor
+  /api/v1/doctor/referrals/assigned:
+    get:
+      description: |-
+        **Roles:** REFERRING_DOCTOR
+        **Query Parameters:**
+        - `access_type` (optional): `treating`, `consulting`, or empty for all.
+        - `include_revoked` (bool, default false): include revoked access grants.
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Access type filter (treating, consulting)
+        in: query
+        name: access_type
+        type: string
+      - default: false
+        description: Include revoked accesses
+        in: query
+        name: include_revoked
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AssignedReferralListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Assigned Referrals
       tags:
       - Doctor
   /api/v1/doctor/referrals/rejected:
@@ -6639,6 +6825,30 @@ paths:
       summary: Get patient by National ID
       tags:
       - Patients
+  /api/v1/receptionist/doctors:
+    get:
+      description: |-
+        Returns a list of active REFERRING_DOCTORs belonging to the receptionist's hospital and department.
+        **Roles:** RECEPTIONIST
+        **Scope:** Strictly filtered to the receptionist's own department (from JWT). Cross‑department doctors are not returned.
+        **Common Errors:**
+        - 401 Unauthorized (hospital/department missing from token)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DoctorListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Available Doctors for Assignment
+      tags:
+      - Receptionist
   /api/v1/receptionist/referrals:
     get:
       description: |-
@@ -6743,15 +6953,12 @@ paths:
   /api/v1/receptionist/referrals/{id}/arrive:
     post:
       description: |-
-        Mark a patient as arrived.
+        Mark a patient as arrived. Resolve TriageQueue internally from referral ID.
         **Roles:** RECEPTIONIST
         **Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.
         **State Transition:** arrival_status → ARRIVED.
-        **Common Errors:**
-        - 400 invalid format
-        - 409 already arrived
       parameters:
-      - description: TriageQueue ID
+      - description: Referral ID
         in: path
         name: id
         required: true
@@ -6781,13 +6988,13 @@ paths:
       consumes:
       - application/json
       description: |-
-        Assign a treating doctor (referring doctor role) to the patient.
+        Assign a treating doctor (referring doctor role) to the patient. Resolve TriageQueue internally from referral ID.
         **Roles:** RECEPTIONIST
         **Prerequisites:** queue must be ARRIVED; doctor must be REFERRING_DOCTOR in same hospital.
         **Reassignment:** If a doctor is already assigned, all previous accesses are revoked before new assignment.
         **Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.
       parameters:
-      - description: TriageQueue ID
+      - description: Referral ID
         in: path
         name: id
         required: true
@@ -6823,14 +7030,12 @@ paths:
       consumes:
       - application/json
       description: |-
-        Mark an appointment as missed.
+        Mark an appointment as missed. Resolve TriageQueue internally from referral ID.
         **Roles:** RECEPTIONIST
         **Prerequisites:** queue entry must exist.
         **State Transition:** arrival_status → MISSED; creates ClinicalUpdate for re‑evaluation.
-        **Common Errors:**
-        - 400 invalid format
       parameters:
-      - description: TriageQueue ID
+      - description: Referral ID
         in: path
         name: id
         required: true
@@ -6866,10 +7071,10 @@ paths:
       consumes:
       - application/json
       description: |-
-        Removes the assigned treating doctor from a patient, revoking their clinical access. Only the receptionist who assigned the doctor (or any receptionist in the same hospital) can call this.
+        Removes the assigned treating doctor from a patient, revoking their clinical access. Resolve TriageQueue internally from referral ID.
         **Roles:** RECEPTIONIST
       parameters:
-      - description: TriageQueue ID
+      - description: Referral ID
         in: path
         name: id
         required: true
@@ -6914,7 +7119,28 @@ paths:
       summary: List Missed Referrals for Receptionist
       tags:
       - Receptionist
-  /api/v1/receptionist/referrals/schedule:
+  /api/v1/receptionist/referrals/offline-data:
+    get:
+      description: |-
+        Returns all data needed for offline operation: today's and tomorrow's scheduled patients and the list of available doctors.
+        **Roles:** RECEPTIONIST
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReceptionistOfflineDataResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Offline Data for Receptionist
+      tags:
+      - Receptionist
+  /api/v1/receptionist/referrals/upcoming:
     get:
       description: |-
         Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.
