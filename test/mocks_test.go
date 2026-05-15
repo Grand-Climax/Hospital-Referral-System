@@ -1060,6 +1060,15 @@ func (m *MockTriageQueueRepo) Delete(ctx context.Context, id interface{}) error 
 	return args.Error(0)
 }
 
+func (m *MockTriageQueueRepo) ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
+	args := m.Called(ctx, hospitalID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*entity.TriageQueue), args.Get(1).(int64), args.Error(2)
+}
+
+
 // ---------------------------------------------------------------------------
 // Mock: ClinicalUpdateRepository
 // ---------------------------------------------------------------------------
@@ -1138,6 +1147,60 @@ func (m *MockReferralOutcomeRepo) GetByReferralID(ctx context.Context, referralI
 	}
 	return args.Get(0).(*entity.ReferralOutcome), args.Error(1)
 }
+
+// ---------------------------------------------------------------------------
+// Mock: ReferralAccessRepository
+// ---------------------------------------------------------------------------
+
+type MockReferralAccessRepo struct {
+	mock.Mock
+}
+
+func (m *MockReferralAccessRepo) Create(ctx context.Context, access *entity.ReferralAccess) error {
+	args := m.Called(ctx, access)
+	return args.Error(0)
+}
+
+func (m *MockReferralAccessRepo) GetAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error) {
+	args := m.Called(ctx, referralID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralAccess), args.Error(1)
+}
+
+func (m *MockReferralAccessRepo) CheckAccess(ctx context.Context, referralID, userID uuid.UUID) (bool, error) {
+	args := m.Called(ctx, referralID, userID)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockReferralAccessRepo) ListActiveByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error) {
+	args := m.Called(ctx, referralID)
+	return args.Get(0).([]entity.ReferralAccess), args.Error(1)
+}
+
+func (m *MockReferralAccessRepo) RevokeAllByReferral(ctx context.Context, referralID uuid.UUID, reason string) error {
+	return m.Called(ctx, referralID, reason).Error(0)
+}
+
+func (m *MockReferralAccessRepo) ListByDoctor(ctx context.Context, doctorID uuid.UUID) ([]entity.ReferralAccess, error) {
+	args := m.Called(ctx, doctorID)
+	return args.Get(0).([]entity.ReferralAccess), args.Error(1)
+}
+
+func (m *MockReferralAccessRepo) GetActiveAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error) {
+	args := m.Called(ctx, referralID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralAccess), args.Error(1)
+}
+
+func (m *MockReferralAccessRepo) Update(ctx context.Context, access *entity.ReferralAccess) error {
+	args := m.Called(ctx, access)
+	return args.Error(0)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: SchedulingUseCase
@@ -1228,14 +1291,36 @@ func (m *MockArrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UU
 	return m.Called(ctx, queueID, userID).Error(0)
 }
 
-func (m *MockArrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID) error {
-	return m.Called(ctx, queueID, doctorID, userID).Error(0)
+func (m *MockArrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID, reason string) error {
+	return m.Called(ctx, queueID, doctorID, userID, reason).Error(0)
 }
-
 
 func (m *MockArrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
 	return m.Called(ctx, queueID, missReason, userID).Error(0)
 }
+
+
+func (m *MockArrivalUseCase) RevokeDoctorAssignment(ctx context.Context, queueID, userID uuid.UUID, reason string) error {
+	return m.Called(ctx, queueID, userID, reason).Error(0)
+}
+
+func (m *MockArrivalUseCase) ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
+	args := m.Called(ctx, hospitalID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*entity.TriageQueue), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockArrivalUseCase) GrantConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID) error {
+	return m.Called(ctx, referralID, granterID, doctorID).Error(0)
+}
+
+func (m *MockArrivalUseCase) RevokeConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID, reason string) error {
+	return m.Called(ctx, referralID, granterID, doctorID, reason).Error(0)
+}
+
+
 
 // ---------------------------------------------------------------------------
 // Mock: ClinicalUseCase
@@ -1752,6 +1837,12 @@ func (m *MockDepartmentUseCase) SetHospitalDepartmentActive(ctx context.Context,
 	args := m.Called(ctx, hospitalID, departmentID, isActive)
 	return args.Error(0)
 }
+
+func (m *MockDepartmentUseCase) ValidateDepartmentForHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error {
+	args := m.Called(ctx, hospitalID, departmentID)
+	return args.Error(0)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: InAppNotificationRepository

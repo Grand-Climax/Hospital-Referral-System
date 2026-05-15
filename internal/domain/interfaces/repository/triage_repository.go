@@ -22,4 +22,5 @@ type TriageQueueRepository interface {
 	FindByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error)
 	FindAppointmentsForReminders(ctx context.Context, date time.Time) ([]*entity.TriageQueue, error)
 	IncrementWaitingWeights(ctx context.Context) (int64, error)
+	ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error)
 }

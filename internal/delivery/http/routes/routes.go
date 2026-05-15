@@ -116,19 +116,19 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 
 	// ---- Dependency Injection (Handlers) ----
 	authHandler := handlers.NewAuthHandler(authUseCase)
-	userHandler := handlers.NewUserHandler(userUseCase)
+	userHandler := handlers.NewUserHandler(userUseCase, departmentUseCase)
 	hospitalHandler := handlers.NewHospitalHandler(hospitalUseCase)
 	departmentHandler := handlers.NewDepartmentHandler(departmentUseCase)
 	redirectionHandler := handlers.NewRedirectionHandler(referralUseCase)
 
 	// Role-Based State Machine Handlers
-	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase, patientUseCase)
+	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase, patientUseCase, arrivalUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase, patientUseCase)
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase)
 	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo, patientUseCase)
 	mohAnalyticsHandler := handlers.NewMohAnalyticsHandler(referralUseCase)
-	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase)
+	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase, departmentUseCase)
 	hospitalAdminOpsHandler := handlers.NewHospitalAdminOperationsHandler(userUseCase, hospitalUseCase, departmentUseCase)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(capacityManagementUseCase, schedUseCase, triageUseCase)
 
@@ -254,6 +254,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateDraft)
 				doctorGroup.PUT("/referrals/:id/submit", doctorHandler.SubmitReferral)
 				doctorGroup.POST("/referrals/:id/reject-after-send", doctorHandler.RejectAfterSend)
+				doctorGroup.POST("/referrals/:id/consult", doctorHandler.GrantConsultAccess)
+				doctorGroup.POST("/referrals/:id/consult/revoke", doctorHandler.RevokeConsultAccess)
 			}
 
 			// LIAISON
@@ -313,10 +315,12 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			receptionistGroup.Use(middleware.RequireRole(entity.RoleReceptionist))
 			{
 				receptionistGroup.GET("", receptionistHandler.ListReferrals)
+				receptionistGroup.GET("/missed", receptionistHandler.ListMissedReferrals)
 				receptionistGroup.GET("/:id", receptionistHandler.GetReferral)
 				receptionistGroup.GET("/schedule", receptionistHandler.GetSchedule)
 				receptionistGroup.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
 				receptionistGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
+				receptionistGroup.POST("/:id/revoke-doctor", receptionistHandler.RevokeDoctor)
 				receptionistGroup.POST("/:id/miss", receptionistHandler.MarkMissed)
 			}
 

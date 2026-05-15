@@ -124,3 +124,20 @@ func (r *triageRepository) IncrementWaitingWeights(ctx context.Context) (int64, 
 		Update("waiting_hours_weight", gorm.Expr("waiting_hours_weight + 1"))
 	return result.RowsAffected, result.Error
 }
+
+func (r *triageRepository) ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
+	var queues []*entity.TriageQueue
+	var count int64
+	query := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Preload("Referral").
+		Preload("Referral.Patient").
+		Where("hospital_id = ? AND arrival_status = ?", hospitalID, entity.ArrivalMissed)
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := query.Order("appointment_date desc").Limit(limit).Offset(offset).Find(&queues).Error
+	return queues, count, err
+}
+

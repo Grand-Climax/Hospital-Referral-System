@@ -130,6 +130,43 @@ func (h *ReceptionistHandler) ListReferrals(c *gin.Context) {
 	})
 }
 
+// ListMissedReferrals godoc
+// @Summary      List Missed Referrals for Receptionist
+// @Description  Returns referrals where the patient missed their scheduled appointment (arrival status = MISSED).
+// @Description  **Roles:** RECEPTIONIST
+// @Tags         Receptionist
+// @Produce      json
+// @Param        limit query int false "Pagination limit" default(20)
+// @Param        page query int false "Page number" default(1)
+// @Router       /api/v1/receptionist/referrals/missed [get]
+func (h *ReceptionistHandler) ListMissedReferrals(c *gin.Context) {
+	hospID, _ := h.getHospitalAndDept(c)
+	if hospID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid hospital scope"})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	offset := (page - 1) * limit
+
+	missed, total, err := h.arrivalUC.ListMissedByHospital(c.Request.Context(), hospID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"message":   "Missed referrals retrieved successfully",
+		"data":      missed,
+		"total":     total,
+		"page":      page,
+		"page_size": limit,
+	})
+}
+
+
 // GetReferral godoc
 // @Summary      Get Referral Details for Receptionist
 // @Description  Get detailed information about an accepted or scheduled referral.
@@ -242,14 +279,11 @@ func (h *ReceptionistHandler) ConfirmArrival(c *gin.Context) {
 
 // AssignDoctor godoc
 // @Summary      Assign Treating Doctor
-// @Description  Assign a treating specialist to the patient.
+// @Description  Assign a treating doctor (referring doctor role) to the patient.
 // @Description  **Roles:** RECEPTIONIST
-// @Description  **Prerequisites:** queue must be ARRIVED; doctor must be RECEIVING_SPECIALIST in same hospital.
+// @Description  **Prerequisites:** queue must be ARRIVED; doctor must be REFERRING_DOCTOR in same hospital.
+// @Description  **Reassignment:** If a doctor is already assigned, all previous accesses are revoked before new assignment.
 // @Description  **Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.
-// @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 403 unauthorized hospital access
-// @Description  - 409 already assigned
 // @Tags         Receptionist
 // @Accept       json
 // @Produce      json
@@ -281,13 +315,55 @@ func (h *ReceptionistHandler) AssignDoctor(c *gin.Context) {
 		userID = *uID
 	}
 
-	if err := h.arrivalUC.AssignDoctor(c.Request.Context(), queueID, req.DoctorID, userID); err != nil {
+	if err := h.arrivalUC.AssignDoctor(c.Request.Context(), queueID, req.DoctorID, userID, req.Reason); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Doctor assigned successfully"})
 }
+
+// RevokeDoctor godoc
+// @Summary      Revoke Assigned Doctor
+// @Description  Removes the assigned treating doctor from a patient, revoking their clinical access. Only the receptionist who assigned the doctor (or any receptionist in the same hospital) can call this.
+// @Description  **Roles:** RECEPTIONIST
+// @Tags         Receptionist
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "TriageQueue ID"
+// @Param        request body dto.RevokeDoctorRequest true "Revoke reason"
+// @Success      200 {object} dto.BaseResponse
+// @Security     BearerAuth
+// @Router       /api/v1/receptionist/referrals/{id}/revoke-doctor [post]
+func (h *ReceptionistHandler) RevokeDoctor(c *gin.Context) {
+	queueID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid queue id format"})
+		return
+	}
+
+	var req dto.RevokeDoctorRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	userID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		userID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		userID = *uID
+	}
+
+	if err := h.arrivalUC.RevokeDoctorAssignment(c.Request.Context(), queueID, userID, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Doctor assignment revoked successfully"})
+}
+
 
 
 // MarkMissed godoc
