@@ -12,16 +12,20 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/pkg/auth"
 	"Hospital-Referral-System/internal/pkg/utils"
 	"Hospital-Referral-System/internal/usecase"
+	"fmt"
+	"log"
 )
 
 type UserHandler struct {
 	userUseCase iusecase.UserUseCase
+	deptUseCase iusecase.DepartmentUseCase
 }
 
-func NewUserHandler(userUseCase iusecase.UserUseCase) *UserHandler {
-	return &UserHandler{userUseCase: userUseCase}
+func NewUserHandler(userUseCase iusecase.UserUseCase, deptUseCase iusecase.DepartmentUseCase) *UserHandler {
+	return &UserHandler{userUseCase: userUseCase, deptUseCase: deptUseCase}
 }
 
 func (h *UserHandler) getRequesterID(c *gin.Context) uuid.UUID {
@@ -55,6 +59,7 @@ type UpdateUserRequest struct {
 	Role         *entity.UserRole `json:"role" example:"MOH_ANALYST"`
 	HospitalID   *string         `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
 	DepartmentID *string         `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	Password     *string          `json:"password" binding:"omitempty,min=8" example:"newpassword123"`
 	IsActive     *bool            `json:"is_active" example:"true"`
 }
 
@@ -379,30 +384,82 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		existing.NationalID = *req.NationalID
 	}
 	if req.Role != nil {
+		if *req.Role == entity.RoleSystemSuperAdmin {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Cannot assign SYSTEM_SUPER_ADMIN role. This role is restricted."})
+			return
+		}
 		existing.Role = *req.Role
 	}
+
 	if req.HospitalID != nil {
 		hid, err := uuid.Parse(*req.HospitalID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-				Success: false,
-				Error:   "invalid hospital_id",
-			})
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid hospital_id"})
 			return
 		}
 		existing.HospitalID = &hid
+
+		// If the user has a department, verify it exists in the new hospital
+		if existing.DepartmentID != nil {
+			if err := h.deptUseCase.ValidateDepartmentForHospital(c.Request.Context(), hid, *existing.DepartmentID); err != nil {
+				// Clear the department – it doesn't belong to the new hospital
+				existing.DepartmentID = nil
+				log.Printf("Cleared department for user %s because it does not belong to new hospital %s", existing.ID, hid)
+			}
+		}
 	}
+
 	if req.DepartmentID != nil {
-		did, err := uuid.Parse(*req.DepartmentID)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-				Success: false,
-				Error:   "invalid department_id",
-			})
+		// Determine if the current role allows a department
+		currentRole := existing.Role
+		if req.Role != nil {
+			currentRole = *req.Role
+		}
+		requiresDept := currentRole == entity.RoleReceivingSpecialist || currentRole == entity.RoleDeptHead
+		forbidsDept := currentRole == entity.RoleMohAnalyst || currentRole == entity.RoleHospitalAdmin ||
+			currentRole == entity.RoleLiaisonOfficer || currentRole == entity.RoleSystemSuperAdmin
+
+		if forbidsDept {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: fmt.Sprintf("Role %s does not accept a department", currentRole)})
 			return
 		}
-		existing.DepartmentID = &did
+
+		hospitalID := existing.HospitalID
+		if req.HospitalID != nil {
+			hid, _ := uuid.Parse(*req.HospitalID)
+			hospitalID = &hid
+		}
+		if hospitalID == nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Cannot assign department without a hospital"})
+			return
+		}
+
+		deptID, err := uuid.Parse(*req.DepartmentID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
+			return
+		}
+		if err := h.deptUseCase.ValidateDepartmentForHospital(c.Request.Context(), *hospitalID, deptID); err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+			return
+		}
+		existing.DepartmentID = &deptID
+
+		if !requiresDept {
+			// Optional department – just warn but allow
+			log.Printf("User %s assigned optional department %s with role %s", existing.ID, deptID, currentRole)
+		}
 	}
+
+	if req.Password != nil {
+		hash, err := auth.HashPassword(*req.Password)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to hash password"})
+			return
+		}
+		existing.PasswordHash = hash
+	}
+
 	if req.IsActive != nil {
 		existing.IsActive = *req.IsActive
 	}

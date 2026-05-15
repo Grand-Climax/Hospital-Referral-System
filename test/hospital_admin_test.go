@@ -26,7 +26,7 @@ func setupHospitalAdminTestRouter() (*gin.Engine, *MockUserUseCase, *MockReferra
 	mockHospitalUC := new(MockHospitalUseCase)
 	mockDeptUC := new(MockDepartmentUseCase)
 
-	staffHandler := handlers.NewHospitalAdminStaffHandler(mockUserUC, mockReferralUC)
+	staffHandler := handlers.NewHospitalAdminStaffHandler(mockUserUC, mockReferralUC, mockDeptUC)
 	opsHandler := handlers.NewHospitalAdminOperationsHandler(mockUserUC, mockHospitalUC, mockDeptUC)
 
 	// Mock Hospital Admin Context

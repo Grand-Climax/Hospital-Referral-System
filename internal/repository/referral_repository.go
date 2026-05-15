@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"math"
 	"time"
@@ -660,6 +661,41 @@ func (r *referralAccessRepository) CheckAccess(ctx context.Context, referralID, 
 
 	return count > 0, nil
 }
+
+func (r *referralAccessRepository) ListActiveByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error) {
+	var accesses []entity.ReferralAccess
+	err := r.db.WithContext(ctx).Where("referral_id = ? AND revoked_at IS NULL", referralID).Find(&accesses).Error
+	return accesses, err
+}
+
+func (r *referralAccessRepository) RevokeAllByReferral(ctx context.Context, referralID uuid.UUID, reason string) error {
+	return r.db.WithContext(ctx).Model(&entity.ReferralAccess{}).
+		Where("referral_id = ? AND revoked_at IS NULL", referralID).
+		Updates(map[string]interface{}{
+			"revoked_at":    time.Now(),
+			"revoke_reason": reason,
+		}).Error
+}
+
+func (r *referralAccessRepository) ListByDoctor(ctx context.Context, doctorID uuid.UUID) ([]entity.ReferralAccess, error) {
+	var accesses []entity.ReferralAccess
+	err := r.db.WithContext(ctx).Where("user_id = ?", doctorID).Order("granted_at DESC").Find(&accesses).Error
+	return accesses, err
+}
+
+func (r *referralAccessRepository) GetActiveAccess(ctx context.Context, referralID, userID uuid.UUID) (*entity.ReferralAccess, error) {
+	var access entity.ReferralAccess
+	err := r.db.WithContext(ctx).Where("referral_id = ? AND user_id = ? AND revoked_at IS NULL", referralID, userID).First(&access).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &access, nil
+}
+
+
 
 func (r *referralRepository) CountBySenderHospitalAndStatuses(
 	ctx context.Context,

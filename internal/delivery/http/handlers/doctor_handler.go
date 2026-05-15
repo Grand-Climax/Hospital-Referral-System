@@ -23,13 +23,15 @@ type DoctorHandler struct {
 	referralUC   iusecase.ReferralUseCase
 	attachmentUC iusecase.AttachmentUseCase
 	patientUC    iusecase.PatientUseCase
+	arrivalUC    iusecase.ArrivalUseCase
 }
 
-func NewDoctorHandler(referralUC iusecase.ReferralUseCase, attachmentUC iusecase.AttachmentUseCase, patientUC iusecase.PatientUseCase) *DoctorHandler {
+func NewDoctorHandler(referralUC iusecase.ReferralUseCase, attachmentUC iusecase.AttachmentUseCase, patientUC iusecase.PatientUseCase, arrivalUC iusecase.ArrivalUseCase) *DoctorHandler {
 	return &DoctorHandler{
 		referralUC:   referralUC,
 		attachmentUC: attachmentUC,
 		patientUC:    patientUC,
+		arrivalUC:    arrivalUC,
 	}
 }
 
@@ -860,5 +862,90 @@ func (h *DoctorHandler) DeleteAttachments(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Message: "All attachments removed successfully",
+	})
+}
+
+// GrantConsultAccess godoc
+// @Summary      Grant Consult Access
+// @Description  Allows the currently assigned treating doctor to grant consulting access to another referring doctor.
+// @Description  **Roles:** REFERRING_DOCTOR (Treating)
+// @Description  **Prerequisites:** Granter must be the active treating doctor on the triage queue. Target must be a referring doctor in the same hospital.
+// @Tags         Doctor
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.GrantConsultRequest true "Consult Grant Details"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/{id}/consult [post]
+func (h *DoctorHandler) GrantConsultAccess(c *gin.Context) {
+	idParam := c.Param("id")
+	referralID, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid id format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	granterID := extractUUID(userIdVal)
+
+	var req dto.GrantConsultRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if err := h.arrivalUC.GrantConsultAccess(c.Request.Context(), referralID, granterID, req.DoctorID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Consulting access granted successfully",
+	})
+}
+
+// RevokeConsultAccess godoc
+// @Summary      Revoke Consult Access
+// @Description  Allows the treating doctor to revoke a consulting access grant they previously created.
+// @Description  **Roles:** REFERRING_DOCTOR (Treating)
+// @Description  **Prerequisites:** Granter must be the original grantor of the access.
+// @Tags         Doctor
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Param        request body dto.RevokeConsultRequest true "Revoke Details"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/{id}/consult/revoke [post]
+func (h *DoctorHandler) RevokeConsultAccess(c *gin.Context) {
+	idParam := c.Param("id")
+	referralID, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid id format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	granterID := extractUUID(userIdVal)
+
+	var req dto.RevokeConsultRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if err := h.arrivalUC.RevokeConsultAccess(c.Request.Context(), referralID, granterID, req.DoctorID, req.Reason); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "Consulting access revoked successfully",
 	})
 }

@@ -92,14 +92,23 @@ func (u *arrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, 
 	return nil
 }
 
-func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID) error {
+func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID, reason string) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
 	if err != nil {
 		return err
 	}
 
 	if queue.AssignedDoctorID != nil {
-		return errors.New("a doctor is already assigned to this patient")
+		cleanupReason := reason
+		if cleanupReason == "" {
+			cleanupReason = "Doctor reassigned by receptionist"
+		}
+		if err := u.referralAccessRepo.RevokeAllByReferral(ctx, queue.ReferralID, cleanupReason); err != nil {
+			return err
+		}
+		// Clear assignment temporarily
+		queue.AssignedDoctorID = nil
+		queue.DoctorAssignedAt = nil
 	}
 
 	doctor, err := u.userRepo.FindByID(ctx, doctorID)
@@ -107,8 +116,8 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 		return errors.New("doctor not found")
 	}
 
-	if doctor.Role != entity.RoleReceivingSpecialist {
-		return errors.New("selected user is not a receiving specialist")
+	if doctor.Role != entity.RoleReferringDoctor {
+		return errors.New("selected user is not a referring doctor")
 	}
 
 	if doctor.HospitalID == nil || *doctor.HospitalID != queue.HospitalID {
@@ -149,6 +158,34 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 	})
 }
 
+
+func (u *arrivalUseCase) RevokeDoctorAssignment(ctx context.Context, queueID, userID uuid.UUID, reason string) error {
+	queue, err := u.triageRepo.FindByID(ctx, queueID)
+	if err != nil {
+		return err
+	}
+	if queue.AssignedDoctorID == nil {
+		return errors.New("no doctor is currently assigned")
+	}
+
+	// Revoke ALL active ReferralAccess grants (treating and consulting)
+	if err := u.referralAccessRepo.RevokeAllByReferral(ctx, queue.ReferralID, reason); err != nil {
+		return err
+	}
+
+	// Clear the assignment on the queue
+	queue.AssignedDoctorID = nil
+	queue.DoctorAssignedAt = nil
+	if err := u.triageRepo.Update(ctx, queue); err != nil {
+		return err
+	}
+
+	u.auditRepo.LogWithContext(ctx, userID, entity.ActionUnassignDoctor, &queue.ReferralID, nil, map[string]interface{}{
+		"queue_id": queueID,
+		"reason":   reason,
+	})
+	return nil
+}
 
 func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
@@ -195,3 +232,99 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 		return nil
 	})
 }
+
+func (u *arrivalUseCase) ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
+	return u.triageRepo.ListMissedByHospital(ctx, hospitalID, limit, offset)
+}
+
+func (u *arrivalUseCase) GrantConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID) error {
+	if granterID == doctorID {
+		return errors.New("cannot grant consult access to yourself")
+	}
+
+	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
+	if err != nil {
+		return errors.New("referral record not found in triage")
+	}
+
+	// 1. Verify granter is the assigned treating doctor
+	if queue.AssignedDoctorID == nil || *queue.AssignedDoctorID != granterID {
+		return errors.New("only the assigned treating doctor can grant consulting access")
+	}
+
+	// 2. Verify granter has active TREATING_DOCTOR access
+	access, err := u.referralAccessRepo.GetActiveAccess(ctx, referralID, granterID)
+	if err != nil || access == nil || access.AccessType != "TREATING_DOCTOR" {
+		return errors.New("granter does not have active treating access")
+	}
+
+	// 3. Verify target is a Referring Doctor in the same hospital
+	doctor, err := u.userRepo.FindByID(ctx, doctorID)
+	if err != nil || doctor.Role != entity.RoleReferringDoctor || doctor.HospitalID == nil || *doctor.HospitalID != queue.HospitalID {
+		return errors.New("target doctor is invalid or belongs to a different hospital")
+	}
+
+	// 4. Check if active access already exists
+	existing, err := u.referralAccessRepo.GetActiveAccess(ctx, referralID, doctorID)
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		return errors.New("doctor already has active access to this referral")
+	}
+
+	// 5. Create grant
+	newGrant := &entity.ReferralAccess{
+		ReferralID: referralID,
+		UserID:     doctorID,
+		AccessType: "CONSULTED_DOCTOR",
+		GrantedBy:  granterID,
+	}
+	if err := u.referralAccessRepo.Create(ctx, newGrant); err != nil {
+		return err
+	}
+
+	u.auditRepo.LogWithContext(ctx, granterID, entity.ActionGrantConsultAccess, &referralID, nil, map[string]interface{}{
+		"doctor_id": doctorID,
+	})
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "CONSULTANT_ADDED", referralID, granterID)
+
+	return nil
+}
+
+func (u *arrivalUseCase) RevokeConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID, reason string) error {
+	// 1. Verify granter is the treating doctor
+	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
+	if err != nil || queue.AssignedDoctorID == nil || *queue.AssignedDoctorID != granterID {
+		return errors.New("unauthorized: only the assigned treating doctor can revoke consulting access")
+	}
+
+	// 2. Find active CONSULTED_DOCTOR access
+	access, err := u.referralAccessRepo.GetActiveAccess(ctx, referralID, doctorID)
+	if err != nil || access == nil || access.AccessType != "CONSULTED_DOCTOR" {
+		return errors.New("no active consulting access found for this doctor")
+	}
+
+	// 3. Grantor Check: Only original grantor can revoke
+	if access.GrantedBy != granterID {
+		return errors.New("you can only revoke access grants you created")
+	}
+
+	// 4. Revoke
+	now := time.Now()
+	access.RevokedAt = &now
+	access.RevokeReason = &reason
+	if err := u.referralAccessRepo.Update(ctx, access); err != nil {
+		return err
+	}
+
+	u.auditRepo.LogWithContext(ctx, granterID, entity.ActionRevokeConsultAccess, &referralID, nil, map[string]interface{}{
+		"doctor_id": doctorID,
+		"reason":    reason,
+	})
+
+	return nil
+}
+
+

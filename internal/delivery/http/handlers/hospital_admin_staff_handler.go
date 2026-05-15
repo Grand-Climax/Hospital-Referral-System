@@ -17,12 +17,14 @@ import (
 type HospitalAdminStaffHandler struct {
 	userUseCase     iusecase.UserUseCase
 	referralUseCase iusecase.ReferralUseCase
+	deptUseCase     iusecase.DepartmentUseCase
 }
 
-func NewHospitalAdminStaffHandler(userUC iusecase.UserUseCase, referralUC iusecase.ReferralUseCase) *HospitalAdminStaffHandler {
+func NewHospitalAdminStaffHandler(userUC iusecase.UserUseCase, referralUC iusecase.ReferralUseCase, deptUseCase iusecase.DepartmentUseCase) *HospitalAdminStaffHandler {
 	return &HospitalAdminStaffHandler{
 		userUseCase:     userUC,
 		referralUseCase: referralUC,
+		deptUseCase:     deptUseCase,
 	}
 }
 
@@ -384,10 +386,11 @@ func (h *HospitalAdminStaffHandler) SetStaffActive(c *gin.Context) {
 // @Failure      400 {object} dto.ErrorResponse
 // @Failure      403 {object} dto.ErrorResponse
 // @Failure      404 {object} dto.ErrorResponse
+// @Description  **Validation:** The department must belong to the admin's hospital (checked via HospitalDepartment link).
 // @Security     BearerAuth
 // @Router       /api/v1/hospital-admin/staff/{id}/department [patch]
 func (h *HospitalAdminStaffHandler) ReassignDepartment(c *gin.Context) {
-	adminID, _, ok := getAdminContext(c)
+	adminID, hospID, ok := getAdminContext(c)
 	if !ok {
 		return
 	}
@@ -411,6 +414,12 @@ func (h *HospitalAdminStaffHandler) ReassignDepartment(c *gin.Context) {
 			return
 		}
 		departmentID = &parsed
+
+		// Validate department belongs to the admin's hospital
+		if err := h.deptUseCase.ValidateDepartmentForHospital(c.Request.Context(), hospID, *departmentID); err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+			return
+		}
 	}
 
 	if err := h.userUseCase.HospitalAdminReassignStaffDepartment(c.Request.Context(), adminID, staffID, departmentID); err != nil {

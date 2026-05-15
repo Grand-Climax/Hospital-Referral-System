@@ -30,6 +30,9 @@ definitions:
     properties:
       doctor_id:
         type: string
+      reason:
+        description: optional, for reassignment
+        type: string
     required:
     - doctor_id
     type: object
@@ -332,6 +335,13 @@ definitions:
       success:
         example: false
         type: boolean
+    type: object
+  dto.GrantConsultRequest:
+    properties:
+      doctor_id:
+        type: string
+    required:
+    - doctor_id
     type: object
   dto.HospitalAdminAssignDepartmentHeadRequest:
     properties:
@@ -1274,6 +1284,22 @@ definitions:
     required:
     - reason
     type: object
+  dto.RevokeConsultRequest:
+    properties:
+      doctor_id:
+        type: string
+      reason:
+        type: string
+    required:
+    - doctor_id
+    type: object
+  dto.RevokeDoctorRequest:
+    properties:
+      reason:
+        type: string
+    required:
+    - reason
+    type: object
   dto.SchedulingRequest:
     properties:
       appointment_date:
@@ -1551,6 +1577,9 @@ definitions:
     - BATCH_SCHEDULE_RUN
     - MANUAL_EMERGENCY_SCHEDULE
     - DAILY_WEIGHT_UPDATE
+    - UNASSIGN_DOCTOR
+    - GRANT_CONSULT_ACCESS
+    - REVOKE_CONSULT_ACCESS
     type: string
     x-enum-varnames:
     - ActionCreateReferral
@@ -1585,6 +1614,9 @@ definitions:
     - ActionBatchSchedule
     - ActionEmergencySchedule
     - ActionDailyWeightUpdate
+    - ActionUnassignDoctor
+    - ActionGrantConsultAccess
+    - ActionRevokeConsultAccess
   entity.Attachment:
     properties:
       category:
@@ -2250,6 +2282,10 @@ definitions:
         type: string
       national_id:
         example: MOH-001
+        type: string
+      password:
+        example: newpassword123
+        minLength: 8
         type: string
       role:
         allOf:
@@ -3395,6 +3431,82 @@ paths:
       security:
       - BearerAuth: []
       summary: Cancel Referral
+      tags:
+      - Doctor
+  /api/v1/doctor/referrals/{id}/consult:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Allows the currently assigned treating doctor to grant consulting access to another referring doctor.
+        **Roles:** REFERRING_DOCTOR (Treating)
+        **Prerequisites:** Granter must be the active treating doctor on the triage queue. Target must be a referring doctor in the same hospital.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Consult Grant Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GrantConsultRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Grant Consult Access
+      tags:
+      - Doctor
+  /api/v1/doctor/referrals/{id}/consult/revoke:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Allows the treating doctor to revoke a consulting access grant they previously created.
+        **Roles:** REFERRING_DOCTOR (Treating)
+        **Prerequisites:** Granter must be the original grantor of the access.
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Revoke Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RevokeConsultRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke Consult Access
       tags:
       - Doctor
   /api/v1/doctor/referrals/{id}/reject-after-send:
@@ -4730,6 +4842,7 @@ paths:
         **Common Errors:**
         - 400 Invalid department
         - 403 Forbidden (outside scope)
+        **Validation:** The department must belong to the admin's hospital (checked via HospitalDepartment link).
       parameters:
       - description: Staff user ID
         in: path
@@ -6668,14 +6781,11 @@ paths:
       consumes:
       - application/json
       description: |-
-        Assign a treating specialist to the patient.
+        Assign a treating doctor (referring doctor role) to the patient.
         **Roles:** RECEPTIONIST
-        **Prerequisites:** queue must be ARRIVED; doctor must be RECEIVING_SPECIALIST in same hospital.
+        **Prerequisites:** queue must be ARRIVED; doctor must be REFERRING_DOCTOR in same hospital.
+        **Reassignment:** If a doctor is already assigned, all previous accesses are revoked before new assignment.
         **Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.
-        **Common Errors:**
-        - 400 invalid format
-        - 403 unauthorized hospital access
-        - 409 already assigned
       parameters:
       - description: TriageQueue ID
         in: path
@@ -6749,6 +6859,59 @@ paths:
       security:
       - BearerAuth: []
       summary: Mark Appointment as Missed
+      tags:
+      - Receptionist
+  /api/v1/receptionist/referrals/{id}/revoke-doctor:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Removes the assigned treating doctor from a patient, revoking their clinical access. Only the receptionist who assigned the doctor (or any receptionist in the same hospital) can call this.
+        **Roles:** RECEPTIONIST
+      parameters:
+      - description: TriageQueue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Revoke reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RevokeDoctorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke Assigned Doctor
+      tags:
+      - Receptionist
+  /api/v1/receptionist/referrals/missed:
+    get:
+      description: |-
+        Returns referrals where the patient missed their scheduled appointment (arrival status = MISSED).
+        **Roles:** RECEPTIONIST
+      parameters:
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: List Missed Referrals for Receptionist
       tags:
       - Receptionist
   /api/v1/receptionist/referrals/schedule:
@@ -7360,6 +7523,7 @@ paths:
         name: request
         schema:
           additionalProperties:
+            format: float64
             type: number
           type: object
       produces:
