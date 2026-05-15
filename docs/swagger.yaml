@@ -2278,7 +2278,7 @@ info:
     | DRAFT / NEED_REVISION | Referring Doctor only |
     | SUBMITTED … FORWARDED | Liaison of the sender hospital |
     | FORWARDED … COMPLETED | Specialists of the target hospital |
-    | ACCEPTED … RESCHEDULED| Receptionists of the target hospital |
+    | ACCEPTED … SCHEDULED | Receptionists of the target hospital |
     | All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |
 
     ---
@@ -6526,12 +6526,12 @@ paths:
       summary: Get patient by National ID
       tags:
       - Patients
-  /api/v1/receptionist:
+  /api/v1/receptionist/referrals:
     get:
       description: |-
         Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.
         **Roles:** RECEPTIONIST
-        **Visibility:** ACCEPTED, SCHEDULED, COMPLETED.
+        **Visibility:** ACCEPTED, SCHEDULED.
         **Common Errors:**
         - 401 Unauthorized
         - 500 Internal Server Error
@@ -6592,12 +6592,12 @@ paths:
       summary: List Referrals for Receptionist
       tags:
       - Receptionist
-  /api/v1/receptionist/{id}:
+  /api/v1/receptionist/referrals/{id}:
     get:
       description: |-
         Get detailed information about an accepted or scheduled referral.
         **Roles:** RECEPTIONIST
-        **Prerequisites:** Status must be ACCEPTED, SCHEDULED, or COMPLETED.
+        **Prerequisites:** Status must be ACCEPTED or SCHEDULED.
         **Common Errors:**
         - 400 Invalid ID format
         - 403 Forbidden (wrong hospital or invalid status)
@@ -6627,7 +6627,7 @@ paths:
       summary: Get Referral Details for Receptionist
       tags:
       - Receptionist
-  /api/v1/receptionist/{id}/arrive:
+  /api/v1/receptionist/referrals/{id}/arrive:
     post:
       description: |-
         Mark a patient as arrived.
@@ -6663,7 +6663,7 @@ paths:
       summary: Mark Patient Arrival
       tags:
       - Receptionist
-  /api/v1/receptionist/{id}/assign-doctor:
+  /api/v1/receptionist/referrals/{id}/assign-doctor:
     post:
       consumes:
       - application/json
@@ -6708,7 +6708,7 @@ paths:
       summary: Assign Treating Doctor
       tags:
       - Receptionist
-  /api/v1/receptionist/{id}/miss:
+  /api/v1/receptionist/referrals/{id}/miss:
     post:
       consumes:
       - application/json
@@ -6751,7 +6751,7 @@ paths:
       summary: Mark Appointment as Missed
       tags:
       - Receptionist
-  /api/v1/receptionist/schedule:
+  /api/v1/receptionist/referrals/schedule:
     get:
       description: |-
         Returns all scheduled triage records for the next 48 hours for the receptionist's hospital and department.
@@ -7360,7 +7360,6 @@ paths:
         name: request
         schema:
           additionalProperties:
-            format: float64
             type: number
           type: object
       produces:
