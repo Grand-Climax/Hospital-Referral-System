@@ -1575,6 +1575,116 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/doctor/referrals/{id}/consult": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows the currently assigned treating doctor to grant consulting access to another referring doctor.\n**Roles:** REFERRING_DOCTOR (Treating)\n**Prerequisites:** Granter must be the active treating doctor on the triage queue. Target must be a referring doctor in the same hospital.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor"
+                ],
+                "summary": "Grant Consult Access",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Consult Grant Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.GrantConsultRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/doctor/referrals/{id}/consult/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows the treating doctor to revoke a consulting access grant they previously created.\n**Roles:** REFERRING_DOCTOR (Treating)\n**Prerequisites:** Granter must be the original grantor of the access.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor"
+                ],
+                "summary": "Revoke Consult Access",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Revoke Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RevokeConsultRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/doctor/referrals/{id}/reject-after-send": {
             "post": {
                 "security": [
@@ -3272,7 +3382,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update staff department within the same hospital scope.\n**Roles:** HOSPITAL_ADMIN\n**State Transition:** User.DepartmentID updated.\n**Common Errors:**\n- 400 Invalid department\n- 403 Forbidden (outside scope)",
+                "description": "Update staff department within the same hospital scope.\n**Roles:** HOSPITAL_ADMIN\n**State Transition:** User.DepartmentID updated.\n**Common Errors:**\n- 400 Invalid department\n- 403 Forbidden (outside scope)\n**Validation:** The department must belong to the admin's hospital (checked via HospitalDepartment link).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5766,6 +5876,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/receptionist/referrals/missed": {
+            "get": {
+                "description": "Returns referrals where the patient missed their scheduled appointment (arrival status = MISSED).\n**Roles:** RECEPTIONIST",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "List Missed Referrals for Receptionist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/api/v1/receptionist/referrals/schedule": {
             "get": {
                 "security": [
@@ -5903,7 +6042,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Assign a treating specialist to the patient.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue must be ARRIVED; doctor must be RECEIVING_SPECIALIST in same hospital.\n**Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access\n- 409 already assigned",
+                "description": "Assign a treating doctor (referring doctor role) to the patient.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue must be ARRIVED; doctor must be REFERRING_DOCTOR in same hospital.\n**Reassignment:** If a doctor is already assigned, all previous accesses are revoked before new assignment.\n**Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6007,6 +6146,52 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/referrals/{id}/revoke-doctor": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes the assigned treating doctor from a patient, revoking their clinical access. Only the receptionist who assigned the doctor (or any receptionist in the same hospital) can call this.\n**Roles:** RECEPTIONIST",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "Revoke Assigned Doctor",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TriageQueue ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Revoke reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RevokeDoctorRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
                         }
                     }
                 }
@@ -7032,7 +7217,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number"
+                                "type": "number",
+                                "format": "float64"
                             }
                         }
                     }
@@ -8559,6 +8745,10 @@ const docTemplate = `{
             "properties": {
                 "doctor_id": {
                     "type": "string"
+                },
+                "reason": {
+                    "description": "optional, for reassignment",
+                    "type": "string"
                 }
             }
         },
@@ -8991,6 +9181,17 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": false
+                }
+            }
+        },
+        "dto.GrantConsultRequest": {
+            "type": "object",
+            "required": [
+                "doctor_id"
+            ],
+            "properties": {
+                "doctor_id": {
+                    "type": "string"
                 }
             }
         },
@@ -10397,6 +10598,31 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RevokeConsultRequest": {
+            "type": "object",
+            "required": [
+                "doctor_id"
+            ],
+            "properties": {
+                "doctor_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RevokeDoctorRequest": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.SchedulingRequest": {
             "type": "object",
             "required": [
@@ -10776,7 +11002,10 @@ const docTemplate = `{
                 "RECORD_OUTCOME",
                 "BATCH_SCHEDULE_RUN",
                 "MANUAL_EMERGENCY_SCHEDULE",
-                "DAILY_WEIGHT_UPDATE"
+                "DAILY_WEIGHT_UPDATE",
+                "UNASSIGN_DOCTOR",
+                "GRANT_CONSULT_ACCESS",
+                "REVOKE_CONSULT_ACCESS"
             ],
             "x-enum-varnames": [
                 "ActionCreateReferral",
@@ -10810,7 +11039,10 @@ const docTemplate = `{
                 "ActionRecordOutcome",
                 "ActionBatchSchedule",
                 "ActionEmergencySchedule",
-                "ActionDailyWeightUpdate"
+                "ActionDailyWeightUpdate",
+                "ActionUnassignDoctor",
+                "ActionGrantConsultAccess",
+                "ActionRevokeConsultAccess"
             ]
         },
         "entity.Attachment": {
@@ -11782,6 +12014,11 @@ const docTemplate = `{
                 "national_id": {
                     "type": "string",
                     "example": "MOH-001"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "example": "newpassword123"
                 },
                 "role": {
                     "allOf": [

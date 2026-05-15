@@ -19,4 +19,5 @@ type DepartmentUseCase interface {
 	UnlinkDepartmentFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error
 	ListHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.HospitalDepartment, error)
 	SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentID uuid.UUID, isActive bool) error
+	ValidateDepartmentForHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error
 }

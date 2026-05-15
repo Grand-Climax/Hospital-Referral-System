@@ -140,6 +140,14 @@ func (u *clinicalUseCase) RecordOutcome(ctx context.Context, referralID, userID 
 			Reason:      &req.Outcome,
 		})
 
+		// Auto-revoke all active clinical access grants
+		reason := "Referral completed"
+		if req.Outcome == "deceased" {
+			reason = "Patient deceased"
+		}
+		_ = u.referralAccessRepo.RevokeAllByReferral(ctx, referralID, reason)
+
+
 		// Audit Log
 		// Audit Log
 		err = u.auditLogRepo.Create(ctx, &entity.AuditLog{

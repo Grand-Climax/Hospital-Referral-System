@@ -40,7 +40,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
 	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
-	doctorHandler := handlers.NewDoctorHandler(mockReferralUC, nil, mockPatientUC)
+	doctorHandler := handlers.NewDoctorHandler(mockReferralUC, nil, mockPatientUC, mockArrivalUC)
 	liaisonHandler := handlers.NewLiaisonHandler(mockReferralUC, mockPatientUC)
 
 	// Mock JWT Middleware equivalent
@@ -305,7 +305,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 	t.Run("Assign Doctor", func(t *testing.T) {
 		doctorID := uuid.New()
 		reqBody := dto.AssignDoctorRequest{DoctorID: doctorID}
-		mockArrival.On("AssignDoctor", mock.Anything, queueID, doctorID, mock.Anything).Return(nil)
+		mockArrival.On("AssignDoctor", mock.Anything, queueID, doctorID, mock.Anything, mock.Anything).Return(nil)
 
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/assign-doctor", bytes.NewBuffer(body))

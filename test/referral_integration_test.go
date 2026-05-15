@@ -26,7 +26,8 @@ func TestDoctorOperations(t *testing.T) {
 	mockUC := new(MockReferralUseCase)
 	mockAttUC := new(MockAttachmentUseCase)
 	mockPatientUC := new(MockPatientUseCase)
-	handler := handlers.NewDoctorHandler(mockUC, mockAttUC, mockPatientUC)
+	mockArrivalUC := new(MockArrivalUseCase)
+	handler := handlers.NewDoctorHandler(mockUC, mockAttUC, mockPatientUC, mockArrivalUC)
 	doctorID := uuid.New()
 	hospID := uuid.New()
 
