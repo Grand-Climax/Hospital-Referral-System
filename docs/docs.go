@@ -5675,14 +5675,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist": {
+        "/api/v1/receptionist/referrals": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.\n**Roles:** RECEPTIONIST\n**Visibility:** ACCEPTED, SCHEDULED, COMPLETED.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Get a paginated list of accepted/scheduled referrals for the receptionist's hospital.\n**Roles:** RECEPTIONIST\n**Visibility:** ACCEPTED, SCHEDULED.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -5766,7 +5766,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/schedule": {
+        "/api/v1/receptionist/referrals/schedule": {
             "get": {
                 "security": [
                     {
@@ -5804,14 +5804,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/{id}": {
+        "/api/v1/receptionist/referrals/{id}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information about an accepted or scheduled referral.\n**Roles:** RECEPTIONIST\n**Prerequisites:** Status must be ACCEPTED, SCHEDULED, or COMPLETED.\n**Common Errors:**\n- 400 Invalid ID format\n- 403 Forbidden (wrong hospital or invalid status)",
+                "description": "Get detailed information about an accepted or scheduled referral.\n**Roles:** RECEPTIONIST\n**Prerequisites:** Status must be ACCEPTED or SCHEDULED.\n**Common Errors:**\n- 400 Invalid ID format\n- 403 Forbidden (wrong hospital or invalid status)",
                 "produces": [
                     "application/json"
                 ],
@@ -5850,7 +5850,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/{id}/arrive": {
+        "/api/v1/receptionist/referrals/{id}/arrive": {
             "post": {
                 "security": [
                     {
@@ -5896,7 +5896,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/{id}/assign-doctor": {
+        "/api/v1/receptionist/referrals/{id}/assign-doctor": {
             "post": {
                 "security": [
                     {
@@ -5954,7 +5954,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/receptionist/{id}/miss": {
+        "/api/v1/receptionist/referrals/{id}/miss": {
             "post": {
                 "security": [
                     {
@@ -7032,8 +7032,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number",
-                                "format": "float64"
+                                "type": "number"
                             }
                         }
                     }
@@ -11812,7 +11811,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Hospital Referral System API",
-	Description:      "# Hospital Referral Hub API\nA national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.\n\n---\n## Referral Lifecycle\nDRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED\n↘ REJECTED_BY_LIAISON\nFORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST\nACCEPTED → SCHEDULED → ASSIGNED → COMPLETED\n↘ MISSED / RESCHEDULED / DECEASED\n\n---\n## Visibility Rules\n\n| Status | Visible To |\n|----------------------|-----------|\n| DRAFT / NEED_REVISION | Referring Doctor only |\n| SUBMITTED … FORWARDED | Liaison of the sender hospital |\n| FORWARDED … COMPLETED | Specialists of the target hospital |\n| ACCEPTED … RESCHEDULED| Receptionists of the target hospital |\n| All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |\n\n---\n## Critical Business Rules\n\n- **ML Triage Gate**: A referral cannot be accepted without a severity score (set manually via `POST /specialist/referrals/{id}/triage-severity`).\n- **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.\n- **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.\n- **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.\n- **Deceased Outcome**: Recording a deceased outcome sets the referral to DECEASED, soft‑archives it (`is_archived=true`), and cancels any pending appointments.\n- **Cancel After Send**: A doctor may cancel a referral after sending (REJECTED_AFTER_SEND) only if it has not been accepted yet.\n\nFor detailed per‑endpoint rules, see the individual endpoint descriptions below.",
+	Description:      "# Hospital Referral Hub API\nA national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.\n\n---\n## Referral Lifecycle\nDRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED\n↘ REJECTED_BY_LIAISON\nFORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST\nACCEPTED → SCHEDULED → ASSIGNED → COMPLETED\n↘ MISSED / RESCHEDULED / DECEASED\n\n---\n## Visibility Rules\n\n| Status | Visible To |\n|----------------------|-----------|\n| DRAFT / NEED_REVISION | Referring Doctor only |\n| SUBMITTED … FORWARDED | Liaison of the sender hospital |\n| FORWARDED … COMPLETED | Specialists of the target hospital |\n| ACCEPTED … SCHEDULED | Receptionists of the target hospital |\n| All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |\n\n---\n## Critical Business Rules\n\n- **ML Triage Gate**: A referral cannot be accepted without a severity score (set manually via `POST /specialist/referrals/{id}/triage-severity`).\n- **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.\n- **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.\n- **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.\n- **Deceased Outcome**: Recording a deceased outcome sets the referral to DECEASED, soft‑archives it (`is_archived=true`), and cancels any pending appointments.\n- **Cancel After Send**: A doctor may cancel a referral after sending (REJECTED_AFTER_SEND) only if it has not been accepted yet.\n\nFor detailed per‑endpoint rules, see the individual endpoint descriptions below.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

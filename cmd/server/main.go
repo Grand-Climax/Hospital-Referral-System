@@ -39,7 +39,7 @@ import (
 // @description | DRAFT / NEED_REVISION | Referring Doctor only |
 // @description | SUBMITTED … FORWARDED | Liaison of the sender hospital |
 // @description | FORWARDED … COMPLETED | Specialists of the target hospital |
-// @description | ACCEPTED … RESCHEDULED| Receptionists of the target hospital |
+// @description | ACCEPTED … SCHEDULED | Receptionists of the target hospital |
 // @description | All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |
 // @description
 // @description ---
