@@ -124,6 +124,12 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 		return errors.New("doctor does not belong to the same hospital")
 	}
 
+	// Receptionists can only assign doctors from the same department as the triage queue.
+	// This rule is universal for all callers of this method.
+	if doctor.DepartmentID == nil || *doctor.DepartmentID != queue.DepartmentID {
+		return errors.New("doctor does not belong to the required department")
+	}
+
 	if queue.ArrivalStatus != entity.ArrivalArrived && queue.ArrivalStatus != entity.ArrivalAdmitted {
 		return errors.New("cannot assign doctor before patient arrives")
 	}
@@ -236,6 +242,11 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 func (u *arrivalUseCase) ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
 	return u.triageRepo.ListMissedByHospital(ctx, hospitalID, limit, offset)
 }
+
+func (u *arrivalUseCase) GetTriageQueueByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.TriageQueue, error) {
+	return u.triageRepo.GetByReferralID(ctx, referralID)
+}
+
 
 func (u *arrivalUseCase) GrantConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID) error {
 	if granterID == doctorID {

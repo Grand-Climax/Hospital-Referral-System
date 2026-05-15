@@ -19,6 +19,7 @@ type ReferralFilter struct {
 	SortOrder   string // "asc" or "desc"
 	Limit       int
 	Page        int
+	ReferralIDs []uuid.UUID
 }
 
 type ReferralStatusCount struct {

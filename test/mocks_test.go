@@ -515,6 +515,11 @@ func (m *MockReferralUseCase) GetLatestPendingReferrals(ctx context.Context, doc
 	return args.Get(0).([]dto.ListReferralResponse), args.Error(1)
 }
 
+func (m *MockReferralUseCase) ListAssignedReferrals(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter, accessType string, includeRevoked bool) ([]entity.Referral, []entity.ReferralAccess, int64, error) {
+	args := m.Called(ctx, doctorID, filter, accessType, includeRevoked)
+	return args.Get(0).([]entity.Referral), args.Get(1).([]entity.ReferralAccess), args.Get(2).(int64), args.Error(3)
+}
+
 func (m *MockReferralUseCase) DeleteAttachmentsByReferralID(ctx context.Context, id, doctorID uuid.UUID) error {
 	args := m.Called(ctx, id, doctorID)
 	return args.Error(0)
@@ -1201,6 +1206,23 @@ func (m *MockReferralAccessRepo) Update(ctx context.Context, access *entity.Refe
 	return args.Error(0)
 }
 
+func (m *MockReferralAccessRepo) Delete(ctx context.Context, id interface{}) error {
+	return m.Called(ctx, id).Error(0)
+}
+
+func (m *MockReferralAccessRepo) FindByID(ctx context.Context, id interface{}) (*entity.ReferralAccess, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ReferralAccess), args.Error(1)
+}
+
+func (m *MockReferralAccessRepo) FindAll(ctx context.Context) ([]entity.ReferralAccess, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entity.ReferralAccess), args.Error(1)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: SchedulingUseCase
@@ -1318,6 +1340,14 @@ func (m *MockArrivalUseCase) GrantConsultAccess(ctx context.Context, referralID,
 
 func (m *MockArrivalUseCase) RevokeConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID, reason string) error {
 	return m.Called(ctx, referralID, granterID, doctorID, reason).Error(0)
+}
+
+func (m *MockArrivalUseCase) GetTriageQueueByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.TriageQueue, error) {
+	args := m.Called(ctx, referralID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.TriageQueue), args.Error(1)
 }
 
 
@@ -1931,4 +1961,52 @@ func (m *MockInAppNotificationUseCase) MarkAllRead(ctx context.Context, userID u
 func (m *MockInAppNotificationUseCase) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error) {
 	args := m.Called(ctx, userID)
 	return args.Get(0).(int64), args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: PatientUseCase
+// ---------------------------------------------------------------------------
+
+type MockPatientUseCase struct {
+	mock.Mock
+}
+
+func (m *MockPatientUseCase) GetByNationalID(ctx context.Context, nationalID string) (*entity.Patient, error) {
+	args := m.Called(ctx, nationalID)
+	if patient := args.Get(0); patient != nil {
+		return patient.(*entity.Patient), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockPatientUseCase) LookupPatient(ctx context.Context, nationalID, phone string) (*entity.Patient, error) {
+	args := m.Called(ctx, nationalID, phone)
+	if patient := args.Get(0); patient != nil {
+		return patient.(*entity.Patient), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockPatientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error) {
+	args := m.Called(ctx, req)
+	if patient := args.Get(0); patient != nil {
+		return patient.(*entity.Patient), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockPatientUseCase) SearchPatients(ctx context.Context, query string) ([]entity.Patient, error) {
+	args := m.Called(ctx, query)
+	if patients := args.Get(0); patients != nil {
+		return patients.([]entity.Patient), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockPatientUseCase) LookupByNationalID(ctx context.Context, nationalID string) (*uuid.UUID, error) {
+	args := m.Called(ctx, nationalID)
+	if id := args.Get(0); id != nil {
+		return id.(*uuid.UUID), args.Error(1)
+	}
+	return nil, args.Error(1)
 }

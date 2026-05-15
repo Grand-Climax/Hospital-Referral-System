@@ -18,7 +18,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 )
 
-func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase, *MockInAppNotificationUseCase) {
+func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase, *MockInAppNotificationUseCase, *MockUserUseCase) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -36,7 +36,8 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC, mockPatientUC)
 	scheduleHandler := handlers.NewScheduleHandler(mockCapacityUC)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC, mockTriageUC)
-	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC, mockPatientUC)
+	mockUserUC := new(MockUserUseCase)
+	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC, mockPatientUC, mockUserUC)
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
 	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
@@ -80,12 +81,16 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 		}
 
 		// Receptionist
-		rec := api.Group("/receptionist/referrals")
+		recBase := api.Group("/receptionist")
 		{
-			rec.GET("/schedule", receptionistHandler.GetSchedule)
-			rec.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
-			rec.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
-			rec.POST("/:id/miss", receptionistHandler.MarkMissed)
+			recBase.GET("/doctors", receptionistHandler.ListDoctors)
+			rec := recBase.Group("/referrals")
+			{
+				rec.GET("/upcoming", receptionistHandler.GetSchedule)
+				rec.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
+				rec.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
+				rec.POST("/:id/miss", receptionistHandler.MarkMissed)
+			}
 		}
 
 		// Clinical
@@ -117,11 +122,11 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 		api.POST("/liaison/referrals/:id/reject-after-send", liaisonHandler.RejectAfterSend)
 	}
 
-	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC
+	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC, mockUserUC
 }
 
 func TestSpecialistEndpoints(t *testing.T) {
-	r, _, mockTriage, mockSched, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, mockTriage, mockSched, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Set Manual Severity", func(t *testing.T) {
@@ -181,7 +186,7 @@ func TestSpecialistEndpoints(t *testing.T) {
 }
 
 func TestDepartmentHeadEndpoints(t *testing.T) {
-	r, _, _, mockSched, _, _, mockCapacity, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, mockSched, _, _, mockCapacity, _, _, _, _ := setupPostAcceptanceTestRouter()
 	scheduleID := uuid.New()
 	overrideID := uuid.New()
 
@@ -277,13 +282,24 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 }
 
 func TestReceptionistEndpoints(t *testing.T) {
-	r, _, _, _, mockArrival, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, mockArrival, _, _, _, _, _, mockUserUC := setupPostAcceptanceTestRouter()
 	queueID := uuid.New()
+
+	t.Run("List Doctors", func(t *testing.T) {
+		mockUserUC.On("ListUsers", mock.Anything, mock.Anything, mock.Anything).Return([]entity.User{}, int64(0), nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/receptionist/doctors", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockUserUC.AssertExpectations(t)
+	})
 
 	t.Run("Get Schedule", func(t *testing.T) {
 		mockArrival.On("GetTodayAndTomorrowSchedule", mock.Anything, mock.Anything, mock.Anything).Return([]*entity.TriageQueue{}, nil)
 
-		req, _ := http.NewRequest("GET", "/api/v1/receptionist/referrals/schedule", nil)
+		req, _ := http.NewRequest("GET", "/api/v1/receptionist/referrals/upcoming", nil)
 		resp := httptest.NewRecorder()
 		r.ServeHTTP(resp, req)
 
@@ -292,6 +308,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 	})
 
 	t.Run("Confirm Arrival", func(t *testing.T) {
+		mockArrival.On("GetTriageQueueByReferralID", mock.Anything, queueID).Return(&entity.TriageQueue{ID: queueID, ReferralID: queueID}, nil)
 		mockArrival.On("ConfirmArrival", mock.Anything, queueID, mock.Anything).Return(nil)
 
 		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/arrive", nil)
@@ -305,6 +322,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 	t.Run("Assign Doctor", func(t *testing.T) {
 		doctorID := uuid.New()
 		reqBody := dto.AssignDoctorRequest{DoctorID: doctorID}
+		mockArrival.On("GetTriageQueueByReferralID", mock.Anything, queueID).Return(&entity.TriageQueue{ID: queueID, ReferralID: queueID}, nil)
 		mockArrival.On("AssignDoctor", mock.Anything, queueID, doctorID, mock.Anything, mock.Anything).Return(nil)
 
 		body, _ := json.Marshal(reqBody)
@@ -319,6 +337,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 
 	t.Run("Mark Missed", func(t *testing.T) {
 		reqBody := dto.MarkMissedRequest{MissReason: "PATIENT_NO_SHOW"}
+		mockArrival.On("GetTriageQueueByReferralID", mock.Anything, queueID).Return(&entity.TriageQueue{ID: queueID, ReferralID: queueID}, nil)
 		mockArrival.On("MarkMissed", mock.Anything, queueID, entity.MissPatientNoShow, mock.Anything).Return(nil)
 
 		body, _ := json.Marshal(reqBody)
@@ -332,7 +351,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 }
 
 func TestClinicalEndpoints(t *testing.T) {
-	r, _, _, _, _, mockClinical, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, mockClinical, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Add Clinical Update", func(t *testing.T) {
@@ -380,7 +399,7 @@ func TestClinicalEndpoints(t *testing.T) {
 }
 
 func TestInternalJobEndpoints(t *testing.T) {
-	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler, _, _ := setupPostAcceptanceTestRouter()
 
 	t.Run("Update Waiting Weights - Success", func(t *testing.T) {
 		mockDailyWeight.On("Execute", mock.Anything, mock.Anything).Return("Successfully updated 5 records", nil).Once()
@@ -431,7 +450,7 @@ func TestInternalJobEndpoints(t *testing.T) {
 }
 
 func TestInAppNotificationEndpoints(t *testing.T) {
-	r, _, _, _, _, _, _, _, _, mockInAppNotif := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, _, _, _, _, mockInAppNotif, _ := setupPostAcceptanceTestRouter()
 	notifID := uuid.New()
 
 	t.Run("List Notifications - Success", func(t *testing.T) {
@@ -484,7 +503,7 @@ func TestInAppNotificationEndpoints(t *testing.T) {
 }
 
 func TestRejectionAfterSendEndpoints(t *testing.T) {
-	r, mockReferral, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, mockReferral, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Doctor Reject After Send", func(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -167,6 +168,73 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 		Total:        total,
 		Page:         page,
 		PageSize:     limit,
+	})
+}
+
+// ListAssignedReferrals godoc
+// @Summary      List Assigned Referrals
+// @Descriptio n  Returns referrals where the authenticated doctor has treating or consulting access.
+// @Description  **Roles:** REFERRING_DOCTOR
+// @Description  **Query Parameters:**
+// @Description  - `access_type` (optional): `treating`, `consulting`, or empty for all.
+// @Description  - `include_revoked` (bool, default false): include revoked access grants.
+// @Tags         Doctor
+// @Produce      json
+// @Param        limit           query int    false "Pagination limit" default(20)
+// @Param        page            query int    false "Page number" default(1)
+// @Param        access_type     query string false "Access type filter (treating, consulting)"
+// @Param        include_revoked query bool   false "Include revoked accesses" default(false)
+// @Success      200 {object} dto.AssignedReferralListResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/doctor/referrals/assigned [get]
+func (h *DoctorHandler) ListAssignedReferrals(c *gin.Context) {
+	userIdVal, _ := c.Get("userID")
+	doctorID := extractUUID(userIdVal)
+	if doctorID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid user"})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	accessType := c.Query("access_type")
+	includeRevoked, _ := strconv.ParseBool(c.DefaultQuery("include_revoked", "false"))
+
+	filter := irepository.ReferralFilter{
+		Limit: limit,
+		Page:  page,
+	}
+
+	referrals, accesses, _, err := h.referralUC.ListAssignedReferrals(c.Request.Context(), doctorID, filter, accessType, includeRevoked)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	results := make([]dto.AssignedReferralResponse, 0, len(referrals))
+	for i := range referrals {
+		refResp := toListReferralResponse(referrals[i])
+		var revokedAt *string
+		if accesses[i].RevokedAt != nil {
+			revStr := accesses[i].RevokedAt.Format(time.RFC3339)
+			revokedAt = &revStr
+		}
+		
+		results = append(results, dto.AssignedReferralResponse{
+			ListReferralResponse: refResp,
+			AccessType:           string(accesses[i].AccessType),
+			AccessGrantedAt:      accesses[i].GrantedAt.Format(time.RFC3339),
+			AccessRevokedAt:      revokedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.AssignedReferralListResponse{
+		Data: results,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Assigned referrals retrieved successfully",
+		},
 	})
 }
 

@@ -1302,6 +1302,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/doctor/referrals/assigned": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "**Roles:** REFERRING_DOCTOR\n**Query Parameters:**\n- ` + "`" + `access_type` + "`" + ` (optional): ` + "`" + `treating` + "`" + `, ` + "`" + `consulting` + "`" + `, or empty for all.\n- ` + "`" + `include_revoked` + "`" + ` (bool, default false): include revoked access grants.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Doctor"
+                ],
+                "summary": "List Assigned Referrals",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Access type filter (treating, consulting)",
+                        "name": "access_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Include revoked accesses",
+                        "name": "include_revoked",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AssignedReferralListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/doctor/referrals/rejected": {
             "get": {
                 "security": [
@@ -5785,6 +5845,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/receptionist/doctors": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a list of active REFERRING_DOCTORs belonging to the receptionist's hospital and department.\n**Roles:** RECEPTIONIST\n**Scope:** Strictly filtered to the receptionist's own department (from JWT). Cross‑department doctors are not returned.\n**Common Errors:**\n- 401 Unauthorized (hospital/department missing from token)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "List Available Doctors for Assignment",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DoctorListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/receptionist/referrals": {
             "get": {
                 "security": [
@@ -5905,7 +5996,38 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/api/v1/receptionist/referrals/schedule": {
+        "/api/v1/receptionist/referrals/offline-data": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all data needed for offline operation: today's and tomorrow's scheduled patients and the list of available doctors.\n**Roles:** RECEPTIONIST",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "Get Offline Data for Receptionist",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReceptionistOfflineDataResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/receptionist/referrals/upcoming": {
             "get": {
                 "security": [
                     {
@@ -5996,7 +6118,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Mark a patient as arrived.\n**Roles:** RECEPTIONIST\n**Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.\n**State Transition:** arrival_status → ARRIVED.\n**Common Errors:**\n- 400 invalid format\n- 409 already arrived",
+                "description": "Mark a patient as arrived. Resolve TriageQueue internally from referral ID.\n**Roles:** RECEPTIONIST\n**Prerequisites:** TriageQueue entry exists, arrival_status = EXPECTED.\n**State Transition:** arrival_status → ARRIVED.",
                 "produces": [
                     "application/json"
                 ],
@@ -6007,7 +6129,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TriageQueue ID",
+                        "description": "Referral ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -6042,7 +6164,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Assign a treating doctor (referring doctor role) to the patient.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue must be ARRIVED; doctor must be REFERRING_DOCTOR in same hospital.\n**Reassignment:** If a doctor is already assigned, all previous accesses are revoked before new assignment.\n**Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.",
+                "description": "Assign a treating doctor (referring doctor role) to the patient. Resolve TriageQueue internally from referral ID.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue must be ARRIVED; doctor must be REFERRING_DOCTOR in same hospital.\n**Reassignment:** If a doctor is already assigned, all previous accesses are revoked before new assignment.\n**Side Effect:** Creates ReferralAccess grant and grants clinical access to the assigned doctor.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6056,7 +6178,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TriageQueue ID",
+                        "description": "Referral ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -6100,7 +6222,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Mark an appointment as missed.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue entry must exist.\n**State Transition:** arrival_status → MISSED; creates ClinicalUpdate for re‑evaluation.\n**Common Errors:**\n- 400 invalid format",
+                "description": "Mark an appointment as missed. Resolve TriageQueue internally from referral ID.\n**Roles:** RECEPTIONIST\n**Prerequisites:** queue entry must exist.\n**State Transition:** arrival_status → MISSED; creates ClinicalUpdate for re‑evaluation.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6114,7 +6236,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TriageQueue ID",
+                        "description": "Referral ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -6158,7 +6280,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes the assigned treating doctor from a patient, revoking their clinical access. Only the receptionist who assigned the doctor (or any receptionist in the same hospital) can call this.\n**Roles:** RECEPTIONIST",
+                "description": "Removes the assigned treating doctor from a patient, revoking their clinical access. Resolve TriageQueue internally from referral ID.\n**Roles:** RECEPTIONIST",
                 "consumes": [
                     "application/json"
                 ],
@@ -6172,7 +6294,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TriageQueue ID",
+                        "description": "Referral ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -8752,6 +8874,75 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AssignedReferralListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AssignedReferralResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.AssignedReferralResponse": {
+            "type": "object",
+            "properties": {
+                "access_granted_at": {
+                    "type": "string"
+                },
+                "access_revoked_at": {
+                    "type": "string"
+                },
+                "access_type": {
+                    "type": "string"
+                },
+                "condition_at_referral": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "department": {
+                    "type": "string"
+                },
+                "diagnosis": {
+                    "description": "Typically the primary diagnosis CodeInfo name",
+                    "type": "string"
+                },
+                "icd_code": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "patient_first_name": {
+                    "type": "string"
+                },
+                "patient_last_name": {
+                    "type": "string"
+                },
+                "patient_middle_name": {
+                    "type": "string"
+                },
+                "patient_region": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AttachmentListResponse": {
             "type": "object",
             "properties": {
@@ -9157,6 +9348,38 @@ const docTemplate = `{
                 },
                 "total_referrals": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.DoctorInfo": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DoctorListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DoctorInfo"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -10251,6 +10474,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ReceptionistOfflineDataResponse": {
+            "type": "object",
+            "properties": {
+                "doctors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DoctorInfo"
+                    }
+                },
+                "schedule": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.TriageQueue"
+                    }
+                }
+            }
+        },
         "dto.RecordOutcomeRequest": {
             "type": "object",
             "required": [
@@ -11045,6 +11285,21 @@ const docTemplate = `{
                 "ActionRevokeConsultAccess"
             ]
         },
+        "entity.ArrivalStatus": {
+            "type": "string",
+            "enum": [
+                "EXPECTED",
+                "ARRIVED",
+                "ADMITTED",
+                "MISSED"
+            ],
+            "x-enum-varnames": [
+                "ArrivalExpected",
+                "ArrivalArrived",
+                "ArrivalAdmitted",
+                "ArrivalMissed"
+            ]
+        },
         "entity.Attachment": {
             "type": "object",
             "properties": {
@@ -11209,6 +11464,21 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "entity.MissReason": {
+            "type": "string",
+            "enum": [
+                "PATIENT_NO_SHOW",
+                "PATIENT_CONTACTED_RESCHEDULE",
+                "HOSPITAL_CANCELLED",
+                "HOSPITAL_CAPACITY_ISSUE"
+            ],
+            "x-enum-varnames": [
+                "MissPatientNoShow",
+                "MissPatientContactedResched",
+                "MissHospitalCancelled",
+                "MissHospitalCapacityIssue"
+            ]
         },
         "entity.Notification": {
             "type": "object",
@@ -11624,6 +11894,68 @@ const docTemplate = `{
                 "StatusRejectedAfterSend",
                 "StatusDeceased"
             ]
+        },
+        "entity.TriageQueue": {
+            "type": "object",
+            "properties": {
+                "appointment_date": {
+                    "type": "string"
+                },
+                "arrival_status": {
+                    "$ref": "#/definitions/entity.ArrivalStatus"
+                },
+                "arrived_at": {
+                    "type": "string"
+                },
+                "assigned_at": {
+                    "type": "string"
+                },
+                "assigned_doctor": {
+                    "$ref": "#/definitions/entity.User"
+                },
+                "assigned_doctor_id": {
+                    "type": "string"
+                },
+                "composite_score": {
+                    "type": "number"
+                },
+                "department": {
+                    "$ref": "#/definitions/entity.Department"
+                },
+                "department_id": {
+                    "type": "string"
+                },
+                "doctor_assigned_at": {
+                    "type": "string"
+                },
+                "hospital": {
+                    "$ref": "#/definitions/entity.Hospital"
+                },
+                "hospital_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "marked_by": {
+                    "type": "string"
+                },
+                "marked_by_admin": {
+                    "$ref": "#/definitions/entity.User"
+                },
+                "miss_reason": {
+                    "$ref": "#/definitions/entity.MissReason"
+                },
+                "referral": {
+                    "$ref": "#/definitions/entity.Referral"
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "waiting_hours_weight": {
+                    "type": "number"
+                }
+            }
         },
         "entity.TriageStatus": {
             "type": "string",
