@@ -5708,6 +5708,8 @@ paths:
         - 401 Unauthorized
         - 403 Forbidden
         - 500 Internal Server Error
+        Notification types: ACCEPTANCE (referral accepted), SCHEDULING (appointment scheduled), REMINDER (appointment reminder), RESCHEDULE (appointment changed).
+        Delivery status: QUEUED (awaiting auto-send), MANUAL_REQUIRED (needs manual trigger), SENT (sent to provider), FAILED (provider error).
       parameters:
       - default: 1
         description: Page number
@@ -5733,10 +5735,20 @@ paths:
         name: department_id
         type: string
       - description: Filter by Notification Type
+        enum:
+        - ACCEPTANCE
+        - SCHEDULING
+        - REMINDER
+        - RESCHEDULE
         in: query
         name: notif_type
         type: string
       - description: Filter by Delivery Status
+        enum:
+        - QUEUED
+        - MANUAL_REQUIRED
+        - SENT
+        - FAILED
         in: query
         name: delivery_status
         type: string
