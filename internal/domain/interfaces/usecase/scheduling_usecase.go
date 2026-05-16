@@ -15,4 +15,5 @@ type SchedulingUseCase interface {
 	// Specialized Scheduling
 	ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) error
 	BatchSchedule(ctx context.Context, hospitalID, deptID, userID uuid.UUID, sendNotifications bool) (*dto.BatchScheduleResult, error)
+	ProcessMissedAppointments(ctx context.Context) error
 }

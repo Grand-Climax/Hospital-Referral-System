@@ -20,11 +20,12 @@ var (
 
 type departmentUseCase struct {
 	repo     irepository.DepartmentRepository
-	hospRepo irepository.HospitalRepository
+	hospRepo       irepository.HospitalRepository
+	checkpointRepo irepository.SchedulerCheckpointRepository
 }
 
-func NewDepartmentUseCase(repo irepository.DepartmentRepository, hospRepo irepository.HospitalRepository) iusecase.DepartmentUseCase {
-	return &departmentUseCase{repo: repo, hospRepo: hospRepo}
+func NewDepartmentUseCase(repo irepository.DepartmentRepository, hospRepo irepository.HospitalRepository, checkpointRepo irepository.SchedulerCheckpointRepository) iusecase.DepartmentUseCase {
+	return &departmentUseCase{repo: repo, hospRepo: hospRepo, checkpointRepo: checkpointRepo}
 }
 
 func (u *departmentUseCase) CreateDepartment(ctx context.Context, dept *entity.Department) error {
@@ -89,7 +90,20 @@ func (u *departmentUseCase) LinkDepartmentToHospital(ctx context.Context, hospit
 		StandardDailyLimit: dailyLimit,
 		IsActive:           true,
 	}
-	return u.repo.LinkToHospital(ctx, link)
+	err = u.repo.LinkToHospital(ctx, link)
+	if err != nil {
+		return err
+	}
+
+	// Create a scheduler checkpoint dynamically so the scheduler process starts polling this new department queue
+	if u.checkpointRepo != nil {
+		_ = u.checkpointRepo.Create(ctx, &entity.SchedulerCheckpoint{
+			HospitalID:   hospitalID,
+			DepartmentID: departmentID,
+		})
+	}
+
+	return nil
 }
 
 func (u *departmentUseCase) UnlinkDepartmentFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error {

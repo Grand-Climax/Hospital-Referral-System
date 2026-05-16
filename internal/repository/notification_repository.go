@@ -61,6 +61,25 @@ func (r *notificationRepository) GetQueuedByFilter(ctx context.Context, hospital
 	return ns, err
 }
 
+func (r *notificationRepository) GetPendingByFilter(ctx context.Context, hospitalID, deptID *uuid.UUID, statuses []entity.DeliveryStatus, limit int) ([]entity.Notification, error) {
+	var ns []entity.Notification
+	query := r.db.WithContext(ctx).
+		Table("notifications").
+		Select("notifications.*").
+		Joins("JOIN referrals ON notifications.referral_id = referrals.id").
+		Where("notifications.delivery_status IN ?", statuses)
+
+	if hospitalID != nil && *hospitalID != uuid.Nil {
+		query = query.Where("referrals.target_hospital_id = ?", *hospitalID)
+	}
+	if deptID != nil && *deptID != uuid.Nil {
+		query = query.Where("referrals.target_dept_id = ?", *deptID)
+	}
+
+	err := query.Limit(limit).Find(&ns).Error
+	return ns, err
+}
+
 func (r *notificationRepository) GetSent(ctx context.Context, limit int) ([]entity.Notification, error) {
 	var ns []entity.Notification
 	err := r.db.WithContext(ctx).

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -105,6 +106,18 @@ func validateConfig(key, value string) error {
 		v, err := strconv.Atoi(value)
 		if err != nil || v < 0 {
 			return fmt.Errorf("overbook_limit_default must be a non-negative integer (>= 0)")
+		}
+	case "auto_notify":
+		if value != "true" && value != "false" {
+			return fmt.Errorf("auto_notify must be 'true' or 'false'")
+		}
+	case "last_waiting_weight_update":
+		// Can be empty or a valid RFC3339 timestamp
+		if value != "" {
+			_, err := time.Parse(time.RFC3339, value)
+			if err != nil {
+				return fmt.Errorf("last_waiting_weight_update must be empty or a valid RFC3339 timestamp")
+			}
 		}
 	}
 	return nil

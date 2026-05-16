@@ -23,12 +23,18 @@ type CloudinaryConfig struct {
 	UploadPreset string
 }
 
+type SMSConfig struct {
+	From   string
+	Sender string
+}
+
 type Config struct {
 	DB         DBConfig
 	RedisURL   string
 	JWTSecret  string
 	Port       string
 	Cloudinary CloudinaryConfig
+	SMS        SMSConfig
 }
 
 func LoadConfig() Config {
@@ -55,6 +61,10 @@ func LoadConfig() Config {
 			APIKey:       os.Getenv("CLOUDINARY_API_KEY"),
 			APISecret:    os.Getenv("CLOUDINARY_API_SECRET"),
 			UploadPreset: os.Getenv("CLOUDINARY_UPLOAD_PRESET"),
+		},
+		SMS: SMSConfig{
+			From:   os.Getenv("AFROMESSAGE_IDENTIFIER_ID"),
+			Sender: os.Getenv("AFROMESSAGE_SENDER_NAME"),
 		},
 	}
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -33,6 +34,23 @@ func (r *patientRepository) FindByNationalIDHash(ctx context.Context, hash strin
 	}
 
 	return &patient, nil
+}
+
+func (r *patientRepository) Create(ctx context.Context, patient *entity.Patient) error {
+	err := r.db.WithContext(ctx).Create(patient).Error
+	if err != nil {
+		// Catch unique constraint violations for national_id_hash and phone_hash
+		if strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
+			if strings.Contains(err.Error(), "patients_national_id_hash_unique") || strings.Contains(err.Error(), "uni_patients_national_id_hash") {
+				return entity.ErrNationalIDAlreadyExists
+			}
+			if strings.Contains(err.Error(), "patients_phone_hash_unique") || strings.Contains(err.Error(), "uni_patients_phone_hash") {
+				return entity.ErrPhoneNumberAlreadyExists
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *patientRepository) FindByPhoneHash(ctx context.Context, hash string) (*entity.Patient, error) {

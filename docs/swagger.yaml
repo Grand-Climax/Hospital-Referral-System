@@ -1749,6 +1749,7 @@ definitions:
     - FAILED
     - RESEND
     - CANCELLED
+    - MANUAL_REQUIRED
     type: string
     x-enum-varnames:
     - DeliveryQueued
@@ -1757,6 +1758,7 @@ definitions:
     - DeliveryFailed
     - DeliveryResend
     - DeliveryCancelled
+    - DeliveryManualRequired
   entity.Department:
     properties:
       created_at:
@@ -1780,6 +1782,38 @@ definitions:
     - CertaintyConfirmed
     - CertaintySuspected
     - CertaintySymptomOnly
+  entity.EthiopianRegion:
+    enum:
+    - Addis Ababa
+    - Afar
+    - Amhara
+    - Benishangul-Gumuz
+    - Dire Dawa
+    - Gambela
+    - Harari
+    - Oromia
+    - Sidama
+    - Somali
+    - South Ethiopia
+    - South West Ethiopia
+    - Central Ethiopia
+    - Tigray
+    type: string
+    x-enum-varnames:
+    - RegionAddisAbaba
+    - RegionAfar
+    - RegionAmhara
+    - RegionBenishangulGumuz
+    - RegionDireDawa
+    - RegionGambela
+    - RegionHarari
+    - RegionOromia
+    - RegionSidama
+    - RegionSomali
+    - RegionSouthEthiopia
+    - RegionSouthWestEthiopia
+    - RegionCentralEthiopia
+    - RegionTigray
   entity.Hospital:
     properties:
       address:
@@ -1795,7 +1829,7 @@ definitions:
       name:
         type: string
       region:
-        type: string
+        $ref: '#/definitions/entity.EthiopianRegion'
       tier_level:
         $ref: '#/definitions/entity.HospitalTier'
       updated_at:
@@ -1885,7 +1919,7 @@ definitions:
         description: Transient fields for plaintext data
         type: string
       home_region:
-        type: string
+        $ref: '#/definitions/entity.EthiopianRegion'
       id:
         type: string
       last_name:
@@ -2198,6 +2232,8 @@ definitions:
         type: string
       profile_image_url:
         type: string
+      region:
+        $ref: '#/definitions/entity.EthiopianRegion'
       role:
         $ref: '#/definitions/entity.UserRole'
       updated_at:
@@ -3783,6 +3819,7 @@ paths:
   /api/v1/doctor/referrals/assigned:
     get:
       description: |-
+        Returns referrals where the authenticated doctor has treating or consulting access.
         **Roles:** REFERRING_DOCTOR
         **Query Parameters:**
         - `access_type` (optional): `treating`, `consulting`, or empty for all.
@@ -5559,6 +5596,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Extend Daily Schedule Window
+      tags:
+      - Automation Jobs
+  /api/v1/internal/jobs/process-missed:
+    post:
+      description: Marks past expected appointments as missed and flags for review.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Process Missed Appointments
+      tags:
+      - Automation Jobs
+  /api/v1/internal/jobs/process-pending-sms:
+    post:
+      description: Sends queued SMS notifications in bulk.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Process Pending SMS
       tags:
       - Automation Jobs
   /api/v1/internal/jobs/run-scheduler-cycle:

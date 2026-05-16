@@ -22,7 +22,7 @@ func toListReferralResponse(r entity.Referral) dto.ListReferralResponse {
 		patientNameMiddle = r.Patient.MiddleNamePlain
 		patientNameLast = r.Patient.LastNamePlain
 		if r.Patient.HomeRegion != nil {
-			patientRegion = *r.Patient.HomeRegion
+			patientRegion = string(*r.Patient.HomeRegion)
 		}
 	}
 

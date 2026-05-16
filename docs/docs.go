@@ -1309,7 +1309,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "**Roles:** REFERRING_DOCTOR\n**Query Parameters:**\n- ` + "`" + `access_type` + "`" + ` (optional): ` + "`" + `treating` + "`" + `, ` + "`" + `consulting` + "`" + `, or empty for all.\n- ` + "`" + `include_revoked` + "`" + ` (bool, default false): include revoked access grants.",
+                "description": "Returns referrals where the authenticated doctor has treating or consulting access.\n**Roles:** REFERRING_DOCTOR\n**Query Parameters:**\n- ` + "`" + `access_type` + "`" + ` (optional): ` + "`" + `treating` + "`" + `, ` + "`" + `consulting` + "`" + `, or empty for all.\n- ` + "`" + `include_revoked` + "`" + ` (bool, default false): include revoked access grants.",
                 "produces": [
                     "application/json"
                 ],
@@ -4102,6 +4102,58 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/jobs/process-missed": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marks past expected appointments as missed and flags for review.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation Jobs"
+                ],
+                "summary": "Process Missed Appointments",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/internal/jobs/process-pending-sms": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sends queued SMS notifications in bulk.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Automation Jobs"
+                ],
+                "summary": "Process Pending SMS",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -11360,7 +11412,8 @@ const docTemplate = `{
                 "DELIVERED",
                 "FAILED",
                 "RESEND",
-                "CANCELLED"
+                "CANCELLED",
+                "MANUAL_REQUIRED"
             ],
             "x-enum-varnames": [
                 "DeliveryQueued",
@@ -11368,7 +11421,8 @@ const docTemplate = `{
                 "DeliveryDelivered",
                 "DeliveryFailed",
                 "DeliveryResend",
-                "DeliveryCancelled"
+                "DeliveryCancelled",
+                "DeliveryManualRequired"
             ]
         },
         "entity.Department": {
@@ -11404,6 +11458,41 @@ const docTemplate = `{
                 "CertaintySymptomOnly"
             ]
         },
+        "entity.EthiopianRegion": {
+            "type": "string",
+            "enum": [
+                "Addis Ababa",
+                "Afar",
+                "Amhara",
+                "Benishangul-Gumuz",
+                "Dire Dawa",
+                "Gambela",
+                "Harari",
+                "Oromia",
+                "Sidama",
+                "Somali",
+                "South Ethiopia",
+                "South West Ethiopia",
+                "Central Ethiopia",
+                "Tigray"
+            ],
+            "x-enum-varnames": [
+                "RegionAddisAbaba",
+                "RegionAfar",
+                "RegionAmhara",
+                "RegionBenishangulGumuz",
+                "RegionDireDawa",
+                "RegionGambela",
+                "RegionHarari",
+                "RegionOromia",
+                "RegionSidama",
+                "RegionSomali",
+                "RegionSouthEthiopia",
+                "RegionSouthWestEthiopia",
+                "RegionCentralEthiopia",
+                "RegionTigray"
+            ]
+        },
         "entity.Hospital": {
             "type": "object",
             "properties": {
@@ -11426,7 +11515,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "region": {
-                    "type": "string"
+                    "$ref": "#/definitions/entity.EthiopianRegion"
                 },
                 "tier_level": {
                     "$ref": "#/definitions/entity.HospitalTier"
@@ -11555,7 +11644,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "home_region": {
-                    "type": "string"
+                    "$ref": "#/definitions/entity.EthiopianRegion"
                 },
                 "id": {
                     "type": "string"
@@ -12016,6 +12105,9 @@ const docTemplate = `{
                 },
                 "profile_image_url": {
                     "type": "string"
+                },
+                "region": {
+                    "$ref": "#/definitions/entity.EthiopianRegion"
                 },
                 "role": {
                     "$ref": "#/definitions/entity.UserRole"
