@@ -133,7 +133,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 500 Internal Server Error",
+                "description": "Define a routing rule linking two hospitals. Only SYSTEM_SUPER_ADMIN can create global network routes.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid input\n- 500 Internal Server Error",
                 "consumes": [
                     "application/json"
                 ],
@@ -184,7 +184,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN\n**Common Errors:**\n- 400 invalid ID format\n- 500 Internal Server Error",
+                "description": "Remove a referral network routing rule. Only SYSTEM_SUPER_ADMIN can delete routes.\n**Roles:** SYSTEM_SUPER_ADMIN\n**Common Errors:**\n- 400 invalid ID format\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -4243,7 +4243,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a paginated list of notifications with various filters.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, RECEPTIONIST\n**Scoping:**\n- SYSTEM_SUPER_ADMIN: Global access, can filter by any hospital/department.\n- HOSPITAL_ADMIN: Scoped to their hospital.\n- DEPT_HEAD / RECEPTIONIST: Scoped to their hospital and department.\n**Common Errors:**\n- 401 Unauthorized\n- 403 Forbidden\n- 500 Internal Server Error",
+                "description": "Retrieve a paginated list of notifications with various filters.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD, RECEPTIONIST\n**Scoping:**\n- SYSTEM_SUPER_ADMIN: Global access, can filter by any hospital/department.\n- HOSPITAL_ADMIN: Scoped to their hospital.\n- DEPT_HEAD / RECEPTIONIST: Scoped to their hospital and department.\n**Common Errors:**\n- 401 Unauthorized\n- 403 Forbidden\n- 500 Internal Server Error\nNotification types: ACCEPTANCE (referral accepted), SCHEDULING (appointment scheduled), REMINDER (appointment reminder), RESCHEDULE (appointment changed).\nDelivery status: QUEUED (awaiting auto-send), MANUAL_REQUIRED (needs manual trigger), SENT (sent to provider), FAILED (provider error).",
                 "produces": [
                     "application/json"
                 ],
@@ -4285,12 +4285,24 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "ACCEPTANCE",
+                            "SCHEDULING",
+                            "REMINDER",
+                            "RESCHEDULE"
+                        ],
                         "type": "string",
                         "description": "Filter by Notification Type",
                         "name": "notif_type",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "QUEUED",
+                            "MANUAL_REQUIRED",
+                            "SENT",
+                            "FAILED"
+                        ],
                         "type": "string",
                         "description": "Filter by Delivery Status",
                         "name": "delivery_status",
