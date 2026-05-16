@@ -18,7 +18,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 )
 
-func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase, *MockInAppNotificationUseCase, *MockUserUseCase) {
+func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase, *MockInAppNotificationUseCase, *MockUserUseCase, *MockNotificationUseCase) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -32,6 +32,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	mockSchedulerUC := new(MockSchedulerServiceUseCase)
 	mockInAppNotifUC := new(MockInAppNotificationUseCase)
 	mockPatientUC := new(MockPatientUseCase)
+	mockNotificationUC := new(MockNotificationUseCase)
 
 	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC, mockPatientUC)
 	scheduleHandler := handlers.NewScheduleHandler(mockCapacityUC)
@@ -39,7 +40,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	mockUserUC := new(MockUserUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC, mockPatientUC, mockUserUC)
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
-	jobHandler := handlers.NewJobHandler(mockCapacityUC, nil, mockDailyWeightUC, mockSchedulerUC)
+	jobHandler := handlers.NewJobHandler(mockCapacityUC, mockNotificationUC, mockDailyWeightUC, mockSchedulerUC, mockSchedulingUC)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
 	doctorHandler := handlers.NewDoctorHandler(mockReferralUC, nil, mockPatientUC, mockArrivalUC)
 	liaisonHandler := handlers.NewLiaisonHandler(mockReferralUC, mockPatientUC)
@@ -122,11 +123,11 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 		api.POST("/liaison/referrals/:id/reject-after-send", liaisonHandler.RejectAfterSend)
 	}
 
-	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC, mockUserUC
+	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC, mockUserUC, mockNotificationUC
 }
 
 func TestSpecialistEndpoints(t *testing.T) {
-	r, _, mockTriage, mockSched, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, mockTriage, mockSched, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Set Manual Severity", func(t *testing.T) {
@@ -186,7 +187,7 @@ func TestSpecialistEndpoints(t *testing.T) {
 }
 
 func TestDepartmentHeadEndpoints(t *testing.T) {
-	r, _, _, mockSched, _, _, mockCapacity, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, mockSched, _, _, mockCapacity, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	scheduleID := uuid.New()
 	overrideID := uuid.New()
 
@@ -282,7 +283,7 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 }
 
 func TestReceptionistEndpoints(t *testing.T) {
-	r, _, _, _, mockArrival, _, _, _, _, _, mockUserUC := setupPostAcceptanceTestRouter()
+	r, _, _, _, mockArrival, _, _, _, _, _, mockUserUC, _ := setupPostAcceptanceTestRouter()
 	queueID := uuid.New()
 
 	t.Run("List Doctors", func(t *testing.T) {
@@ -351,7 +352,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 }
 
 func TestClinicalEndpoints(t *testing.T) {
-	r, _, _, _, _, mockClinical, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, mockClinical, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Add Clinical Update", func(t *testing.T) {
@@ -399,7 +400,7 @@ func TestClinicalEndpoints(t *testing.T) {
 }
 
 func TestInternalJobEndpoints(t *testing.T) {
-	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler, _, _, _ := setupPostAcceptanceTestRouter()
 
 	t.Run("Update Waiting Weights - Success", func(t *testing.T) {
 		mockDailyWeight.On("Execute", mock.Anything, mock.Anything).Return("Successfully updated 5 records", nil).Once()
@@ -450,7 +451,7 @@ func TestInternalJobEndpoints(t *testing.T) {
 }
 
 func TestInAppNotificationEndpoints(t *testing.T) {
-	r, _, _, _, _, _, _, _, _, mockInAppNotif, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, _, _, _, _, mockInAppNotif, _, _ := setupPostAcceptanceTestRouter()
 	notifID := uuid.New()
 
 	t.Run("List Notifications - Success", func(t *testing.T) {
@@ -503,7 +504,7 @@ func TestInAppNotificationEndpoints(t *testing.T) {
 }
 
 func TestRejectionAfterSendEndpoints(t *testing.T) {
-	r, mockReferral, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, mockReferral, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Doctor Reject After Send", func(t *testing.T) {

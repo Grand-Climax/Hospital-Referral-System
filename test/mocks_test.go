@@ -1067,10 +1067,12 @@ func (m *MockTriageQueueRepo) Delete(ctx context.Context, id interface{}) error 
 
 func (m *MockTriageQueueRepo) ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {
 	args := m.Called(ctx, hospitalID, limit, offset)
-	if args.Get(0) == nil {
-		return nil, args.Get(1).(int64), args.Error(2)
-	}
 	return args.Get(0).([]*entity.TriageQueue), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockTriageQueueRepo) FindMissedByDate(ctx context.Context, beforeDate time.Time) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, beforeDate)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
 }
 
 
@@ -1110,6 +1112,11 @@ func (m *MockClinicalUpdateRepo) Delete(ctx context.Context, id interface{}) err
 func (m *MockClinicalUpdateRepo) ListByReferralID(ctx context.Context, referralID uuid.UUID) ([]entity.ClinicalUpdate, error) {
 	args := m.Called(ctx, referralID)
 	return args.Get(0).([]entity.ClinicalUpdate), args.Error(1)
+}
+
+func (m *MockClinicalUpdateRepo) ExistsForReferralAndDate(ctx context.Context, referralID uuid.UUID, reason string, date time.Time) (bool, error) {
+	args := m.Called(ctx, referralID, reason, date)
+	return args.Bool(0), args.Error(1)
 }
 
 // ---------------------------------------------------------------------------
@@ -1251,6 +1258,10 @@ func (m *MockSchedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, d
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
+}
+
+func (m *MockSchedulingUseCase) ProcessMissedAppointments(ctx context.Context) error {
+	return m.Called(ctx).Error(0)
 }
 
 // ---------------------------------------------------------------------------
@@ -1472,6 +1483,14 @@ func (m *MockNotificationUseCase) QueueNotification(ctx context.Context, referra
 
 func (m *MockNotificationUseCase) TriggerManualSend(ctx context.Context, hospitalID, deptID *uuid.UUID) (*dto.NotificationSendSummary, error) {
 	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.NotificationSendSummary), args.Error(1)
+}
+
+func (m *MockNotificationUseCase) ProcessPendingSMS(ctx context.Context, limit int) (*dto.NotificationSendSummary, error) {
+	args := m.Called(ctx, limit)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -2009,4 +2028,24 @@ func (m *MockPatientUseCase) LookupByNationalID(ctx context.Context, nationalID 
 		return id.(*uuid.UUID), args.Error(1)
 	}
 	return nil, args.Error(1)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: JobCheckpointRepository
+// ---------------------------------------------------------------------------
+
+type MockJobCheckpointRepo struct {
+	mock.Mock
+}
+
+func (m *MockJobCheckpointRepo) GetLastRun(ctx context.Context, jobName string) (*time.Time, error) {
+	args := m.Called(ctx, jobName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*time.Time), args.Error(1)
+}
+
+func (m *MockJobCheckpointRepo) UpdateLastRun(ctx context.Context, jobName string, timestamp time.Time) error {
+	return m.Called(ctx, jobName, timestamp).Error(0)
 }
