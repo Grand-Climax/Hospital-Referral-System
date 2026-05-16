@@ -10,12 +10,16 @@ import (
 type DeliveryStatus string
 
 const (
-	DeliveryQueued    DeliveryStatus = "QUEUED"
-	DeliverySent      DeliveryStatus = "SENT"
-	DeliveryDelivered DeliveryStatus = "DELIVERED"
-	DeliveryFailed    DeliveryStatus = "FAILED"
-	DeliveryResend    DeliveryStatus = "RESEND"
-	DeliveryCancelled DeliveryStatus = "CANCELLED"
+	DeliveryQueued         DeliveryStatus = "QUEUED"
+	DeliverySent           DeliveryStatus = "SENT"
+	// Deprecated: Use webhooks or manual status updates instead.
+	DeliveryDelivered      DeliveryStatus = "DELIVERED"
+	DeliveryFailed         DeliveryStatus = "FAILED"
+	// Deprecated: Use TriggerManualSend for resending logic.
+	DeliveryResend         DeliveryStatus = "RESEND"
+	// Deprecated: No longer used in current SMS workflow.
+	DeliveryCancelled      DeliveryStatus = "CANCELLED"
+	DeliveryManualRequired DeliveryStatus = "MANUAL_REQUIRED"
 )
 
 type NotificationType string

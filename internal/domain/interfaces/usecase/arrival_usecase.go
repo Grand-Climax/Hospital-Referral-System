@@ -15,6 +15,8 @@ type ArrivalUseCase interface {
 	RevokeDoctorAssignment(ctx context.Context, queueID, userID uuid.UUID, reason string) error
 	MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error
 	ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error)
+	GetTriageQueueByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.TriageQueue, error)
+
 
 	// Consult management
 	GrantConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID) error

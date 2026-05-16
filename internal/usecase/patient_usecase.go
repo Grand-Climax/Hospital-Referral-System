@@ -173,7 +173,8 @@ func (u *patientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatien
 	}
 
 	if req.HomeRegion != "" {
-		newPatient.HomeRegion = &req.HomeRegion
+		region := entity.EthiopianRegion(req.HomeRegion)
+		newPatient.HomeRegion = &region
 	}
 
 	if req.NationalID != "" {

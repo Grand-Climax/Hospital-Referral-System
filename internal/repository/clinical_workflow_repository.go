@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -31,4 +32,17 @@ func (r *clinicalUpdateRepository) ListByReferralID(ctx context.Context, referra
 		Order("created_at asc").
 		Find(&updates).Error
 	return updates, err
+}
+
+func (r *clinicalUpdateRepository) ExistsForReferralAndDate(ctx context.Context, referralID uuid.UUID, reason string, date time.Time) (bool, error) {
+	var count int64
+	// Truncate time to compare just the date portion
+	startOfDay := date.Truncate(24 * time.Hour)
+	endOfDay := startOfDay.Add(24 * time.Hour)
+	
+	err := r.db.WithContext(ctx).Model(&entity.ClinicalUpdate{}).
+		Where("referral_id = ? AND update_reason = ? AND created_at >= ? AND created_at < ?", referralID, reason, startOfDay, endOfDay).
+		Count(&count).Error
+		
+	return count > 0, err
 }

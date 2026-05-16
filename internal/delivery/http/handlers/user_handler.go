@@ -90,7 +90,7 @@ func toUserResponse(u *entity.User) dto.UserResponse {
 			ID:           u.Hospital.ID.String(),
 			Name:         u.Hospital.Name,
 			TierLevel:    string(u.Hospital.TierLevel),
-			Region:       u.Hospital.Region,
+			Region:       string(u.Hospital.Region),
 			IsActive:     u.Hospital.IsActive,
 			CreatedAt:    u.Hospital.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:    u.Hospital.UpdatedAt.Format(time.RFC3339),

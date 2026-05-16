@@ -15,6 +15,7 @@ type JobHandler struct {
 	notifUC      iusecase.NotificationUseCase
 	dailyWeightUC iusecase.DailyWeightUseCase
 	schedulerUC   iusecase.SchedulerServiceUseCase
+	schedulingUC  iusecase.SchedulingUseCase
 }
 
 func NewJobHandler(
@@ -22,12 +23,14 @@ func NewJobHandler(
 	notifUC iusecase.NotificationUseCase,
 	dailyWeightUC iusecase.DailyWeightUseCase,
 	schedulerUC iusecase.SchedulerServiceUseCase,
+	schedulingUC iusecase.SchedulingUseCase,
 ) *JobHandler {
 	return &JobHandler{
 		capacityUC:    capacityUC,
 		notifUC:       notifUC,
 		dailyWeightUC: dailyWeightUC,
 		schedulerUC:   schedulerUC,
+		schedulingUC:  schedulingUC,
 	}
 }
 
@@ -154,5 +157,53 @@ func (h *JobHandler) RunSchedulerCycle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    result,
+	})
+}
+
+// ProcessPendingSMS godoc
+// @Summary      Process Pending SMS
+// @Description  Sends queued SMS notifications in bulk.
+// @Tags         Automation Jobs
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Security     BearerAuth
+// @Router       /api/v1/internal/jobs/process-pending-sms [post]
+func (h *JobHandler) ProcessPendingSMS(c *gin.Context) {
+	summary, err := h.notifUC.ProcessPendingSMS(c.Request.Context(), 50)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
+			Success: false,
+			Message: "Failed to process SMS: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    summary,
+	})
+}
+
+// ProcessMissedAppointments godoc
+// @Summary      Process Missed Appointments
+// @Description  Marks past expected appointments as missed and flags for review.
+// @Tags         Automation Jobs
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Security     BearerAuth
+// @Router       /api/v1/internal/jobs/process-missed [post]
+func (h *JobHandler) ProcessMissedAppointments(c *gin.Context) {
+	err := h.schedulingUC.ProcessMissedAppointments(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
+			Success: false,
+			Message: "Failed to process missed appointments: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Missed appointments processed successfully",
 	})
 }

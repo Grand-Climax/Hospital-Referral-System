@@ -62,6 +62,7 @@ func SeedAll(db *gorm.DB) error {
 		&entity.CapacityOverride{},
 		&entity.SystemConfig{},
 		&entity.SchedulerCheckpoint{},
+		&entity.JobCheckpoint{},
 		&entity.ReferralRedirection{},
 	)
 	if err != nil {
@@ -73,7 +74,7 @@ func SeedAll(db *gorm.DB) error {
 		"audit_logs", "notifications", "referral_accesses", "referral_redirections", "referral_outcomes",
 		"clinical_updates", "ml_predictions", "triage_queues", "daily_schedules", "capacity_overrides",
 		"referral_diagnoses", "referral_status_histories", "vitals", "referral_emergency_details",
-		"referral_forms", "attachments", "referrals", "patients", "scheduler_checkpoints", "system_configs",
+		"referral_forms", "attachments", "referrals", "patients", "scheduler_checkpoints", "job_checkpoints", "system_configs",
 		"hospital_departments", "departments", "referral_networks", "sessions", "users", "hospitals",
 		"icd_codes", "staff_replacement_logs", "in_app_notifications",
 	}
@@ -136,6 +137,7 @@ func seedSystemConfigs(ctx context.Context, db *gorm.DB) error {
 		{Key: "overbook_limit_default", Value: "0"},
 		{Key: "auto_notify", Value: "false"},
 		{Key: "last_waiting_weight_update", Value: ""},
+		{Key: "enable_cron_jobs", Value: "false"},
 	}
 
 	for _, cfg := range configs {
@@ -143,10 +145,16 @@ func seedSystemConfigs(ctx context.Context, db *gorm.DB) error {
 			return err
 		}
 	}
+	
+	// Seed job_checkpoints
+	db.Exec("INSERT INTO job_checkpoints (job_name, last_run_at) VALUES ('sms_processing', NULL), ('missed_appointments', NULL) ON CONFLICT (job_name) DO NOTHING")
+	
 	return nil
 }
 
 func ptrStr(s string) *string { return &s }
+
+func ptrRegion(r entity.EthiopianRegion) *entity.EthiopianRegion { return &r }
 
 func seedHospitals(ctx context.Context, db *gorm.DB) error {
 	hospitals := []entity.Hospital{
@@ -154,7 +162,7 @@ func seedHospitals(ctx context.Context, db *gorm.DB) error {
 			ID:           uuid.MustParse("a1000000-0000-0000-0000-000000000001"),
 			Name:         "Tikur Anbessa Specialized Hospital",
 			TierLevel:    entity.TertiaryHosp,
-			Region:       "Addis Ababa",
+			Region:       entity.RegionAddisAbaba,
 			Address:      ptrStr("Zambia St, Addis Ababa, Ethiopia"),
 			ContactPhone: ptrStr("+251 11 551 1211"),
 		},
@@ -162,7 +170,7 @@ func seedHospitals(ctx context.Context, db *gorm.DB) error {
 			ID:           uuid.MustParse("a2000000-0000-0000-0000-000000000002"),
 			Name:         "St. Paul's Hospital Millennium Medical College",
 			TierLevel:    entity.SpecializedHosp,
-			Region:       "Addis Ababa",
+			Region:       entity.RegionAddisAbaba,
 			Address:      ptrStr("Swaziland St, Addis Ababa, Ethiopia"),
 			ContactPhone: ptrStr("+251 11 275 0122"),
 		},
@@ -170,16 +178,16 @@ func seedHospitals(ctx context.Context, db *gorm.DB) error {
 			ID:           uuid.MustParse("a3000000-0000-0000-0000-000000000003"),
 			Name:         "Black Lion Hospital",
 			TierLevel:    entity.TertiaryHosp,
-			Region:       "Addis Ababa",
+			Region:       entity.RegionAddisAbaba,
 			Address:      ptrStr("Addis Ababa, Ethiopia"),
 			ContactPhone: ptrStr("+251 11 111 1111"),
 		},
-		{ID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), Name: "Yekatit 12 Hospital", TierLevel: entity.SecondaryHosp, Region: "Addis Ababa", Address: ptrStr("Addis Ababa, Ethiopia"), ContactPhone: ptrStr("+251 11 123 4567")},
-		{ID: uuid.MustParse("a4000000-0000-0000-0000-000000000004"), Name: "Adama Primary Hospital", TierLevel: entity.PrimaryHosp, Region: "Oromia", Address: ptrStr("Adama, Ethiopia")},
-		{ID: uuid.MustParse("a5000000-0000-0000-0000-000000000005"), Name: "Jimma Primary Clinic", TierLevel: entity.PrimaryHosp, Region: "Oromia", Address: ptrStr("Jimma, Ethiopia")},
-		{ID: uuid.MustParse("a6000000-0000-0000-0000-000000000006"), Name: "Mekelle Health Center", TierLevel: entity.PrimaryHosp, Region: "Tigray", Address: ptrStr("Mekelle, Ethiopia")},
-		{ID: uuid.MustParse("a7000000-0000-0000-0000-000000000007"), Name: "Hawassa Primary Hospital", TierLevel: entity.PrimaryHosp, Region: "Sidama", Address: ptrStr("Hawassa, Ethiopia")},
-		{ID: uuid.MustParse("a8000000-0000-0000-0000-000000000008"), Name: "Dire Dawa Health Station", TierLevel: entity.PrimaryHosp, Region: "Dire Dawa", Address: ptrStr("Dire Dawa, Ethiopia")},
+		{ID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), Name: "Yekatit 12 Hospital", TierLevel: entity.SecondaryHosp, Region: entity.RegionAddisAbaba, Address: ptrStr("Addis Ababa, Ethiopia"), ContactPhone: ptrStr("+251 11 123 4567")},
+		{ID: uuid.MustParse("a4000000-0000-0000-0000-000000000004"), Name: "Adama Primary Hospital", TierLevel: entity.PrimaryHosp, Region: entity.RegionOromia, Address: ptrStr("Adama, Ethiopia")},
+		{ID: uuid.MustParse("a5000000-0000-0000-0000-000000000005"), Name: "Jimma Primary Clinic", TierLevel: entity.PrimaryHosp, Region: entity.RegionOromia, Address: ptrStr("Jimma, Ethiopia")},
+		{ID: uuid.MustParse("a6000000-0000-0000-0000-000000000006"), Name: "Mekelle Health Center", TierLevel: entity.PrimaryHosp, Region: entity.RegionTigray, Address: ptrStr("Mekelle, Ethiopia")},
+		{ID: uuid.MustParse("a7000000-0000-0000-0000-000000000007"), Name: "Hawassa Primary Hospital", TierLevel: entity.PrimaryHosp, Region: entity.RegionSidama, Address: ptrStr("Hawassa, Ethiopia")},
+		{ID: uuid.MustParse("a8000000-0000-0000-0000-000000000008"), Name: "Dire Dawa Health Station", TierLevel: entity.PrimaryHosp, Region: entity.RegionDireDawa, Address: ptrStr("Dire Dawa, Ethiopia")},
 	}
 
 	for _, h := range hospitals {
@@ -288,15 +296,15 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 	deptInternal := uuid.MustParse("b4000000-0000-0000-0000-000000000004")
 
 	users := []entity.User{
-		{ID: uuid.MustParse("d0000000-0000-0000-0000-000000000001"), NationalID: "SYS-001", Email: "superadmin@moh.gov.et", FirstName: "System", LastName: "Super Admin", Role: entity.RoleSystemSuperAdmin, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d0000000-0000-0000-0000-000000000002"), NationalID: "MOH-001", Email: "analyst@moh.gov.et", FirstName: "MoH", LastName: "Analyst", Role: entity.RoleMohAnalyst, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d0000000-0000-0000-0000-000000000001"), NationalID: "SYS-001", Email: "superadmin@moh.gov.et", FirstName: "System", LastName: "Super Admin", Role: entity.RoleSystemSuperAdmin, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d0000000-0000-0000-0000-000000000002"), NationalID: "MOH-001", Email: "analyst@moh.gov.et", FirstName: "MoH", LastName: "Analyst", Role: entity.RoleMohAnalyst, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
 
 		// Tikur Anbessa
-		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000001"), NationalID: "DOC-TA-001", Email: "doctor.ta@hospital.et", FirstName: "Alemayehu", LastName: "Doctor", Role: entity.RoleReferringDoctor, HospitalID: &hosp1, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000002"), NationalID: "LIA-TA-001", Email: "liaison.ta@hospital.et", FirstName: "Sara", LastName: "Liaison", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp1, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000003"), NationalID: "SPEC-TA-001", Email: "specialist.ta@hospital.et", FirstName: "Yohannes", LastName: "Specialist", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000004"), NationalID: "REC-TA-001", Email: "reception.ta@hospital.et", FirstName: "Aster", LastName: "Receptionist", Role: entity.RoleReceptionist, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000005"), NationalID: "HEAD-TA-001", Email: "depthead.ta@hospital.et", FirstName: "Genet", LastName: "Dept Head", Role: entity.RoleDeptHead, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000001"), NationalID: "DOC-TA-001", Email: "doctor.ta@hospital.et", FirstName: "Alemayehu", LastName: "Doctor", Role: entity.RoleReferringDoctor, HospitalID: &hosp1, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000002"), NationalID: "LIA-TA-001", Email: "liaison.ta@hospital.et", FirstName: "Sara", LastName: "Liaison", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp1, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000003"), NationalID: "SPEC-TA-001", Email: "specialist.ta@hospital.et", FirstName: "Yohannes", LastName: "Specialist", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000004"), NationalID: "REC-TA-001", Email: "reception.ta@hospital.et", FirstName: "Aster", LastName: "Receptionist", Role: entity.RoleReceptionist, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000005"), NationalID: "HEAD-TA-001", Email: "depthead.ta@hospital.et", FirstName: "Genet", LastName: "Dept Head", Role: entity.RoleDeptHead, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
 		
 		// README Accounts mapped to TA
 		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000006"), NationalID: "DOC-READ-001", Email: "doc.primary@hospital.et", FirstName: "Primary", LastName: "Doc", Role: entity.RoleReferringDoctor, HospitalID: &hosp1, PasswordHash: defaultHash},
@@ -305,28 +313,28 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000009"), NationalID: "LIA-READ-001", Email: "liaison@moh.gov.et", FirstName: "MoH", LastName: "Liaison", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp1, PasswordHash: defaultHash},
 
 		// St. Paul's
-		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000001"), NationalID: "DOC-SP-001", Email: "doctor.sp@hospital.et", FirstName: "Tesfaye", LastName: "Doctor", Role: entity.RoleReferringDoctor, HospitalID: &hosp2, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000002"), NationalID: "LIA-SP-001", Email: "liaison.sp@hospital.et", FirstName: "Liaison", LastName: "SP", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp2, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000003"), NationalID: "SPEC-SP-001", Email: "specialist.sp@hospital.et", FirstName: "Kidist", LastName: "Specialist", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp2, DepartmentID: &deptOrtho, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000004"), NationalID: "REC-SP-001", Email: "reception.sp@hospital.et", FirstName: "Etagegn", LastName: "Receptionist", Role: entity.RoleReceptionist, HospitalID: &hosp2, DepartmentID: &deptOrtho, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000005"), NationalID: "HEAD-SP-001", Email: "depthead.sp@hospital.et", FirstName: "Henok", LastName: "Dept Head", Role: entity.RoleDeptHead, HospitalID: &hosp2, DepartmentID: &deptOrtho, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000006"), NationalID: "ADMIN-SP-001", Email: "admin.specialized@hospital.et", FirstName: "Hospital", LastName: "Admin", Role: entity.RoleHospitalAdmin, HospitalID: &hosp2, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000001"), NationalID: "DOC-SP-001", Email: "doctor.sp@hospital.et", FirstName: "Tesfaye", LastName: "Doctor", Role: entity.RoleReferringDoctor, HospitalID: &hosp2, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000002"), NationalID: "LIA-SP-001", Email: "liaison.sp@hospital.et", FirstName: "Liaison", LastName: "SP", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp2, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000003"), NationalID: "SPEC-SP-001", Email: "specialist.sp@hospital.et", FirstName: "Kidist", LastName: "Specialist", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp2, DepartmentID: &deptOrtho, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000004"), NationalID: "REC-SP-001", Email: "reception.sp@hospital.et", FirstName: "Etagegn", LastName: "Receptionist", Role: entity.RoleReceptionist, HospitalID: &hosp2, DepartmentID: &deptOrtho, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000005"), NationalID: "HEAD-SP-001", Email: "depthead.sp@hospital.et", FirstName: "Henok", LastName: "Dept Head", Role: entity.RoleDeptHead, HospitalID: &hosp2, DepartmentID: &deptOrtho, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000006"), NationalID: "ADMIN-SP-001", Email: "admin.specialized@hospital.et", FirstName: "Hospital", LastName: "Admin", Role: entity.RoleHospitalAdmin, HospitalID: &hosp2, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
 
 		// Black Lion
-		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000001"), NationalID: "DOC-BL-001", Email: "doctor.bl@hospital.et", FirstName: "Doctor", LastName: "BL", Role: entity.RoleReferringDoctor, HospitalID: &hosp3, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000002"), NationalID: "LIA-BL-001", Email: "liaison.bl@hospital.et", FirstName: "Liaison", LastName: "BL", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp3, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000003"), NationalID: "SPEC-BL-001", Email: "specialist.bl@hospital.et", FirstName: "Martha", LastName: "Specialist", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000004"), NationalID: "REC-BL-001", Email: "reception.bl@hospital.et", FirstName: "Frehiwot", LastName: "Receptionist", Role: entity.RoleReceptionist, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000005"), NationalID: "HEAD-BL-001", Email: "depthead.bl@hospital.et", FirstName: "Head", LastName: "BL", Role: entity.RoleDeptHead, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000006"), NationalID: "ADMIN-BL-001", Email: "admin.bl@hospital.et", FirstName: "Hospital", LastName: "AdminBL", Role: entity.RoleHospitalAdmin, HospitalID: &hosp3, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000001"), NationalID: "DOC-BL-001", Email: "doctor.bl@hospital.et", FirstName: "Doctor", LastName: "BL", Role: entity.RoleReferringDoctor, HospitalID: &hosp3, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000002"), NationalID: "LIA-BL-001", Email: "liaison.bl@hospital.et", FirstName: "Liaison", LastName: "BL", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp3, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000003"), NationalID: "SPEC-BL-001", Email: "specialist.bl@hospital.et", FirstName: "Martha", LastName: "Specialist", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000004"), NationalID: "REC-BL-001", Email: "reception.bl@hospital.et", FirstName: "Frehiwot", LastName: "Receptionist", Role: entity.RoleReceptionist, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000005"), NationalID: "HEAD-BL-001", Email: "depthead.bl@hospital.et", FirstName: "Head", LastName: "BL", Role: entity.RoleDeptHead, HospitalID: &hosp3, DepartmentID: &deptPeds, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d3000000-0000-0000-0000-000000000006"), NationalID: "ADMIN-BL-001", Email: "admin.bl@hospital.et", FirstName: "Hospital", LastName: "AdminBL", Role: entity.RoleHospitalAdmin, HospitalID: &hosp3, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
 
 		// TA Hospital Admin
-		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000010"), NationalID: "ADMIN-TA-001", Email: "admin.ta@hospital.et", FirstName: "Hospital", LastName: "AdminTA", Role: entity.RoleHospitalAdmin, HospitalID: &hosp1, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000010"), NationalID: "ADMIN-TA-001", Email: "admin.ta@hospital.et", FirstName: "Hospital", LastName: "AdminTA", Role: entity.RoleHospitalAdmin, HospitalID: &hosp1, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
 
 		// Yekatit 12 (Secondary)
-		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000001"), NationalID: "ADMIN-Y12-001", Email: "admin.secondary@hospital.et", FirstName: "Hospital", LastName: "AdminY12", Role: entity.RoleHospitalAdmin, HospitalID: &hosp9, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000002"), NationalID: "LIA-Y12-001", Email: "liaison.y12@hospital.et", FirstName: "Liaison", LastName: "Y12", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp9, PasswordHash: defaultHash},
-		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000003"), NationalID: "SPEC-Y12-001", Email: "specialist.y12@hospital.et", FirstName: "Specialist", LastName: "Y12", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp9, DepartmentID: &deptInternal, PasswordHash: defaultHash},
+		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000001"), NationalID: "ADMIN-Y12-001", Email: "admin.secondary@hospital.et", FirstName: "Hospital", LastName: "AdminY12", Role: entity.RoleHospitalAdmin, HospitalID: &hosp9, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000002"), NationalID: "LIA-Y12-001", Email: "liaison.y12@hospital.et", FirstName: "Liaison", LastName: "Y12", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp9, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d9000000-0000-0000-0000-000000000003"), NationalID: "SPEC-Y12-001", Email: "specialist.y12@hospital.et", FirstName: "Specialist", LastName: "Y12", Role: entity.RoleReceivingSpecialist, HospitalID: &hosp9, DepartmentID: &deptInternal, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
 	}
 
 	for _, u := range users {
@@ -382,16 +390,16 @@ func seedPatients(ctx context.Context, db *gorm.DB) error {
 	}
 
 	patients := []entity.Patient{
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000001"), FirstNameEnc: encryptStr("Abebe"), MiddleNameEnc: encryptStr("Kebede"), LastNameEnc: encryptStr("Balcha"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-001"), NationalIDHash: hashStr("NAT-SEED-001"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000002"), FirstNameEnc: encryptStr("Meseret"), MiddleNameEnc: encryptStr("Tesfaye"), LastNameEnc: encryptStr("Gebre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-002"), NationalIDHash: hashStr("NAT-SEED-002"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000003"), FirstNameEnc: encryptStr("Dawit"), MiddleNameEnc: encryptStr("Haile"), LastNameEnc: encryptStr("Mengistu"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-003"), NationalIDHash: hashStr("NAT-SEED-003"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000004"), FirstNameEnc: encryptStr("Tigist"), MiddleNameEnc: encryptStr("Belay"), LastNameEnc: encryptStr("Negash"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-004"), NationalIDHash: hashStr("NAT-SEED-004"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000005"), FirstNameEnc: encryptStr("Bereket"), MiddleNameEnc: encryptStr("Alemayehu"), LastNameEnc: encryptStr("Tekle"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-005"), NationalIDHash: hashStr("NAT-SEED-005"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000006"), FirstNameEnc: encryptStr("Hiwot"), MiddleNameEnc: encryptStr("Mekonnen"), LastNameEnc: encryptStr("Asrat"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-006"), NationalIDHash: hashStr("NAT-SEED-006"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000007"), FirstNameEnc: encryptStr("Yonas"), MiddleNameEnc: encryptStr("Girma"), LastNameEnc: encryptStr("Tadesse"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-007"), NationalIDHash: hashStr("NAT-SEED-007"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000008"), FirstNameEnc: encryptStr("Meron"), MiddleNameEnc: encryptStr("Dereje"), LastNameEnc: encryptStr("Worku"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-008"), NationalIDHash: hashStr("NAT-SEED-008"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000009"), FirstNameEnc: encryptStr("Henok"), MiddleNameEnc: encryptStr("Teshome"), LastNameEnc: encryptStr("Abate"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-009"), NationalIDHash: hashStr("NAT-SEED-009"), AllowSMS: true},
-		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000010"), FirstNameEnc: encryptStr("Selam"), MiddleNameEnc: encryptStr("Yohannes"), LastNameEnc: encryptStr("Fikre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-010"), NationalIDHash: hashStr("NAT-SEED-010"), AllowSMS: true},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000001"), FirstNameEnc: encryptStr("Abebe"), MiddleNameEnc: encryptStr("Kebede"), LastNameEnc: encryptStr("Balcha"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-001"), NationalIDHash: hashStr("NAT-SEED-001"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000002"), FirstNameEnc: encryptStr("Meseret"), MiddleNameEnc: encryptStr("Tesfaye"), LastNameEnc: encryptStr("Gebre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-002"), NationalIDHash: hashStr("NAT-SEED-002"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000003"), FirstNameEnc: encryptStr("Dawit"), MiddleNameEnc: encryptStr("Haile"), LastNameEnc: encryptStr("Mengistu"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-003"), NationalIDHash: hashStr("NAT-SEED-003"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000004"), FirstNameEnc: encryptStr("Tigist"), MiddleNameEnc: encryptStr("Belay"), LastNameEnc: encryptStr("Negash"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-004"), NationalIDHash: hashStr("NAT-SEED-004"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionOromia)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000005"), FirstNameEnc: encryptStr("Bereket"), MiddleNameEnc: encryptStr("Alemayehu"), LastNameEnc: encryptStr("Tekle"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-005"), NationalIDHash: hashStr("NAT-SEED-005"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionOromia)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000006"), FirstNameEnc: encryptStr("Hiwot"), MiddleNameEnc: encryptStr("Mekonnen"), LastNameEnc: encryptStr("Asrat"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-006"), NationalIDHash: hashStr("NAT-SEED-006"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionTigray)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000007"), FirstNameEnc: encryptStr("Yonas"), MiddleNameEnc: encryptStr("Girma"), LastNameEnc: encryptStr("Tadesse"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-007"), NationalIDHash: hashStr("NAT-SEED-007"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionSidama)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000008"), FirstNameEnc: encryptStr("Meron"), MiddleNameEnc: encryptStr("Dereje"), LastNameEnc: encryptStr("Worku"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-008"), NationalIDHash: hashStr("NAT-SEED-008"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionDireDawa)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000009"), FirstNameEnc: encryptStr("Henok"), MiddleNameEnc: encryptStr("Teshome"), LastNameEnc: encryptStr("Abate"), Sex: "male", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-009"), NationalIDHash: hashStr("NAT-SEED-009"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("e0000000-0000-0000-0000-000000000010"), FirstNameEnc: encryptStr("Selam"), MiddleNameEnc: encryptStr("Yohannes"), LastNameEnc: encryptStr("Fikre"), Sex: "female", DateOfBirth: &dob1, PhoneNumberEnc: encryptPhone(phone), PhoneHash: hashPhone(phone), NationalIDEnc: encryptStrPtr("NAT-SEED-010"), NationalIDHash: hashStr("NAT-SEED-010"), AllowSMS: true, HomeRegion: ptrRegion(entity.RegionAddisAbaba)},
 	}
 
 	for _, p := range patients {
