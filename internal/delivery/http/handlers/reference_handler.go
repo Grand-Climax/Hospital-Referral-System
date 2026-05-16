@@ -58,7 +58,7 @@ func (h *ReferenceHandler) GetHospitals(c *gin.Context) {
 			TierLevel:    string(hosp.TierLevel),
 			Address:      addr,
 			ContactPhone: phone,
-			Region:       hosp.Region,
+			Region:       string(hosp.Region),
 			IsActive:     hosp.IsActive,
 			CreatedAt:    hosp.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
@@ -205,7 +205,7 @@ func (h *ReferenceHandler) GetNetworkedHospitals(c *gin.Context) {
 			TierLevel:    string(hosp.TierLevel),
 			Address:      addr,
 			ContactPhone: phone,
-			Region:       hosp.Region,
+			Region:       string(hosp.Region),
 			IsActive:     hosp.IsActive,
 			CreatedAt:    hosp.CreatedAt.Format("2006-01-02 15:04:05"),
 		})

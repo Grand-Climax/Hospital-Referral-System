@@ -30,6 +30,7 @@ type User struct {
 	Role         UserRole       `gorm:"type:varchar(50);not null;index" json:"role"`
 	HospitalID   *uuid.UUID     `gorm:"type:uuid;index" json:"hospital_id,omitempty"`
 	DepartmentID *uuid.UUID     `gorm:"type:uuid" json:"department_id,omitempty"`
+	Region       *EthiopianRegion `gorm:"type:varchar(50);index" json:"region,omitempty"`
 	PasswordHash string         `gorm:"type:varchar(255);not null" json:"-"`
 	ProfileImageURL string      `gorm:"type:text" json:"profile_image_url"`
 	ProfileImagePublicID string `gorm:"type:varchar(255)" json:"-"`

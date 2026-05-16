@@ -13,6 +13,7 @@ import (
 type NotificationUseCase interface {
 	QueueNotification(ctx context.Context, referralID uuid.UUID, notifType entity.NotificationType, message string) error
 	TriggerManualSend(ctx context.Context, hospitalID, deptID *uuid.UUID) (*dto.NotificationSendSummary, error)
+	ProcessPendingSMS(ctx context.Context, limit int) (*dto.NotificationSendSummary, error)
 	UpdateStatus(ctx context.Context) (*dto.NotificationStatusSummary, error)
 	ResendNotification(ctx context.Context, id uuid.UUID) (*entity.Notification, error)
 	QueueReminders(ctx context.Context) (int, error)

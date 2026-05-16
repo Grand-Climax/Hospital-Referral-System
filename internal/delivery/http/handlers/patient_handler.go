@@ -170,7 +170,7 @@ func mapPatientToResponse(patient *entity.Patient, message string) dto.PatientRe
 	phone := patient.PhonePlain
 	region := ""
 	if patient.HomeRegion != nil {
-		region = *patient.HomeRegion
+		region = string(*patient.HomeRegion)
 	}
 	nid := patient.NationalIDPlain
 

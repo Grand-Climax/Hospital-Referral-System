@@ -25,8 +25,10 @@ type schedulingUseCase struct {
 	deptRepo     irepository.DepartmentRepository
 	configRepo   irepository.SystemConfigRepository
 	auditRepo    irepository.AuditLogRepository
-	notifUC      iusecase.NotificationUseCase
-	inAppNotifUC iusecase.InAppNotificationUseCase
+	notifUC           iusecase.NotificationUseCase
+	inAppNotifUC      iusecase.InAppNotificationUseCase
+	jobCheckpointRepo irepository.JobCheckpointRepository
+	clinicalRepo      irepository.ClinicalUpdateRepository
 }
 
 func NewSchedulingUseCase(
@@ -40,6 +42,8 @@ func NewSchedulingUseCase(
 	auditRepo irepository.AuditLogRepository,
 	notifUC iusecase.NotificationUseCase,
 	inAppNotifUC iusecase.InAppNotificationUseCase,
+	jRepo irepository.JobCheckpointRepository,
+	cRepo irepository.ClinicalUpdateRepository,
 ) iusecase.SchedulingUseCase {
 	return &schedulingUseCase{
 		db:           db,
@@ -48,10 +52,12 @@ func NewSchedulingUseCase(
 		scheduleRepo: sRepo,
 		overrideRepo: ovRepo,
 		deptRepo:     deptRepo,
-		configRepo:   configRepo,
-		auditRepo:    auditRepo,
-		notifUC:      notifUC,
-		inAppNotifUC: inAppNotifUC,
+		configRepo:        configRepo,
+		auditRepo:         auditRepo,
+		notifUC:           notifUC,
+		inAppNotifUC:      inAppNotifUC,
+		jobCheckpointRepo: jRepo,
+		clinicalRepo:      cRepo,
 	}
 }
 
@@ -413,4 +419,47 @@ func (u *schedulingUseCase) getOrInitSchedule(ctx context.Context, hospitalID, d
 	}
 
 	return u.scheduleRepo.GetOrCreate(ctx, hospitalID, deptID, date, dept.StandardDailyLimit)
+}
+
+func (u *schedulingUseCase) ProcessMissedAppointments(ctx context.Context) error {
+	enabled, err := u.configRepo.GetBool(ctx, "enable_cron_jobs", false)
+	if err != nil || !enabled {
+		return nil
+	}
+
+	today := time.Now().Truncate(24 * time.Hour)
+
+	queues, err := u.triageRepo.FindMissedByDate(ctx, today)
+	if err != nil {
+		return err
+	}
+
+	for _, q := range queues {
+		exists, _ := u.clinicalRepo.ExistsForReferralAndDate(ctx, q.ReferralID, "MISSED_APPOINTMENT_RE_EVALUATION", today)
+		if exists {
+			continue
+		}
+
+		update := &entity.ClinicalUpdate{
+			ReferralID:     q.ReferralID,
+			UpdatedByID:    uuid.Nil,
+			UpdateReason:   "MISSED_APPOINTMENT_RE_EVALUATION",
+			ClinicalNotes:  "Missed appointment – automatically flagged for re-evaluation",
+			RequiresReview: true,
+		}
+		_ = u.clinicalRepo.Create(ctx, update)
+
+		q.ArrivalStatus = entity.ArrivalMissed
+		_ = u.triageRepo.Update(ctx, &q)
+
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_MISSED", q.ReferralID, uuid.Nil)
+		
+		_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotificationType("RESCHEDULE"), "You have missed your scheduled appointment. Your case has been flagged for review.")
+	}
+
+	if u.jobCheckpointRepo != nil {
+		_ = u.jobCheckpointRepo.UpdateLastRun(ctx, "missed_appointments", time.Now())
+	}
+
+	return nil
 }

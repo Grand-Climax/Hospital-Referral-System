@@ -24,6 +24,7 @@ type NotificationRepository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (*entity.Notification, error)
 	GetQueued(ctx context.Context, limit int) ([]entity.Notification, error)
 	GetQueuedByFilter(ctx context.Context, hospitalID, deptID *uuid.UUID, limit int) ([]entity.Notification, error)
+	GetPendingByFilter(ctx context.Context, hospitalID, deptID *uuid.UUID, statuses []entity.DeliveryStatus, limit int) ([]entity.Notification, error)
 	GetSent(ctx context.Context, limit int) ([]entity.Notification, error)
 	UpdateDelivery(ctx context.Context, id uuid.UUID, status entity.DeliveryStatus, messageID *string) error
 	ListWithFilter(ctx context.Context, filter NotificationListFilter) ([]entity.Notification, int64, error)

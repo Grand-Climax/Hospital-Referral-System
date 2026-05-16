@@ -28,6 +28,7 @@ type referralUseCase struct {
 	notifUC           iusecase.NotificationUseCase
 	inAppNotifUC      iusecase.InAppNotificationUseCase
 	attachmentRepo    irepository.AttachmentRepository
+	referralAccessRepo irepository.ReferralAccessRepository
 	cryptoSvc         *crypto.PatientCryptoService
 }
 
@@ -47,6 +48,7 @@ func NewReferralUseCase(
 	cryptoSvc *crypto.PatientCryptoService,
 	deptRepo irepository.DepartmentRepository,
 	attRepo irepository.AttachmentRepository,
+	accessRepo irepository.ReferralAccessRepository,
 ) iusecase.ReferralUseCase {
 	return &referralUseCase{
 		referralRepo:      rRepo,
@@ -60,6 +62,7 @@ func NewReferralUseCase(
 		notifUC:           notifUC,
 		inAppNotifUC:      inAppNotifUC,
 		attachmentRepo:    attRepo,
+		referralAccessRepo: accessRepo,
 		cryptoSvc:         cryptoSvc,
 	}
 }
@@ -297,6 +300,68 @@ func (u *referralUseCase) ListForDoctor(ctx context.Context, doctorID uuid.UUID,
 		}
 	}
 	return referrals, count, nil
+}
+
+func (u *referralUseCase) ListAssignedReferrals(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter, accessType string, includeRevoked bool) ([]entity.Referral, []entity.ReferralAccess, int64, error) {
+	accesses, err := u.referralAccessRepo.ListByDoctor(ctx, doctorID)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	filteredReferralIDs := make([]uuid.UUID, 0)
+	accessTypeMap := make(map[uuid.UUID]*entity.ReferralAccess)
+
+	for _, acc := range accesses {
+		// Filter by access type
+		if accessType != "" && !strings.EqualFold(string(acc.AccessType), accessType) {
+			continue
+		}
+		// Filter by revocation
+		if !includeRevoked && acc.RevokedAt != nil {
+			continue
+		}
+		
+		// If multiple accesses for same referral, prioritize non-revoked and latest
+		if existing, ok := accessTypeMap[acc.ReferralID]; ok {
+			if existing.RevokedAt != nil && acc.RevokedAt == nil {
+				copyAcc := acc
+				accessTypeMap[acc.ReferralID] = &copyAcc
+			} else if (existing.RevokedAt == nil && acc.RevokedAt == nil) || (existing.RevokedAt != nil && acc.RevokedAt != nil) {
+				if acc.GrantedAt.After(existing.GrantedAt) {
+					copyAcc := acc
+					accessTypeMap[acc.ReferralID] = &copyAcc
+				}
+			}
+		} else {
+			copyAcc := acc
+			accessTypeMap[acc.ReferralID] = &copyAcc
+			filteredReferralIDs = append(filteredReferralIDs, acc.ReferralID)
+		}
+	}
+
+	if len(filteredReferralIDs) == 0 {
+		return []entity.Referral{}, []entity.ReferralAccess{}, 0, nil
+	}
+
+	// Fetch referrals by IDs with filtering/pagination
+	filter.ReferralIDs = filteredReferralIDs
+	referrals, count, err := u.referralRepo.ListForDoctor(ctx, uuid.Nil, filter) // Use uuid.Nil to bypass creator check if IDs are provided
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	// Build matching access slice in same order as referrals
+	matchedAccesses := make([]entity.ReferralAccess, 0, len(referrals))
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
+		}
+		if acc, ok := accessTypeMap[referrals[i].ID]; ok {
+			matchedAccesses = append(matchedAccesses, *acc)
+		}
+	}
+
+	return referrals, matchedAccesses, count, nil
 }
 
 func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error) {
@@ -595,7 +660,7 @@ func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorI
 			patientNameMiddle = r.Patient.MiddleNamePlain
 			patientNameLast = r.Patient.LastNamePlain
 			if r.Patient.HomeRegion != nil {
-				patientRegion = *r.Patient.HomeRegion
+				patientRegion = string(*r.Patient.HomeRegion)
 			}
 		}
 

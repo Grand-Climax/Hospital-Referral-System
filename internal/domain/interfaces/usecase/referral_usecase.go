@@ -35,6 +35,8 @@ type ReferralUseCase interface {
 	CreateDraftOrSubmit(ctx context.Context, doctorID uuid.UUID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest) (*dto.ReferralCreationResponse, error)
 	CreateReferralWithAttachments(ctx context.Context, doctorID, senderHospitalID uuid.UUID, req dto.CreateReferralRequest, refID uuid.UUID, uploads []UploadedFileData) (*dto.ReferralCreationResponse, error)
 	ListForDoctor(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter) ([]entity.Referral, int64, error)
+	ListAssignedReferrals(ctx context.Context, doctorID uuid.UUID, filter irepository.ReferralFilter, accessType string, includeRevoked bool) ([]entity.Referral, []entity.ReferralAccess, int64, error)
+
 	GetDetailsForDoctor(ctx context.Context, id, doctorID uuid.UUID) (*entity.Referral, error)
 	UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*dto.ReferralCreationResponse, error)
 	CancelReferral(ctx context.Context, id, doctorID uuid.UUID, reason string) error

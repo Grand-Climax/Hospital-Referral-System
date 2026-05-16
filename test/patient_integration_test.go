@@ -2,7 +2,6 @@ package test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -19,49 +18,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 )
 
-type MockPatientUseCase struct {
-	mock.Mock
-}
 
-func (m *MockPatientUseCase) GetByNationalID(ctx context.Context, nationalID string) (*entity.Patient, error) {
-	args := m.Called(ctx, nationalID)
-	if patient := args.Get(0); patient != nil {
-		return patient.(*entity.Patient), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockPatientUseCase) LookupPatient(ctx context.Context, nationalID, phone string) (*entity.Patient, error) {
-	args := m.Called(ctx, nationalID, phone)
-	if patient := args.Get(0); patient != nil {
-		return patient.(*entity.Patient), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockPatientUseCase) CreatePatient(ctx context.Context, req dto.CreatePatientRequest) (*entity.Patient, error) {
-	args := m.Called(ctx, req)
-	if patient := args.Get(0); patient != nil {
-		return patient.(*entity.Patient), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockPatientUseCase) SearchPatients(ctx context.Context, query string) ([]entity.Patient, error) {
-	args := m.Called(ctx, query)
-	if patients := args.Get(0); patients != nil {
-		return patients.([]entity.Patient), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockPatientUseCase) LookupByNationalID(ctx context.Context, nationalID string) (*uuid.UUID, error) {
-	args := m.Called(ctx, nationalID)
-	if id := args.Get(0); id != nil {
-		return id.(*uuid.UUID), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
 
 
 func setupPatientRouter(mockUC *MockPatientUseCase) *gin.Engine {

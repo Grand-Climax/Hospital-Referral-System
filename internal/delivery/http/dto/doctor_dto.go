@@ -29,3 +29,14 @@ type RevokeConsultRequest struct {
 	Reason   string    `json:"reason"`
 }
 
+type AssignedReferralResponse struct {
+	ListReferralResponse
+	AccessType      string  `json:"access_type"`
+	AccessGrantedAt string  `json:"access_granted_at"`
+	AccessRevokedAt *string `json:"access_revoked_at,omitempty"`
+}
+
+type AssignedReferralListResponse struct {
+	Data []AssignedReferralResponse `json:"data"`
+	BaseResponse
+}

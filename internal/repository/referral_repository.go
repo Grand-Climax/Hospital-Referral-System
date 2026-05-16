@@ -139,6 +139,10 @@ func (r *referralRepository) applyFilter(query *gorm.DB, filter irepository.Refe
 		query = query.Joins("Patient").Where("\"Patient\".home_region = ?", filter.Region)
 	}
 
+	if len(filter.ReferralIDs) > 0 {
+		query = query.Where("id IN ?", filter.ReferralIDs)
+	}
+
 	// Dynamic Sorting
 	sortBy := "created_at"
 	if filter.SortBy == "updated_at" {
@@ -416,7 +420,10 @@ func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UU
 	var count int64
 	offset := (filter.Page - 1) * filter.Limit
 
-	query := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("referring_doctor_id = ?", doctorID)
+	query := r.db.WithContext(ctx).Model(&entity.Referral{})
+	if len(filter.ReferralIDs) == 0 {
+		query = query.Where("referring_doctor_id = ?", doctorID)
+	}
 	query = r.applyFilter(query, filter)
 
 	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
