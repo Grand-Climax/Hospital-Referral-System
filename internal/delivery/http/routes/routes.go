@@ -184,16 +184,18 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			jobRoutes.POST("/process-pending-sms", jobHandler.ProcessPendingSMS)
 			jobRoutes.POST("/process-missed", jobHandler.ProcessMissedAppointments)
 		}
-		{
 			// Admin Level Network Management Routes
-			adminGroup := protected.Group("/admin/network-routes")
-			// Depending on exact desired hierarchy either System Admin or MoH Analyst or specific Hospital Admin could map routes
-			// We will grant HOSPITAL_ADMIN so the test validates successfully without wrestling the GORM seeder defaults
-			adminGroup.Use(middleware.RequireRole(entity.RoleHospitalAdmin))
+			// GET – allowed for Super Admin and Hospital Admin
+			protected.GET("/admin/network-routes",
+				middleware.RequireRole(entity.RoleSystemSuperAdmin, entity.RoleHospitalAdmin),
+				netHandler.List)
+
+			// Write operations – only Super Admin
+			adminWriteGroup := protected.Group("/admin/network-routes")
+			adminWriteGroup.Use(middleware.RequireRole(entity.RoleSystemSuperAdmin))
 			{
-				adminGroup.POST("", netHandler.Create)
-				adminGroup.GET("", netHandler.List)
-				adminGroup.DELETE("/:id", netHandler.Delete)
+				adminWriteGroup.POST("", netHandler.Create)
+				adminWriteGroup.DELETE("/:id", netHandler.Delete)
 			}
 
 			// System Admin Config Routes
@@ -325,7 +327,6 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 					refGroup.GET("", receptionistHandler.ListReferrals)
 					refGroup.GET("/missed", receptionistHandler.ListMissedReferrals)
 					// Keep static routes before :id to avoid "schedule/upcoming" being treated as UUIDs.
-					refGroup.GET("/schedule", receptionistHandler.GetSchedule)
 					refGroup.GET("/upcoming", receptionistHandler.GetSchedule)
 					refGroup.GET("/offline-data", receptionistHandler.GetOfflineData)
 					refGroup.GET("/:id", receptionistHandler.GetReferral)
@@ -508,6 +509,5 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				adminDepts.PUT("/:id", departmentHandler.UpdateDepartment)
 				adminDepts.DELETE("/:id", departmentHandler.DeleteDepartment)
 			}
-		}
 	}
 }

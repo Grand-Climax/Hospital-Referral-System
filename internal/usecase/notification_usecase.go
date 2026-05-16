@@ -303,7 +303,7 @@ func (u *notificationUseCase) QueueReminders(ctx context.Context) (int, error) {
 		}
 
 		message := fmt.Sprintf("Reminder: You have an appointment at %s tomorrow. Please arrive on time.", hospitalName)
-		err := u.QueueNotification(ctx, app.ReferralID, entity.NotificationType("REMINDER"), message)
+		err := u.QueueNotification(ctx, app.ReferralID, entity.NotifyReminder, message)
 		if err == nil {
 			queuedCount++
 		}

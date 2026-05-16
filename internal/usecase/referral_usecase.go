@@ -1195,7 +1195,7 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 		deptName = ref.TargetDepartment.Name
 	}
 	message := fmt.Sprintf("Your referral to %s, %s has been accepted. Please wait for your appointment date.", hospitalName, deptName)
-	_ = u.notifUC.QueueNotification(ctx, id, entity.NotificationType("ACCEPTANCE"), message)
+	_ = u.notifUC.QueueNotification(ctx, id, entity.NotifyAcceptance, message)
 
 	return nil
 }

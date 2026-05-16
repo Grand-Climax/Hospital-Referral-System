@@ -129,12 +129,12 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 			deptName = ref.TargetDepartment.Name
 		}
 
-		notifType := entity.NotificationType("SCHEDULING")
+		notifType := entity.NotifyScheduling
 		eventType := "APPOINTMENT_SCHEDULED"
 		content := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
 		
 		if queue.ArrivalStatus == entity.ArrivalMissed {
-			notifType = entity.NotificationType("RESCHEDULE")
+			notifType = entity.NotifyReschedule
 			eventType = "APPOINTMENT_RESCHEDULED"
 			content = fmt.Sprintf("Your appointment at %s, %s has been rescheduled to %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
 			// Reset arrival status for rescheduled appointment
@@ -277,12 +277,12 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 			queue.ArrivalStatus = entity.ArrivalExpected
 		}
 
-		notifType := entity.NotificationType("SCHEDULING")
+		notifType := entity.NotifyScheduling
 		eventType := "APPOINTMENT_SCHEDULED"
 		message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
 
 		if wasMissed {
-			notifType = entity.NotificationType("RESCHEDULE")
+			notifType = entity.NotifyReschedule
 			eventType = "APPOINTMENT_RESCHEDULED"
 			message = fmt.Sprintf("Your appointment at %s, %s has been rescheduled to %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
 		}
@@ -383,7 +383,7 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 							deptName = dept.Department.Name
 						}
 						message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, targetDate.Format("2006-01-02"))
-						_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotificationType("SCHEDULING"), message)
+						_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotifyScheduling, message)
 					}
 
 					return nil
@@ -454,7 +454,7 @@ func (u *schedulingUseCase) ProcessMissedAppointments(ctx context.Context) error
 
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_MISSED", q.ReferralID, uuid.Nil)
 		
-		_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotificationType("RESCHEDULE"), "You have missed your scheduled appointment. Your case has been flagged for review.")
+		_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotifyReschedule, "You have missed your scheduled appointment. Your case has been flagged for review.")
 	}
 
 	if u.jobCheckpointRepo != nil {
