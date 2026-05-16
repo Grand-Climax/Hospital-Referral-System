@@ -21,8 +21,8 @@ func NewNetworkHandler(uc iusecase.NetworkUseCase) *NetworkHandler {
 
 // Create godoc
 // @Summary      Create Network Route
-// @Description  Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.
-// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+// @Description  Define a routing rule linking two hospitals. Only SYSTEM_SUPER_ADMIN can create global network routes.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
 // @Description  **Common Errors:**
 // @Description  - 400 invalid input
 // @Description  - 500 Internal Server Error
@@ -134,8 +134,8 @@ func (h *NetworkHandler) List(c *gin.Context) {
 
 // Delete godoc
 // @Summary      Delete Network Route
-// @Description  Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.
-// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+// @Description  Remove a referral network routing rule. Only SYSTEM_SUPER_ADMIN can delete routes.
+// @Description  **Roles:** SYSTEM_SUPER_ADMIN
 // @Description  **Common Errors:**
 // @Description  - 400 invalid ID format
 // @Description  - 500 Internal Server Error

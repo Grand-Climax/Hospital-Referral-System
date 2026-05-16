@@ -39,8 +39,8 @@ func NewNotificationHandler(notifUC iusecase.NotificationUseCase) *NotificationH
 // @Param        referral_id     query string false "Filter by Referral ID"
 // @Param        hospital_id     query string false "Filter by Hospital ID (Ignored if not Super Admin)"
 // @Param        department_id   query string false "Filter by Department ID (Ignored if not Super Admin/Hospital Admin)"
-// @Param        notif_type      query string false "Filter by Notification Type" Enums(ACCEPTANCE, SCHEDULING, REMINDER, RESCHEDULE)
-// @Param        delivery_status query string false "Filter by Delivery Status" Enums(QUEUED, MANUAL_REQUIRED, SENT, FAILED)
+// @Param        notif_type      query string false "Filter by Notification Type" enums(ACCEPTANCE, SCHEDULING, REMINDER, RESCHEDULE)
+// @Param        delivery_status query string false "Filter by Delivery Status" enums(QUEUED, MANUAL_REQUIRED, SENT, FAILED)
 // @Description  Notification types: ACCEPTANCE (referral accepted), SCHEDULING (appointment scheduled), REMINDER (appointment reminder), RESCHEDULE (appointment changed).
 // @Description  Delivery status: QUEUED (awaiting auto-send), MANUAL_REQUIRED (needs manual trigger), SENT (sent to provider), FAILED (provider error).
 // @Produce      json

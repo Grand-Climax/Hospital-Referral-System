@@ -2602,8 +2602,8 @@ paths:
       consumes:
       - application/json
       description: |-
-        Define a routing rule linking two hospitals. Only HOSPITAL_ADMIN can create routes.
-        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+        Define a routing rule linking two hospitals. Only SYSTEM_SUPER_ADMIN can create global network routes.
+        **Roles:** SYSTEM_SUPER_ADMIN
         **Common Errors:**
         - 400 invalid input
         - 500 Internal Server Error
@@ -2637,8 +2637,8 @@ paths:
   /api/v1/admin/network-routes/{id}:
     delete:
       description: |-
-        Remove a referral network routing rule. Only HOSPITAL_ADMIN can delete routes.
-        **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN
+        Remove a referral network routing rule. Only SYSTEM_SUPER_ADMIN can delete routes.
+        **Roles:** SYSTEM_SUPER_ADMIN
         **Common Errors:**
         - 400 invalid ID format
         - 500 Internal Server Error
