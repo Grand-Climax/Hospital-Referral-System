@@ -20,7 +20,7 @@ type Hospital struct {
 	ID           uuid.UUID    `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	Name         string       `gorm:"type:varchar(255);not null" json:"name"`
 	TierLevel    HospitalTier `gorm:"type:varchar(50);not null" json:"tier_level"`
-	Region       string       `gorm:"type:varchar(100);not null;index" json:"region"`
+	Region       EthiopianRegion `gorm:"type:varchar(100);not null;index" json:"region"`
 	Address      *string      `gorm:"type:text" json:"address,omitempty"`
 	ContactPhone *string      `gorm:"type:varchar(20)" json:"contact_phone,omitempty"`
 	IsActive     bool         `gorm:"default:true" json:"is_active"`

@@ -112,6 +112,22 @@ func (r *userRepository) ListUsers(ctx context.Context, filter irepository.UserL
 	return users, total, nil
 }
 
+func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
+	err := r.db.WithContext(ctx).Create(user).Error
+	if err != nil {
+		if strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
+			if strings.Contains(err.Error(), "users_email_key") || strings.Contains(err.Error(), "uni_users_email") {
+				return entity.ErrEmailAlreadyExists
+			}
+			if strings.Contains(err.Error(), "users_national_id_key") || strings.Contains(err.Error(), "uni_users_national_id") {
+				return entity.ErrNationalIDAlreadyExists
+			}
+		}
+		return err
+	}
+	return nil
+}
+
 func (r *userRepository) CreateStaffReplacementLog(ctx context.Context, log *entity.StaffReplacementLog) error {
 	return r.db.WithContext(ctx).Create(log).Error
 }

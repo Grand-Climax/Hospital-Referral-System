@@ -141,3 +141,10 @@ func (r *triageRepository) ListMissedByHospital(ctx context.Context, hospitalID 
 	return queues, count, err
 }
 
+func (r *triageRepository) FindMissedByDate(ctx context.Context, beforeDate time.Time) ([]entity.TriageQueue, error) {
+	var queues []entity.TriageQueue
+	err := r.db.WithContext(ctx).
+		Where("appointment_date IS NOT NULL AND appointment_date < ? AND arrival_status = ?", beforeDate.Format("2006-01-02"), entity.ArrivalExpected).
+		Find(&queues).Error
+	return queues, err
+}

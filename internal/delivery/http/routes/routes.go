@@ -77,6 +77,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	configRepo := repository.NewSystemConfigRepository(db)
 	referralAccessRepo := repository.NewReferralAccessRepository(db)
 	checkpointRepo := repository.NewSchedulerCheckpointRepository(db)
+	jobCheckpointRepo := repository.NewJobCheckpointRepository(db)
 	redirectionRepo := repository.NewReferralRedirectionRepository(db)
 	inAppNotifRepo := repository.NewInAppNotificationRepository(db)
 
@@ -96,12 +97,12 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	authUseCase := usecase.NewAuthUseCase(authRepo, tokenBlacklist, sessionStore)
 	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc, inAppNotifUseCase)
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo, configRepo, auditLogRepo)
-	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo)
+	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo, checkpointRepo)
 	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc, inAppNotifUseCase)
 	// Post-acceptance Use Cases
-	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, smsClient, cryptoSvc)
+	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, configRepo, jobCheckpointRepo, smsClient, cryptoSvc)
 	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, cryptoSvc)
-	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase, inAppNotifUseCase)
+	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase, inAppNotifUseCase, jobCheckpointRepo, clinicalRepo)
 	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo, inAppNotifUseCase)
 	clinicalUseCase := usecase.NewClinicalUseCase(db, referralRepo, clinicalRepo, outcomeRepo, referralAccessRepo, auditLogRepo, inAppNotifUseCase)
 	capacityManagementUseCase := usecase.NewCapacityManagementUseCase(scheduleRepo, overrideRepo, departmentRepo, auditLogRepo, inAppNotifUseCase)
@@ -140,7 +141,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Workflow Handlers
 	triageHandler := handlers.NewTriageHandler(triageUseCase)
 	scheduleHandler := handlers.NewScheduleHandler(capacityManagementUseCase)
-	jobHandler := handlers.NewJobHandler(capacityManagementUseCase, notifUseCase, dailyWeightUseCase, schedulerServiceUseCase)
+	jobHandler := handlers.NewJobHandler(capacityManagementUseCase, notifUseCase, dailyWeightUseCase, schedulerServiceUseCase, schedUseCase)
 	clinicalHandler := handlers.NewClinicalHandler(clinicalUseCase)
 	notifHandler := handlers.NewNotificationHandler(notifUseCase)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(inAppNotifUseCase)
@@ -180,6 +181,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			jobRoutes.POST("/send-reminders", jobHandler.SendReminders)
 			jobRoutes.POST("/update-waiting-weights", jobHandler.UpdateWaitingWeights)
 			jobRoutes.POST("/run-scheduler-cycle", jobHandler.RunSchedulerCycle)
+			jobRoutes.POST("/process-pending-sms", jobHandler.ProcessPendingSMS)
+			jobRoutes.POST("/process-missed", jobHandler.ProcessMissedAppointments)
 		}
 		{
 			// Admin Level Network Management Routes

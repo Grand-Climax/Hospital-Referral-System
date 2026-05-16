@@ -173,7 +173,7 @@ func (h *DoctorHandler) ListReferrals(c *gin.Context) {
 
 // ListAssignedReferrals godoc
 // @Summary      List Assigned Referrals
-// @Descriptio n  Returns referrals where the authenticated doctor has treating or consulting access.
+// @Description  Returns referrals where the authenticated doctor has treating or consulting access.
 // @Description  **Roles:** REFERRING_DOCTOR
 // @Description  **Query Parameters:**
 // @Description  - `access_type` (optional): `treating`, `consulting`, or empty for all.

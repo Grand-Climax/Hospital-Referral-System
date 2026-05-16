@@ -45,7 +45,7 @@ func toHospitalResponse(h *entity.Hospital) dto.HospitalResponse {
 		ID:        h.ID.String(),
 		Name:      h.Name,
 		TierLevel: string(h.TierLevel),
-		Region:    h.Region,
+		Region:    string(h.Region),
 		IsActive:  h.IsActive,
 		CreatedAt: h.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt: h.UpdatedAt.Format("2006-01-02T15:04:05Z"),
@@ -86,7 +86,7 @@ func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 	hospital := &entity.Hospital{
 		Name:         req.Name,
 		TierLevel:    req.TierLevel,
-		Region:       req.Region,
+		Region:       entity.EthiopianRegion(req.Region),
 		Address:      req.Address,
 		ContactPhone: req.ContactPhone,
 	}
@@ -103,7 +103,7 @@ func (h *HospitalHandler) CreateHospital(c *gin.Context) {
 		ID:           hospital.ID.String(),
 		Name:         hospital.Name,
 		TierLevel:    string(hospital.TierLevel),
-		Region:       hospital.Region,
+		Region:       string(hospital.Region),
 		IsActive:     hospital.IsActive,
 		CreatedAt:    hospital.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:    hospital.UpdatedAt.Format("2006-01-02T15:04:05Z"),
@@ -218,7 +218,7 @@ func (h *HospitalHandler) GetHospital(c *gin.Context) {
 		ID:           hospital.ID.String(),
 		Name:         hospital.Name,
 		TierLevel:    string(hospital.TierLevel),
-		Region:       hospital.Region,
+		Region:       string(hospital.Region),
 		IsActive:     hospital.IsActive,
 		CreatedAt:    hospital.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:    hospital.UpdatedAt.Format("2006-01-02T15:04:05Z"),
@@ -275,7 +275,7 @@ func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 		existing.TierLevel = *req.TierLevel
 	}
 	if req.Region != nil {
-		existing.Region = *req.Region
+		existing.Region = entity.EthiopianRegion(*req.Region)
 	}
 	if req.Address != nil {
 		existing.Address = req.Address
@@ -299,7 +299,7 @@ func (h *HospitalHandler) UpdateHospital(c *gin.Context) {
 		ID:           existing.ID.String(),
 		Name:         existing.Name,
 		TierLevel:    string(existing.TierLevel),
-		Region:       existing.Region,
+		Region:       string(existing.Region),
 		IsActive:     existing.IsActive,
 		CreatedAt:    existing.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:    existing.UpdatedAt.Format("2006-01-02T15:04:05Z"),
