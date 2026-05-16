@@ -324,9 +324,11 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				{
 					refGroup.GET("", receptionistHandler.ListReferrals)
 					refGroup.GET("/missed", receptionistHandler.ListMissedReferrals)
-					refGroup.GET("/:id", receptionistHandler.GetReferral)
+					// Keep static routes before :id to avoid "schedule/upcoming" being treated as UUIDs.
+					refGroup.GET("/schedule", receptionistHandler.GetSchedule)
 					refGroup.GET("/upcoming", receptionistHandler.GetSchedule)
 					refGroup.GET("/offline-data", receptionistHandler.GetOfflineData)
+					refGroup.GET("/:id", receptionistHandler.GetReferral)
 					refGroup.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
 					refGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
 					refGroup.POST("/:id/revoke-doctor", receptionistHandler.RevokeDoctor)
