@@ -478,36 +478,43 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	// Compute final hospital
 	var finalHospitalID *uuid.UUID
-	if req.HospitalID != nil {
-		if *req.HospitalID == "" {
+	if req.HospitalID != nil && *req.HospitalID != "" {
+		hid, err := uuid.Parse(*req.HospitalID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid hospital_id"})
+			return
+		}
+		finalHospitalID = &hid
+	} else if req.HospitalID != nil && *req.HospitalID == "" {
+		finalHospitalID = nil
+	} else {
+		// HospitalID is omitted from the request body
+		if finalRole == entity.RoleMohAnalyst || finalRole == entity.RoleSystemSuperAdmin {
 			finalHospitalID = nil
 		} else {
-			hid, err := uuid.Parse(*req.HospitalID)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid hospital_id"})
-				return
-			}
-			finalHospitalID = &hid
+			finalHospitalID = existing.HospitalID
 		}
-	} else {
-		finalHospitalID = existing.HospitalID
 	}
 
 	// Compute final department
 	var finalDepartmentID *uuid.UUID
-	if req.DepartmentID != nil {
-		if *req.DepartmentID == "" {
+	if req.DepartmentID != nil && *req.DepartmentID != "" {
+		did, err := uuid.Parse(*req.DepartmentID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
+			return
+		}
+		finalDepartmentID = &did
+	} else if req.DepartmentID != nil && *req.DepartmentID == "" {
+		finalDepartmentID = nil
+	} else {
+		// DepartmentID is omitted from the request body
+		if finalRole == entity.RoleMohAnalyst || finalRole == entity.RoleSystemSuperAdmin ||
+			finalRole == entity.RoleLiaisonOfficer || finalRole == entity.RoleReceivingSpecialist || finalRole == entity.RoleHospitalAdmin {
 			finalDepartmentID = nil
 		} else {
-			did, err := uuid.Parse(*req.DepartmentID)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
-				return
-			}
-			finalDepartmentID = &did
+			finalDepartmentID = existing.DepartmentID
 		}
-	} else {
-		finalDepartmentID = existing.DepartmentID
 	}
 
 	// Compute final region
@@ -789,8 +796,23 @@ func (h *UserHandler) AssignRole(c *gin.Context) {
 		return
 	}
 
+	var finalDeptID *uuid.UUID
+	if req.Role == entity.RoleMohAnalyst || req.Role == entity.RoleSystemSuperAdmin ||
+		req.Role == entity.RoleLiaisonOfficer || req.Role == entity.RoleReceivingSpecialist || req.Role == entity.RoleHospitalAdmin {
+		finalDeptID = nil
+	} else {
+		finalDeptID = existing.DepartmentID
+	}
+
+	var finalHospID *uuid.UUID
+	if req.Role == entity.RoleMohAnalyst || req.Role == entity.RoleSystemSuperAdmin {
+		finalHospID = nil
+	} else {
+		finalHospID = existing.HospitalID
+	}
+
 	// Validate proposed role scoping rules
-	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, existing.HospitalID, existing.DepartmentID); !ok {
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, finalHospID, finalDeptID); !ok {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Success: false,
 			Error:   errMsg,

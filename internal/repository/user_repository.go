@@ -133,5 +133,7 @@ func (r *userRepository) CreateStaffReplacementLog(ctx context.Context, log *ent
 }
 
 func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
+	user.Hospital = nil
+	user.Department = nil
 	return r.db.WithContext(ctx).Omit("Hospital", "Department").Save(user).Error
 }

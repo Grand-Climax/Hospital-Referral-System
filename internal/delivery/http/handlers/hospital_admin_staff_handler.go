@@ -356,8 +356,16 @@ func (h *HospitalAdminStaffHandler) ChangeStaffRole(c *gin.Context) {
 		return
 	}
 
+	// Compute final department based on role constraints
+	var finalDeptID *uuid.UUID
+	if req.Role == entity.RoleLiaisonOfficer || req.Role == entity.RoleReceivingSpecialist || req.Role == entity.RoleHospitalAdmin {
+		finalDeptID = nil
+	} else {
+		finalDeptID = staff.DepartmentID
+	}
+
 	// Validate proposed role scoping rules
-	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, staff.HospitalID, staff.DepartmentID); !ok {
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, staff.HospitalID, finalDeptID); !ok {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: errMsg})
 		return
 	}
