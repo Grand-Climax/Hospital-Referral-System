@@ -383,7 +383,7 @@ func (h *SpecialistHandler) GetReferral(c *gin.Context) {
 // @Summary      Mark Referral as Read
 // @Description  Acknowledge receipt and claim the referral for review.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** referral.status = FORWARDED.
+// @Description  **Prerequisites:** referral.status = FORWARDED or REDIRECTED.
 // @Description  **State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.
 // @Description  **Common Errors:**
 // @Description  - 400 invalid format
@@ -621,7 +621,7 @@ func (h *SpecialistHandler) RerunML(c *gin.Context) {
 // @Description  Unassign self and return the referral to the hospital pool.
 // @Description  **Roles:** RECEIVING_SPECIALIST (Assigned)
 // @Description  **Prerequisites:** status = UNDER_SPECIALIST_REVIEW.
-// @Description  **State Transition:** → FORWARDED.
+// @Description  **State Transition:** → FORWARDED (or → REDIRECTED if it was previously redirected).
 // @Description  **Common Errors:**
 // @Description  - 400 invalid format
 // @Description  - 403 unauthorized access

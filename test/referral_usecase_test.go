@@ -236,3 +236,83 @@ func TestLiaisonForward_Success_Verified(t *testing.T) {
 	err := uc.LiaisonForward(context.Background(), refID, liaisonID, hospID, "Forwarding...")
 	assert.NoError(t, err)
 }
+
+func TestSpecialistRead_Redirected_Success(t *testing.T) {
+	rRepo, _, _, _, uc := newTestUC()
+
+	specID := uuid.New()
+	hospID := uuid.New()
+	refID := uuid.New()
+	existing := &entity.Referral{
+		ID:               refID,
+		TargetHospitalID: hospID,
+		Status:           entity.StatusRedirected,
+	}
+
+	rRepo.On("GetReferralByID", mock.Anything, refID).Return(existing, nil)
+	rRepo.On("UpdateReferralTransaction", mock.Anything, mock.Anything).Return(nil)
+	rRepo.On("CreateStatusHistory", mock.Anything, mock.Anything).Return(nil)
+
+	err := uc.SpecialistRead(context.Background(), refID, specID, hospID)
+	assert.NoError(t, err)
+	assert.Equal(t, entity.StatusUnderSpecialistReview, existing.Status)
+	assert.Equal(t, &specID, existing.SpecialistID)
+}
+
+func TestSpecialistRelease_RevertsToRedirected(t *testing.T) {
+	rRepo, _, redirRepo, _, uc := newTestUC()
+
+	specID := uuid.New()
+	hospID := uuid.New()
+	refID := uuid.New()
+	existing := &entity.Referral{
+		ID:               refID,
+		TargetHospitalID: hospID,
+		Status:           entity.StatusUnderSpecialistReview,
+		SpecialistID:     &specID,
+	}
+
+	redirections := []entity.ReferralRedirection{
+		{ReferralID: refID},
+	}
+
+	rRepo.On("GetReferralByID", mock.Anything, refID).Return(existing, nil)
+	redirRepo.On("ListByReferralID", mock.Anything, refID).Return(redirections, nil)
+	rRepo.On("UpdateReferralTransaction", mock.Anything, mock.Anything).Return(nil)
+	rRepo.On("CreateStatusHistory", mock.Anything, mock.Anything).Return(nil)
+
+	err := uc.SpecialistRelease(context.Background(), refID, specID, hospID, "Releasing...")
+	assert.NoError(t, err)
+	assert.Equal(t, entity.StatusRedirected, existing.Status)
+	assert.Nil(t, existing.SpecialistID)
+}
+
+func TestLiaisonUnassignSpecialist_RevertsToRedirected(t *testing.T) {
+	rRepo, _, redirRepo, _, uc := newTestUC()
+
+	liaisonID := uuid.New()
+	specID := uuid.New()
+	hospID := uuid.New()
+	refID := uuid.New()
+	existing := &entity.Referral{
+		ID:               refID,
+		TargetHospitalID: hospID,
+		Status:           entity.StatusUnderSpecialistReview,
+		SpecialistID:     &specID,
+	}
+
+	redirections := []entity.ReferralRedirection{
+		{ReferralID: refID},
+	}
+
+	rRepo.On("GetReferralByID", mock.Anything, refID).Return(existing, nil)
+	redirRepo.On("ListByReferralID", mock.Anything, refID).Return(redirections, nil)
+	rRepo.On("UpdateReferralTransaction", mock.Anything, mock.Anything).Return(nil)
+	rRepo.On("CreateStatusHistory", mock.Anything, mock.Anything).Return(nil)
+
+	err := uc.LiaisonUnassignSpecialist(context.Background(), refID, liaisonID, hospID, "Unassigning...")
+	assert.NoError(t, err)
+	assert.Equal(t, entity.StatusRedirected, existing.Status)
+	assert.Nil(t, existing.SpecialistID)
+}
+
