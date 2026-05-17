@@ -229,6 +229,13 @@ func (u *userUseCase) AssignRole(ctx context.Context, userID uuid.UUID, role ent
 	}
 
 	user.Role = role
+	if role == entity.RoleMohAnalyst || role == entity.RoleSystemSuperAdmin {
+		user.HospitalID = nil
+		user.DepartmentID = nil
+	} else if role == entity.RoleLiaisonOfficer || role == entity.RoleReceivingSpecialist || role == entity.RoleHospitalAdmin {
+		user.DepartmentID = nil
+	}
+
 	err = u.repo.Update(ctx, user)
 	if err == nil {
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "ROLE_CHANGED", uuid.Nil, uuid.Nil)
@@ -402,6 +409,10 @@ func (u *userUseCase) HospitalAdminChangeStaffRole(ctx context.Context, adminID,
 	}
 
 	target.Role = role
+	if role == entity.RoleLiaisonOfficer || role == entity.RoleReceivingSpecialist || role == entity.RoleHospitalAdmin {
+		target.DepartmentID = nil
+	}
+
 	err = u.repo.Update(ctx, target)
 	if err == nil {
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "STAFF_ROLE_CHANGED", uuid.Nil, adminID)

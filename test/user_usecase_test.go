@@ -489,4 +489,41 @@ func TestUpdateUser_UniquenessValidation(t *testing.T) {
 	})
 }
 
+func TestHospitalAdminChangeStaffRole_AutoClearsDepartment(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := newTestUserUC(repo, svc)
+
+	adminID := uuid.New()
+	staffID := uuid.New()
+	hospID := uuid.New()
+	deptID := uuid.New()
+
+	adminUser := &entity.User{
+		ID:         adminID,
+		Role:       entity.RoleHospitalAdmin,
+		HospitalID: &hospID,
+		IsActive:   true,
+	}
+
+	targetStaff := &entity.User{
+		ID:           staffID,
+		Role:         entity.RoleReferringDoctor,
+		HospitalID:   &hospID,
+		DepartmentID: &deptID,
+		IsActive:     true,
+	}
+
+	repo.On("FindByID", mock.Anything, adminID).Return(adminUser, nil)
+	repo.On("FindByID", mock.Anything, staffID).Return(targetStaff, nil)
+
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == staffID && u.Role == entity.RoleLiaisonOfficer && u.DepartmentID == nil
+	})).Return(nil)
+
+	err := uc.HospitalAdminChangeStaffRole(context.Background(), adminID, staffID, entity.RoleLiaisonOfficer)
+	assert.NoError(t, err)
+	repo.AssertExpectations(t)
+}
+
 

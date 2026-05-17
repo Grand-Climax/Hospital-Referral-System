@@ -191,7 +191,7 @@ func TestHospitalAdminStaffManagement_ValidationFailures(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), "requires a department")
 	})
 
-	t.Run("Change role to Liaison Officer fails if department exists", func(t *testing.T) {
+	t.Run("Change role to Liaison Officer succeeds and auto-clears department", func(t *testing.T) {
 		r, mockUser, _, _, _ := setupHospitalAdminTestRouter()
 
 		existingStaff := &entity.User{
@@ -201,6 +201,7 @@ func TestHospitalAdminStaffManagement_ValidationFailures(t *testing.T) {
 			DepartmentID: &deptID,
 		}
 		mockUser.On("HospitalAdminGetStaffByID", mock.Anything, mock.Anything, staffID).Return(existingStaff, nil)
+		mockUser.On("HospitalAdminChangeStaffRole", mock.Anything, mock.Anything, staffID, entity.RoleLiaisonOfficer).Return(nil)
 
 		reqBody := dto.HospitalAdminChangeRoleRequest{
 			Role: entity.RoleLiaisonOfficer,
@@ -211,8 +212,8 @@ func TestHospitalAdminStaffManagement_ValidationFailures(t *testing.T) {
 		resp := httptest.NewRecorder()
 		r.ServeHTTP(resp, req)
 
-		assert.Equal(t, http.StatusBadRequest, resp.Code)
-		assert.Contains(t, resp.Body.String(), "does not accept a department")
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), "Staff role updated successfully")
 	})
 
 	t.Run("Reassign department fails if role forbids it", func(t *testing.T) {
