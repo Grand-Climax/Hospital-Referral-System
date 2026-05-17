@@ -7579,7 +7579,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Acknowledge receipt and claim the referral for review.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral.status = FORWARDED.\n**State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
+                "description": "Acknowledge receipt and claim the referral for review.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral.status = FORWARDED or REDIRECTED.\n**State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
                 "produces": [
                     "application/json"
                 ],
@@ -7770,7 +7770,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Unassign self and return the referral to the hospital pool.\n**Roles:** RECEIVING_SPECIALIST (Assigned)\n**Prerequisites:** status = UNDER_SPECIALIST_REVIEW.\n**State Transition:** → FORWARDED.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized access",
+                "description": "Unassign self and return the referral to the hospital pool.\n**Roles:** RECEIVING_SPECIALIST (Assigned)\n**Prerequisites:** status = UNDER_SPECIALIST_REVIEW.\n**State Transition:** → FORWARDED (or → REDIRECTED if it was previously redirected).\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized access",
                 "consumes": [
                     "application/json"
                 ],

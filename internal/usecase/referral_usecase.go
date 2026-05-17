@@ -1043,7 +1043,16 @@ func (u *referralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, lia
 	}
 
 	oldStatus := ref.Status
-	ref.Status = entity.StatusForwarded
+	// Revert status to REDIRECTED if there is any redirection history, otherwise FORWARDED
+	var targetStatus entity.ReferralStatus
+	redirections, err := u.redirectionRepo.ListByReferralID(ctx, id)
+	if err == nil && len(redirections) > 0 {
+		targetStatus = entity.StatusRedirected
+	} else {
+		targetStatus = entity.StatusForwarded
+	}
+
+	ref.Status = targetStatus
 	ref.SpecialistID = nil
 
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
@@ -1054,7 +1063,7 @@ func (u *referralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, lia
 		ReferralID:  id,
 		ChangedByID: liaisonID,
 		FromStatus:  &oldStatus,
-		ToStatus:    entity.StatusForwarded,
+		ToStatus:    targetStatus,
 		Reason:      &reason,
 	}
 	return u.referralRepo.CreateStatusHistory(ctx, history)
@@ -1263,7 +1272,16 @@ func (u *referralUseCase) SpecialistRelease(ctx context.Context, id, specialistI
 	}
 
 	oldStatus := ref.Status
-	ref.Status = entity.StatusForwarded
+	// Revert status to REDIRECTED if there is any redirection history, otherwise FORWARDED
+	var targetStatus entity.ReferralStatus
+	redirections, err := u.redirectionRepo.ListByReferralID(ctx, id)
+	if err == nil && len(redirections) > 0 {
+		targetStatus = entity.StatusRedirected
+	} else {
+		targetStatus = entity.StatusForwarded
+	}
+
+	ref.Status = targetStatus
 	ref.SpecialistID = nil
 
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
@@ -1274,7 +1292,7 @@ func (u *referralUseCase) SpecialistRelease(ctx context.Context, id, specialistI
 		ReferralID:  id,
 		ChangedByID: specialistID,
 		FromStatus:  &oldStatus,
-		ToStatus:    entity.StatusForwarded,
+		ToStatus:    targetStatus,
 		Reason:      &reason,
 	}
 	return u.referralRepo.CreateStatusHistory(ctx, history)
