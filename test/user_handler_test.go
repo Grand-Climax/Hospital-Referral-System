@@ -137,7 +137,7 @@ func TestUserHandler_UpdateUser_PartialUpdatesAndValidationFailures(t *testing.T
 	hospID := uuid.New()
 	deptID := uuid.New()
 
-	t.Run("Update role to Liaison Officer without clearing existing department", func(t *testing.T) {
+	t.Run("Update role to Liaison Officer without clearing existing department succeeds and auto-clears department", func(t *testing.T) {
 		r, mockUser, _ := setupUserHandlerTestRouter()
 
 		// Existing user is a Referring Doctor with a hospital and department
@@ -148,8 +148,11 @@ func TestUserHandler_UpdateUser_PartialUpdatesAndValidationFailures(t *testing.T
 			DepartmentID: &deptID,
 		}
 		mockUser.On("GetUserByID", mock.Anything, uID, mock.Anything).Return(existingUser, nil)
+		mockUser.On("UpdateUser", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			return u.Role == entity.RoleLiaisonOfficer && u.DepartmentID == nil
+		})).Return(nil)
 
-		// Try to change role to Liaison Officer (which forbids department) without explicitly clearing department in the request
+		// Change role to Liaison Officer (which forbids department) without explicitly clearing department in the request
 		reqBody := map[string]interface{}{
 			"role": entity.RoleLiaisonOfficer,
 		}
@@ -159,8 +162,7 @@ func TestUserHandler_UpdateUser_PartialUpdatesAndValidationFailures(t *testing.T
 		resp := httptest.NewRecorder()
 		r.ServeHTTP(resp, req)
 
-		assert.Equal(t, http.StatusBadRequest, resp.Code)
-		assert.Contains(t, resp.Body.String(), "does not accept a department")
+		assert.Equal(t, http.StatusOK, resp.Code)
 	})
 
 	t.Run("Update hospital and department to unconnected pair", func(t *testing.T) {
@@ -259,14 +261,35 @@ func TestUserHandler_UpdateUser_PartialUpdatesAndValidationFailures(t *testing.T
 		assert.Equal(t, http.StatusOK, resp.Code)
 		mockUser.AssertExpectations(t)
 	})
-}
 
-func TestUserHandler_AssignRole_ValidationFailures(t *testing.T) {
-	uID := uuid.New()
-	hospID := uuid.New()
-	deptID := uuid.New()
+	t.Run("Clean partial update to Liaison Officer succeeds and auto-clears department if department is omitted from request", func(t *testing.T) {
+		r, mockUser, _ := setupUserHandlerTestRouter()
 
-	t.Run("Fails to assign role that forbids existing department", func(t *testing.T) {
+		existingUser := &entity.User{
+			ID:           uID,
+			Role:         entity.RoleReferringDoctor,
+			HospitalID:   &hospID,
+			DepartmentID: &deptID,
+		}
+		mockUser.On("GetUserByID", mock.Anything, uID, mock.Anything).Return(existingUser, nil)
+		mockUser.On("UpdateUser", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			return u.Role == entity.RoleLiaisonOfficer && u.HospitalID != nil && *u.HospitalID == hospID && u.DepartmentID == nil
+		})).Return(nil)
+
+		reqBody := map[string]interface{}{
+			"role": entity.RoleLiaisonOfficer,
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", "/api/v1/system-admin/users/"+uID.String(), bytes.NewBuffer(body))
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockUser.AssertExpectations(t)
+	})
+
+	t.Run("Fails if updating to Liaison Officer and explicitly sending a department_id in request", func(t *testing.T) {
 		r, mockUser, _ := setupUserHandlerTestRouter()
 
 		existingUser := &entity.User{
@@ -278,6 +301,38 @@ func TestUserHandler_AssignRole_ValidationFailures(t *testing.T) {
 		mockUser.On("GetUserByID", mock.Anything, uID, mock.Anything).Return(existingUser, nil)
 
 		reqBody := map[string]interface{}{
+			"role":          entity.RoleLiaisonOfficer,
+			"department_id": deptID.String(), // explicitly passing a department
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", "/api/v1/system-admin/users/"+uID.String(), bytes.NewBuffer(body))
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.Contains(t, resp.Body.String(), "does not accept a department")
+	})
+}
+
+func TestUserHandler_AssignRole_ValidationFailures(t *testing.T) {
+	uID := uuid.New()
+	hospID := uuid.New()
+	deptID := uuid.New()
+
+	t.Run("Succeeds and auto-clears forbidden department on role assignment", func(t *testing.T) {
+		r, mockUser, _ := setupUserHandlerTestRouter()
+
+		existingUser := &entity.User{
+			ID:           uID,
+			Role:         entity.RoleReferringDoctor,
+			HospitalID:   &hospID,
+			DepartmentID: &deptID,
+		}
+		mockUser.On("GetUserByID", mock.Anything, uID, mock.Anything).Return(existingUser, nil)
+		mockUser.On("AssignRole", mock.Anything, uID, entity.RoleLiaisonOfficer).Return(nil)
+
+		reqBody := map[string]interface{}{
 			"role": entity.RoleLiaisonOfficer,
 		}
 
@@ -286,8 +341,8 @@ func TestUserHandler_AssignRole_ValidationFailures(t *testing.T) {
 		resp := httptest.NewRecorder()
 		r.ServeHTTP(resp, req)
 
-		assert.Equal(t, http.StatusBadRequest, resp.Code)
-		assert.Contains(t, resp.Body.String(), "does not accept a department")
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockUser.AssertExpectations(t)
 	})
 
 	t.Run("Succeeds if current state has no department", func(t *testing.T) {
