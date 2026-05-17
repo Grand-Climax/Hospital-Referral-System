@@ -17,7 +17,10 @@ func ConnectDB(cfg config.DBConfig) {
     cfg.Host, cfg.User, cfg.Password, cfg.DB_Name, cfg.Port, cfg.SSLMode)
 
 
-	DB, err = gorm.Open(postgres.Open(data_source_name), &gorm.Config{})
+	DB, err = gorm.Open(postgres.New(postgres.Config{
+		DSN:                  data_source_name,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
 	}
