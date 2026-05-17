@@ -7984,7 +7984,7 @@ paths:
       description: |-
         Acknowledge receipt and claim the referral for review.
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** referral.status = FORWARDED.
+        **Prerequisites:** referral.status = FORWARDED or REDIRECTED.
         **State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.
         **Common Errors:**
         - 400 invalid format
@@ -8130,7 +8130,7 @@ paths:
         Unassign self and return the referral to the hospital pool.
         **Roles:** RECEIVING_SPECIALIST (Assigned)
         **Prerequisites:** status = UNDER_SPECIALIST_REVIEW.
-        **State Transition:** → FORWARDED.
+        **State Transition:** → FORWARDED (or → REDIRECTED if it was previously redirected).
         **Common Errors:**
         - 400 invalid format
         - 403 unauthorized access
