@@ -236,6 +236,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			protected.GET("/reference/hospitals/:id/departments", refHandler.GetHospitalDepartments)
 			protected.GET("/reference/icd-codes", refHandler.ListICDCodes)
 			protected.GET("/reference/liaisons", refHandler.GetLiaisons)
+			protected.GET("/reference/regions", refHandler.GetRegions)
 			// Example: Both DOCTOR and SPECIALIST
 			// protected.GET("/clinical-data", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleReceivingSpecialist), someHandler)
 

@@ -390,3 +390,103 @@ func TestHospitalAdminReplaceStaff_InPlaceAndLogged(t *testing.T) {
 	})
 	assert.NoError(t, err)
 }
+
+func TestUpdateUser_PasswordPreservation_WhenPasswordIsEmpty(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := newTestUserUC(repo, svc)
+
+	existing := newUser(entity.RoleReferringDoctor, nil)
+	existing.PasswordHash = "old_hashed_password"
+
+	repo.On("FindByID", mock.Anything, existing.ID).Return(existing, nil)
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == existing.ID && u.PasswordHash == "old_hashed_password"
+	})).Return(nil)
+
+	// Update user with an empty PasswordHash
+	userToUpdate := &entity.User{
+		ID:           existing.ID,
+		PasswordHash: "",
+	}
+
+	err := uc.UpdateUser(context.Background(), userToUpdate)
+	assert.NoError(t, err)
+	repo.AssertExpectations(t)
+}
+
+func TestUpdateUser_PasswordUpdate_WhenPasswordIsNotEmpty(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := newTestUserUC(repo, svc)
+
+	existing := newUser(entity.RoleReferringDoctor, nil)
+	existing.PasswordHash = "old_hashed_password"
+
+	repo.On("FindByID", mock.Anything, existing.ID).Return(existing, nil)
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == existing.ID && u.PasswordHash == "new_hashed_password"
+	})).Return(nil)
+
+	// Update user with a non-empty PasswordHash
+	userToUpdate := &entity.User{
+		ID:           existing.ID,
+		PasswordHash: "new_hashed_password",
+	}
+
+	err := uc.UpdateUser(context.Background(), userToUpdate)
+	assert.NoError(t, err)
+	repo.AssertExpectations(t)
+}
+
+func TestUpdateUser_UniquenessValidation(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := newTestUserUC(repo, svc)
+
+	uID := uuid.New()
+	existing := &entity.User{
+		ID:         uID,
+		Email:      "old@test.com",
+		NationalID: "NAT-OLD",
+	}
+
+	t.Run("Fails if updating to an already taken email", func(t *testing.T) {
+		repo.On("FindByID", mock.Anything, uID).Return(existing, nil).Once()
+		
+		takenUser := &entity.User{
+			ID:    uuid.New(),
+			Email: "taken@test.com",
+		}
+		repo.On("FindByEmail", mock.Anything, "taken@test.com").Return(takenUser, nil).Once()
+
+		updatedUser := &entity.User{
+			ID:    uID,
+			Email: "taken@test.com",
+		}
+
+		err := uc.UpdateUser(context.Background(), updatedUser)
+		assert.Equal(t, usecase.ErrEmailExists, err)
+	})
+
+	t.Run("Fails if updating to an already taken national ID", func(t *testing.T) {
+		repo.On("FindByID", mock.Anything, uID).Return(existing, nil).Once()
+		
+		takenUser := &entity.User{
+			ID:         uuid.New(),
+			NationalID: "NAT-TAKEN",
+		}
+		repo.On("FindByNationalID", mock.Anything, "NAT-TAKEN").Return(takenUser, nil).Once()
+
+		updatedUser := &entity.User{
+			ID:         uID,
+			Email:      "old@test.com",
+			NationalID: "NAT-TAKEN",
+		}
+
+		err := uc.UpdateUser(context.Background(), updatedUser)
+		assert.Equal(t, usecase.ErrNationalIDExists, err)
+	})
+}
+
+

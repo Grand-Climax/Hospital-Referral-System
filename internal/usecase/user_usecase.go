@@ -149,8 +149,26 @@ func (u *userUseCase) UpdateUser(ctx context.Context, user *entity.User) error {
 		return ErrUserNotFound
 	}
 
+	// Email uniqueness check if changed
+	if user.Email != existing.Email {
+		existingEmail, _ := u.repo.FindByEmail(ctx, user.Email)
+		if existingEmail != nil && existingEmail.ID != user.ID {
+			return ErrEmailExists
+		}
+	}
+
+	// National ID uniqueness check if changed
+	if user.NationalID != "" && user.NationalID != existing.NationalID {
+		existingNID, _ := u.repo.FindByNationalID(ctx, user.NationalID)
+		if existingNID != nil && existingNID.ID != user.ID {
+			return ErrNationalIDExists
+		}
+	}
+
 	// Preserve immutable fields
-	user.PasswordHash = existing.PasswordHash
+	if user.PasswordHash == "" {
+		user.PasswordHash = existing.PasswordHash
+	}
 	user.CreatedAt = existing.CreatedAt
 	user.IsDeleted = existing.IsDeleted
 	// Note: ProfileImage fields can be updated here or via specialized method

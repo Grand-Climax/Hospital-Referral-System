@@ -21,3 +21,9 @@ type LiaisonListResponse struct {
 	Data []LiaisonItem `json:"data"`
 	BaseResponse
 }
+
+type RegionListResponse struct {
+	Data []string `json:"data"`
+	BaseResponse
+}
+
