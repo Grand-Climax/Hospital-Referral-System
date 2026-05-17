@@ -451,6 +451,9 @@ definitions:
         example: password123
         minLength: 8
         type: string
+      region:
+        example: Addis Ababa
+        type: string
       role:
         allOf:
         - $ref: '#/definitions/entity.UserRole'
@@ -1320,6 +1323,18 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.RegionListResponse:
+    properties:
+      data:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
   dto.RejectDTO:
     properties:
       reason:
@@ -1581,6 +1596,8 @@ definitions:
       national_id:
         type: string
       profile_image_url:
+        type: string
+      region:
         type: string
       role:
         $ref: '#/definitions/entity.UserRole'
@@ -2356,6 +2373,9 @@ definitions:
         example: password123
         minLength: 8
         type: string
+      region:
+        example: Addis Ababa
+        type: string
       role:
         allOf:
         - $ref: '#/definitions/entity.UserRole'
@@ -2465,6 +2485,9 @@ definitions:
       password:
         example: newpassword123
         minLength: 8
+        type: string
+      region:
+        example: Addis Ababa
         type: string
       role:
         allOf:
@@ -7396,6 +7419,23 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Networked Hospitals
+      tags:
+      - References
+  /api/v1/reference/regions:
+    get:
+      description: |-
+        Returns all valid Ethiopian regions from the hardcoded enum. Accessible by all authenticated roles.
+        **Roles:** Any authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RegionListResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Ethiopian Regions List
       tags:
       - References
   /api/v1/referrals/{id}/attachments:
