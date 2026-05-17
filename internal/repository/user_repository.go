@@ -131,3 +131,7 @@ func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 func (r *userRepository) CreateStaffReplacementLog(ctx context.Context, log *entity.StaffReplacementLog) error {
 	return r.db.WithContext(ctx).Create(log).Error
 }
+
+func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
+	return r.db.WithContext(ctx).Omit("Hospital", "Department").Save(user).Error
+}
