@@ -6571,6 +6571,31 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/reference/regions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all valid Ethiopian regions from the hardcoded enum. Accessible by all authenticated roles.\n**Roles:** Any authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Get Ethiopian Regions List",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegionListResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/referrals/{id}/attachments": {
             "get": {
                 "security": [
@@ -9550,6 +9575,10 @@ const docTemplate = `{
                     "minLength": 8,
                     "example": "password123"
                 },
+                "region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
+                },
                 "role": {
                     "allOf": [
                         {
@@ -10840,6 +10869,24 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RegionListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "dto.RejectDTO": {
             "type": "object",
             "required": [
@@ -11218,6 +11265,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile_image_url": {
+                    "type": "string"
+                },
+                "region": {
                     "type": "string"
                 },
                 "role": {
@@ -12305,6 +12355,10 @@ const docTemplate = `{
                     "minLength": 8,
                     "example": "password123"
                 },
+                "region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
+                },
                 "role": {
                     "allOf": [
                         {
@@ -12455,6 +12509,10 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 8,
                     "example": "newpassword123"
+                },
+                "region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
                 },
                 "role": {
                     "allOf": [
