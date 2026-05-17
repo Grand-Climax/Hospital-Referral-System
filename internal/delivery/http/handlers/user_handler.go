@@ -573,7 +573,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		default:
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 				Success: false,
-				Error:   "Failed to update user",
+				Error:   fmt.Sprintf("Failed to update user: %s", err.Error()),
 			})
 		}
 		return
