@@ -66,6 +66,13 @@ func RequireAuth(blacklist cache.TokenBlacklist, userRepo irepository.UserReposi
 			})
 			return
 		}
+		if payload.MFAPending {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Success: false,
+				Error:   "MFA verification is required before accessing this resource",
+			})
+			return
+		}
 
 		// Set claims securely into the Gin Context
 		if userRepo != nil {
@@ -91,6 +98,78 @@ func RequireAuth(blacklist cache.TokenBlacklist, userRepo irepository.UserReposi
 		c.Set("hospID", payload.HospID)
 		c.Set("deptID", payload.DeptID)
 
+		c.Next()
+	}
+}
+
+// RequireMFAPending validates the MFA intermediate token used during OTP verification.
+func RequireMFAPending(blacklist cache.TokenBlacklist, userRepo irepository.UserRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Success: false,
+				Error:   "Authorization header is required",
+			})
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Success: false,
+				Error:   "Authorization header format must be Bearer {token}",
+			})
+			return
+		}
+		tokenStr := parts[1]
+
+		if blacklist != nil {
+			isBlacklisted, err := blacklist.IsBlacklisted(c.Request.Context(), tokenStr)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, dto.ErrorResponse{
+					Success: false,
+					Error:   "Failed to verify token status",
+				})
+				return
+			}
+			if isBlacklisted {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+					Success: false,
+					Error:   "Token has been revoked",
+				})
+				return
+			}
+		}
+
+		payload, err := auth.ValidateToken(tokenStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Success: false,
+				Error:   "Invalid or expired MFA token",
+			})
+			return
+		}
+		if !payload.MFAPending {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Success: false,
+				Error:   "MFA intermediate token is required",
+			})
+			return
+		}
+
+		if userRepo != nil {
+			user, lookupErr := userRepo.FindByID(c.Request.Context(), payload.UserID)
+			if lookupErr != nil || user.IsDeleted || !user.IsActive {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{
+					Success: false,
+					Error:   "Account is inactive or deleted",
+				})
+				return
+			}
+		}
+
+		c.Set("userID", payload.UserID)
 		c.Next()
 	}
 }
