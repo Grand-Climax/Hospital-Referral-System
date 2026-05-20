@@ -15,6 +15,7 @@ import (
 	"Hospital-Referral-System/config"
 	"Hospital-Referral-System/internal/delivery/http/routes"
 	"Hospital-Referral-System/internal/infrastructure/middleware"
+	"Hospital-Referral-System/internal/infrastructure/ws"
 	"Hospital-Referral-System/internal/seeds"
 )
 
@@ -119,7 +120,10 @@ func main() {
 		}
 	}
 
-	routes.Register(router, db, redisClient, cfg)
+	// Initialize WebSocket hub
+	hub := ws.NewHub()
+
+	routes.Register(router, db, redisClient, cfg, hub)
 
 	// Cloud Run injects the PORT dynamically. Fallback to 8081 for local dev.
 	port := cfg.Port
