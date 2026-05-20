@@ -51,6 +51,7 @@ func main() {
 		&entity.StaffReplacementLog{},
 		&entity.Attachment{},
 		&entity.AuditLog{},
+		&entity.MLPrediction{},
 	)
 	if err != nil {
 		log.Fatalf("AutoMigrate failed: %v", err)
