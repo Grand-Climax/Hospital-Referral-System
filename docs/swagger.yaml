@@ -766,6 +766,18 @@ definitions:
     type: object
   dto.LoginResponse:
     properties:
+      channel:
+        type: string
+      message:
+        type: string
+      mfa_token:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MFAVerifyResponse:
+    properties:
       access_token:
         type: string
       message:
@@ -2230,6 +2242,8 @@ definitions:
         type: string
       national_id:
         type: string
+      phone_number:
+        type: string
       profile_image_url:
         type: string
       region:
@@ -2384,6 +2398,12 @@ definitions:
       email:
         example: superadmin@moh.gov.et
         type: string
+      mfa_channel:
+        enum:
+        - sms
+        - email
+        example: email
+        type: string
       password:
         example: password123
         type: string
@@ -2397,6 +2417,13 @@ definitions:
         type: string
     required:
     - refresh_token
+    type: object
+  handlers.MFAVerifyRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
     type: object
   handlers.RefreshRequest:
     properties:
@@ -2702,11 +2729,11 @@ paths:
       consumes:
       - application/json
       description: |-
-        Authenticate a user using Email and Password. Returns a Bearer Access Token (short-lived) and a Refresh Token (long-lived).
+        Authenticate with email/password, then send OTP through configured MFA channel.
         **Roles:** Any user with an active account.
         **Common Errors:**
         - 401 (Invalid Credentials)
-        - 403 (Account Inactive)
+        - 401 (Account Inactive)
       parameters:
       - description: Login credentials
         in: body
@@ -2718,7 +2745,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Token pair
+          description: MFA intermediate token and channel
           schema:
             $ref: '#/definitions/dto.LoginResponse'
         "400":
@@ -2772,6 +2799,43 @@ paths:
       security:
       - BearerAuth: []
       summary: User logout
+      tags:
+      - Authentication
+  /api/v1/auth/mfa/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify one-time code from configured channel and issue full access
+        tokens.
+      parameters:
+      - description: OTP verification payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.MFAVerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token pair
+          schema:
+            $ref: '#/definitions/dto.MFAVerifyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Verify OTP
       tags:
       - Authentication
   /api/v1/auth/refresh:
@@ -7830,7 +7894,6 @@ paths:
         name: request
         schema:
           additionalProperties:
-            format: float64
             type: number
           type: object
       produces:
