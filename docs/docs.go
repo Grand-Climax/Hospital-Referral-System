@@ -7356,7 +7356,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information about a forwarded referral.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Status must be FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, or REJECTED_AFTER_SEND.\n**Common Errors:**\n- 400 Invalid format\n- 403 Forbidden (wrong hospital)",
+                "description": "Get detailed information about a forwarded referral, including ML triage (` + "`" + `ml_severity_score` + "`" + `, ` + "`" + `ml_severity_tier` + "`" + `, ` + "`" + `ml_explanations` + "`" + `, ` + "`" + `ml_model_version` + "`" + `, ` + "`" + `ml_status` + "`" + `).\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Status must be FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, or REJECTED_AFTER_SEND.\n**Common Errors:**\n- 400 Invalid format\n- 403 Forbidden (wrong hospital)",
                 "produces": [
                     "application/json"
                 ],
@@ -7428,8 +7428,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number",
-                                "format": "float64"
+                                "type": "number"
                             }
                         }
                     }
@@ -9012,6 +9011,15 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "ml_severity_score": {
+                    "type": "number"
+                },
+                "ml_severity_tier": {
+                    "type": "string"
+                },
+                "ml_status": {
+                    "type": "string"
+                },
                 "patient_first_name": {
                     "type": "string"
                 },
@@ -9989,6 +9997,15 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "ml_severity_score": {
+                    "type": "number"
+                },
+                "ml_severity_tier": {
+                    "type": "string"
+                },
+                "ml_status": {
+                    "type": "string"
+                },
                 "patient_first_name": {
                     "type": "string"
                 },
@@ -10726,7 +10743,16 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
+                "ml_explanations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "ml_last_error": {
+                    "type": "string"
+                },
+                "ml_model_version": {
                     "type": "string"
                 },
                 "ml_retry_count": {
@@ -10734,6 +10760,10 @@ const docTemplate = `{
                 },
                 "ml_severity_score": {
                     "type": "number"
+                },
+                "ml_severity_tier": {
+                    "description": "Populated for API responses from active ml_predictions (not persisted on referrals).",
+                    "type": "string"
                 },
                 "ml_status": {
                     "description": "Handle ML Failure",
@@ -11773,7 +11803,16 @@ const docTemplate = `{
                 "liaison_officer_id": {
                     "type": "string"
                 },
+                "ml_explanations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "ml_last_error": {
+                    "type": "string"
+                },
+                "ml_model_version": {
                     "type": "string"
                 },
                 "ml_retry_count": {
@@ -11781,6 +11820,10 @@ const docTemplate = `{
                 },
                 "ml_severity_score": {
                     "type": "number"
+                },
+                "ml_severity_tier": {
+                    "description": "Populated for API responses from active ml_predictions (not persisted on referrals).",
+                    "type": "string"
                 },
                 "ml_status": {
                     "description": "Handle ML Failure",
@@ -12542,7 +12585,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Hospital Referral System API",
-	Description:      "# Hospital Referral Hub API\nA national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.\n\n---\n## Referral Lifecycle\nDRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED\n↘ REJECTED_BY_LIAISON\nFORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST\nACCEPTED → SCHEDULED → ASSIGNED → COMPLETED\n↘ MISSED / RESCHEDULED / DECEASED\n\n---\n## Visibility Rules\n\n| Status | Visible To |\n|----------------------|-----------|\n| DRAFT / NEED_REVISION | Referring Doctor only |\n| SUBMITTED … FORWARDED | Liaison of the sender hospital |\n| FORWARDED … COMPLETED | Specialists of the target hospital |\n| ACCEPTED … SCHEDULED | Receptionists of the target hospital |\n| All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |\n\n---\n## Critical Business Rules\n\n- **ML Triage Gate**: A referral cannot be accepted without a severity score (set manually via `POST /specialist/referrals/{id}/triage-severity`).\n- **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.\n- **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.\n- **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.\n- **Deceased Outcome**: Recording a deceased outcome sets the referral to DECEASED, soft‑archives it (`is_archived=true`), and cancels any pending appointments.\n- **Cancel After Send**: A doctor may cancel a referral after sending (REJECTED_AFTER_SEND) only if it has not been accepted yet.\n\nFor detailed per‑endpoint rules, see the individual endpoint descriptions below.",
+	Description:      "# Hospital Referral Hub API\nA national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.\n\n---\n## Referral Lifecycle\nDRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED\n↘ REJECTED_BY_LIAISON\nFORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST\nACCEPTED → SCHEDULED → ASSIGNED → COMPLETED\n↘ MISSED / RESCHEDULED / DECEASED\n\n---\n## Visibility Rules\n\n| Status | Visible To |\n|----------------------|-----------|\n| DRAFT / NEED_REVISION | Referring Doctor only |\n| SUBMITTED … FORWARDED | Liaison of the sender hospital |\n| FORWARDED … COMPLETED | Specialists of the target hospital |\n| ACCEPTED … SCHEDULED | Receptionists of the target hospital |\n| All statuses | System Admins (global); MoH Analysts (aggregated dashboards, no raw clinical data) |\n\n---\n## Critical Business Rules\n\n- **ML Triage Gate**: On submit, the backend calls the ML service (`POST /score`) asynchronously. A referral cannot be accepted while `ml_status` is PENDING, or without a severity score (from ML or manual `POST /specialist/referrals/{id}/triage-severity`).\n- **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.\n- **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.\n- **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.\n- **Deceased Outcome**: Recording a deceased outcome sets the referral to DECEASED, soft‑archives it (`is_archived=true`), and cancels any pending appointments.\n- **Cancel After Send**: A doctor may cancel a referral after sending (REJECTED_AFTER_SEND) only if it has not been accepted yet.\n\nFor detailed per‑endpoint rules, see the individual endpoint descriptions below.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
