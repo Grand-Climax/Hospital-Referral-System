@@ -52,6 +52,9 @@ func main() {
 		&entity.Attachment{},
 		&entity.AuditLog{},
 		&entity.MLPrediction{},
+		&entity.Conversation{},
+		&entity.ConversationParticipant{},
+		&entity.ChatMessage{},
 	)
 	if err != nil {
 		log.Fatalf("AutoMigrate failed: %v", err)

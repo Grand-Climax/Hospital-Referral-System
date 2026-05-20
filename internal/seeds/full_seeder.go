@@ -64,6 +64,9 @@ func SeedAll(db *gorm.DB) error {
 		&entity.SchedulerCheckpoint{},
 		&entity.JobCheckpoint{},
 		&entity.ReferralRedirection{},
+		&entity.Conversation{},
+		&entity.ConversationParticipant{},
+		&entity.ChatMessage{},
 	)
 	if err != nil {
 		return err
@@ -71,6 +74,7 @@ func SeedAll(db *gorm.DB) error {
 
 	// 1. Truncate all tables in reverse dependency order
 	tables := []string{
+		"chat_messages", "conversation_participants", "conversations",
 		"audit_logs", "notifications", "referral_accesses", "referral_redirections", "referral_outcomes",
 		"clinical_updates", "ml_predictions", "triage_queues", "daily_schedules", "capacity_overrides",
 		"referral_diagnoses", "referral_status_histories", "vitals", "referral_emergency_details",
