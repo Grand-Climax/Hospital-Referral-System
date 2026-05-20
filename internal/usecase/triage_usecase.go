@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -25,6 +26,7 @@ type triageUseCase struct {
 	configRepo   irepository.SystemConfigRepository
 	auditRepo    irepository.AuditLogRepository
 	cryptoSvc    *crypto.PatientCryptoService
+	mlUC         iusecase.MLUseCase
 }
 
 func NewTriageUseCase(
@@ -35,6 +37,7 @@ func NewTriageUseCase(
 	cfgRepo irepository.SystemConfigRepository,
 	auditRepo irepository.AuditLogRepository,
 	cryptoSvc *crypto.PatientCryptoService,
+	mlUC iusecase.MLUseCase,
 ) iusecase.TriageUseCase {
 	return &triageUseCase{
 		db:           db,
@@ -44,6 +47,7 @@ func NewTriageUseCase(
 		configRepo:   cfgRepo,
 		auditRepo:    auditRepo,
 		cryptoSvc:    cryptoSvc,
+		mlUC:         mlUC,
 	}
 }
 
@@ -195,6 +199,12 @@ func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userI
 		return errors.New("severity score must be between 0 and 100")
 	}
 
+	if u.mlUC != nil {
+		if err := u.mlUC.SendFeedbackOverride(ctx, referralID, score, justification); err != nil {
+			log.Printf("ml feedback override referral %s: %v", referralID, err)
+		}
+	}
+
 	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1. Deactivate old active predictions
 		if err := tx.Model(&entity.MLPrediction{}).
@@ -225,8 +235,9 @@ func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userI
 		if err := tx.Model(&entity.Referral{}).
 			Where("id = ?", referralID).
 			Updates(map[string]interface{}{
-				"ml_severity_score": score,
-				"triage_status":     "OVERRIDDEN",
+				"active_ml_prediction_id": newPred.ID,
+				"ml_severity_score":       score,
+				"triage_status":           entity.TriageOverridden,
 			}).Error; err != nil {
 			return err
 		}
