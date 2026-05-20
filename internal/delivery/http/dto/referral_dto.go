@@ -110,6 +110,9 @@ type ListReferralResponse struct {
 	ConditionAtReferral string    `json:"condition_at_referral"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
+	MLStatus            string    `json:"ml_status,omitempty"`
+	MLSeverityScore     *float64  `json:"ml_severity_score,omitempty"`
+	MLSeverityTier      *string   `json:"ml_severity_tier,omitempty"`
 }
 
 type PaginatedReferralResponse struct {

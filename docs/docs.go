@@ -6571,6 +6571,31 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/reference/regions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all valid Ethiopian regions from the hardcoded enum. Accessible by all authenticated roles.\n**Roles:** Any authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "Get Ethiopian Regions List",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegionListResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/referrals/{id}/attachments": {
             "get": {
                 "security": [
@@ -7554,7 +7579,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Acknowledge receipt and claim the referral for review.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral.status = FORWARDED.\n**State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
+                "description": "Acknowledge receipt and claim the referral for review.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral.status = FORWARDED or REDIRECTED.\n**State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
                 "produces": [
                     "application/json"
                 ],
@@ -7745,7 +7770,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Unassign self and return the referral to the hospital pool.\n**Roles:** RECEIVING_SPECIALIST (Assigned)\n**Prerequisites:** status = UNDER_SPECIALIST_REVIEW.\n**State Transition:** → FORWARDED.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized access",
+                "description": "Unassign self and return the referral to the hospital pool.\n**Roles:** RECEIVING_SPECIALIST (Assigned)\n**Prerequisites:** status = UNDER_SPECIALIST_REVIEW.\n**State Transition:** → FORWARDED (or → REDIRECTED if it was previously redirected).\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized access",
                 "consumes": [
                     "application/json"
                 ],
@@ -9550,6 +9575,10 @@ const docTemplate = `{
                     "minLength": 8,
                     "example": "password123"
                 },
+                "region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
+                },
                 "role": {
                     "allOf": [
                         {
@@ -10840,6 +10869,24 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RegionListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "dto.RejectDTO": {
             "type": "object",
             "required": [
@@ -11218,6 +11265,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile_image_url": {
+                    "type": "string"
+                },
+                "region": {
                     "type": "string"
                 },
                 "role": {
@@ -12305,6 +12355,10 @@ const docTemplate = `{
                     "minLength": 8,
                     "example": "password123"
                 },
+                "region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
+                },
                 "role": {
                     "allOf": [
                         {
@@ -12455,6 +12509,10 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 8,
                     "example": "newpassword123"
+                },
+                "region": {
+                    "type": "string",
+                    "example": "Addis Ababa"
                 },
                 "role": {
                     "allOf": [

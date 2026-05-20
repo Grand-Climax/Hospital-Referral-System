@@ -64,6 +64,7 @@ func TestReferenceEndpoints(t *testing.T) {
 	router.GET("/api/v1/reference/icd-codes", handler.ListICDCodes)
 	router.GET("/api/v1/reference/networked-hospitals", handler.GetNetworkedHospitals)
 	router.GET("/api/v1/reference/hospitals/:id/departments", handler.GetHospitalDepartments)
+	router.GET("/api/v1/reference/regions", handler.GetRegions)
 
 	t.Run("Get Global Hospitals List", func(t *testing.T) {
 		hosp := entity.Hospital{
@@ -172,5 +173,21 @@ func TestReferenceEndpoints(t *testing.T) {
 		depts := resp.Data
 		assert.Len(t, depts, 1)
 		assert.Equal(t, "Neurology", depts[0].Name)
+	})
+
+	t.Run("Get Ethiopian Regions List", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/reference/regions", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp dto.RegionListResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		assert.True(t, resp.Success)
+		assert.Contains(t, resp.Data, "Addis Ababa")
+		assert.Contains(t, resp.Data, "Oromia")
 	})
 }

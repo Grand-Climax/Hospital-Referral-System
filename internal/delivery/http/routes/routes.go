@@ -19,6 +19,7 @@ import (
 	"Hospital-Referral-System/internal/infrastructure/crypto"
 	"Hospital-Referral-System/internal/infrastructure/email"
 	"Hospital-Referral-System/internal/infrastructure/middleware"
+	"Hospital-Referral-System/internal/infrastructure/ml"
 	"Hospital-Referral-System/internal/infrastructure/sms"
 	"Hospital-Referral-System/internal/infrastructure/storage"
 	"Hospital-Referral-System/internal/repository"
@@ -88,6 +89,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	emailClient := email.NewSMTPClient()
 	// Use mock if needed: smsClient := sms.NewMockSMSClient()
 
+	mlClient := ml.NewClient(cfg.ML.BaseURL, time.Duration(cfg.ML.TimeoutSec)*time.Second)
+	mlUseCase := usecase.NewMLUseCase(db, referralRepo, mlRepo, mlClient, cfg.ML.Enabled, cfg.ML.MaxRetries)
+
 	cryptoSvc, err := crypto.NewPatientCryptoService(os.Getenv("PATIENT_AES_KEY"), os.Getenv("PATIENT_HMAC_KEY"))
 	if err != nil {
 		log.Fatalf("Failed to initialize PatientCryptoService: %v", err)
@@ -104,7 +108,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc, inAppNotifUseCase)
 	// Post-acceptance Use Cases
 	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, configRepo, jobCheckpointRepo, smsClient, cryptoSvc)
-	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, cryptoSvc)
+	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, cryptoSvc, mlUseCase)
 	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase, inAppNotifUseCase, jobCheckpointRepo, clinicalRepo)
 	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo, inAppNotifUseCase)
 	clinicalUseCase := usecase.NewClinicalUseCase(db, referralRepo, clinicalRepo, outcomeRepo, referralAccessRepo, auditLogRepo, inAppNotifUseCase)
@@ -113,7 +117,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	dailyWeightUseCase := usecase.NewDailyWeightUseCase(configRepo, triageRepo, auditLogRepo)
 	schedulerServiceUseCase := usecase.NewSchedulerServiceUseCase(checkpointRepo, configRepo, schedUseCase)
 
-	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, inAppNotifUseCase, cryptoSvc, departmentRepo, attachmentRepo, referralAccessRepo)
+	referralUseCase := usecase.NewReferralUseCase(referralRepo, clinicalRepo, outcomeRepo, netRepo, redirectionRepo, triageRepo, attachmentUseCase, notifUseCase, inAppNotifUseCase, cryptoSvc, departmentRepo, attachmentRepo, referralAccessRepo, mlUseCase, mlRepo)
 	refUseCase := usecase.NewReferenceUseCase(refRepo)
 	netUseCase := usecase.NewNetworkUseCase(netRepo, hospitalRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo, cryptoSvc, auditLogRepo)
@@ -231,42 +235,43 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			patientGroup.POST("", patientHandler.CreatePatient)
 		}
 
-		// Reference Dropdowns & Relational Networks
-		protected.GET("/reference/hospitals", refHandler.GetHospitals)
-		// Networked Dropdown uses X-Hospital-ID from Auth Token implicitly
-		protected.GET("/reference/networked-hospitals", refHandler.GetNetworkedHospitals)
-		protected.GET("/reference/departments", refHandler.GetDepartments)
-		// Target Dropdown targets a specific receiver hospital path ID
-		protected.GET("/reference/hospitals/:id/departments", refHandler.GetHospitalDepartments)
-		protected.GET("/reference/icd-codes", refHandler.ListICDCodes)
-		protected.GET("/reference/liaisons", refHandler.GetLiaisons)
-		// Example: Both DOCTOR and SPECIALIST
-		// protected.GET("/clinical-data", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleReceivingSpecialist), someHandler)
+			// Reference Dropdowns & Relational Networks
+			protected.GET("/reference/hospitals", refHandler.GetHospitals)
+			// Networked Dropdown uses X-Hospital-ID from Auth Token implicitly
+			protected.GET("/reference/networked-hospitals", refHandler.GetNetworkedHospitals)
+			protected.GET("/reference/departments", refHandler.GetDepartments)
+			// Target Dropdown targets a specific receiver hospital path ID
+			protected.GET("/reference/hospitals/:id/departments", refHandler.GetHospitalDepartments)
+			protected.GET("/reference/icd-codes", refHandler.ListICDCodes)
+			protected.GET("/reference/liaisons", refHandler.GetLiaisons)
+			protected.GET("/reference/regions", refHandler.GetRegions)
+			// Example: Both DOCTOR and SPECIALIST
+			// protected.GET("/clinical-data", middleware.RequireRole(entity.RoleReferringDoctor, entity.RoleReceivingSpecialist), someHandler)
 
-		// -------------------------
-		// State Machine Role Groups
-		// -------------------------
+			// -------------------------
+			// State Machine Role Groups
+			// -------------------------
 
-		// DOCTOR
-		doctorGroup := protected.Group("/doctor")
-		doctorGroup.Use(middleware.RequireRole(entity.RoleReferringDoctor))
-		{
-			doctorGroup.GET("/stats", doctorHandler.GetStats)
-			doctorGroup.GET("/latest-pending", doctorHandler.GetLatestPending)
-			doctorGroup.GET("/referrals", doctorHandler.ListReferrals)
-			doctorGroup.GET("/referrals/approved", doctorHandler.ListApprovedReferrals)
-			doctorGroup.GET("/referrals/rejected", doctorHandler.ListRejectedReferrals)
-			doctorGroup.GET("/referrals/assigned", doctorHandler.ListAssignedReferrals)
-			doctorGroup.GET("/referrals/:id", doctorHandler.GetReferral)
-			doctorGroup.POST("/referrals", doctorHandler.CreateOrSubmit)
-			doctorGroup.POST("/referrals/:id/cancel", doctorHandler.Cancel)
-			doctorGroup.DELETE("/referrals/:id/attachments", doctorHandler.DeleteAttachments)
-			doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateDraft)
-			doctorGroup.PUT("/referrals/:id/submit", doctorHandler.SubmitReferral)
-			doctorGroup.POST("/referrals/:id/reject-after-send", doctorHandler.RejectAfterSend)
-			doctorGroup.POST("/referrals/:id/consult", doctorHandler.GrantConsultAccess)
-			doctorGroup.POST("/referrals/:id/consult/revoke", doctorHandler.RevokeConsultAccess)
-		}
+			// DOCTOR
+			doctorGroup := protected.Group("/doctor")
+			doctorGroup.Use(middleware.RequireRole(entity.RoleReferringDoctor))
+			{
+				doctorGroup.GET("/stats", doctorHandler.GetStats)
+				doctorGroup.GET("/latest-pending", doctorHandler.GetLatestPending)
+				doctorGroup.GET("/referrals", doctorHandler.ListReferrals)
+				doctorGroup.GET("/referrals/approved", doctorHandler.ListApprovedReferrals)
+				doctorGroup.GET("/referrals/rejected", doctorHandler.ListRejectedReferrals)
+				doctorGroup.GET("/referrals/assigned", doctorHandler.ListAssignedReferrals)
+				doctorGroup.GET("/referrals/:id", doctorHandler.GetReferral)
+				doctorGroup.POST("/referrals", doctorHandler.CreateOrSubmit)
+				doctorGroup.POST("/referrals/:id/cancel", doctorHandler.Cancel)
+				doctorGroup.DELETE("/referrals/:id/attachments", doctorHandler.DeleteAttachments)
+				doctorGroup.PUT("/referrals/:id", doctorHandler.UpdateDraft)
+				doctorGroup.PUT("/referrals/:id/submit", doctorHandler.SubmitReferral)
+				doctorGroup.POST("/referrals/:id/reject-after-send", doctorHandler.RejectAfterSend)
+				doctorGroup.POST("/referrals/:id/consult", doctorHandler.GrantConsultAccess)
+				doctorGroup.POST("/referrals/:id/consult/revoke", doctorHandler.RevokeConsultAccess)
+			}
 
 		// LIAISON
 		liaisonGroup := protected.Group("/liaison/referrals")

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -12,6 +14,7 @@ import (
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/usecase"
+	"Hospital-Referral-System/pkg/utils"
 )
 
 type HospitalAdminStaffHandler struct {
@@ -27,6 +30,54 @@ func NewHospitalAdminStaffHandler(userUC iusecase.UserUseCase, referralUC iuseca
 		deptUseCase:     deptUseCase,
 	}
 }
+
+func (h *HospitalAdminStaffHandler) validateUserScoping(
+	ctx context.Context,
+	role entity.UserRole,
+	hospitalID *uuid.UUID,
+	departmentID *uuid.UUID,
+) (string, bool) {
+	// 1. MOH_ANALYST and SYSTEM_SUPER_ADMIN: forbids both hospital and department
+	if role == entity.RoleMohAnalyst || role == entity.RoleSystemSuperAdmin {
+		if hospitalID != nil {
+			return fmt.Sprintf("Role %s does not accept a hospital assignment", role), false
+		}
+		if departmentID != nil {
+			return fmt.Sprintf("Role %s does not accept a department assignment", role), false
+		}
+		return "", true
+	}
+
+	// 2. Hospital Only (No Department): LIAISON_OFFICER, RECEIVING_SPECIALIST, HOSPITAL_ADMIN
+	if role == entity.RoleLiaisonOfficer || role == entity.RoleReceivingSpecialist || role == entity.RoleHospitalAdmin {
+		if hospitalID == nil {
+			return fmt.Sprintf("Role %s requires a hospital assignment", role), false
+		}
+		if departmentID != nil {
+			return fmt.Sprintf("Role %s does not accept a department assignment", role), false
+		}
+		return "", true
+	}
+
+	// 3. Hospital & Department Required: REFERRING_DOCTOR, RECEPTIONIST, DEPT_HEAD
+	if role == entity.RoleReferringDoctor || role == entity.RoleReceptionist || role == entity.RoleDeptHead {
+		if hospitalID == nil {
+			return fmt.Sprintf("Role %s requires a hospital assignment", role), false
+		}
+		if departmentID == nil {
+			return fmt.Sprintf("Role %s requires a department assignment", role), false
+		}
+
+		// Verify department belongs to the hospital
+		if err := h.deptUseCase.ValidateDepartmentForHospital(ctx, *hospitalID, *departmentID); err != nil {
+			return err.Error(), false
+		}
+		return "", true
+	}
+
+	return "Invalid user role", false
+}
+
 
 func getAdminContext(c *gin.Context) (uuid.UUID, uuid.UUID, bool) {
 	userIDVal, exists := c.Get("userID")
@@ -93,7 +144,7 @@ func mapHospitalAdminStaffError(err error) int {
 // @Security     BearerAuth
 // @Router       /api/v1/hospital-admin/staff [post]
 func (h *HospitalAdminStaffHandler) CreateStaff(c *gin.Context) {
-	adminID, _, ok := getAdminContext(c)
+	adminID, hospID, ok := getAdminContext(c)
 	if !ok {
 		return
 	}
@@ -104,21 +155,42 @@ func (h *HospitalAdminStaffHandler) CreateStaff(c *gin.Context) {
 		return
 	}
 
-	user := &entity.User{
-		Email:      req.Email,
-		FirstName:  req.FirstName,
-		MiddleName: req.MiddleName,
-		LastName:   req.LastName,
-		NationalID: req.NationalID,
-		Role:       req.Role,
-	}
-	if req.DepartmentID != nil {
-		deptID, err := uuid.Parse(*req.DepartmentID)
+	var deptID *uuid.UUID
+	if req.DepartmentID != nil && *req.DepartmentID != "" {
+		id, err := uuid.Parse(*req.DepartmentID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
 			return
 		}
-		user.DepartmentID = &deptID
+		deptID = &id
+	}
+
+	var finalRegion *entity.EthiopianRegion
+	if req.Region != nil && *req.Region != "" {
+		if !utils.IsValidEthiopianRegion(*req.Region) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid region"})
+			return
+		}
+		r := entity.EthiopianRegion(*req.Region)
+		finalRegion = &r
+	}
+
+	// Strictly validate role scoping rules in the context of the hospital
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, &hospID, deptID); !ok {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: errMsg})
+		return
+	}
+
+	user := &entity.User{
+		Email:        req.Email,
+		FirstName:    req.FirstName,
+		MiddleName:   req.MiddleName,
+		LastName:     req.LastName,
+		NationalID:   req.NationalID,
+		Role:         req.Role,
+		HospitalID:   &hospID,
+		DepartmentID: deptID,
+		Region:       finalRegion,
 	}
 
 	if err := h.userUseCase.HospitalAdminCreateStaff(c.Request.Context(), adminID, user, req.Password); err != nil {
@@ -277,6 +349,27 @@ func (h *HospitalAdminStaffHandler) ChangeStaffRole(c *gin.Context) {
 		return
 	}
 
+	// Fetch existing staff to validate proposed role scoping against their current hospital/department
+	staff, err := h.userUseCase.HospitalAdminGetStaffByID(c.Request.Context(), adminID, staffID)
+	if err != nil {
+		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	// Compute final department based on role constraints
+	var finalDeptID *uuid.UUID
+	if req.Role == entity.RoleLiaisonOfficer || req.Role == entity.RoleReceivingSpecialist || req.Role == entity.RoleHospitalAdmin {
+		finalDeptID = nil
+	} else {
+		finalDeptID = staff.DepartmentID
+	}
+
+	// Validate proposed role scoping rules
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, staff.HospitalID, finalDeptID); !ok {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: errMsg})
+		return
+	}
+
 	if err := h.userUseCase.HospitalAdminChangeStaffRole(c.Request.Context(), adminID, staffID, req.Role); err != nil {
 		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
@@ -406,8 +499,15 @@ func (h *HospitalAdminStaffHandler) ReassignDepartment(c *gin.Context) {
 		return
 	}
 
+	// Fetch existing staff first to get their current role and hospital
+	staff, err := h.userUseCase.HospitalAdminGetStaffByID(c.Request.Context(), adminID, staffID)
+	if err != nil {
+		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
 	var departmentID *uuid.UUID
-	if req.DepartmentID != nil {
+	if req.DepartmentID != nil && *req.DepartmentID != "" {
 		parsed, err := uuid.Parse(*req.DepartmentID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
@@ -420,6 +520,12 @@ func (h *HospitalAdminStaffHandler) ReassignDepartment(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 			return
 		}
+	}
+
+	// Validate proposed department assignment under the staff's current role
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), staff.Role, staff.HospitalID, departmentID); !ok {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: errMsg})
+		return
 	}
 
 	if err := h.userUseCase.HospitalAdminReassignStaffDepartment(c.Request.Context(), adminID, staffID, departmentID); err != nil {
