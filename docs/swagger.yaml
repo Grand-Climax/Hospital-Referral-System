@@ -69,6 +69,12 @@ definitions:
         type: string
       id:
         type: string
+      ml_severity_score:
+        type: number
+      ml_severity_tier:
+        type: string
+      ml_status:
+        type: string
       patient_first_name:
         type: string
       patient_last_name:
@@ -737,6 +743,12 @@ definitions:
         type: string
       id:
         type: string
+      ml_severity_score:
+        type: number
+      ml_severity_tier:
+        type: string
+      ml_status:
+        type: string
       patient_first_name:
         type: string
       patient_last_name:
@@ -1228,12 +1240,22 @@ definitions:
         type: string
       message:
         type: string
+      ml_explanations:
+        items:
+          type: string
+        type: array
       ml_last_error:
+        type: string
+      ml_model_version:
         type: string
       ml_retry_count:
         type: integer
       ml_severity_score:
         type: number
+      ml_severity_tier:
+        description: Populated for API responses from active ml_predictions (not persisted
+          on referrals).
+        type: string
       ml_status:
         description: Handle ML Failure
         type: string
@@ -1981,12 +2003,22 @@ definitions:
         type: boolean
       liaison_officer_id:
         type: string
+      ml_explanations:
+        items:
+          type: string
+        type: array
       ml_last_error:
+        type: string
+      ml_model_version:
         type: string
       ml_retry_count:
         type: integer
       ml_severity_score:
         type: number
+      ml_severity_tier:
+        description: Populated for API responses from active ml_predictions (not persisted
+          on referrals).
+        type: string
       ml_status:
         description: Handle ML Failure
         type: string
@@ -2522,7 +2554,7 @@ info:
     ---
     ## Critical Business Rules
 
-    - **ML Triage Gate**: A referral cannot be accepted without a severity score (set manually via `POST /specialist/referrals/{id}/triage-severity`).
+    - **ML Triage Gate**: On submit, the backend calls the ML service (`POST /score`) asynchronously. A referral cannot be accepted while `ml_status` is PENDING, or without a severity score (from ML or manual `POST /specialist/referrals/{id}/triage-severity`).
     - **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.
     - **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.
     - **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.
@@ -7814,7 +7846,7 @@ paths:
   /api/v1/specialist/referrals/{id}:
     get:
       description: |-
-        Get detailed information about a forwarded referral.
+        Get detailed information about a forwarded referral, including ML triage (`ml_severity_score`, `ml_severity_tier`, `ml_explanations`, `ml_model_version`, `ml_status`).
         **Roles:** RECEIVING_SPECIALIST
         **Prerequisites:** Status must be FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, or REJECTED_AFTER_SEND.
         **Common Errors:**
@@ -7870,7 +7902,6 @@ paths:
         name: request
         schema:
           additionalProperties:
-            format: float64
             type: number
           type: object
       produces:
