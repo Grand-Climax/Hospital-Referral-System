@@ -34,3 +34,21 @@ type NotificationListResponse struct {
 	Total int64                 `json:"total"`
 	Page  int                   `json:"page"`
 }
+
+// WebSocketMessage is the envelope for all WebSocket messages.
+type WebSocketMessage struct {
+	Type string      `json:"type"` // "notification" or "chat"
+	Data interface{} `json:"data"`
+}
+
+// WebSocketNotification is the payload inside a "notification" type message.
+type WebSocketNotification struct {
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	Message    string `json:"message"`
+	EventType  string `json:"event_type"`
+	ReferralID string `json:"referral_id,omitempty"`
+	IsRead     bool   `json:"is_read"`
+	CreatedAt  string `json:"created_at"`
+}
+
