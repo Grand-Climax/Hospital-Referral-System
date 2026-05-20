@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -28,6 +29,14 @@ type SMSConfig struct {
 	Sender string
 }
 
+// MLConfig holds defaults for the local ML service (http://localhost:8000).
+type MLConfig struct {
+	BaseURL    string
+	TimeoutSec int
+	Enabled    bool
+	MaxRetries int
+}
+
 type Config struct {
 	DB         DBConfig
 	RedisURL   string
@@ -35,6 +44,7 @@ type Config struct {
 	Port       string
 	Cloudinary CloudinaryConfig
 	SMS        SMSConfig
+	ML         MLConfig
 }
 
 func LoadConfig() Config {
@@ -66,5 +76,35 @@ func LoadConfig() Config {
 			From:   os.Getenv("AFROMESSAGE_IDENTIFIER_ID"),
 			Sender: os.Getenv("AFROMESSAGE_SENDER_NAME"),
 		},
+		ML: loadMLConfig(),
+	}
+}
+
+func loadMLConfig() MLConfig {
+	baseURL := os.Getenv("ML_SERVICE_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8000"
+	}
+	timeoutSec := 30
+	if v := os.Getenv("ML_SERVICE_TIMEOUT_SEC"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			timeoutSec = n
+		}
+	}
+	maxRetries := 3
+	if v := os.Getenv("ML_MAX_RETRIES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			maxRetries = n
+		}
+	}
+	enabled := true
+	if v := os.Getenv("ML_ENABLED"); v == "false" || v == "0" {
+		enabled = false
+	}
+	return MLConfig{
+		BaseURL:    baseURL,
+		TimeoutSec: timeoutSec,
+		Enabled:    enabled,
+		MaxRetries: maxRetries,
 	}
 }
