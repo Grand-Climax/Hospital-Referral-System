@@ -12,6 +12,7 @@ type UserResponse struct {
 	Role           entity.UserRole `json:"role"`
 	HospitalID     *string         `json:"hospital_id,omitempty"`
 	DepartmentID   *string         `json:"department_id,omitempty"`
+	Region         *string         `json:"region,omitempty"`
 	Hospital       *HospitalResponse `json:"hospital,omitempty"`
 	Department     *DepartmentResponse `json:"department,omitempty"`
 	ProfileImageURL string         `json:"profile_image_url,omitempty"`
