@@ -45,7 +45,7 @@ import (
 // @description ---
 // @description ## Critical Business Rules
 // @description
-// @description - **ML Triage Gate**: A referral cannot be accepted without a severity score (set manually via `POST /specialist/referrals/{id}/triage-severity`).
+// @description - **ML Triage Gate**: On submit, the backend calls the ML service (`POST /score`) asynchronously. A referral cannot be accepted while `ml_status` is PENDING, or without a severity score (from ML or manual `POST /specialist/referrals/{id}/triage-severity`).
 // @description - **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.
 // @description - **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.
 // @description - **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.
