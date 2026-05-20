@@ -58,6 +58,11 @@ type Referral struct {
 	MLRetryCount   int    `gorm:"default:0" json:"ml_retry_count"`
 	MLLastError    *string `gorm:"type:text" json:"ml_last_error,omitempty"`
 
+	// Populated for API responses from active ml_predictions (not persisted on referrals).
+	MLSeverityTier  *string  `gorm:"-" json:"ml_severity_tier,omitempty"`
+	MLExplanations  []string `gorm:"-" json:"ml_explanations,omitempty"`
+	MLModelVersion  *string  `gorm:"-" json:"ml_model_version,omitempty"`
+
 	// Liaison Review Checklist
 	PatientIdentityVerified  bool `gorm:"default:false" json:"patient_identity_verified"`
 	ClinicalHistoryAttached  bool `gorm:"default:false" json:"clinical_history_attached"`
