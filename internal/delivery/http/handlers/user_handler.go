@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,9 +16,8 @@ import (
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/pkg/auth"
 	"Hospital-Referral-System/internal/pkg/utils"
+	pkgutils "Hospital-Referral-System/pkg/utils"
 	"Hospital-Referral-System/internal/usecase"
-	"fmt"
-	"log"
 )
 
 type UserHandler struct {
@@ -36,6 +37,54 @@ func (h *UserHandler) getRequesterID(c *gin.Context) uuid.UUID {
 	return id.(uuid.UUID)
 }
 
+func (h *UserHandler) validateUserScoping(
+	ctx context.Context,
+	role entity.UserRole,
+	hospitalID *uuid.UUID,
+	departmentID *uuid.UUID,
+) (string, bool) {
+	// 1. MOH_ANALYST and SYSTEM_SUPER_ADMIN: forbids both hospital and department
+	if role == entity.RoleMohAnalyst || role == entity.RoleSystemSuperAdmin {
+		if hospitalID != nil {
+			return fmt.Sprintf("Role %s does not accept a hospital assignment", role), false
+		}
+		if departmentID != nil {
+			return fmt.Sprintf("Role %s does not accept a department assignment", role), false
+		}
+		return "", true
+	}
+
+	// 2. Hospital Only (No Department): LIAISON_OFFICER, RECEIVING_SPECIALIST, HOSPITAL_ADMIN
+	if role == entity.RoleLiaisonOfficer || role == entity.RoleReceivingSpecialist || role == entity.RoleHospitalAdmin {
+		if hospitalID == nil {
+			return fmt.Sprintf("Role %s requires a hospital assignment", role), false
+		}
+		if departmentID != nil {
+			return fmt.Sprintf("Role %s does not accept a department assignment", role), false
+		}
+		return "", true
+	}
+
+	// 3. Hospital & Department Required: REFERRING_DOCTOR, RECEPTIONIST, DEPT_HEAD
+	if role == entity.RoleReferringDoctor || role == entity.RoleReceptionist || role == entity.RoleDeptHead {
+		if hospitalID == nil {
+			return fmt.Sprintf("Role %s requires a hospital assignment", role), false
+		}
+		if departmentID == nil {
+			return fmt.Sprintf("Role %s requires a department assignment", role), false
+		}
+
+		// Verify department belongs to the hospital
+		if err := h.deptUseCase.ValidateDepartmentForHospital(ctx, *hospitalID, *departmentID); err != nil {
+			return err.Error(), false
+		}
+		return "", true
+	}
+
+	return "Invalid user role", false
+}
+
+
 // --- Request / Response DTOs ---
 
 type CreateUserRequest struct {
@@ -48,6 +97,7 @@ type CreateUserRequest struct {
 	Role         entity.UserRole `json:"role" binding:"required" example:"MOH_ANALYST"`
 	HospitalID   *string         `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
 	DepartmentID *string         `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	Region       *string         `json:"region,omitempty" example:"Addis Ababa"`
 }
 
 type UpdateUserRequest struct {
@@ -59,6 +109,7 @@ type UpdateUserRequest struct {
 	Role         *entity.UserRole `json:"role" example:"MOH_ANALYST"`
 	HospitalID   *string         `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
 	DepartmentID *string         `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
+	Region       *string          `json:"region,omitempty" example:"Addis Ababa"`
 	Password     *string          `json:"password" binding:"omitempty,min=8" example:"newpassword123"`
 	IsActive     *bool            `json:"is_active" example:"true"`
 }
@@ -84,6 +135,10 @@ func toUserResponse(u *entity.User) dto.UserResponse {
 	if u.HospitalID != nil {
 		s := u.HospitalID.String()
 		resp.HospitalID = &s
+	}
+	if u.Region != nil {
+		s := string(*u.Region)
+		resp.Region = &s
 	}
 	if u.Hospital != nil {
 		resp.Hospital = &dto.HospitalResponse{
@@ -147,16 +202,8 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	user := &entity.User{
-		Email:      req.Email,
-		FirstName:  req.FirstName,
-		MiddleName: req.MiddleName,
-		LastName:   req.LastName,
-		NationalID: req.NationalID,
-		Role:       req.Role,
-	}
-
-	if req.HospitalID != nil {
+	var finalHospitalID *uuid.UUID
+	if req.HospitalID != nil && *req.HospitalID != "" {
 		id, err := uuid.Parse(*req.HospitalID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -165,9 +212,11 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 			})
 			return
 		}
-		user.HospitalID = &id
+		finalHospitalID = &id
 	}
-	if req.DepartmentID != nil {
+
+	var finalDepartmentID *uuid.UUID
+	if req.DepartmentID != nil && *req.DepartmentID != "" {
 		id, err := uuid.Parse(*req.DepartmentID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -176,7 +225,41 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 			})
 			return
 		}
-		user.DepartmentID = &id
+		finalDepartmentID = &id
+	}
+
+	var finalRegion *entity.EthiopianRegion
+	if req.Region != nil && *req.Region != "" {
+		if !pkgutils.IsValidEthiopianRegion(*req.Region) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Success: false,
+				Error:   "invalid region",
+			})
+			return
+		}
+		r := entity.EthiopianRegion(*req.Region)
+		finalRegion = &r
+	}
+
+	// Validate strict role-based scoping
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, finalHospitalID, finalDepartmentID); !ok {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   errMsg,
+		})
+		return
+	}
+
+	user := &entity.User{
+		Email:        req.Email,
+		FirstName:    req.FirstName,
+		MiddleName:   req.MiddleName,
+		LastName:     req.LastName,
+		NationalID:   req.NationalID,
+		Role:         req.Role,
+		HospitalID:   finalHospitalID,
+		DepartmentID: finalDepartmentID,
+		Region:       finalRegion,
 	}
 
 	if err := h.userUseCase.CreateUser(c.Request.Context(), user, req.Password); err != nil {
@@ -383,73 +466,89 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if req.NationalID != nil {
 		existing.NationalID = *req.NationalID
 	}
+	// Compute final role
+	finalRole := existing.Role
 	if req.Role != nil {
 		if *req.Role == entity.RoleSystemSuperAdmin {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Cannot assign SYSTEM_SUPER_ADMIN role. This role is restricted."})
 			return
 		}
-		existing.Role = *req.Role
+		finalRole = *req.Role
 	}
 
-	if req.HospitalID != nil {
+	// Compute final hospital
+	var finalHospitalID *uuid.UUID
+	if req.HospitalID != nil && *req.HospitalID != "" {
 		hid, err := uuid.Parse(*req.HospitalID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid hospital_id"})
 			return
 		}
-		existing.HospitalID = &hid
-
-		// If the user has a department, verify it exists in the new hospital
-		if existing.DepartmentID != nil {
-			if err := h.deptUseCase.ValidateDepartmentForHospital(c.Request.Context(), hid, *existing.DepartmentID); err != nil {
-				// Clear the department – it doesn't belong to the new hospital
-				existing.DepartmentID = nil
-				log.Printf("Cleared department for user %s because it does not belong to new hospital %s", existing.ID, hid)
-			}
+		finalHospitalID = &hid
+	} else if req.HospitalID != nil && *req.HospitalID == "" {
+		finalHospitalID = nil
+	} else {
+		// HospitalID is omitted from the request body
+		if finalRole == entity.RoleMohAnalyst || finalRole == entity.RoleSystemSuperAdmin {
+			finalHospitalID = nil
+		} else {
+			finalHospitalID = existing.HospitalID
 		}
 	}
 
-	if req.DepartmentID != nil {
-		// Determine if the current role allows a department
-		currentRole := existing.Role
-		if req.Role != nil {
-			currentRole = *req.Role
-		}
-		requiresDept := currentRole == entity.RoleReceivingSpecialist || currentRole == entity.RoleDeptHead
-		forbidsDept := currentRole == entity.RoleMohAnalyst || currentRole == entity.RoleHospitalAdmin ||
-			currentRole == entity.RoleLiaisonOfficer || currentRole == entity.RoleSystemSuperAdmin
-
-		if forbidsDept {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: fmt.Sprintf("Role %s does not accept a department", currentRole)})
-			return
-		}
-
-		hospitalID := existing.HospitalID
-		if req.HospitalID != nil {
-			hid, _ := uuid.Parse(*req.HospitalID)
-			hospitalID = &hid
-		}
-		if hospitalID == nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Cannot assign department without a hospital"})
-			return
-		}
-
-		deptID, err := uuid.Parse(*req.DepartmentID)
+	// Compute final department
+	var finalDepartmentID *uuid.UUID
+	if req.DepartmentID != nil && *req.DepartmentID != "" {
+		did, err := uuid.Parse(*req.DepartmentID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
 			return
 		}
-		if err := h.deptUseCase.ValidateDepartmentForHospital(c.Request.Context(), *hospitalID, deptID); err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
-			return
-		}
-		existing.DepartmentID = &deptID
-
-		if !requiresDept {
-			// Optional department – just warn but allow
-			log.Printf("User %s assigned optional department %s with role %s", existing.ID, deptID, currentRole)
+		finalDepartmentID = &did
+	} else if req.DepartmentID != nil && *req.DepartmentID == "" {
+		finalDepartmentID = nil
+	} else {
+		// DepartmentID is omitted from the request body
+		if finalRole == entity.RoleMohAnalyst || finalRole == entity.RoleSystemSuperAdmin ||
+			finalRole == entity.RoleLiaisonOfficer || finalRole == entity.RoleReceivingSpecialist || finalRole == entity.RoleHospitalAdmin {
+			finalDepartmentID = nil
+		} else {
+			finalDepartmentID = existing.DepartmentID
 		}
 	}
+
+	// Compute final region
+	var finalRegion *entity.EthiopianRegion
+	if req.Region != nil {
+		if *req.Region == "" {
+			finalRegion = nil
+		} else {
+			if !pkgutils.IsValidEthiopianRegion(*req.Region) {
+				c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid region"})
+				return
+			}
+			r := entity.EthiopianRegion(*req.Region)
+			finalRegion = &r
+		}
+	} else {
+		finalRegion = existing.Region
+	}
+
+	// Validate strict role-based scoping on the final state
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), finalRole, finalHospitalID, finalDepartmentID); !ok {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   errMsg,
+		})
+		return
+	}
+
+	// Update existing fields since validation has fully passed
+	existing.Role = finalRole
+	existing.HospitalID = finalHospitalID
+	existing.DepartmentID = finalDepartmentID
+	existing.Region = finalRegion
+
 
 	if req.Password != nil {
 		hash, err := auth.HashPassword(*req.Password)
@@ -465,10 +564,18 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	if err := h.userUseCase.UpdateUser(c.Request.Context(), existing); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   "Failed to update user",
-		})
+		switch err {
+		case usecase.ErrEmailExists, usecase.ErrNationalIDExists, usecase.ErrUserNotFound:
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Success: false,
+				Error:   err.Error(),
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to update user: %s", err.Error()),
+			})
+		}
 		return
 	}
 
@@ -666,7 +773,7 @@ func (h *UserHandler) SystemAdminListUsers(c *gin.Context) {
 func (h *UserHandler) AssignRole(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Success: false,
 			Error:   "invalid user ID",
 		})
@@ -676,6 +783,40 @@ func (h *UserHandler) AssignRole(c *gin.Context) {
 	var req AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	// Fetch existing user first
+	existing, err := h.userUseCase.GetUserByID(c.Request.Context(), id, h.getRequesterID(c))
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Success: false,
+			Error:   "User not found",
+		})
+		return
+	}
+
+	var finalDeptID *uuid.UUID
+	if req.Role == entity.RoleMohAnalyst || req.Role == entity.RoleSystemSuperAdmin ||
+		req.Role == entity.RoleLiaisonOfficer || req.Role == entity.RoleReceivingSpecialist || req.Role == entity.RoleHospitalAdmin {
+		finalDeptID = nil
+	} else {
+		finalDeptID = existing.DepartmentID
+	}
+
+	var finalHospID *uuid.UUID
+	if req.Role == entity.RoleMohAnalyst || req.Role == entity.RoleSystemSuperAdmin {
+		finalHospID = nil
+	} else {
+		finalHospID = existing.HospitalID
+	}
+
+	// Validate proposed role scoping rules
+	if errMsg, ok := h.validateUserScoping(c.Request.Context(), req.Role, finalHospID, finalDeptID); !ok {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   errMsg,
+		})
 		return
 	}
 

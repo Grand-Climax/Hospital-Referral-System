@@ -451,6 +451,9 @@ definitions:
         example: password123
         minLength: 8
         type: string
+      region:
+        example: Addis Ababa
+        type: string
       role:
         allOf:
         - $ref: '#/definitions/entity.UserRole'
@@ -1332,6 +1335,18 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.RegionListResponse:
+    properties:
+      data:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
   dto.RejectDTO:
     properties:
       reason:
@@ -1593,6 +1608,8 @@ definitions:
       national_id:
         type: string
       profile_image_url:
+        type: string
+      region:
         type: string
       role:
         $ref: '#/definitions/entity.UserRole'
@@ -2370,6 +2387,9 @@ definitions:
         example: password123
         minLength: 8
         type: string
+      region:
+        example: Addis Ababa
+        type: string
       role:
         allOf:
         - $ref: '#/definitions/entity.UserRole'
@@ -2492,6 +2512,9 @@ definitions:
       password:
         example: newpassword123
         minLength: 8
+        type: string
+      region:
+        example: Addis Ababa
         type: string
       role:
         allOf:
@@ -7462,6 +7485,23 @@ paths:
       summary: Get Networked Hospitals
       tags:
       - References
+  /api/v1/reference/regions:
+    get:
+      description: |-
+        Returns all valid Ethiopian regions from the hardcoded enum. Accessible by all authenticated roles.
+        **Roles:** Any authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RegionListResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Ethiopian Regions List
+      tags:
+      - References
   /api/v1/referrals/{id}/attachments:
     get:
       description: |-
@@ -8007,7 +8047,7 @@ paths:
       description: |-
         Acknowledge receipt and claim the referral for review.
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** referral.status = FORWARDED.
+        **Prerequisites:** referral.status = FORWARDED or REDIRECTED.
         **State Transition:** → UNDER_SPECIALIST_REVIEW, sets specialist_id.
         **Common Errors:**
         - 400 invalid format
@@ -8153,7 +8193,7 @@ paths:
         Unassign self and return the referral to the hospital pool.
         **Roles:** RECEIVING_SPECIALIST (Assigned)
         **Prerequisites:** status = UNDER_SPECIALIST_REVIEW.
-        **State Transition:** → FORWARDED.
+        **State Transition:** → FORWARDED (or → REDIRECTED if it was previously redirected).
         **Common Errors:**
         - 400 invalid format
         - 403 unauthorized access

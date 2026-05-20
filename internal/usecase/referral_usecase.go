@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -30,6 +31,8 @@ type referralUseCase struct {
 	attachmentRepo    irepository.AttachmentRepository
 	referralAccessRepo irepository.ReferralAccessRepository
 	cryptoSvc         *crypto.PatientCryptoService
+	mlUC              iusecase.MLUseCase
+	mlRepo            irepository.MLPredictionRepository
 }
 
 // ReferralUseCaseFacade is an alias used in tests to reference the interface
@@ -49,6 +52,8 @@ func NewReferralUseCase(
 	deptRepo irepository.DepartmentRepository,
 	attRepo irepository.AttachmentRepository,
 	accessRepo irepository.ReferralAccessRepository,
+	mlUC iusecase.MLUseCase,
+	mlRepo irepository.MLPredictionRepository,
 ) iusecase.ReferralUseCase {
 	return &referralUseCase{
 		referralRepo:      rRepo,
@@ -64,6 +69,14 @@ func NewReferralUseCase(
 		attachmentRepo:    attRepo,
 		referralAccessRepo: accessRepo,
 		cryptoSvc:         cryptoSvc,
+		mlUC:              mlUC,
+		mlRepo:            mlRepo,
+	}
+}
+
+func (u *referralUseCase) triggerMLScore(referralID uuid.UUID) {
+	if u.mlUC != nil {
+		u.mlUC.ScheduleScore(referralID)
 	}
 }
 
@@ -213,6 +226,7 @@ func (u *referralUseCase) CreateDraftOrSubmit(ctx context.Context, doctorID uuid
 	if referral.Status == entity.StatusSubmitted {
 		_ = u.logStatusChange(ctx, referral.ID, doctorID, nil, entity.StatusSubmitted, "Initial submission")
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_SUBMITTED", referral.ID, doctorID)
+		u.triggerMLScore(referral.ID)
 	}
 
 	// Load full referral for response
@@ -278,6 +292,10 @@ func (u *referralUseCase) CreateReferralWithAttachments(ctx context.Context, doc
 	ref, err := u.referralRepo.GetReferralByID(ctx, refID)
 	if err != nil {
 		return nil, err
+	}
+
+	if ref.Status == entity.StatusSubmitted {
+		u.triggerMLScore(ref.ID)
 	}
 
 	return &dto.ReferralCreationResponse{
@@ -466,6 +484,7 @@ func (u *referralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uu
 		_ = u.logStatusChange(ctx, existing.ID, doctorID, &oldStatus, nextStatus, "")
 		if nextStatus == entity.StatusSubmitted {
 			_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_SUBMITTED", existing.ID, doctorID)
+			u.triggerMLScore(existing.ID)
 		}
 	}
 
@@ -1043,7 +1062,16 @@ func (u *referralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, lia
 	}
 
 	oldStatus := ref.Status
-	ref.Status = entity.StatusForwarded
+	// Revert status to REDIRECTED if there is any redirection history, otherwise FORWARDED
+	var targetStatus entity.ReferralStatus
+	redirections, err := u.redirectionRepo.ListByReferralID(ctx, id)
+	if err == nil && len(redirections) > 0 {
+		targetStatus = entity.StatusRedirected
+	} else {
+		targetStatus = entity.StatusForwarded
+	}
+
+	ref.Status = targetStatus
 	ref.SpecialistID = nil
 
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
@@ -1054,7 +1082,7 @@ func (u *referralUseCase) LiaisonUnassignSpecialist(ctx context.Context, id, lia
 		ReferralID:  id,
 		ChangedByID: liaisonID,
 		FromStatus:  &oldStatus,
-		ToStatus:    entity.StatusForwarded,
+		ToStatus:    targetStatus,
 		Reason:      &reason,
 	}
 	return u.referralRepo.CreateStatusHistory(ctx, history)
@@ -1077,6 +1105,7 @@ func (u *referralUseCase) ListForSpecialist(ctx context.Context, hospID, special
 			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
 		}
 	}
+	u.enrichReferralsMLBatch(ctx, referrals)
 	return referrals, count, nil
 }
 
@@ -1108,6 +1137,7 @@ func (u *referralUseCase) GetDetailsForSpecialist(ctx context.Context, id, hospI
 	if ref.Patient != nil {
 		_ = ref.Patient.DecryptFields(u.cryptoSvc)
 	}
+	u.enrichReferralML(ctx, ref)
 	return ref, nil
 }
 
@@ -1155,15 +1185,27 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 		return errors.New("referral is claimed by another specialist")
 	}
 
-	// Severity gate: a manual severity score must have been set before acceptance
+	if ref.MLStatus == entity.MLStatusPending {
+		return errors.New("ML severity scoring is in progress; wait for scoring to finish or set manual severity via triage-severity")
+	}
+
+	// Severity gate: ML success, manual override, or explicit score on accept
 	if severityScore == nil && ref.MLSeverityScore == nil {
-		return errors.New("severity score must be set before accepting a referral; use the triage-severity endpoint first")
+		return errors.New("severity score must be set before accepting a referral; wait for ML scoring or use the triage-severity endpoint")
 	}
 
 	oldStatus := ref.Status
 	ref.Status = entity.StatusAccepted
 	if severityScore != nil {
 		ref.MLSeverityScore = severityScore
+	}
+
+	if ref.TriageStatus != entity.TriageOverridden && u.mlUC != nil {
+		if err := u.mlUC.SendFeedbackAccept(ctx, id); err != nil {
+			log.Printf("ml feedback accept referral %s: %v", id, err)
+		} else {
+			ref.TriageStatus = entity.TriageReviewed
+		}
 	}
 
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
@@ -1263,7 +1305,16 @@ func (u *referralUseCase) SpecialistRelease(ctx context.Context, id, specialistI
 	}
 
 	oldStatus := ref.Status
-	ref.Status = entity.StatusForwarded
+	// Revert status to REDIRECTED if there is any redirection history, otherwise FORWARDED
+	var targetStatus entity.ReferralStatus
+	redirections, err := u.redirectionRepo.ListByReferralID(ctx, id)
+	if err == nil && len(redirections) > 0 {
+		targetStatus = entity.StatusRedirected
+	} else {
+		targetStatus = entity.StatusForwarded
+	}
+
+	ref.Status = targetStatus
 	ref.SpecialistID = nil
 
 	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
@@ -1274,14 +1325,30 @@ func (u *referralUseCase) SpecialistRelease(ctx context.Context, id, specialistI
 		ReferralID:  id,
 		ChangedByID: specialistID,
 		FromStatus:  &oldStatus,
-		ToStatus:    entity.StatusForwarded,
+		ToStatus:    targetStatus,
 		Reason:      &reason,
 	}
 	return u.referralRepo.CreateStatusHistory(ctx, history)
 }
 
 func (u *referralUseCase) SpecialistRerunML(ctx context.Context, id, specialistID, hospID uuid.UUID) error {
-	// Dummy ML Rerun implementation
+	if _, err := u.GetDetailsForSpecialist(ctx, id, hospID); err != nil {
+		return err
+	}
+	ref, err := u.referralRepo.GetReferralByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if ref.Status != entity.StatusForwarded && ref.Status != entity.StatusUnderSpecialistReview {
+		return errors.New("ML rerun is only allowed for forwarded or under-review referrals")
+	}
+	if ref.SpecialistID != nil && *ref.SpecialistID != specialistID {
+		return errors.New("referral is claimed by another specialist")
+	}
+	if u.mlUC == nil {
+		return errors.New("ML service is not configured")
+	}
+	u.mlUC.ScheduleScoreForce(id)
 	return nil
 }
 

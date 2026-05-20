@@ -514,6 +514,7 @@ func (r *referralRepository) UpdateTargetDeptAndStatus(ctx context.Context, refe
 			"target_hospital_id": targetHospID,
 			"target_dept_id":     targetDeptID,
 			"status":             status,
+			"specialist_id":      nil,
 		}).Error
 }
 
