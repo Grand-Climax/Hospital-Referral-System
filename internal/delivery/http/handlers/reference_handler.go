@@ -334,3 +334,40 @@ func (h *ReferenceHandler) GetLiaisons(c *gin.Context) {
 		},
 	})
 }
+
+// GetRegions godoc
+// @Summary      Get Ethiopian Regions List
+// @Description  Returns all valid Ethiopian regions from the hardcoded enum. Accessible by all authenticated roles.
+// @Description  **Roles:** Any authenticated user.
+// @Tags         References
+// @Produce      json
+// @Success      200 {object} dto.RegionListResponse
+// @Security     BearerAuth
+// @Router       /api/v1/reference/regions [get]
+func (h *ReferenceHandler) GetRegions(c *gin.Context) {
+	regions := []string{
+		"Addis Ababa",
+		"Afar",
+		"Amhara",
+		"Benishangul-Gumuz",
+		"Dire Dawa",
+		"Gambela",
+		"Harari",
+		"Oromia",
+		"Sidama",
+		"Somali",
+		"South Ethiopia",
+		"South West Ethiopia",
+		"Central Ethiopia",
+		"Tigray",
+	}
+
+	c.JSON(http.StatusOK, dto.RegionListResponse{
+		Data: regions,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Regions retrieved successfully",
+		},
+	})
+}
+

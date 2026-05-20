@@ -149,8 +149,26 @@ func (u *userUseCase) UpdateUser(ctx context.Context, user *entity.User) error {
 		return ErrUserNotFound
 	}
 
+	// Email uniqueness check if changed
+	if user.Email != existing.Email {
+		existingEmail, _ := u.repo.FindByEmail(ctx, user.Email)
+		if existingEmail != nil && existingEmail.ID != user.ID {
+			return ErrEmailExists
+		}
+	}
+
+	// National ID uniqueness check if changed
+	if user.NationalID != "" && user.NationalID != existing.NationalID {
+		existingNID, _ := u.repo.FindByNationalID(ctx, user.NationalID)
+		if existingNID != nil && existingNID.ID != user.ID {
+			return ErrNationalIDExists
+		}
+	}
+
 	// Preserve immutable fields
-	user.PasswordHash = existing.PasswordHash
+	if user.PasswordHash == "" {
+		user.PasswordHash = existing.PasswordHash
+	}
 	user.CreatedAt = existing.CreatedAt
 	user.IsDeleted = existing.IsDeleted
 	// Note: ProfileImage fields can be updated here or via specialized method
@@ -211,6 +229,13 @@ func (u *userUseCase) AssignRole(ctx context.Context, userID uuid.UUID, role ent
 	}
 
 	user.Role = role
+	if role == entity.RoleMohAnalyst || role == entity.RoleSystemSuperAdmin {
+		user.HospitalID = nil
+		user.DepartmentID = nil
+	} else if role == entity.RoleLiaisonOfficer || role == entity.RoleReceivingSpecialist || role == entity.RoleHospitalAdmin {
+		user.DepartmentID = nil
+	}
+
 	err = u.repo.Update(ctx, user)
 	if err == nil {
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "ROLE_CHANGED", uuid.Nil, uuid.Nil)
@@ -384,6 +409,10 @@ func (u *userUseCase) HospitalAdminChangeStaffRole(ctx context.Context, adminID,
 	}
 
 	target.Role = role
+	if role == entity.RoleLiaisonOfficer || role == entity.RoleReceivingSpecialist || role == entity.RoleHospitalAdmin {
+		target.DepartmentID = nil
+	}
+
 	err = u.repo.Update(ctx, target)
 	if err == nil {
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "STAFF_ROLE_CHANGED", uuid.Nil, adminID)

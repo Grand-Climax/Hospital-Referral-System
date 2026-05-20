@@ -44,6 +44,9 @@ func toListReferralResponse(r entity.Referral) dto.ListReferralResponse {
 		ConditionAtReferral: condition,
 		CreatedAt:           r.CreatedAt,
 		UpdatedAt:           r.UpdatedAt,
+		MLStatus:            r.MLStatus,
+		MLSeverityScore:     r.MLSeverityScore,
+		MLSeverityTier:      r.MLSeverityTier,
 	}
 }
 
