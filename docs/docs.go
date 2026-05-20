@@ -265,7 +265,7 @@ const docTemplate = `{
         },
         "/api/v1/auth/login": {
             "post": {
-                "description": "Authenticate a user using Email and Password. Returns a Bearer Access Token (short-lived) and a Refresh Token (long-lived).\n**Roles:** Any user with an active account.\n**Common Errors:**\n- 401 (Invalid Credentials)\n- 403 (Account Inactive)",
+                "description": "Authenticate with email/password, then send OTP through configured MFA channel.\n**Roles:** Any user with an active account.\n**Common Errors:**\n- 401 (Invalid Credentials)\n- 401 (Account Inactive)",
                 "consumes": [
                     "application/json"
                 ],
@@ -289,7 +289,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Token pair",
+                        "description": "MFA intermediate token and channel",
                         "schema": {
                             "$ref": "#/definitions/dto.LoginResponse"
                         }
@@ -353,6 +353,63 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Verify one-time code from configured channel and issue full access tokens.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify OTP",
+                "parameters": [
+                    {
+                        "description": "OTP verification payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MFAVerifyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token pair",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MFAVerifyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -10055,6 +10112,24 @@ const docTemplate = `{
         "dto.LoginResponse": {
             "type": "object",
             "properties": {
+                "channel": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "mfa_token": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MFAVerifyResponse": {
+            "type": "object",
+            "properties": {
                 "access_token": {
                     "type": "string"
                 },
@@ -12208,6 +12283,9 @@ const docTemplate = `{
                 "national_id": {
                     "type": "string"
                 },
+                "phone_number": {
+                    "type": "string"
+                },
                 "profile_image_url": {
                     "type": "string"
                 },
@@ -12439,6 +12517,14 @@ const docTemplate = `{
                     "type": "string",
                     "example": "superadmin@moh.gov.et"
                 },
+                "mfa_channel": {
+                    "type": "string",
+                    "enum": [
+                        "sms",
+                        "email"
+                    ],
+                    "example": "email"
+                },
                 "password": {
                     "type": "string",
                     "example": "password123"
@@ -12452,6 +12538,17 @@ const docTemplate = `{
             ],
             "properties": {
                 "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.MFAVerifyRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
                     "type": "string"
                 }
             }
