@@ -111,6 +111,25 @@ func validateConfig(key, value string) error {
 		if value != "true" && value != "false" {
 			return fmt.Errorf("auto_notify must be 'true' or 'false'")
 		}
+	case "sms_otp_enabled", "mfa_enabled", "mfa_sms_fallback_email":
+		if value != "true" && value != "false" && value != "1" && value != "0" {
+			return fmt.Errorf("%s must be true/false (or 1/0)", key)
+		}
+	case "mfa_otp_ttl_seconds":
+		v, err := strconv.Atoi(value)
+		if err != nil || v < 60 {
+			return fmt.Errorf("mfa_otp_ttl_seconds must be an integer >= 60")
+		}
+	case "mfa_otp_max_attempts":
+		v, err := strconv.Atoi(value)
+		if err != nil || v < 1 {
+			return fmt.Errorf("mfa_otp_max_attempts must be an integer >= 1")
+		}
+	case "mfa_otp_resend_cooldown_seconds":
+		v, err := strconv.Atoi(value)
+		if err != nil || v < 1 {
+			return fmt.Errorf("mfa_otp_resend_cooldown_seconds must be an integer >= 1")
+		}
 	case "last_waiting_weight_update":
 		// Can be empty or a valid RFC3339 timestamp
 		if value != "" {
