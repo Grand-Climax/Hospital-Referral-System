@@ -222,8 +222,6 @@ definitions:
         type: string
       id:
         type: string
-      is_read:
-        type: boolean
       receiver_id:
         type: string
       referral_id:
@@ -836,11 +834,15 @@ definitions:
     type: object
   dto.LoginResponse:
     properties:
+      access_token:
+        type: string
       channel:
         type: string
       message:
         type: string
       mfa_token:
+        type: string
+      refresh_token:
         type: string
       success:
         example: true
