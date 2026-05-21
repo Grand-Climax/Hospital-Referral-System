@@ -9689,9 +9689,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_read": {
-                    "type": "boolean"
-                },
                 "receiver_id": {
                     "type": "string"
                 },
@@ -10592,6 +10589,9 @@ const docTemplate = `{
         "dto.LoginResponse": {
             "type": "object",
             "properties": {
+                "access_token": {
+                    "type": "string"
+                },
                 "channel": {
                     "type": "string"
                 },
@@ -10599,6 +10599,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "mfa_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
                     "type": "string"
                 },
                 "success": {

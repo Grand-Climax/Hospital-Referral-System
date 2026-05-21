@@ -9682,9 +9682,6 @@
                 "id": {
                     "type": "string"
                 },
-                "is_read": {
-                    "type": "boolean"
-                },
                 "receiver_id": {
                     "type": "string"
                 },
@@ -10585,6 +10582,9 @@
         "dto.LoginResponse": {
             "type": "object",
             "properties": {
+                "access_token": {
+                    "type": "string"
+                },
                 "channel": {
                     "type": "string"
                 },
@@ -10592,6 +10592,9 @@
                     "type": "string"
                 },
                 "mfa_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
                     "type": "string"
                 },
                 "success": {
