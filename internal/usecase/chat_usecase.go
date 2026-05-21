@@ -177,7 +177,6 @@ func (u *chatUseCase) SendMessage(ctx context.Context, senderID, receiverID uuid
 		ConversationID: conv.ID,
 		SenderID:       senderID,
 		Content:        content,
-		IsRead:         false,
 		CreatedAt:      time.Now(),
 	}
 
@@ -199,9 +198,8 @@ func (u *chatUseCase) SendMessage(ctx context.Context, senderID, receiverID uuid
 				ConversationID: conv.ID.String(),
 				ReferralID:     refIDStr,
 				SenderID:       chatMsg.SenderID.String(),
-				ReceiverID:     receiverID.String(), // Pass recipient ID for compatibility
+				ReceiverID:     receiverID.String(),
 				Content:        chatMsg.Content,
-				IsRead:         chatMsg.IsRead,
 				CreatedAt:      chatMsg.CreatedAt.Format(time.RFC3339),
 			},
 		}
