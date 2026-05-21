@@ -8,8 +8,10 @@ import (
 )
 
 type LoginResult struct {
-	MFAToken string
-	Channel  string
+	MFAToken     string
+	Channel      string
+	AccessToken  string
+	RefreshToken string
 }
 
 type AuthUseCase interface {

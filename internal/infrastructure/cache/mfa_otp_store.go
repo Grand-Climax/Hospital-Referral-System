@@ -15,6 +15,7 @@ type OTPChallenge struct {
 	Attempts    int       `json:"attempts"`
 	MaxAttempts int       `json:"max_attempts"`
 	ExpiresAt   time.Time `json:"expires_at"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type MFAOTPStore interface {

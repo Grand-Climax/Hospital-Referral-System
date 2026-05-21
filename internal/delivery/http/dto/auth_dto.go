@@ -1,8 +1,10 @@
 package dto
 
 type LoginResponse struct {
-	MFAToken string `json:"mfa_token"`
-	Channel  string `json:"channel"`
+	MFAToken     string `json:"mfa_token,omitempty"`
+	Channel      string `json:"channel,omitempty"`
+	AccessToken  string `json:"access_token,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 	BaseResponse
 }
 
