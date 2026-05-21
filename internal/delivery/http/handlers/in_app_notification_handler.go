@@ -25,20 +25,29 @@ func NewInAppNotificationHandler(notifUC iusecase.InAppNotificationUseCase) *InA
 
 // ListNotifications godoc
 // @Summary      List My In-App Notifications
-// @Description  Get a paginated list of notifications for the current authenticated user with filters.
+// @Description  Retrieve a paginated list of in-app notifications targeting the current authenticated user.
+// @Description  
+// @Description  ### Query Options & Extensive Filters:
+// @Description  - **`limit`**: Controls size of paginated array (sanitized to safe positive default of 20).
+// @Description  - **`page`**: Page number to load (sanitized to safe positive default of 1).
+// @Description  - **`event_type`**: Filter by event trigger keys (e.g. `STAFF_ADDED`, `REFERRAL_SUBMITTED`, `CLINICAL_UPDATE_ADDED`, `APPOINTMENT_SCHEDULED`, `PATIENT_DECEASED`, `BATCH_SCHEDULE_COMPLETED`).
+// @Description  - **`is_read`**: Filter by read (`true`) or unread (`false`) state.
+// @Description  - **`referral_id`**: Scopes search to notifications belonging to a specific clinical referral context.
+// @Description  - **`start_date` / `end_date`**: Range bounds targeting the creation timestamp (format: `YYYY-MM-DD`). End date is automatically extended to 23:59:59 of that day.
+// @Description  - **`search`**: Full-text fuzzy search matched against the notification title or description message.
 // @Tags         In-App Notifications
 // @Produce      json
 // @Param        limit        query int    false "Pagination limit" default(20)
 // @Param        page         query int    false "Page number" default(1)
-// @Param        event_type   query string false "Filter by event type"
-// @Param        is_read      query bool   false "Filter by read status"
-// @Param        referral_id  query string false "Filter by referral ID"
-// @Param        start_date   query string false "Filter by start date (YYYY-MM-DD)"
-// @Param        end_date     query string false "Filter by end date (YYYY-MM-DD)"
-// @Param        search       query string false "Search in title and message"
+// @Param        event_type   query string false "Filter by exact system event type string"
+// @Param        is_read      query bool   false "Filter by read/unread status"
+// @Param        referral_id  query string false "Filter by referral UUID"
+// @Param        start_date   query string false "Filter start bounds (YYYY-MM-DD)"
+// @Param        end_date     query string false "Filter end bounds (YYYY-MM-DD)"
+// @Param        search       query string false "Fuzzy text search in title and message text"
 // @Success      200 {object} dto.PaginatedNotificationResponse
-// @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse  "Unauthorized: Invalid or expired session token"
+// @Failure      500 {object} dto.ErrorResponse  "Internal repository query failure"
 // @Security     BearerAuth
 // @Router       /api/v1/me/notifications [get]
 func (h *InAppNotificationHandler) ListNotifications(c *gin.Context) {
@@ -47,6 +56,12 @@ func (h *InAppNotificationHandler) ListNotifications(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if limit <= 0 {
+		limit = 20
+	}
+	if page <= 0 {
+		page = 1
+	}
 
 	filter := irepository.InAppNotificationFilter{
 		EventType: c.Query("event_type"),
@@ -118,14 +133,18 @@ func (h *InAppNotificationHandler) ListNotifications(c *gin.Context) {
 }
 
 // MarkRead godoc
-// @Summary      Mark Notification as Read
-// @Description  Mark a specific in-app notification as read.
+// @Summary      Mark Specific Notification as Read
+// @Description  Mark a specific in-app notification as read for the authenticated user.
+// @Description  
+// @Description  ### Ownership Verification:
+// @Description  - The system validates that the target notification record belongs to the calling user (`user_id = userID`).
+// @Description  - Attempts to mark another user's notification as read are rejected.
 // @Tags         In-App Notifications
 // @Produce      json
-// @Param        id path string true "Notification ID"
+// @Param        id path string true "Notification UUID to mark as read"
 // @Success      200 {object} dto.BaseResponse
-// @Failure      400 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.ErrorResponse
+// @Failure      400 {object} dto.ErrorResponse  "Invalid notification ID or malformed UUID"
+// @Failure      500 {object} dto.ErrorResponse  "Internal repository execution failure"
 // @Security     BearerAuth
 // @Router       /api/v1/me/notifications/{id}/read [post]
 func (h *InAppNotificationHandler) MarkRead(c *gin.Context) {
@@ -148,11 +167,11 @@ func (h *InAppNotificationHandler) MarkRead(c *gin.Context) {
 
 // MarkAllRead godoc
 // @Summary      Mark All Notifications as Read
-// @Description  Mark all unread in-app notifications as read for the current user.
+// @Description  Mark all unread in-app notifications belonging to the current user as read in a single batch operation.
 // @Tags         In-App Notifications
 // @Produce      json
 // @Success      200 {object} dto.BaseResponse
-// @Failure      500 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse  "Internal batch update execution failure"
 // @Security     BearerAuth
 // @Router       /api/v1/me/notifications/read-all [post]
 func (h *InAppNotificationHandler) MarkAllRead(c *gin.Context) {
@@ -169,11 +188,11 @@ func (h *InAppNotificationHandler) MarkAllRead(c *gin.Context) {
 
 // GetUnreadCount godoc
 // @Summary      Get Unread Notification Count
-// @Description  Get the count of unread notifications for the current user.
+// @Description  Retrieve the current total count of unread notifications targeting the authenticated user.
 // @Tags         In-App Notifications
 // @Produce      json
 // @Success      200 {object} dto.UnreadCountResponse
-// @Failure      500 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse  "Unread count query retrieval error"
 // @Security     BearerAuth
 // @Router       /api/v1/me/notifications/unread-count [get]
 func (h *InAppNotificationHandler) GetUnreadCount(c *gin.Context) {

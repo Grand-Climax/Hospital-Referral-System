@@ -129,6 +129,9 @@ func main() {
 		&entity.SchedulerCheckpoint{},
 		&entity.SystemConfig{},
 		&entity.AuditLog{},
+		&entity.Conversation{},
+		&entity.ConversationParticipant{},
+		&entity.ChatMessage{},
 	}
 
 	for _, e := range entities {

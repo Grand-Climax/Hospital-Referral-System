@@ -21,6 +21,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 	"Hospital-Referral-System/internal/pkg/auth"
+	"Hospital-Referral-System/internal/usecase"
 )
 
 // The original script manually tested DB connections and Bcrypt hashing.
@@ -121,5 +122,84 @@ func TestAuthHandlerLogin(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "mock-mfa-token", response["mfa_token"])
+	mockUC.AssertExpectations(t)
+}
+
+func TestAuthHandlerLogin_MFABypassed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockUC := new(MockAuthUseCase)
+	handler := handlers.NewAuthHandler(mockUC)
+
+	router := gin.Default()
+	router.POST("/api/v1/auth/login", handler.Login)
+
+	reqPayload := map[string]string{
+		"email":    "superadmin@moh.gov.et",
+		"password": "password123",
+	}
+
+	mockResp := &iusecase.LoginResult{
+		AccessToken:  "mock-access-token",
+		RefreshToken: "mock-refresh-token",
+	}
+
+	mockUC.On("Login", mock.Anything, "superadmin@moh.gov.et", "password123", "").Return(mockResp, nil)
+
+	body, _ := json.Marshal(reqPayload)
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = "127.0.0.1:8000"
+	req.Header.Set("User-Agent", "TestAgent")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "mock-access-token", response["access_token"])
+	assert.Equal(t, "mock-refresh-token", response["refresh_token"])
+	assert.Empty(t, response["mfa_token"])
+	assert.Equal(t, "Login successful.", response["message"])
+	mockUC.AssertExpectations(t)
+}
+
+func TestAuthHandlerLogin_OTPResendCooldown(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockUC := new(MockAuthUseCase)
+	handler := handlers.NewAuthHandler(mockUC)
+
+	router := gin.Default()
+	router.POST("/api/v1/auth/login", handler.Login)
+
+	reqPayload := map[string]string{
+		"email":    "superadmin@moh.gov.et",
+		"password": "password123",
+	}
+
+	mockUC.On("Login", mock.Anything, "superadmin@moh.gov.et", "password123", "").Return(nil, usecase.ErrMFAOTPResendCooldown)
+
+	body, _ := json.Marshal(reqPayload)
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = "127.0.0.1:8000"
+	req.Header.Set("User-Agent", "TestAgent")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusTooManyRequests, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	assert.False(t, response["success"].(bool))
+	assert.Equal(t, usecase.ErrMFAOTPResendCooldown.Error(), response["error"])
 	mockUC.AssertExpectations(t)
 }

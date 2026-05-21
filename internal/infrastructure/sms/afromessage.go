@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -86,13 +87,19 @@ type afroMessageClient struct {
 }
 
 func NewAfroMessageClient() SMSClient {
+	apiKey := os.Getenv("AFROMESSAGE_API_KEY")
+	if apiKey == "" {
+		log.Println("Warning: AFROMESSAGE_API_KEY is not configured. Falling back to log-based mockSMSClient.")
+		return NewMockSMSClient()
+	}
+
 	baseURL := os.Getenv("AFROMESSAGE_BASE_URL")
 	if baseURL == "" {
 		baseURL = "https://api.afromessage.com/api"
 	}
 
 	return &afroMessageClient{
-		apiKey:        os.Getenv("AFROMESSAGE_API_KEY"),
+		apiKey:        apiKey,
 		defaultSender: os.Getenv("AFROMESSAGE_SENDER_NAME"),
 		defaultFrom:   os.Getenv("AFROMESSAGE_IDENTIFIER_ID"),
 		baseURL:       baseURL,
@@ -286,6 +293,7 @@ func NewMockSMSClient() SMSClient {
 
 func (m *mockSMSClient) Send(ctx context.Context, req SendRequest) (*SendResponse, error) {
 	m.SentMessages = append(m.SentMessages, req)
+	log.Printf("[DEV SMS] Sending SMS to %s | Message: %s", req.To, req.Message)
 	return &SendResponse{
 		MessageID: "mock-id-" + req.To,
 		Status:    "Sent (Mock)",
@@ -304,6 +312,7 @@ func (m *mockSMSClient) SendBulk(ctx context.Context, req BulkSendRequest) (*Bul
 			To:      rec.To,
 			Message: rec.Message,
 		})
+		log.Printf("[DEV SMS BULK] Sending SMS to %s | Message: %s", rec.To, rec.Message)
 		resp.Response.Messages = append(resp.Response.Messages, struct {
 			To        string `json:"to"`
 			MessageID string `json:"message_id"`

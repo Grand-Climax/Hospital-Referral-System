@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,12 +52,20 @@ func (r *dailyScheduleRepository) GetOrCreate(ctx context.Context, hospitalID, d
 	var hospDept entity.HospitalDepartment
 	r.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).First(&hospDept)
 
+	var defaultOverbook int = 0
+	var config entity.SystemConfig
+	if err := r.db.WithContext(ctx).Where("key = ?", "overbook_limit_default").First(&config).Error; err == nil {
+		if val, err := strconv.Atoi(config.Value); err == nil && val >= 0 {
+			defaultOverbook = val
+		}
+	}
+
 	schedule = entity.DailySchedule{
 		HospitalID:    hospitalID,
 		DepartmentID:  deptID,
 		ScheduleDate:  date,
 		MaxSlots:      defaultMaxSlots,
-		OverbookLimit: 2,
+		OverbookLimit: defaultOverbook,
 		Version:       1,
 	}
 

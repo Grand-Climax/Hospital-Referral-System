@@ -45,6 +45,7 @@ const (
 	ActionUnassignDoctor      ActionType = "UNASSIGN_DOCTOR"
 	ActionGrantConsultAccess  ActionType = "GRANT_CONSULT_ACCESS"
 	ActionRevokeConsultAccess ActionType = "REVOKE_CONSULT_ACCESS"
+	ActionManageChat          ActionType = "MANAGE_CHAT"
 )
 
 type AuditLog struct {

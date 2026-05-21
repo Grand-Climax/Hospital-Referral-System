@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/config"
+	deliveryWS "Hospital-Referral-System/internal/delivery/ws"
 	"Hospital-Referral-System/internal/delivery/http/handlers"
 	"Hospital-Referral-System/internal/domain/entity"
 	"Hospital-Referral-System/internal/infrastructure/cache"
@@ -22,12 +23,13 @@ import (
 	"Hospital-Referral-System/internal/infrastructure/ml"
 	"Hospital-Referral-System/internal/infrastructure/sms"
 	"Hospital-Referral-System/internal/infrastructure/storage"
+	infraWS "Hospital-Referral-System/internal/infrastructure/ws"
 	"Hospital-Referral-System/internal/repository"
 	"Hospital-Referral-System/internal/usecase"
 )
 
 // Register attaches all HTTP routes to the provided router.
-func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg config.Config) {
+func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg config.Config, hub *infraWS.Hub) {
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -99,7 +101,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 
 	// ---- Dependency Injection (Use Cases) ----
 	// Initialize In-App Notification Use Case early as it's needed by others
-	inAppNotifUseCase := usecase.NewInAppNotificationUseCase(inAppNotifRepo, userRepo, referralRepo)
+	inAppNotifUseCase := usecase.NewInAppNotificationUseCase(inAppNotifRepo, userRepo, referralRepo, hub)
 
 	authUseCase := usecase.NewAuthUseCase(authRepo, configRepo, tokenBlacklist, sessionStore, otpStore, smsClient, emailClient)
 	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc, inAppNotifUseCase)
@@ -122,7 +124,15 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	netUseCase := usecase.NewNetworkUseCase(netRepo, hospitalRepo)
 	patientUseCase := usecase.NewPatientUseCase(patientRepo, cryptoSvc, auditLogRepo)
 
+	// ---- Chat Dependency Injection ----
+	chatRepo := repository.NewChatMessageRepository(db)
+	chatUC := usecase.NewChatUseCase(chatRepo, referralRepo, userRepo, referralAccessRepo, netRepo, db, hub, auditLogRepo)
+	chatHandler := handlers.NewChatHandler(chatUC)
+
 	// ---- Dependency Injection (Handlers) ----
+	wsHandler := deliveryWS.NewHandler(hub, deliveryWS.RealJWTAuth{}, chatUC)
+	pushHandler := handlers.NewPushHandler(hub)
+
 	authHandler := handlers.NewAuthHandler(authUseCase)
 	userHandler := handlers.NewUserHandler(userUseCase, departmentUseCase)
 	hospitalHandler := handlers.NewHospitalHandler(hospitalUseCase)
@@ -517,6 +527,27 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			adminDepts.POST("", departmentHandler.CreateDepartment)
 			adminDepts.PUT("/:id", departmentHandler.UpdateDepartment)
 			adminDepts.DELETE("/:id", departmentHandler.DeleteDepartment)
+		}
+
+		// Chat routes
+		chatGroup := protected.Group("/chat")
+		{
+			chatGroup.POST("/messages", chatHandler.SendMessage)
+			chatGroup.GET("/conversations", chatHandler.ListConversations)
+			chatGroup.GET("/messages", chatHandler.GetMessages)
+			chatGroup.POST("/messages/read", chatHandler.MarkRead)
+			chatGroup.GET("/unread-count", chatHandler.GetUnreadCount)
+			chatGroup.PUT("/conversations/:id/toggle-disabled", chatHandler.ToggleDisabled)
+			chatGroup.DELETE("/conversations/:id", chatHandler.DeleteConversation)
+		}
+
+		// WebSocket endpoint (unprotected – JWT validated inside handler)
+		router.GET("/ws", wsHandler.ServeWS)
+
+		// Internal push endpoint (protected by shared secret)
+		internalPush := v1.Group("/internal")
+		{
+			internalPush.POST("/push", pushHandler.PushToUser)
 		}
 	}
 }

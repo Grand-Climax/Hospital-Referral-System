@@ -100,7 +100,7 @@ func (u *triageUseCase) CalculateCompositeScore(ctx context.Context, referralID 
 
 	agingFactor := 1.0
 	cfg, err := u.configRepo.GetByKey(ctx, "aging_factor")
-	if err == nil {
+	if err == nil && cfg != nil {
 		af, _ := strconv.ParseFloat(cfg.Value, 64)
 		if af > 0 {
 			agingFactor = af

@@ -4,41 +4,57 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
+	"Hospital-Referral-System/internal/infrastructure/ws"
 )
 
 type inAppNotificationUseCase struct {
 	notifRepo    irepository.InAppNotificationRepository
 	userRepo     irepository.UserRepository
 	referralRepo irepository.ReferralRepository
+	hub          *ws.Hub
 }
 
 func NewInAppNotificationUseCase(
 	notifRepo irepository.InAppNotificationRepository,
 	userRepo irepository.UserRepository,
 	referralRepo irepository.ReferralRepository,
+	hub *ws.Hub,
 ) iusecase.InAppNotificationUseCase {
 	return &inAppNotificationUseCase{
 		notifRepo:    notifRepo,
 		userRepo:     userRepo,
 		referralRepo: referralRepo,
+		hub:          hub,
 	}
 }
 
+
 func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType string, referralID uuid.UUID, actorID uuid.UUID) error {
-	// Fetch referral with related data
-	referral, err := u.referralRepo.GetReferralByID(ctx, referralID)
-	if err != nil {
-		return fmt.Errorf("failed to fetch referral: %v", err)
+	var referral *entity.Referral
+	var err error
+
+	if referralID != uuid.Nil {
+		referral, err = u.referralRepo.GetReferralByID(ctx, referralID)
+		if err != nil {
+			return fmt.Errorf("failed to fetch referral: %v", err)
+		}
+	}
+
+	var actorUser *entity.User
+	if referralID == uuid.Nil && actorID != uuid.Nil {
+		actorUser, _ = u.userRepo.FindByID(ctx, actorID)
 	}
 
 	var patientName string
-	if referral.Patient != nil {
+	if referral != nil && referral.Patient != nil {
 		patientName = fmt.Sprintf("%s %s", referral.Patient.FirstNamePlain, referral.Patient.LastNamePlain)
 		if patientName == " " {
 			patientName = "Patient"
@@ -48,17 +64,31 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 	}
 
 	var senderHospitalName string
-	if referral.SenderHospital != nil {
+	if referral != nil && referral.SenderHospital != nil {
 		senderHospitalName = referral.SenderHospital.Name
 	} else {
 		senderHospitalName = "Sending Hospital"
 	}
 
 	var targetHospitalName string
-	if referral.ReceiverHospital != nil {
+	if referral != nil && referral.ReceiverHospital != nil {
 		targetHospitalName = referral.ReceiverHospital.Name
 	} else {
 		targetHospitalName = "Target Hospital"
+	}
+
+	// Determine Hospital and Department IDs for non-referral events
+	var hospIDStr, deptIDStr string
+	if referral != nil {
+		hospIDStr = referral.TargetHospitalID.String()
+		deptIDStr = referral.TargetDeptID.String()
+	} else if actorUser != nil {
+		if actorUser.HospitalID != nil {
+			hospIDStr = actorUser.HospitalID.String()
+		}
+		if actorUser.DepartmentID != nil {
+			deptIDStr = actorUser.DepartmentID.String()
+		}
 	}
 
 	title := ""
@@ -212,8 +242,8 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 		// Notify Dept Head of the target department
 		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
 			Role:         ptrRole(entity.RoleDeptHead),
-			HospitalID:   ptrStr(referral.TargetHospitalID.String()),
-			DepartmentID: ptrStr(referral.TargetDeptID.String()),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
 			PageSize:     10,
 		})
 		for _, h := range heads {
@@ -225,8 +255,8 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 		message = "A new capacity override has been created for your department."
 		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
 			Role:         ptrRole(entity.RoleDeptHead),
-			HospitalID:   ptrStr(referral.TargetHospitalID.String()),
-			DepartmentID: ptrStr(referral.TargetDeptID.String()),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
 			PageSize:     10,
 		})
 		for _, h := range heads {
@@ -238,8 +268,8 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 		message = "A capacity override has been updated for your department."
 		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
 			Role:         ptrRole(entity.RoleDeptHead),
-			HospitalID:   ptrStr(referral.TargetHospitalID.String()),
-			DepartmentID: ptrStr(referral.TargetDeptID.String()),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
 			PageSize:     10,
 		})
 		for _, h := range heads {
@@ -252,7 +282,7 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 		// Notify Hospital Admins
 		admins, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
 			Role:       ptrRole(entity.RoleHospitalAdmin),
-			HospitalID: ptrStr(referral.TargetHospitalID.String()),
+			HospitalID: ptrStrOrNil(hospIDStr),
 			PageSize:   10,
 		})
 		for _, a := range admins {
@@ -264,7 +294,7 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 		message = "A staff member's role has been changed at your hospital."
 		admins, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
 			Role:       ptrRole(entity.RoleHospitalAdmin),
-			HospitalID: ptrStr(referral.TargetHospitalID.String()),
+			HospitalID: ptrStrOrNil(hospIDStr),
 			PageSize:   10,
 		})
 		for _, a := range admins {
@@ -297,19 +327,46 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 	}
 
 	// Create notifications in background or sequence
+	var refIDPtr *uuid.UUID
+	var refIDStr string
+	if referralID != uuid.Nil {
+		refIDPtr = &referralID
+		refIDStr = referralID.String()
+	}
+
 	for id := range uniqueRecipients {
 		notif := &entity.InAppNotification{
+			ID:         uuid.New(),
 			UserID:     id,
-			ReferralID: &referralID,
+			ReferralID: refIDPtr,
 			Title:      title,
 			Message:    message,
 			EventType:  eventType,
 			IsRead:     false,
+			CreatedAt:  time.Now(),
 		}
 		if err := u.notifRepo.Create(ctx, notif); err != nil {
 			log.Printf("Failed to create in-app notification for user %s: %v", id, err)
 		}
+
+		// Push to WebSocket (non‑blocking)
+		if u.hub != nil {
+			wsMsg := dto.WebSocketMessage{
+				Type: "notification",
+				Data: dto.WebSocketNotification{
+					ID:         notif.ID.String(),
+					Title:      title,
+					Message:    message,
+					EventType:  eventType,
+					ReferralID: refIDStr,
+					IsRead:     false,
+					CreatedAt:  notif.CreatedAt.Format(time.RFC3339),
+				},
+			}
+			u.hub.SendToUser(id.String(), wsMsg)
+		}
 	}
+
 
 	return nil
 }
@@ -341,3 +398,9 @@ func (u *inAppNotificationUseCase) GetUnreadCount(ctx context.Context, userID uu
 // Helpers
 func ptrRole(r entity.UserRole) *entity.UserRole { return &r }
 func ptrStr(s string) *string             { return &s }
+func ptrStrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}

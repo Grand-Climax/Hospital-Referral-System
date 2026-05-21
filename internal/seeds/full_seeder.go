@@ -64,6 +64,9 @@ func SeedAll(db *gorm.DB) error {
 		&entity.SchedulerCheckpoint{},
 		&entity.JobCheckpoint{},
 		&entity.ReferralRedirection{},
+		&entity.Conversation{},
+		&entity.ConversationParticipant{},
+		&entity.ChatMessage{},
 	)
 	if err != nil {
 		return err
@@ -71,6 +74,7 @@ func SeedAll(db *gorm.DB) error {
 
 	// 1. Truncate all tables in reverse dependency order
 	tables := []string{
+		"chat_messages", "conversation_participants", "conversations",
 		"audit_logs", "notifications", "referral_accesses", "referral_redirections", "referral_outcomes",
 		"clinical_updates", "ml_predictions", "triage_queues", "daily_schedules", "capacity_overrides",
 		"referral_diagnoses", "referral_status_histories", "vitals", "referral_emergency_details",
@@ -138,6 +142,12 @@ func seedSystemConfigs(ctx context.Context, db *gorm.DB) error {
 		{Key: "auto_notify", Value: "false"},
 		{Key: "last_waiting_weight_update", Value: ""},
 		{Key: "enable_cron_jobs", Value: "false"},
+		{Key: "sms_otp_enabled", Value: "true"},
+		{Key: "mfa_enabled", Value: "false"},
+		{Key: "mfa_sms_fallback_email", Value: "true"},
+		{Key: "mfa_otp_ttl_seconds", Value: "300"},
+		{Key: "mfa_otp_max_attempts", Value: "5"},
+		{Key: "mfa_otp_resend_cooldown_seconds", Value: "60"},
 	}
 
 	for _, cfg := range configs {
