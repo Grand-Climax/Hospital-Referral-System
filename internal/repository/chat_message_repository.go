@@ -201,17 +201,11 @@ func (r *chatMessageRepository) GetMessages(ctx context.Context, conversationID 
 
 func (r *chatMessageRepository) MarkRead(ctx context.Context, conversationID, userID uuid.UUID) error {
 	now := time.Now()
-	// Update participant's LastReadAt
-	if err := r.db.WithContext(ctx).Model(&entity.ConversationParticipant{}).
+	// Advance the per-user read cursor. All messages with created_at <= now
+	// and sender_id != userID are now considered read for this participant.
+	return r.db.WithContext(ctx).Model(&entity.ConversationParticipant{}).
 		Where("conversation_id = ? AND user_id = ?", conversationID, userID).
-		Update("last_read_at", now).Error; err != nil {
-		return err
-	}
-
-	// Update is_read on ChatMessage table for all messages in the conversation sent by other users
-	return r.db.WithContext(ctx).Model(&entity.ChatMessage{}).
-		Where("conversation_id = ? AND sender_id != ? AND is_read = ?", conversationID, userID, false).
-		Update("is_read", true).Error
+		Update("last_read_at", now).Error
 }
 
 func (r *chatMessageRepository) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error) {

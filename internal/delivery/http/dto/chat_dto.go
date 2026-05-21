@@ -34,7 +34,6 @@ type ChatMessageResponse struct {
 	SenderID       string  `json:"sender_id"`
 	ReceiverID     string  `json:"receiver_id,omitempty"`
 	Content        string  `json:"content"`
-	IsRead         bool    `json:"is_read"`
 	CreatedAt      string  `json:"created_at"`
 }
 
@@ -78,7 +77,6 @@ func ToChatMessageResponseSlice(messages []entity.ChatMessage) []ChatMessageResp
 			SenderID:       m.SenderID.String(),
 			ReceiverID:     receiverID,
 			Content:        m.Content,
-			IsRead:         m.IsRead,
 			CreatedAt:      m.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}

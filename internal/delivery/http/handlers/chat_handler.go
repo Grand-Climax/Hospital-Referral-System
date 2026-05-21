@@ -90,7 +90,6 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		SenderID:       msg.SenderID.String(),
 		ReceiverID:     req.ReceiverID.String(),
 		Content:        msg.Content,
-		IsRead:         msg.IsRead,
 		CreatedAt:      msg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}, "Message sent successfully"))
 }
