@@ -36,7 +36,7 @@ func (u *dailyWeightUseCase) Execute(ctx context.Context, userID uuid.UUID) (str
 
 	// 1. Idempotency Check
 	cfg, err := u.configRepo.GetByKey(ctx, configKey)
-	if err == nil && cfg.Value == todayStr {
+	if err == nil && cfg != nil && cfg.Value == todayStr {
 		return "Already updated today", nil
 	}
 

@@ -81,6 +81,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			})
 			return
 		}
+		if err == usecase.ErrMFAOTPResendCooldown {
+			c.JSON(http.StatusTooManyRequests, dto.ErrorResponse{
+				Success: false,
+				Error:   err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Success: false,
 			Error:   "Failed to process login",
@@ -88,12 +95,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	msg := "Primary authentication successful. Verify OTP to continue."
+	if loginResult.AccessToken != "" {
+		msg = "Login successful."
+	}
+
 	c.JSON(http.StatusOK, dto.LoginResponse{
-		MFAToken: loginResult.MFAToken,
-		Channel:  loginResult.Channel,
+		MFAToken:     loginResult.MFAToken,
+		Channel:      loginResult.Channel,
+		AccessToken:  loginResult.AccessToken,
+		RefreshToken: loginResult.RefreshToken,
 		BaseResponse: dto.BaseResponse{
 			Success: true,
-			Message: "Primary authentication successful. Verify OTP to continue.",
+			Message: msg,
 		},
 	})
 }

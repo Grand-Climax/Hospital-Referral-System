@@ -3,6 +3,7 @@ package email
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/smtp"
 	"os"
 )
@@ -19,13 +20,29 @@ type smtpClient struct {
 	from     string
 }
 
+type devEmailClient struct{}
+
+func (c *devEmailClient) Send(ctx context.Context, to, subject, body string) error {
+	log.Printf("[DEV EMAIL] Sending email to %s | Subject: %s | Body: %s", to, subject, body)
+	return nil
+}
+
 func NewSMTPClient() Client {
+	host := os.Getenv("SMTP_HOST")
+	port := os.Getenv("SMTP_PORT")
+	from := os.Getenv("SMTP_FROM")
+
+	if host == "" || port == "" || from == "" {
+		log.Println("Warning: SMTP is not fully configured (SMTP_HOST, SMTP_PORT, SMTP_FROM). Falling back to log-based devEmailClient.")
+		return &devEmailClient{}
+	}
+
 	return &smtpClient{
-		host:     os.Getenv("SMTP_HOST"),
-		port:     os.Getenv("SMTP_PORT"),
+		host:     host,
+		port:     port,
 		username: os.Getenv("SMTP_USERNAME"),
 		password: os.Getenv("SMTP_PASSWORD"),
-		from:     os.Getenv("SMTP_FROM"),
+		from:     from,
 	}
 }
 
@@ -51,3 +68,4 @@ func (c *smtpClient) Send(_ context.Context, to, subject, body string) error {
 
 	return smtp.SendMail(addr, auth, c.from, []string{to}, msg)
 }
+

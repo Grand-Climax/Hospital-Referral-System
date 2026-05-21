@@ -63,6 +63,7 @@ var (
 	ErrOTPAttemptsExceeded = errors.New("OTP attempts exceeded")
 	ErrMissingSMSContact   = errors.New("SMS OTP is enabled but user has no valid phone number")
 	ErrMissingEmailContact = errors.New("Email OTP requires a valid user email")
+	ErrMFAOTPResendCooldown = errors.New("OTP resend cooldown active; please wait before requesting another code")
 )
 
 func hashToken(token string) string {
@@ -134,7 +135,30 @@ func (u *authUseCase) Login(ctx context.Context, email, password, requestedChann
 		return nil, ErrInvalidCredentials
 	}
 
-	// 3. Issue MFA intermediate token
+	// 3. Bypass MFA check
+	mfaEnabled := u.getBoolConfig(ctx, "mfa_enabled", true)
+	if !mfaEnabled {
+		tokenPair, err := u.createFullSessionToken(ctx, user, "", "")
+		if err != nil {
+			return nil, err
+		}
+		return &iusecase.LoginResult{
+			AccessToken:  tokenPair.AccessToken,
+			RefreshToken: tokenPair.RefreshToken,
+		}, nil
+	}
+
+	// Rate limit check: enforce dynamic resend cooldown if an active challenge exists
+	existing, err := u.otpStore.GetChallenge(ctx, user.ID)
+	if err == nil && existing != nil {
+		cooldownSeconds := u.getIntConfig(ctx, "mfa_otp_resend_cooldown_seconds", 60)
+		timePassed := time.Since(existing.CreatedAt)
+		if timePassed < time.Duration(cooldownSeconds)*time.Second {
+			return nil, ErrMFAOTPResendCooldown
+		}
+	}
+
+	// 4. Issue MFA intermediate token
 	mfaToken, tokenExp, err := auth.GenerateMFAIntermediateToken(user.ID)
 	if err != nil {
 		return nil, err
@@ -154,6 +178,17 @@ func (u *authUseCase) Login(ctx context.Context, email, password, requestedChann
 		}
 	}
 
+	if channel == "sms" {
+		if user.PhoneNumber == nil || strings.TrimSpace(*user.PhoneNumber) == "" {
+			fallbackEmail := u.getBoolConfig(ctx, "mfa_sms_fallback_email", true)
+			if fallbackEmail && strings.TrimSpace(user.Email) != "" {
+				channel = "email"
+			} else {
+				return nil, ErrMissingSMSContact
+			}
+		}
+	}
+
 	otpCode, err := generateOTPCode()
 	if err != nil {
 		return nil, err
@@ -163,9 +198,6 @@ func (u *authUseCase) Login(ctx context.Context, email, password, requestedChann
 	otpTTL := time.Duration(otpTTLSeconds) * time.Second
 
 	if channel == "sms" {
-		if user.PhoneNumber == nil || strings.TrimSpace(*user.PhoneNumber) == "" {
-			return nil, ErrMissingSMSContact
-		}
 		msg := fmt.Sprintf("Your Hospital Referral OTP is %s. It expires in %d minutes.", otpCode, otpTTLSeconds/60)
 		if _, sendErr := u.smsClient.Send(ctx, sms.SendRequest{
 			To:      strings.TrimSpace(*user.PhoneNumber),
@@ -189,6 +221,7 @@ func (u *authUseCase) Login(ctx context.Context, email, password, requestedChann
 		Attempts:    0,
 		MaxAttempts: maxAttempts,
 		ExpiresAt:   time.Now().Add(otpTTL),
+		CreatedAt:   time.Now(),
 	}
 	if err := u.otpStore.SetChallenge(ctx, user.ID, challenge, otpTTL); err != nil {
 		return nil, err
