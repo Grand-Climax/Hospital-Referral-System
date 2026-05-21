@@ -138,6 +138,12 @@ func validateConfig(key, value string) error {
 				return fmt.Errorf("last_waiting_weight_update must be empty or a valid RFC3339 timestamp")
 			}
 		}
+	case "enable_cron_jobs":
+		if value != "true" && value != "false" {
+			return fmt.Errorf("enable_cron_jobs must be 'true' or 'false'")
+		}
+	default:
+		return fmt.Errorf("invalid config key: %s", key)
 	}
 	return nil
 }

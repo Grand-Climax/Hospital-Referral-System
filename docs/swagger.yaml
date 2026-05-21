@@ -212,6 +212,59 @@ definitions:
     required:
     - department_id
     type: object
+  dto.ChatMessageResponse:
+    properties:
+      content:
+        type: string
+      conversation_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      receiver_id:
+        type: string
+      referral_id:
+        type: string
+      sender_id:
+        type: string
+    type: object
+  dto.ChatUnreadCountResponse:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+      unread_count:
+        type: integer
+    type: object
+  dto.ConversationResponse:
+    properties:
+      conversation_id:
+        type: string
+      disabled_reason:
+        type: string
+      is_disabled:
+        type: boolean
+      is_read_only:
+        type: boolean
+      last_message:
+        type: string
+      last_message_at:
+        type: string
+      other_user_hospital:
+        type: string
+      other_user_id:
+        type: string
+      other_user_name:
+        type: string
+      other_user_role:
+        type: string
+      referral_id:
+        type: string
+      unread_count:
+        type: integer
+    type: object
   dto.CreateNetworkRouteRequest:
     properties:
       receiver_hospital_id:
@@ -781,11 +834,15 @@ definitions:
     type: object
   dto.LoginResponse:
     properties:
+      access_token:
+        type: string
       channel:
         type: string
       message:
         type: string
       mfa_token:
+        type: string
+      refresh_token:
         type: string
       success:
         example: true
@@ -1060,6 +1117,42 @@ definitions:
       still_processing:
         type: integer
       total_checked:
+        type: integer
+    type: object
+  dto.PaginatedChatResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ChatMessageResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      page_size:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.PaginatedConversationResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ConversationResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      page_size:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
         type: integer
     type: object
   dto.PaginatedLogResponse:
@@ -1439,6 +1532,20 @@ definitions:
     required:
     - appointment_date
     type: object
+  dto.SendMessageRequest:
+    properties:
+      content:
+        maxLength: 5000
+        minLength: 1
+        type: string
+      receiver_id:
+        type: string
+      referral_id:
+        type: string
+    required:
+    - content
+    - receiver_id
+    type: object
   dto.SetManualSeverityRequest:
     properties:
       justification:
@@ -1709,6 +1816,7 @@ definitions:
     - UNASSIGN_DOCTOR
     - GRANT_CONSULT_ACCESS
     - REVOKE_CONSULT_ACCESS
+    - MANAGE_CHAT
     type: string
     x-enum-varnames:
     - ActionCreateReferral
@@ -1746,6 +1854,7 @@ definitions:
     - ActionUnassignDoctor
     - ActionGrantConsultAccess
     - ActionRevokeConsultAccess
+    - ActionManageChat
   entity.ArrivalStatus:
     enum:
     - EXPECTED
@@ -2477,12 +2586,29 @@ definitions:
     required:
     - code
     type: object
+  handlers.MarkReadRequest:
+    properties:
+      conversation_id:
+        type: string
+      sender_id:
+        description: Deprecated but supported for backward compatibility
+        type: string
+    type: object
   handlers.RefreshRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
+    type: object
+  handlers.ToggleDisabledRequest:
+    properties:
+      is_disabled:
+        type: boolean
+      reason:
+        type: string
+    required:
+    - reason
     type: object
   handlers.UpdateDepartmentRequest:
     properties:
@@ -2928,6 +3054,329 @@ paths:
       summary: Refresh token
       tags:
       - Authentication
+  /api/v1/chat/conversations:
+    get:
+      description: |-
+        Retrieve a paginated list of all active direct and referral-scoped chat channels involving the authenticated user.
+
+        ### Features & Fields:
+        - Shows the latest message preview, unread message count for the current user, and other participant metadata.
+        - **`is_read_only` (bool):** Set to `true` if the channel is referral-scoped and has reached a terminal state.
+        - **`is_disabled` (bool):** Set to `true` if an administrator has locked the channel.
+
+        ### Roles:
+        - Accessible by all authenticated roles except `MOH_ANALYST`.
+      parameters:
+      - default: 20
+        description: Pagination limit (safe sanitized minimum of 1)
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number (safe sanitized minimum of 1)
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedConversationResponse'
+        "401":
+          description: 'Unauthorized: Invalid session token'
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal database retrieval error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List My Conversations
+      tags:
+      - Chat
+  /api/v1/chat/conversations/{id}:
+    delete:
+      description: |-
+        Administratively soft-delete a chat conversation, hiding it from participants while preserving GORM DB records for clinical auditing.
+
+        ### Role & Boundary Security:
+        - **System Super Admin:** Global permission to soft-delete any conversation.
+        - **Hospital Admin:** Authorized **only** for conversations involving their hospital's staff or active referrals.
+        - **Other Roles:** Rejected with `403 Forbidden`.
+        - **Audit Trail:** Registers a system audit log capturing the deletion event.
+      parameters:
+      - description: Conversation UUID to soft-delete
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Invalid or malformed conversation ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Unauthorized boundary violation, or non-admin role attempt
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal soft-delete execution failure
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Soft-delete Conversation (Admin)
+      tags:
+      - Chat
+  /api/v1/chat/conversations/{id}/toggle-disabled:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Administratively lock or unlock a chat channel. Locking a channel (`is_disabled = true`) prevents any further message sending while maintaining read history access.
+
+        ### Role & Boundary Security:
+        - **System Super Admin:** Authorized to lock/unlock any conversation globally without restriction.
+        - **Hospital Admin:** Authorized to lock/unlock conversations **only** if they involve a participant or a referral associated with their hospital. Access from outside this boundary is rejected.
+        - **Other Roles:** Rejected with `403 Forbidden`.
+        - **Audit Logging:** Triggers an immutable system audit log entry capturing the change state and reason.
+      parameters:
+      - description: Conversation UUID to modify
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Lock state toggle (`is_disabled`) and mandatory action justification
+          reason
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ToggleDisabledRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Invalid conversation ID, or missing required justification
+            reason
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Unauthorized admin boundary violation, or non-admin role attempt
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal update or audit logging failure
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Toggle Conversation Lock State (Admin)
+      tags:
+      - Chat
+  /api/v1/chat/messages:
+    get:
+      description: |-
+        Retrieve the message logs for a conversation. If conversation ID is not provided, the system automatically resolves or creates the unique channel using `other_user_id` and optional `referral_id`.
+
+        ### Security & Administrative Auditing (Spying):
+        - **Normal Participants:** Allowed to view conversations they are registered members of.
+        - **Hospital Admins:** Authorized to view/audit message history if the chat involves staff of their hospital or a referral linked to their hospital.
+        - **System Super Admins:** Unrestricted access to view any conversation globally.
+        - **Other Roles:** Third-party access is rejected with `403 Forbidden`.
+
+        ### Auto-Read side-effect:
+        - Querying messages automatically marks all unread messages in that channel as read for the calling user, updating badge states.
+      parameters:
+      - description: Conversation UUID to load history directly
+        in: query
+        name: conversation_id
+        type: string
+      - description: Recipient UUID to resolve direct or referral channel
+        in: query
+        name: other_user_id
+        type: string
+      - description: Referral UUID to scope the conversation search
+        in: query
+        name: referral_id
+        type: string
+      - default: 20
+        description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedChatResponse'
+        "400":
+          description: Missing both conversation_id and other_user_id, or malformed
+            UUIDs
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: 'Unauthorized: Boundary check violation or non-participant
+            access'
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal data processing failure
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Message History & Auto-Read
+      tags:
+      - Chat
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Send a real-time message to another user, either as a direct peer-to-peer message or scoped to a specific clinical referral context.
+
+        ### Security & Role Authorization Matrix:
+        - **Allowed Roles:** `SYSTEM_SUPER_ADMIN`, `HOSPITAL_ADMIN`, `REFERRING_DOCTOR`, `RECEIVING_SPECIALIST`, `LIAISON_OFFICER`, `RECEPTIONIST`, `DEPT_HEAD`.
+        - **Barred Roles:** `MOH_ANALYST` is strictly forbidden from participating in or receiving chat messages.
+        - **Receptionist Boundaries:** Receptionists cannot initiate peer chats, and can only receive messages from clinical staff (Doctors/Specialists) inside their own hospital.
+
+        ### Scoped/Referral Chat Restrictions:
+        - **Access Control:** If `referral_id` is supplied, both sender and receiver must be connected to the referral (creator, treating/consulting doctor, department head, liaison, or user with active access grant).
+        - **Terminal States (Read-Only):** The chat room becomes strictly read-only if the referral status is terminal (`COMPLETED`, `DECEASED`, `CANCELLED`, `REJECTED_BY_LIAISON`, `REJECTED_BY_SPECIALIST`, `REJECTED_AFTER_SEND`, `REDIRECTED`).
+
+        ### Direct (Non-Referral) Peer Chat Initiation:
+        - **Referring Doctor:** Can initiate with own hospital colleagues, liaison officer at a hospital with active referral, or specialists with active access/accepted referrals.
+        - **Liaison Officer:** Can initiate with referring doctors of active referrals, or specialists if a network route exists between their hospitals.
+        - **Receiving Specialist:** Can only initiate if they have active access to the doctor's referrals.
+        - **Hospital Admin:** Can only initiate with staff of their own hospital.
+
+        ### Prerequisites:
+        - Receiver account must be active and not soft-deleted.
+        - Content must be non-empty and between 1 and 5000 characters.
+        - Sender and receiver must not be the same user.
+        - Conversation must not be administrative-locked.
+      parameters:
+      - description: Message details including receiver, optional referral context,
+          and content text
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ChatMessageResponse'
+        "400":
+          description: Invalid parameters, empty content, content > 5000 chars, self-send,
+            or inactive recipient
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Unauthorized role, multi-hospital boundary violation, terminal
+            referral (read-only), or admin locked
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Referral not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal database or transmission error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Send Chat Message
+      tags:
+      - Chat
+  /api/v1/chat/messages/read:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Mark all incoming messages in a specific conversation as read for the authenticated user.
+
+        ### Behavior:
+        - Proceeds successfully even if the conversation is referral-scoped terminal (read-only) or administratively locked (disabled) so that users can clear their badges.
+        - Supports backward compatibility by accepting either `conversation_id` or `sender_id` (deprecated).
+      parameters:
+      - description: Mark read options containing conversation_id or sender_id
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.MarkReadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Invalid payload, missing both IDs, or malformed UUIDs
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal update operation error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark Messages as Read
+      tags:
+      - Chat
+  /api/v1/chat/unread-count:
+    get:
+      description: |-
+        Retrieve the total sum of all unread chat messages targeting the authenticated user across all conversations.
+
+        ### Roles:
+        - Accessible by all authenticated roles except `MOH_ANALYST`.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ChatUnreadCountResponse'
+        "401":
+          description: Unauthorized user session
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Unread count calculation failure
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Total Unread Message Count
+      tags:
+      - Chat
   /api/v1/department-head/capacity/overrides:
     get:
       description: |-
@@ -6520,8 +6969,17 @@ paths:
       - Liaison
   /api/v1/me/notifications:
     get:
-      description: Get a paginated list of notifications for the current authenticated
-        user with filters.
+      description: |-
+        Retrieve a paginated list of in-app notifications targeting the current authenticated user.
+
+        ### Query Options & Extensive Filters:
+        - **`limit`**: Controls size of paginated array (sanitized to safe positive default of 20).
+        - **`page`**: Page number to load (sanitized to safe positive default of 1).
+        - **`event_type`**: Filter by event trigger keys (e.g. `STAFF_ADDED`, `REFERRAL_SUBMITTED`, `CLINICAL_UPDATE_ADDED`, `APPOINTMENT_SCHEDULED`, `PATIENT_DECEASED`, `BATCH_SCHEDULE_COMPLETED`).
+        - **`is_read`**: Filter by read (`true`) or unread (`false`) state.
+        - **`referral_id`**: Scopes search to notifications belonging to a specific clinical referral context.
+        - **`start_date` / `end_date`**: Range bounds targeting the creation timestamp (format: `YYYY-MM-DD`). End date is automatically extended to 23:59:59 of that day.
+        - **`search`**: Full-text fuzzy search matched against the notification title or description message.
       parameters:
       - default: 20
         description: Pagination limit
@@ -6533,27 +6991,27 @@ paths:
         in: query
         name: page
         type: integer
-      - description: Filter by event type
+      - description: Filter by exact system event type string
         in: query
         name: event_type
         type: string
-      - description: Filter by read status
+      - description: Filter by read/unread status
         in: query
         name: is_read
         type: boolean
-      - description: Filter by referral ID
+      - description: Filter by referral UUID
         in: query
         name: referral_id
         type: string
-      - description: Filter by start date (YYYY-MM-DD)
+      - description: Filter start bounds (YYYY-MM-DD)
         in: query
         name: start_date
         type: string
-      - description: Filter by end date (YYYY-MM-DD)
+      - description: Filter end bounds (YYYY-MM-DD)
         in: query
         name: end_date
         type: string
-      - description: Search in title and message
+      - description: Fuzzy text search in title and message text
         in: query
         name: search
         type: string
@@ -6565,11 +7023,11 @@ paths:
           schema:
             $ref: '#/definitions/dto.PaginatedNotificationResponse'
         "401":
-          description: Unauthorized
+          description: 'Unauthorized: Invalid or expired session token'
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Internal repository query failure
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -6579,9 +7037,14 @@ paths:
       - In-App Notifications
   /api/v1/me/notifications/{id}/read:
     post:
-      description: Mark a specific in-app notification as read.
+      description: |-
+        Mark a specific in-app notification as read for the authenticated user.
+
+        ### Ownership Verification:
+        - The system validates that the target notification record belongs to the calling user (`user_id = userID`).
+        - Attempts to mark another user's notification as read are rejected.
       parameters:
-      - description: Notification ID
+      - description: Notification UUID to mark as read
         in: path
         name: id
         required: true
@@ -6594,21 +7057,22 @@ paths:
           schema:
             $ref: '#/definitions/dto.BaseResponse'
         "400":
-          description: Bad Request
+          description: Invalid notification ID or malformed UUID
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Internal repository execution failure
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Mark Notification as Read
+      summary: Mark Specific Notification as Read
       tags:
       - In-App Notifications
   /api/v1/me/notifications/read-all:
     post:
-      description: Mark all unread in-app notifications as read for the current user.
+      description: Mark all unread in-app notifications belonging to the current user
+        as read in a single batch operation.
       produces:
       - application/json
       responses:
@@ -6617,7 +7081,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.BaseResponse'
         "500":
-          description: Internal Server Error
+          description: Internal batch update execution failure
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -6627,7 +7091,8 @@ paths:
       - In-App Notifications
   /api/v1/me/notifications/unread-count:
     get:
-      description: Get the count of unread notifications for the current user.
+      description: Retrieve the current total count of unread notifications targeting
+        the authenticated user.
       produces:
       - application/json
       responses:
@@ -6636,7 +7101,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.UnreadCountResponse'
         "500":
-          description: Internal Server Error
+          description: Unread count query retrieval error
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -7966,6 +8431,7 @@ paths:
         name: request
         schema:
           additionalProperties:
+            format: float64
             type: number
           type: object
       produces:

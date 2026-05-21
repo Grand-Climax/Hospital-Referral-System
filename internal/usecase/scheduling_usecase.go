@@ -69,12 +69,13 @@ func (u *schedulingUseCase) GetCapacityStatus(ctx context.Context, hospitalID, d
 		if err != nil {
 			continue
 		}
+		overbookLimit := u.getOverbookLimit(ctx, sched.OverbookLimit)
 		resp = append(resp, dto.CapacityStatusResponse{
 			Date:          date,
 			TotalCapacity: sched.MaxSlots,
-			OverbookLimit: sched.OverbookLimit,
+			OverbookLimit: overbookLimit,
 			BookedSlots:   sched.BookedSlots,
-			IsFull:        sched.BookedSlots >= (sched.MaxSlots + sched.OverbookLimit),
+			IsFull:        sched.BookedSlots >= (sched.MaxSlots + overbookLimit),
 		})
 	}
 	return resp, nil
@@ -167,8 +168,9 @@ func (u *schedulingUseCase) ValidateCapacity(ctx context.Context, hospitalID, de
 	}
 
 	if override {
+		overbookLimit := u.getOverbookLimit(ctx, sched.OverbookLimit)
 		// If emergency override is requested, allow up to MaxSlots + Overbook
-		return sched.BookedSlots < (sched.MaxSlots + sched.OverbookLimit), nil
+		return sched.BookedSlots < (sched.MaxSlots + overbookLimit), nil
 	}
 
 	return sched.BookedSlots < sched.MaxSlots, nil
@@ -231,7 +233,8 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		return err
 	}
 
-	if sched.BookedSlots >= (sched.MaxSlots + sched.OverbookLimit) {
+	overbookLimit := u.getOverbookLimit(ctx, sched.OverbookLimit)
+	if sched.BookedSlots >= (sched.MaxSlots + overbookLimit) {
 		return errors.New("even overbook capacity is full for this date")
 	}
 
@@ -308,14 +311,14 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 
 	// Load configuration
 	bufferDays := 2
-	if cfg, err := u.configRepo.GetByKey(ctx, "buffer_days"); err == nil {
+	if cfg, err := u.configRepo.GetByKey(ctx, "buffer_days"); err == nil && cfg != nil {
 		if val, err := strconv.Atoi(cfg.Value); err == nil {
 			bufferDays = val
 		}
 	}
 
 	horizonDays := 30
-	if cfg, err := u.configRepo.GetByKey(ctx, "max_horizon_days"); err == nil {
+	if cfg, err := u.configRepo.GetByKey(ctx, "max_horizon_days"); err == nil && cfg != nil {
 		if val, err := strconv.Atoi(cfg.Value); err == nil {
 			horizonDays = val
 		}
@@ -419,6 +422,18 @@ func (u *schedulingUseCase) getOrInitSchedule(ctx context.Context, hospitalID, d
 	}
 
 	return u.scheduleRepo.GetOrCreate(ctx, hospitalID, deptID, date, dept.StandardDailyLimit)
+}
+
+func (u *schedulingUseCase) getOverbookLimit(ctx context.Context, fallback int) int {
+	if fallback > 0 {
+		return fallback
+	}
+	if cfg, err := u.configRepo.GetByKey(ctx, "overbook_limit_default"); err == nil && cfg != nil {
+		if val, err := strconv.Atoi(cfg.Value); err == nil && val >= 0 {
+			return val
+		}
+	}
+	return fallback
 }
 
 func (u *schedulingUseCase) ProcessMissedAppointments(ctx context.Context) error {

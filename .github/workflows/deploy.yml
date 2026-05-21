@@ -52,8 +52,10 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          flags: '--timeout=3600 --max-instances=1 --concurrency=500 --no-use-http2'
           env_vars: |
             GIN_MODE=release
+            ENABLE_WS=true
           secrets: |
             DATABASE_URL=DATABASE_URL:latest
             REDIS_URL=REDIS_URL:latest
@@ -67,3 +69,4 @@ jobs:
             AFROMESSAGE_SENDER_NAME=AFROMESSAGE_SENDER_NAME:latest
             AFROMESSAGE_IDENTIFIER_ID=AFROMESSAGE_IDENTIFIER_ID:latest
             AFROMESSAGE_BASE_URL=AFROMESSAGE_BASE_URL:latest
+            WS_PUSH_SECRET=WS_PUSH_SECRET:latest

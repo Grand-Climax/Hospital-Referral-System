@@ -469,6 +469,401 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/chat/conversations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of all active direct and referral-scoped chat channels involving the authenticated user.\n\n### Features \u0026 Fields:\n- Shows the latest message preview, unread message count for the current user, and other participant metadata.\n- **` + "`" + `is_read_only` + "`" + ` (bool):** Set to ` + "`" + `true` + "`" + ` if the channel is referral-scoped and has reached a terminal state.\n- **` + "`" + `is_disabled` + "`" + ` (bool):** Set to ` + "`" + `true` + "`" + ` if an administrator has locked the channel.\n\n### Roles:\n- Accessible by all authenticated roles except ` + "`" + `MOH_ANALYST` + "`" + `.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "List My Conversations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit (safe sanitized minimum of 1)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number (safe sanitized minimum of 1)",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedConversationResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: Invalid session token",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal database retrieval error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chat/conversations/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Administratively soft-delete a chat conversation, hiding it from participants while preserving GORM DB records for clinical auditing.\n\n### Role \u0026 Boundary Security:\n- **System Super Admin:** Global permission to soft-delete any conversation.\n- **Hospital Admin:** Authorized **only** for conversations involving their hospital's staff or active referrals.\n- **Other Roles:** Rejected with ` + "`" + `403 Forbidden` + "`" + `.\n- **Audit Trail:** Registers a system audit log capturing the deletion event.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Soft-delete Conversation (Admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Conversation UUID to soft-delete",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or malformed conversation ID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized boundary violation, or non-admin role attempt",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal soft-delete execution failure",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chat/conversations/{id}/toggle-disabled": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Administratively lock or unlock a chat channel. Locking a channel (` + "`" + `is_disabled = true` + "`" + `) prevents any further message sending while maintaining read history access.\n\n### Role \u0026 Boundary Security:\n- **System Super Admin:** Authorized to lock/unlock any conversation globally without restriction.\n- **Hospital Admin:** Authorized to lock/unlock conversations **only** if they involve a participant or a referral associated with their hospital. Access from outside this boundary is rejected.\n- **Other Roles:** Rejected with ` + "`" + `403 Forbidden` + "`" + `.\n- **Audit Logging:** Triggers an immutable system audit log entry capturing the change state and reason.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Toggle Conversation Lock State (Admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Conversation UUID to modify",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Lock state toggle (` + "`" + `is_disabled` + "`" + `) and mandatory action justification reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ToggleDisabledRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid conversation ID, or missing required justification reason",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized admin boundary violation, or non-admin role attempt",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal update or audit logging failure",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chat/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the message logs for a conversation. If conversation ID is not provided, the system automatically resolves or creates the unique channel using ` + "`" + `other_user_id` + "`" + ` and optional ` + "`" + `referral_id` + "`" + `.\n\n### Security \u0026 Administrative Auditing (Spying):\n- **Normal Participants:** Allowed to view conversations they are registered members of.\n- **Hospital Admins:** Authorized to view/audit message history if the chat involves staff of their hospital or a referral linked to their hospital.\n- **System Super Admins:** Unrestricted access to view any conversation globally.\n- **Other Roles:** Third-party access is rejected with ` + "`" + `403 Forbidden` + "`" + `.\n\n### Auto-Read side-effect:\n- Querying messages automatically marks all unread messages in that channel as read for the calling user, updating badge states.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Get Message History \u0026 Auto-Read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Conversation UUID to load history directly",
+                        "name": "conversation_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Recipient UUID to resolve direct or referral channel",
+                        "name": "other_user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Referral UUID to scope the conversation search",
+                        "name": "referral_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedChatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing both conversation_id and other_user_id, or malformed UUIDs",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized: Boundary check violation or non-participant access",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal data processing failure",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a real-time message to another user, either as a direct peer-to-peer message or scoped to a specific clinical referral context.\n\n### Security \u0026 Role Authorization Matrix:\n- **Allowed Roles:** ` + "`" + `SYSTEM_SUPER_ADMIN` + "`" + `, ` + "`" + `HOSPITAL_ADMIN` + "`" + `, ` + "`" + `REFERRING_DOCTOR` + "`" + `, ` + "`" + `RECEIVING_SPECIALIST` + "`" + `, ` + "`" + `LIAISON_OFFICER` + "`" + `, ` + "`" + `RECEPTIONIST` + "`" + `, ` + "`" + `DEPT_HEAD` + "`" + `.\n- **Barred Roles:** ` + "`" + `MOH_ANALYST` + "`" + ` is strictly forbidden from participating in or receiving chat messages.\n- **Receptionist Boundaries:** Receptionists cannot initiate peer chats, and can only receive messages from clinical staff (Doctors/Specialists) inside their own hospital.\n\n### Scoped/Referral Chat Restrictions:\n- **Access Control:** If ` + "`" + `referral_id` + "`" + ` is supplied, both sender and receiver must be connected to the referral (creator, treating/consulting doctor, department head, liaison, or user with active access grant).\n- **Terminal States (Read-Only):** The chat room becomes strictly read-only if the referral status is terminal (` + "`" + `COMPLETED` + "`" + `, ` + "`" + `DECEASED` + "`" + `, ` + "`" + `CANCELLED` + "`" + `, ` + "`" + `REJECTED_BY_LIAISON` + "`" + `, ` + "`" + `REJECTED_BY_SPECIALIST` + "`" + `, ` + "`" + `REJECTED_AFTER_SEND` + "`" + `, ` + "`" + `REDIRECTED` + "`" + `).\n\n### Direct (Non-Referral) Peer Chat Initiation:\n- **Referring Doctor:** Can initiate with own hospital colleagues, liaison officer at a hospital with active referral, or specialists with active access/accepted referrals.\n- **Liaison Officer:** Can initiate with referring doctors of active referrals, or specialists if a network route exists between their hospitals.\n- **Receiving Specialist:** Can only initiate if they have active access to the doctor's referrals.\n- **Hospital Admin:** Can only initiate with staff of their own hospital.\n\n### Prerequisites:\n- Receiver account must be active and not soft-deleted.\n- Content must be non-empty and between 1 and 5000 characters.\n- Sender and receiver must not be the same user.\n- Conversation must not be administrative-locked.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Send Chat Message",
+                "parameters": [
+                    {
+                        "description": "Message details including receiver, optional referral context, and content text",
+                        "name": "message",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SendMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChatMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters, empty content, content \u003e 5000 chars, self-send, or inactive recipient",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized role, multi-hospital boundary violation, terminal referral (read-only), or admin locked",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Referral not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal database or transmission error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chat/messages/read": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark all incoming messages in a specific conversation as read for the authenticated user.\n\n### Behavior:\n- Proceeds successfully even if the conversation is referral-scoped terminal (read-only) or administratively locked (disabled) so that users can clear their badges.\n- Supports backward compatibility by accepting either ` + "`" + `conversation_id` + "`" + ` or ` + "`" + `sender_id` + "`" + ` (deprecated).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Mark Messages as Read",
+                "parameters": [
+                    {
+                        "description": "Mark read options containing conversation_id or sender_id",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MarkReadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid payload, missing both IDs, or malformed UUIDs",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal update operation error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chat/unread-count": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the total sum of all unread chat messages targeting the authenticated user across all conversations.\n\n### Roles:\n- Accessible by all authenticated roles except ` + "`" + `MOH_ANALYST` + "`" + `.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Get Total Unread Message Count",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChatUnreadCountResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user session",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Unread count calculation failure",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/department-head/capacity/overrides": {
             "get": {
                 "security": [
@@ -5230,7 +5625,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of notifications for the current authenticated user with filters.",
+                "description": "Retrieve a paginated list of in-app notifications targeting the current authenticated user.\n\n### Query Options \u0026 Extensive Filters:\n- **` + "`" + `limit` + "`" + `**: Controls size of paginated array (sanitized to safe positive default of 20).\n- **` + "`" + `page` + "`" + `**: Page number to load (sanitized to safe positive default of 1).\n- **` + "`" + `event_type` + "`" + `**: Filter by event trigger keys (e.g. ` + "`" + `STAFF_ADDED` + "`" + `, ` + "`" + `REFERRAL_SUBMITTED` + "`" + `, ` + "`" + `CLINICAL_UPDATE_ADDED` + "`" + `, ` + "`" + `APPOINTMENT_SCHEDULED` + "`" + `, ` + "`" + `PATIENT_DECEASED` + "`" + `, ` + "`" + `BATCH_SCHEDULE_COMPLETED` + "`" + `).\n- **` + "`" + `is_read` + "`" + `**: Filter by read (` + "`" + `true` + "`" + `) or unread (` + "`" + `false` + "`" + `) state.\n- **` + "`" + `referral_id` + "`" + `**: Scopes search to notifications belonging to a specific clinical referral context.\n- **` + "`" + `start_date` + "`" + ` / ` + "`" + `end_date` + "`" + `**: Range bounds targeting the creation timestamp (format: ` + "`" + `YYYY-MM-DD` + "`" + `). End date is automatically extended to 23:59:59 of that day.\n- **` + "`" + `search` + "`" + `**: Full-text fuzzy search matched against the notification title or description message.",
                 "produces": [
                     "application/json"
                 ],
@@ -5255,37 +5650,37 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by event type",
+                        "description": "Filter by exact system event type string",
                         "name": "event_type",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Filter by read status",
+                        "description": "Filter by read/unread status",
                         "name": "is_read",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by referral ID",
+                        "description": "Filter by referral UUID",
                         "name": "referral_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by start date (YYYY-MM-DD)",
+                        "description": "Filter start bounds (YYYY-MM-DD)",
                         "name": "start_date",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by end date (YYYY-MM-DD)",
+                        "description": "Filter end bounds (YYYY-MM-DD)",
                         "name": "end_date",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Search in title and message",
+                        "description": "Fuzzy text search in title and message text",
                         "name": "search",
                         "in": "query"
                     }
@@ -5298,13 +5693,13 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized: Invalid or expired session token",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal repository query failure",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -5319,7 +5714,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Mark all unread in-app notifications as read for the current user.",
+                "description": "Mark all unread in-app notifications belonging to the current user as read in a single batch operation.",
                 "produces": [
                     "application/json"
                 ],
@@ -5335,7 +5730,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal batch update execution failure",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -5350,7 +5745,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the count of unread notifications for the current user.",
+                "description": "Retrieve the current total count of unread notifications targeting the authenticated user.",
                 "produces": [
                     "application/json"
                 ],
@@ -5366,7 +5761,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Unread count query retrieval error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -5381,18 +5776,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Mark a specific in-app notification as read.",
+                "description": "Mark a specific in-app notification as read for the authenticated user.\n\n### Ownership Verification:\n- The system validates that the target notification record belongs to the calling user (` + "`" + `user_id = userID` + "`" + `).\n- Attempts to mark another user's notification as read are rejected.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "In-App Notifications"
                 ],
-                "summary": "Mark Notification as Read",
+                "summary": "Mark Specific Notification as Read",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Notification ID",
+                        "description": "Notification UUID to mark as read",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -5406,13 +5801,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid notification ID or malformed UUID",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal repository execution failure",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -7485,7 +7880,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "number"
+                                "type": "number",
+                                "format": "float64"
                             }
                         }
                     }
@@ -9278,6 +9674,87 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ChatMessageResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "conversation_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "receiver_id": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "sender_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ChatUnreadCountResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "unread_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.ConversationResponse": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string"
+                },
+                "disabled_reason": {
+                    "type": "string"
+                },
+                "is_disabled": {
+                    "type": "boolean"
+                },
+                "is_read_only": {
+                    "type": "boolean"
+                },
+                "last_message": {
+                    "type": "string"
+                },
+                "last_message_at": {
+                    "type": "string"
+                },
+                "other_user_hospital": {
+                    "type": "string"
+                },
+                "other_user_id": {
+                    "type": "string"
+                },
+                "other_user_name": {
+                    "type": "string"
+                },
+                "other_user_role": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "unread_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.CreateNetworkRouteRequest": {
             "type": "object",
             "required": [
@@ -10112,6 +10589,9 @@ const docTemplate = `{
         "dto.LoginResponse": {
             "type": "object",
             "properties": {
+                "access_token": {
+                    "type": "string"
+                },
                 "channel": {
                     "type": "string"
                 },
@@ -10119,6 +10599,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "mfa_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
                     "type": "string"
                 },
                 "success": {
@@ -10532,6 +11015,60 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "total_checked": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PaginatedChatResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ChatMessageResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PaginatedConversationResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ConversationResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "total": {
                     "type": "integer"
                 }
             }
@@ -11097,6 +11634,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SendMessageRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "receiver_id"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "minLength": 1
+                },
+                "receiver_id": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.SetManualSeverityRequest": {
             "type": "object",
             "required": [
@@ -11464,7 +12021,8 @@ const docTemplate = `{
                 "DAILY_WEIGHT_UPDATE",
                 "UNASSIGN_DOCTOR",
                 "GRANT_CONSULT_ACCESS",
-                "REVOKE_CONSULT_ACCESS"
+                "REVOKE_CONSULT_ACCESS",
+                "MANAGE_CHAT"
             ],
             "x-enum-varnames": [
                 "ActionCreateReferral",
@@ -11501,7 +12059,8 @@ const docTemplate = `{
                 "ActionDailyWeightUpdate",
                 "ActionUnassignDoctor",
                 "ActionGrantConsultAccess",
-                "ActionRevokeConsultAccess"
+                "ActionRevokeConsultAccess",
+                "ActionManageChat"
             ]
         },
         "entity.ArrivalStatus": {
@@ -12553,6 +13112,18 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.MarkReadRequest": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string"
+                },
+                "sender_id": {
+                    "description": "Deprecated but supported for backward compatibility",
+                    "type": "string"
+                }
+            }
+        },
         "handlers.RefreshRequest": {
             "type": "object",
             "required": [
@@ -12560,6 +13131,20 @@ const docTemplate = `{
             ],
             "properties": {
                 "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.ToggleDisabledRequest": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "is_disabled": {
+                    "type": "boolean"
+                },
+                "reason": {
                     "type": "string"
                 }
             }
