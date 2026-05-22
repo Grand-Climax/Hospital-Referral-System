@@ -26,8 +26,12 @@ func (u *referenceUseCase) GetDepartments(ctx context.Context) ([]entity.Departm
 	return u.referenceRepo.GetDepartments(ctx)
 }
 
-func (u *referenceUseCase) ListICDCodes(ctx context.Context) ([]entity.ICDCode, error) {
-	return u.referenceRepo.ListICDCodes(ctx)
+func (u *referenceUseCase) ListICDCodes(ctx context.Context, search string, category string, page int, pageSize int) ([]entity.ICDCode, int64, error) {
+	return u.referenceRepo.ListICDCodes(ctx, search, category, page, pageSize)
+}
+
+func (u *referenceUseCase) ListICDCategories(ctx context.Context) ([]string, error) {
+	return u.referenceRepo.ListICDCategories(ctx)
 }
 
 func (u *referenceUseCase) GetNetworkedHospitals(ctx context.Context, senderHospitalID uuid.UUID) ([]entity.Hospital, error) {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -120,7 +121,7 @@ func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 
 // ListICDCodes godoc
 // @Summary      List all ICD-10 Codes
-// @Description  Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.
+// @Description  Returns all available ICD-10 codes with optional pagination, category filtering, and search matching. Used by doctors and specialists when filling in diagnoses.
 // @Description  **Roles:** Any authenticated user.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
@@ -128,11 +129,20 @@ func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 // @Tags         References
 // @Produce      json
 // @Param        search query string false "Search by code or description"
-// @Success      200 {object} dto.ICDCodeListResponse
+// @Param        category query string false "Filter by category"
+// @Param        page query int false "Page number" default(1)
+// @Param        page_size query int false "Number of items per page" default(30)
+// @Success      200 {object} dto.PaginatedICDCodeResponse
 // @Security     BearerAuth
 // @Router       /api/v1/reference/icd-codes [get]
 func (h *ReferenceHandler) ListICDCodes(c *gin.Context) {
-	codes, err := h.referenceUseCase.ListICDCodes(c.Request.Context())
+	search := c.Query("search")
+	category := c.Query("category")
+	
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "30"))
+
+	codes, total, err := h.referenceUseCase.ListICDCodes(c.Request.Context(), search, category, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Success: false,
@@ -140,11 +150,46 @@ func (h *ReferenceHandler) ListICDCodes(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(http.StatusOK, dto.ICDCodeListResponse{
-		Data: codes,
+
+	c.JSON(http.StatusOK, dto.PaginatedICDCodeResponse{
 		BaseResponse: dto.BaseResponse{
 			Success: true,
 			Message: "ICD codes retrieved successfully",
+		},
+		Data:     codes,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	})
+}
+
+// ListICDCategories godoc
+// @Summary      List ICD-10 Categories
+// @Description  Returns all unique chapter categories present in the ICD-10 dataset.
+// @Description  **Roles:** Any authenticated user.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
+// @Tags         References
+// @Produce      json
+// @Success      200 {object} dto.RegionListResponse
+// @Security     BearerAuth
+// @Router       /api/v1/reference/icd-categories [get]
+func (h *ReferenceHandler) ListICDCategories(c *gin.Context) {
+	categories, err := h.referenceUseCase.ListICDCategories(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Success: false,
+			Error:   "Failed to fetch ICD categories",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.RegionListResponse{
+		Data: categories,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "ICD categories retrieved successfully",
 		},
 	})
 }
