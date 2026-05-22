@@ -253,6 +253,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			// Target Dropdown targets a specific receiver hospital path ID
 			protected.GET("/reference/hospitals/:id/departments", refHandler.GetHospitalDepartments)
 			protected.GET("/reference/icd-codes", refHandler.ListICDCodes)
+			protected.GET("/reference/icd-categories", refHandler.ListICDCategories)
 			protected.GET("/reference/liaisons", refHandler.GetLiaisons)
 			protected.GET("/reference/regions", refHandler.GetRegions)
 			// Example: Both DOCTOR and SPECIALIST

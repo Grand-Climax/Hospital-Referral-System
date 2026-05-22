@@ -34,10 +34,46 @@ func (r *referenceRepository) GetDepartments(ctx context.Context) ([]entity.Depa
 	return depts, err
 }
 
-func (r *referenceRepository) ListICDCodes(ctx context.Context) ([]entity.ICDCode, error) {
+func (r *referenceRepository) ListICDCodes(ctx context.Context, search string, category string, page int, pageSize int) ([]entity.ICDCode, int64, error) {
 	var codes []entity.ICDCode
-	err := r.db.WithContext(ctx).Order("code asc").Find(&codes).Error
-	return codes, err
+	var total int64
+
+	q := r.db.WithContext(ctx).Model(&entity.ICDCode{})
+
+	if category != "" {
+		q = q.Where("category = ?", category)
+	}
+
+	if search != "" {
+		// Check both code and description case-insensitively
+		q = q.Where("LOWER(code) LIKE ? OR LOWER(description) LIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 30
+	}
+	offset := (page - 1) * pageSize
+
+	err := q.Order("code asc").Limit(pageSize).Offset(offset).Find(&codes).Error
+	return codes, total, err
+}
+
+func (r *referenceRepository) ListICDCategories(ctx context.Context) ([]string, error) {
+	var categories []string
+	err := r.db.WithContext(ctx).
+		Model(&entity.ICDCode{}).
+		Where("category IS NOT NULL AND category != ''").
+		Order("category asc").
+		Distinct("category").
+		Pluck("category", &categories).Error
+	return categories, err
 }
 
 func (r *referenceRepository) GetNetworkedHospitals(ctx context.Context, senderHospitalID uuid.UUID) ([]entity.Hospital, error) {
