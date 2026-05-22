@@ -33,9 +33,14 @@ func (m *MockReferenceUseCase) GetDepartments(ctx context.Context) ([]entity.Dep
 	return args.Get(0).([]entity.Department), args.Error(1)
 }
 
-func (m *MockReferenceUseCase) ListICDCodes(ctx context.Context) ([]entity.ICDCode, error) {
+func (m *MockReferenceUseCase) ListICDCodes(ctx context.Context, search string, category string, page int, pageSize int) ([]entity.ICDCode, int64, error) {
+	args := m.Called(ctx, search, category, page, pageSize)
+	return args.Get(0).([]entity.ICDCode), int64(args.Int(1)), args.Error(2)
+}
+
+func (m *MockReferenceUseCase) ListICDCategories(ctx context.Context) ([]string, error) {
 	args := m.Called(ctx)
-	return args.Get(0).([]entity.ICDCode), args.Error(1)
+	return args.Get(0).([]string), args.Error(1)
 }
 
 func (m *MockReferenceUseCase) GetNetworkedHospitals(ctx context.Context, senderID uuid.UUID) ([]entity.Hospital, error) {
@@ -62,6 +67,7 @@ func TestReferenceEndpoints(t *testing.T) {
 	router.GET("/api/v1/reference/hospitals", handler.GetHospitals)
 	router.GET("/api/v1/reference/departments", handler.GetDepartments)
 	router.GET("/api/v1/reference/icd-codes", handler.ListICDCodes)
+	router.GET("/api/v1/reference/icd-categories", handler.ListICDCategories)
 	router.GET("/api/v1/reference/networked-hospitals", handler.GetNetworkedHospitals)
 	router.GET("/api/v1/reference/hospitals/:id/departments", handler.GetHospitalDepartments)
 	router.GET("/api/v1/reference/regions", handler.GetRegions)
@@ -97,7 +103,7 @@ func TestReferenceEndpoints(t *testing.T) {
 			Code:        "A00",
 			Description: "Cholera",
 		}
-		mockUC.On("ListICDCodes", mock.Anything).Return([]entity.ICDCode{icd}, nil)
+		mockUC.On("ListICDCodes", mock.Anything, "", "", 1, 30).Return([]entity.ICDCode{icd}, 1, nil)
 
 		req := httptest.NewRequest("GET", "/api/v1/reference/icd-codes", nil)
 		w := httptest.NewRecorder()
@@ -106,7 +112,8 @@ func TestReferenceEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var resp struct {
-			Data []entity.ICDCode `json:"data"`
+			Data  []entity.ICDCode `json:"data"`
+			Total int64            `json:"total"`
 		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
@@ -114,6 +121,26 @@ func TestReferenceEndpoints(t *testing.T) {
 		codes := resp.Data
 		assert.Len(t, codes, 1)
 		assert.Equal(t, "A00", codes[0].Code)
+		assert.Equal(t, int64(1), resp.Total)
+	})
+
+	t.Run("List ICD Categories", func(t *testing.T) {
+		categories := []string{"Certain infectious and parasitic diseases", "Diseases of the circulatory system"}
+		mockUC.On("ListICDCategories", mock.Anything).Return(categories, nil)
+
+		req := httptest.NewRequest("GET", "/api/v1/reference/icd-categories", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp dto.RegionListResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		assert.True(t, resp.Success)
+		assert.Contains(t, resp.Data, "Certain infectious and parasitic diseases")
+		assert.Contains(t, resp.Data, "Diseases of the circulatory system")
 	})
 
 	t.Run("Get Networked Hospitals", func(t *testing.T) {
