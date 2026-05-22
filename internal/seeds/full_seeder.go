@@ -421,33 +421,10 @@ func seedPatients(ctx context.Context, db *gorm.DB) error {
 }
 
 func seedICDCodes(ctx context.Context, db *gorm.DB) error {
-	icds := []entity.ICDCode{
-		{Code: "I21.9", Description: "Acute myocardial infarction, unspecified", Category: "Diseases of the circulatory system"},
-		{Code: "S06.9X9A", Description: "Unspecified intracranial injury, initial encounter", Category: "Injury, poisoning and certain other consequences of external causes"},
-		{Code: "J18.9", Description: "Pneumonia, unspecified organism", Category: "Diseases of the respiratory system"},
-		{ Code: "E11.9", Description: "Type 2 diabetes mellitus without complications", Category: "Endocrine, nutritional and metabolic diseases"},
-		{Code: "I10", Description: "Essential (primary) hypertension", Category: "Diseases of the circulatory system"},
-		{Code: "M54.5", Description: "Low back pain", Category: "Diseases of the musculoskeletal system"},
-		{Code: "K21.9", Description: "Gastro-esophageal reflux disease without esophagitis", Category: "Diseases of the digestive system"},
-		{Code: "N39.0", Description: "Urinary tract infection, site not specified", Category: "Diseases of the genitourinary system"},
-		{Code: "G40.909", Description: "Epilepsy, unspecified, not intractable", Category: "Diseases of the nervous system"},
-		{Code: "F32.9", Description: "Major depressive disorder, single episode, unspecified", Category: "Mental and behavioral disorders"},
-		{Code: "B20", Description: "Human immunodeficiency virus [HIV] disease", Category: "Certain infectious and parasitic diseases"},
-		{Code: "C34.90", Description: "Malignant neoplasm of unspecified bronchus or lung", Category: "Neoplasms"},
-		{Code: "O80", Description: "Encounter for full-term uncomplicated delivery", Category: "Pregnancy, childbirth and the puerperium"},
-		{Code: "L20.9", Description: "Atopic dermatitis, unspecified", Category: "Diseases of the skin and subcutaneous tissue"},
-		{Code: "H52.13", Description: "Myopia, bilateral", Category: "Diseases of the eye and adnexa"},
-		{Code: "A09.9", Description: "Gastroenteritis and colitis of infectious origin, unspecified", Category: "Certain infectious and parasitic diseases"},
-		{Code: "R51", Description: "Headache", Category: "Symptoms, signs and abnormal clinical and laboratory findings"},
-		{Code: "T14.90", Description: "Injury, unspecified", Category: "Injury, poisoning and certain other consequences of external causes"},
-		{Code: "I63.9", Description: "Cerebral infarction, unspecified", Category: "Diseases of the circulatory system"},
-		{Code: "Z00.00", Description: "Encounter for general adult medical examination without abnormal findings", Category: "Factors influencing health status"},
-	}
-
-	for _, icd := range icds {
-		if err := db.WithContext(ctx).Create(&icd).Error; err != nil {
-			return err
-		}
+	var icdCount int64
+	db.WithContext(ctx).Model(&entity.ICDCode{}).Count(&icdCount)
+	if icdCount == 0 {
+		log.Println("WARNING: ICD-10 codes not loaded. Run 'go run scripts/load_icd10.go' to populate the table.")
 	}
 	return nil
 }
