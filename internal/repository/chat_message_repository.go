@@ -2,6 +2,10 @@ package repository
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,49 +50,48 @@ func (r *chatMessageRepository) Create(ctx context.Context, msg *entity.ChatMess
 	})
 }
 
+func computeParticipantHash(user1, user2 uuid.UUID, referralID *uuid.UUID) string {
+	ids := []string{user1.String(), user2.String()}
+	sort.Strings(ids)
+	combined := strings.Join(ids, "|")
+	if referralID != nil {
+		combined += "|" + referralID.String()
+	}
+	hash := sha256.Sum256([]byte(combined))
+	return hex.EncodeToString(hash[:])
+}
+
 func (r *chatMessageRepository) GetOrCreateDirectConversation(ctx context.Context, userA, userB uuid.UUID) (*entity.Conversation, error) {
-	var convID uuid.UUID
+	hash := computeParticipantHash(userA, userB, nil)
 
-	// Query to find a direct conversation with exactly these two participants
-	query := `
-		SELECT cp1.conversation_id 
-		FROM conversation_participants cp1
-		JOIN conversation_participants cp2 ON cp1.conversation_id = cp2.conversation_id
-		JOIN conversations c ON c.id = cp1.conversation_id
-		WHERE cp1.user_id = ? AND cp2.user_id = ? AND c.referral_id IS NULL AND c.deleted_at IS NULL
-		  AND (SELECT COUNT(*) FROM conversation_participants WHERE conversation_id = cp1.conversation_id) = 2
-		LIMIT 1
-	`
-
-	err := r.db.WithContext(ctx).Raw(query, userA, userB).Scan(&convID).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	// Try to find existing
+	var conversation entity.Conversation
+	err := r.db.WithContext(ctx).Preload("Participants").Where("participant_hash = ?", hash).First(&conversation).Error
+	if err == nil {
+		return &conversation, nil
+	}
+	if err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
-	if convID != uuid.Nil {
-		var conversation entity.Conversation
-		if err := r.db.WithContext(ctx).Preload("Participants").First(&conversation, "id = ?", convID).Error; err != nil {
-			return nil, err
-		}
-		return &conversation, nil
-	}
-
 	// Create new direct conversation
-	conversation := &entity.Conversation{
-		ID: uuid.New(),
+	newConv := entity.Conversation{
+		ID:              uuid.New(),
+		ParticipantHash: hash,
+		LastMessageAt:   time.Now(),
 	}
 
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(conversation).Error; err != nil {
+		if err := tx.Create(&newConv).Error; err != nil {
 			return err
 		}
 
 		p1 := entity.ConversationParticipant{
-			ConversationID: conversation.ID,
+			ConversationID: newConv.ID,
 			UserID:         userA,
 		}
 		p2 := entity.ConversationParticipant{
-			ConversationID: conversation.ID,
+			ConversationID: newConv.ID,
 			UserID:         userB,
 		}
 
@@ -102,25 +105,26 @@ func (r *chatMessageRepository) GetOrCreateDirectConversation(ctx context.Contex
 	})
 
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "duplicate") || strings.Contains(err.Error(), "1062") {
+			r.db.WithContext(ctx).Preload("Participants").Where("participant_hash = ?", hash).First(&conversation)
+			return &conversation, nil
+		}
 		return nil, err
 	}
 
 	// Preload participants for returning
-	r.db.WithContext(ctx).Preload("Participants").First(conversation, "id = ?", conversation.ID)
-	return conversation, nil
+	r.db.WithContext(ctx).Preload("Participants").First(&newConv, "id = ?", newConv.ID)
+	return &newConv, nil
 }
 
 func (r *chatMessageRepository) GetOrCreateReferralConversation(ctx context.Context, referralID, targetHospitalID uuid.UUID) (*entity.Conversation, error) {
-	var conversation entity.Conversation
-	err := r.db.WithContext(ctx).
-		Preload("Participants").
-		Where("referral_id = ? AND target_hospital_id = ?", referralID, targetHospitalID).
-		First(&conversation).Error
+	hash := computeParticipantHash(uuid.Nil, uuid.Nil, &referralID)
 
+	var conversation entity.Conversation
+	err := r.db.WithContext(ctx).Preload("Participants").Where("participant_hash = ?", hash).First(&conversation).Error
 	if err == nil {
 		return &conversation, nil
 	}
-
 	if err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -128,19 +132,25 @@ func (r *chatMessageRepository) GetOrCreateReferralConversation(ctx context.Cont
 	// Create new referral-scoped conversation
 	conversation = entity.Conversation{
 		ID:               uuid.New(),
+		ParticipantHash:  hash,
 		ReferralID:       &referralID,
 		TargetHospitalID: &targetHospitalID,
 		LastMessageAt:    time.Now(),
 	}
 
-	if err := r.db.WithContext(ctx).Create(&conversation).Error; err != nil {
+	err = r.db.WithContext(ctx).Create(&conversation).Error
+	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "duplicate") || strings.Contains(err.Error(), "1062") {
+			r.db.WithContext(ctx).Preload("Participants").Where("participant_hash = ?", hash).First(&conversation)
+			return &conversation, nil
+		}
 		return nil, err
 	}
 
 	return &conversation, nil
 }
 
-func (r *chatMessageRepository) GetConversations(ctx context.Context, userID uuid.UUID, limit, offset int) ([]entity.Conversation, int64, error) {
+func (r *chatMessageRepository) GetConversations(ctx context.Context, userID uuid.UUID, filterType string, limit, offset int) ([]entity.Conversation, int64, error) {
 	var conversations []entity.Conversation
 	var total int64
 
@@ -148,6 +158,12 @@ func (r *chatMessageRepository) GetConversations(ctx context.Context, userID uui
 	countQuery := r.db.WithContext(ctx).Model(&entity.Conversation{}).
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
 		Where("cp.user_id = ?", userID)
+
+	if filterType == "direct" {
+		countQuery = countQuery.Where("conversations.referral_id IS NULL")
+	} else if filterType == "referral" {
+		countQuery = countQuery.Where("conversations.referral_id IS NOT NULL")
+	}
 
 	if err := countQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -158,10 +174,17 @@ func (r *chatMessageRepository) GetConversations(ctx context.Context, userID uui
 	}
 
 	// Fetch with preloads, pagination and last_message_at sorting
-	err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
-		Where("cp.user_id = ? AND conversations.deleted_at IS NULL", userID).
-		Order("conversations.last_message_at DESC").
+		Where("cp.user_id = ? AND conversations.deleted_at IS NULL", userID)
+
+	if filterType == "direct" {
+		query = query.Where("conversations.referral_id IS NULL")
+	} else if filterType == "referral" {
+		query = query.Where("conversations.referral_id IS NOT NULL")
+	}
+
+	err := query.Order("conversations.last_message_at DESC").
 		Limit(limit).
 		Offset(offset).
 		Preload("Participants.User.Hospital").

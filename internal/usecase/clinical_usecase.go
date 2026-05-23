@@ -112,6 +112,10 @@ func (u *clinicalUseCase) RecordOutcome(ctx context.Context, referralID, userID 
 			return err
 		}
 
+		if referral.Status != entity.StatusScheduled && referral.Status != entity.StatusAccepted {
+			return errors.New("cannot record outcome: referral must be scheduled first")
+		}
+
 		oldStatus := referral.Status
 		newStatus := entity.StatusCompleted
 		if req.Outcome == "deceased" {

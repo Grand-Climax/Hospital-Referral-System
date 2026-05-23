@@ -207,6 +207,15 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		return err
 	}
 
+	if ref.Status != entity.StatusAccepted {
+		return errors.New("only accepted referrals can be emergency-scheduled")
+	}
+
+	if ref.MLSeverityScore == nil {
+		defaultScore := 50.0
+		ref.MLSeverityScore = &defaultScore
+	}
+
 	// 1. Eligibility Check: Critical condition or explicit emergency intent
 	isCritical := false
 	if ref.ReferralForm != nil && ref.ReferralForm.ConditionAtReferral == "critical" {
@@ -221,6 +230,8 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 	if err != nil {
 		return err
 	}
+
+	wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
 
 	// 2. Capacity Check: Allow overbooking up to (max_slots + overbook_limit)
 	hospDept, err := u.deptRepo.FindHospitalDepartment(ctx, ref.TargetHospitalID, ref.TargetDeptID)
@@ -245,6 +256,9 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		}
 
 		// 4. Update TriageQueue
+		if wasMissed {
+			queue.ArrivalStatus = entity.ArrivalExpected
+		}
 		queue.AppointmentDate = &appointmentDate
 		if err := tx.Save(queue).Error; err != nil {
 			return err
@@ -271,13 +285,6 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		}
 		if ref.TargetDepartment != nil {
 			deptName = ref.TargetDepartment.Name
-		}
-
-		wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
-
-		// Reset arrival status if previously missed
-		if wasMissed {
-			queue.ArrivalStatus = entity.ArrivalExpected
 		}
 
 		notifType := entity.NotifyScheduling

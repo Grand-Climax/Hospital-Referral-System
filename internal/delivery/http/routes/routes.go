@@ -534,6 +534,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 		// Chat routes
 		chatGroup := protected.Group("/chat")
 		{
+			chatGroup.GET("/contacts", chatHandler.ListContacts)
 			chatGroup.POST("/messages", chatHandler.SendMessage)
 			chatGroup.GET("/conversations", chatHandler.ListConversations)
 			chatGroup.GET("/messages", chatHandler.GetMessages)
