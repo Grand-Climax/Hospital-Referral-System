@@ -717,18 +717,6 @@ definitions:
       updated_at:
         type: string
     type: object
-  dto.ICDCodeListResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/entity.ICDCode'
-        type: array
-      message:
-        type: string
-      success:
-        example: true
-        type: boolean
-    type: object
   dto.InAppNotificationResponse:
     properties:
       created_at:
@@ -1142,6 +1130,24 @@ definitions:
       data:
         items:
           $ref: '#/definitions/dto.ConversationResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      page_size:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.PaginatedICDCodeResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/entity.ICDCode'
         type: array
       message:
         type: string
@@ -7907,10 +7913,74 @@ paths:
       summary: Get Hospital Departments
       tags:
       - References
+  /api/v1/reference/icd-categories:
+    get:
+      description: |-
+        Returns all unique chapter categories present in the ICD-10 dataset (with a robust static fallback).
+        **Categories Included:**
+        - "Blood & Immune Disorders"
+        - "Cancers & Tumors"
+        - "Circulatory System Diseases"
+        - "Conditions Originating in Perinatal Period"
+        - "Congenital Malformations & Chromosomal Abnormalities"
+        - "Digestive System Diseases"
+        - "Ear & Mastoid Diseases"
+        - "Endocrine, Nutritional & Metabolic Diseases"
+        - "External Causes of Morbidity & Mortality"
+        - "Eye & Adnexa Diseases"
+        - "Genitourinary System Diseases"
+        - "Infectious & Parasitic Diseases"
+        - "Injury, Poisoning & External Causes"
+        - "Mental & Behavioral Disorders"
+        - "Musculoskeletal & Connective Tissue Diseases"
+        - "Nervous System Diseases"
+        - "Pregnancy, Childbirth & Puerperium"
+        - "Respiratory System Diseases"
+        - "Skin & Subcutaneous Tissue Diseases"
+        - "Symptoms, Signs & Abnormal Findings"
+        - "Unknown"
+        **Roles:** Any authenticated user.
+        **Common Errors:**
+        - 401 Unauthorized
+        - 500 Internal Server Error
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RegionListResponse'
+      security:
+      - BearerAuth: []
+      summary: List ICD-10 Categories
+      tags:
+      - References
   /api/v1/reference/icd-codes:
     get:
       description: |-
-        Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.
+        Returns all available ICD-10 codes with optional pagination, category filtering, and search matching. Used by doctors and specialists when filling in diagnoses.
+        **Valid Chapter Categories:**
+        - "Blood & Immune Disorders"
+        - "Cancers & Tumors"
+        - "Circulatory System Diseases"
+        - "Conditions Originating in Perinatal Period"
+        - "Congenital Malformations & Chromosomal Abnormalities"
+        - "Digestive System Diseases"
+        - "Ear & Mastoid Diseases"
+        - "Endocrine, Nutritional & Metabolic Diseases"
+        - "External Causes of Morbidity & Mortality"
+        - "Eye & Adnexa Diseases"
+        - "Genitourinary System Diseases"
+        - "Infectious & Parasitic Diseases"
+        - "Injury, Poisoning & External Causes"
+        - "Mental & Behavioral Disorders"
+        - "Musculoskeletal & Connective Tissue Diseases"
+        - "Nervous System Diseases"
+        - "Pregnancy, Childbirth & Puerperium"
+        - "Respiratory System Diseases"
+        - "Skin & Subcutaneous Tissue Diseases"
+        - "Symptoms, Signs & Abnormal Findings"
+        - "Unknown"
         **Roles:** Any authenticated user.
         **Common Errors:**
         - 401 Unauthorized
@@ -7920,13 +7990,27 @@ paths:
         in: query
         name: search
         type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 30
+        description: Number of items per page
+        in: query
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.ICDCodeListResponse'
+            $ref: '#/definitions/dto.PaginatedICDCodeResponse'
       security:
       - BearerAuth: []
       summary: List all ICD-10 Codes
