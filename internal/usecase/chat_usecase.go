@@ -283,20 +283,23 @@ func (u *chatUseCase) ListConversations(ctx context.Context, userID uuid.UUID, f
 		}
 
 		responses = append(responses, dto.ConversationResponse{
-			ConversationID:    cm.ID.String(),
-			Type:              convType,
-			OtherUserID:       otherUser.ID.String(),
-			OtherUserName:     fmt.Sprintf("%s %s", otherUser.FirstName, otherUser.LastName),
-			OtherUserRole:     string(otherUser.Role),
-			OtherUserHospital: hospitalName,
-			LastMessage:       preview,
-			LastMessageAt:     cm.LastMessageAt.Format(time.RFC3339),
-			UnreadCount:       unreadCount,
-			ReferralID:        refIDStr,
-			ReferralStatus:    refStatusStr,
-			IsReadOnly:        isReadOnly,
-			IsDisabled:        cm.IsDisabled,
-			DisabledReason:    cm.DisabledReason,
+			ConversationID:     cm.ID.String(),
+			Type:               convType,
+			OtherUserID:        otherUser.ID.String(),
+			OtherUserName:      fmt.Sprintf("%s %s", otherUser.FirstName, otherUser.LastName),
+			OtherUserFirstName: otherUser.FirstName,
+			OtherUserLastName:  otherUser.LastName,
+			OtherUserEmail:     otherUser.Email,
+			OtherUserRole:      string(otherUser.Role),
+			OtherUserHospital:  hospitalName,
+			LastMessage:        preview,
+			LastMessageAt:      cm.LastMessageAt.Format(time.RFC3339),
+			UnreadCount:        unreadCount,
+			ReferralID:         refIDStr,
+			ReferralStatus:     refStatusStr,
+			IsReadOnly:         isReadOnly,
+			IsDisabled:         cm.IsDisabled,
+			DisabledReason:     cm.DisabledReason,
 		})
 	}
 
@@ -502,6 +505,22 @@ func (u *chatUseCase) enforceInitiationMatrix(ctx context.Context, sender, recei
 	if u.db == nil {
 		return nil
 	}
+
+	// 1. Enforce strict MoH Analyst boundaries
+	if sender.Role == entity.RoleMohAnalyst || receiver.Role == entity.RoleMohAnalyst {
+		return errors.New("MoH Analysts are strictly forbidden from participating in chat.")
+	}
+
+	// 2. Super admins can initiate chat with anyone except MoH analysts
+	if sender.Role == entity.RoleSystemSuperAdmin {
+		return nil
+	}
+
+	// 3. Anyone can chat with a super admin
+	if receiver.Role == entity.RoleSystemSuperAdmin {
+		return nil
+	}
+
 	senderHospitalID := uuid.Nil
 	if sender.HospitalID != nil {
 		senderHospitalID = *sender.HospitalID
@@ -511,16 +530,42 @@ func (u *chatUseCase) enforceInitiationMatrix(ctx context.Context, sender, recei
 		receiverHospitalID = *receiver.HospitalID
 	}
 
-	switch sender.Role {
+	// 4. Same-hospital colleague bypass
+	// Except receptionists who are barred from initiating peer direct chats
+	if senderHospitalID != uuid.Nil && senderHospitalID == receiverHospitalID {
+		if sender.Role == entity.RoleReceptionist {
+			return errors.New("Receptionists cannot initiate a conversation.")
+		}
+		return nil
+	}
+
+	// 5. Cross-hospital rules (different hospitals)
+	if sender.Role == entity.RoleReceptionist {
+		return errors.New("Receptionists cannot initiate a conversation.")
+	}
+
+	if sender.Role == entity.RoleHospitalAdmin {
+		return errors.New("Hospital admins can only chat with users in their own hospital.")
+	}
+
+	// Normalize DeptHead to behave like a specialist for cross-hospital clinical interactions
+	senderRole := sender.Role
+	if senderRole == entity.RoleDeptHead {
+		senderRole = entity.RoleReceivingSpecialist
+	}
+	receiverRole := receiver.Role
+	if receiverRole == entity.RoleDeptHead {
+		receiverRole = entity.RoleReceivingSpecialist
+	}
+
+	switch senderRole {
 	case entity.RoleReferringDoctor:
-		switch receiver.Role {
+		switch receiverRole {
 		case entity.RoleReferringDoctor:
-			if senderHospitalID == uuid.Nil || senderHospitalID != receiverHospitalID {
-				return errors.New("You can only chat with colleagues in your own hospital.")
-			}
-			return nil
+			return errors.New("You can only chat with colleagues in your own hospital.")
 
 		case entity.RoleReceivingSpecialist:
+			// Allowed if they share active access or an accepted/completed referral
 			var accessCount int64
 			err := u.db.Model(&entity.ReferralAccess{}).
 				Joins("JOIN referrals ON referrals.id = referral_accesses.referral_id").
@@ -547,12 +592,13 @@ func (u *chatUseCase) enforceInitiationMatrix(ctx context.Context, sender, recei
 			return errors.New("You can only chat with specialists who have active access or accepted your referrals.")
 
 		case entity.RoleLiaisonOfficer:
+			// Doctor can chat with liaison of a target hospital if a referral is created between them
 			if receiverHospitalID == uuid.Nil {
 				return errors.New("Liaison hospital is not configured.")
 			}
 			var count int64
 			err := u.db.Model(&entity.Referral{}).
-				Where("referring_doctor_id = ? AND sender_hospital_id = ?", sender.ID, receiverHospitalID).
+				Where("referring_doctor_id = ? AND (sender_hospital_id = ? OR target_hospital_id = ?)", sender.ID, receiverHospitalID, receiverHospitalID).
 				Count(&count).Error
 			if err != nil {
 				return err
@@ -563,21 +609,13 @@ func (u *chatUseCase) enforceInitiationMatrix(ctx context.Context, sender, recei
 			return errors.New("A referral must exist at the liaison's hospital to initiate chat.")
 
 		case entity.RoleReceptionist:
-			if senderHospitalID == uuid.Nil || senderHospitalID != receiverHospitalID {
-				return errors.New("You can only chat with colleagues in your own hospital.")
-			}
-			return nil
-
-		case entity.RoleDeptHead:
-			if senderHospitalID == uuid.Nil || senderHospitalID != receiverHospitalID {
-				return errors.New("You can only chat with colleagues in your own hospital.")
-			}
-			return nil
+			return errors.New("You can only chat with colleagues in your own hospital.")
 		}
 
 	case entity.RoleReceivingSpecialist:
-		switch receiver.Role {
+		switch receiverRole {
 		case entity.RoleReferringDoctor:
+			// Allowed if they have active access or an accepted/completed referral
 			var accessCount int64
 			err := u.db.Model(&entity.ReferralAccess{}).
 				Joins("JOIN referrals ON referrals.id = referral_accesses.referral_id").
@@ -604,31 +642,7 @@ func (u *chatUseCase) enforceInitiationMatrix(ctx context.Context, sender, recei
 			return errors.New("You can only initiate chat with a doctor if you have active access to their referrals.")
 
 		case entity.RoleReceivingSpecialist:
-			if senderHospitalID == uuid.Nil || senderHospitalID != receiverHospitalID {
-				return errors.New("You can only chat with colleagues in your own hospital.")
-			}
-			return nil
-		}
-
-	case entity.RoleLiaisonOfficer:
-		switch receiver.Role {
-		case entity.RoleReferringDoctor:
-			if senderHospitalID == uuid.Nil {
-				return errors.New("Your hospital is not configured.")
-			}
-			var count int64
-			err := u.db.Model(&entity.Referral{}).
-				Where("referring_doctor_id = ? AND sender_hospital_id = ?", receiver.ID, senderHospitalID).
-				Count(&count).Error
-			if err != nil {
-				return err
-			}
-			if count > 0 {
-				return nil
-			}
-			return errors.New("A referral must exist to initiate chat with this doctor.")
-
-		case entity.RoleReceivingSpecialist:
+			// Cross-hospital peer specialist-to-specialist chat requires network pathway
 			if senderHospitalID == uuid.Nil || receiverHospitalID == uuid.Nil {
 				return errors.New("Hospitals are not configured.")
 			}
@@ -644,23 +658,81 @@ func (u *chatUseCase) enforceInitiationMatrix(ctx context.Context, sender, recei
 				return nil
 			}
 			return errors.New("No network route exists between your hospital and the specialist's hospital.")
-		}
 
-	case entity.RoleHospitalAdmin:
-		if receiver.Role != entity.RoleMohAnalyst && receiver.Role != entity.RoleSystemSuperAdmin {
-			if senderHospitalID != uuid.Nil && senderHospitalID == receiverHospitalID {
+		case entity.RoleLiaisonOfficer:
+			// Specialist-to-Liaison chat requires network pathway
+			if senderHospitalID == uuid.Nil || receiverHospitalID == uuid.Nil {
+				return errors.New("Hospitals are not configured.")
+			}
+			routeExists1, err := u.netRepo.VerifyNetworkPathway(ctx, senderHospitalID, receiverHospitalID)
+			if err != nil {
+				return err
+			}
+			routeExists2, err := u.netRepo.VerifyNetworkPathway(ctx, receiverHospitalID, senderHospitalID)
+			if err != nil {
+				return err
+			}
+			if routeExists1 || routeExists2 {
 				return nil
 			}
-			return errors.New("Hospital admins can only chat with users in their own hospital.")
+			return errors.New("No network route exists between your hospital and the liaison's hospital.")
 		}
 
-	case entity.RoleSystemSuperAdmin:
-		if receiver.Role != entity.RoleMohAnalyst {
-			return nil
-		}
+	case entity.RoleLiaisonOfficer:
+		switch receiverRole {
+		case entity.RoleReferringDoctor:
+			// Liaison can chat with a doctor of another hospital if a referral exists between them
+			if senderHospitalID == uuid.Nil {
+				return errors.New("Your hospital is not configured.")
+			}
+			var count int64
+			err := u.db.Model(&entity.Referral{}).
+				Where("referring_doctor_id = ? AND (sender_hospital_id = ? OR target_hospital_id = ?)", receiver.ID, senderHospitalID, senderHospitalID).
+				Count(&count).Error
+			if err != nil {
+				return err
+			}
+			if count > 0 {
+				return nil
+			}
+			return errors.New("A referral must exist to initiate chat with this doctor.")
 
-	case entity.RoleReceptionist:
-		return errors.New("Receptionists cannot initiate a conversation.")
+		case entity.RoleReceivingSpecialist:
+			// Liaison-to-Specialist requires network pathway
+			if senderHospitalID == uuid.Nil || receiverHospitalID == uuid.Nil {
+				return errors.New("Hospitals are not configured.")
+			}
+			routeExists1, err := u.netRepo.VerifyNetworkPathway(ctx, senderHospitalID, receiverHospitalID)
+			if err != nil {
+				return err
+			}
+			routeExists2, err := u.netRepo.VerifyNetworkPathway(ctx, receiverHospitalID, senderHospitalID)
+			if err != nil {
+				return err
+			}
+			if routeExists1 || routeExists2 {
+				return nil
+			}
+			return errors.New("No network route exists between your hospital and the specialist's hospital.")
+
+		case entity.RoleLiaisonOfficer:
+			// Liaison-to-Liaison requires network pathway
+			if senderHospitalID == uuid.Nil || receiverHospitalID == uuid.Nil {
+				return errors.New("Hospitals are not configured.")
+			}
+			routeExists1, err := u.netRepo.VerifyNetworkPathway(ctx, senderHospitalID, receiverHospitalID)
+			if err != nil {
+				return err
+			}
+			routeExists2, err := u.netRepo.VerifyNetworkPathway(ctx, receiverHospitalID, senderHospitalID)
+			if err != nil {
+				return err
+			}
+			if routeExists1 || routeExists2 {
+				return nil
+			}
+			return errors.New("No network route exists between your hospital and the liaison's hospital.")
+		}
 	}
 
 	return errors.New("You are not authorised to initiate this conversation.")
@@ -832,6 +904,7 @@ func (u *chatUseCase) ListContacts(
 			UserID:         user.ID.String(),
 			FirstName:      user.FirstName,
 			LastName:       user.LastName,
+			Email:          user.Email,
 			Role:           string(user.Role),
 			HospitalName:   hospitalName,
 			DepartmentName: departmentName,
