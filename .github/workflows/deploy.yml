@@ -56,6 +56,7 @@ jobs:
           env_vars: |
             GIN_MODE=release
             ENABLE_WS=true
+            ML_ENABLED=true
           secrets: |
             DATABASE_URL=DATABASE_URL:latest
             REDIS_URL=REDIS_URL:latest
@@ -70,3 +71,4 @@ jobs:
             AFROMESSAGE_IDENTIFIER_ID=AFROMESSAGE_IDENTIFIER_ID:latest
             AFROMESSAGE_BASE_URL=AFROMESSAGE_BASE_URL:latest
             WS_PUSH_SECRET=WS_PUSH_SECRET:latest
+            ML_SERVICE_BASE_URL=ML_SERVICE_BASE_URL:latest
