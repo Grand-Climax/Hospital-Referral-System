@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"Hospital-Referral-System/config"
+
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -10,7 +12,8 @@ import (
 
 func main() {
 	log.Println("Starting database migration runner (v13 - User PhoneNumber support)...")
-	
+	cfg := config.LoadConfig()
+
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")

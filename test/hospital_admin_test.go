@@ -53,6 +53,7 @@ func setupHospitalAdminTestRouter() (*gin.Engine, *MockUserUseCase, *MockReferra
 
 		// Operations
 		api.GET("/hospital/profile", opsHandler.GetMyHospitalProfile)
+		api.GET("/dashboard/personnel-widget", opsHandler.GetPersonnelWidgetStats)
 		api.PATCH("/hospital/profile", opsHandler.UpdateMyHospitalProfile)
 		api.POST("/departments", opsHandler.LinkDepartmentToMyHospital)
 		api.GET("/departments", opsHandler.ListMyHospitalDepartments)
@@ -163,6 +164,32 @@ func TestHospitalAdminOperations(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.Code)
 		mockDept.AssertExpectations(t)
+		mockUser.AssertExpectations(t)
+	})
+
+	t.Run("Get Personnel Widget Stats", func(t *testing.T) {
+		r, mockUser, _, _, _ := setupHospitalAdminTestRouter()
+		mockUser.On("GetPersonnelWidgetStats", mock.Anything, mock.Anything).Return(&dto.HospitalAdminPersonnelWidgetResponse{
+			TotalPersonnel: 10,
+			ActiveDuty:     8,
+			Inactive:       2,
+			AccessRequests: 0,
+		}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/hospital-admin/dashboard/personnel-widget", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		
+		var stats dto.HospitalAdminPersonnelWidgetResponse
+		err := json.Unmarshal(resp.Body.Bytes(), &stats)
+		assert.NoError(t, err)
+		assert.True(t, stats.Success)
+		assert.Equal(t, int64(10), stats.TotalPersonnel)
+		assert.Equal(t, int64(8), stats.ActiveDuty)
+		assert.Equal(t, int64(2), stats.Inactive)
+		assert.Equal(t, int64(0), stats.AccessRequests)
 		mockUser.AssertExpectations(t)
 	})
 }

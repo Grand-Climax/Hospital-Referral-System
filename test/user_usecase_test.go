@@ -526,4 +526,48 @@ func TestHospitalAdminChangeStaffRole_AutoClearsDepartment(t *testing.T) {
 	repo.AssertExpectations(t)
 }
 
+func TestUserUseCase_GetPersonnelWidgetStats(t *testing.T) {
+	repo := new(MockUserRepo)
+	svc := new(MockStorageService)
+	uc := newTestUserUC(repo, svc)
+
+	adminID := uuid.New()
+	hospID := uuid.New()
+
+	adminUser := &entity.User{
+		ID:         adminID,
+		Role:       entity.RoleHospitalAdmin,
+		HospitalID: &hospID,
+		IsActive:   true,
+	}
+
+	t.Run("Succeeds and returns correct counts", func(t *testing.T) {
+		repo.On("FindByID", mock.Anything, adminID).Return(adminUser, nil).Once()
+		repo.On("CountHospitalStaffByStatus", mock.Anything, hospID).Return(int64(100), int64(80), int64(20), nil).Once()
+
+		resp, err := uc.GetPersonnelWidgetStats(context.Background(), adminID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(100), resp.TotalPersonnel)
+		assert.Equal(t, int64(80), resp.ActiveDuty)
+		assert.Equal(t, int64(20), resp.Inactive)
+		assert.Equal(t, int64(0), resp.AccessRequests)
+		repo.AssertExpectations(t)
+	})
+
+	t.Run("Fails if requester is not a hospital admin", func(t *testing.T) {
+		regularUser := &entity.User{
+			ID:         adminID,
+			Role:       entity.RoleReferringDoctor,
+			HospitalID: &hospID,
+			IsActive:   true,
+		}
+		repo.On("FindByID", mock.Anything, adminID).Return(regularUser, nil).Once()
+
+		_, err := uc.GetPersonnelWidgetStats(context.Background(), adminID)
+		assert.ErrorIs(t, err, usecase.ErrForbiddenStaffScope)
+		repo.AssertExpectations(t)
+	})
+}
+
+
 

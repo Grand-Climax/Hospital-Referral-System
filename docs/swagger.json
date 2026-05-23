@@ -2384,6 +2384,43 @@
                 }
             }
         },
+        "/api/v1/hospital-admin/dashboard/personnel-widget": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve dashboard metrics for hospital personnel (Total Registered Users, Active Duty, Inactive).\n**Roles:** HOSPITAL_ADMIN\n**Visibility:** Scoped to the authenticated hospital admin's hospital.\n**Metrics Returned:**\n- **TOTAL PERSONNEL:** All registered system users in the hospital (excluding soft-deleted users `is_deleted = true`).\n- **ACTIVE DUTY (ONLINE):** Currently active accounts (`is_active = true`, `is_deleted = false`).\n- **INACTIVE (AWAY):** Disabled or on leave accounts (`is_active = false`, `is_deleted = false`).\n- **ACCESS REQUESTS (PENDING):** Placeholder `0` for now.\n**Common Errors:**\n- 403 Forbidden (not a hospital admin or no hospital assigned)\n- 404 Hospital admin not found",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hospital Admin"
+                ],
+                "summary": "Get personnel widget stats (Hospital Admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HospitalAdminPersonnelWidgetResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/hospital-admin/departments": {
             "get": {
                 "security": [
@@ -10201,6 +10238,34 @@
                 "department_id": {
                     "type": "string",
                     "example": "b5000000-0000-0000-0000-000000000005"
+                }
+            }
+        },
+        "dto.HospitalAdminPersonnelWidgetResponse": {
+            "type": "object",
+            "properties": {
+                "access_requests": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "active_duty": {
+                    "type": "integer",
+                    "example": 120
+                },
+                "inactive": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "total_personnel": {
+                    "type": "integer",
+                    "example": 150
                 }
             }
         },
