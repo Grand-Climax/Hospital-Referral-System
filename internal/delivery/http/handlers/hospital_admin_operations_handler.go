@@ -335,3 +335,40 @@ func (h *HospitalAdminOperationsHandler) AssignDepartmentHead(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Department head assigned successfully"})
 }
+
+// GetPersonnelWidgetStats godoc
+// @Summary      Get personnel widget stats (Hospital Admin)
+// @Description  Retrieve dashboard metrics for hospital personnel (Total Registered Users, Active Duty, Inactive).
+// @Description  **Roles:** HOSPITAL_ADMIN
+// @Description  **Visibility:** Scoped to the authenticated hospital admin's hospital.
+// @Description  **Metrics Returned:**
+// @Description  - **TOTAL PERSONNEL:** All registered system users in the hospital (excluding soft-deleted users `is_deleted = true`).
+// @Description  - **ACTIVE DUTY (ONLINE):** Currently active accounts (`is_active = true`, `is_deleted = false`).
+// @Description  - **INACTIVE (AWAY):** Disabled or on leave accounts (`is_active = false`, `is_deleted = false`).
+// @Description  - **ACCESS REQUESTS (PENDING):** Placeholder `0` for now.
+// @Description  **Common Errors:**
+// @Description  - 403 Forbidden (not a hospital admin or no hospital assigned)
+// @Description  - 404 Hospital admin not found
+// @Tags         Hospital Admin
+// @Produce      json
+// @Success      200 {object} dto.HospitalAdminPersonnelWidgetResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/hospital-admin/dashboard/personnel-widget [get]
+func (h *HospitalAdminOperationsHandler) GetPersonnelWidgetStats(c *gin.Context) {
+	adminID, _, ok := getAdminContext(c)
+	if !ok {
+		return
+	}
+
+	resp, err := h.userUseCase.GetPersonnelWidgetStats(c.Request.Context(), adminID)
+	if err != nil {
+		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	resp.BaseResponse = dto.BaseResponse{Success: true, Message: "Personnel widget stats retrieved successfully"}
+	c.JSON(http.StatusOK, resp)
+}
+

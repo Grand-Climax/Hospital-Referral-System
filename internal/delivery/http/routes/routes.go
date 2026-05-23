@@ -416,6 +416,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			hospitalAdminGroup.GET("/reports/top-referring-hospitals", adminHandler.HospitalAdminTopReferringHospitals)
 
 			hospitalAdminGroup.GET("/hospital/profile", hospitalAdminOpsHandler.GetMyHospitalProfile)
+			hospitalAdminGroup.GET("/dashboard/personnel-widget", hospitalAdminOpsHandler.GetPersonnelWidgetStats)
 			hospitalAdminGroup.PATCH("/hospital/profile", hospitalAdminOpsHandler.UpdateMyHospitalProfile)
 			hospitalAdminGroup.POST("/departments", hospitalAdminOpsHandler.LinkDepartmentToMyHospital)
 			hospitalAdminGroup.GET("/departments", hospitalAdminOpsHandler.ListMyHospitalDepartments)

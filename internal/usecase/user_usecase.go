@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	iinfra "Hospital-Referral-System/internal/domain/interfaces/infrastructure"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
@@ -622,3 +623,23 @@ func (u *userUseCase) canSeeTarget(requester, target *entity.User) bool {
 
 	return true
 }
+
+func (u *userUseCase) GetPersonnelWidgetStats(ctx context.Context, adminID uuid.UUID) (*dto.HospitalAdminPersonnelWidgetResponse, error) {
+	_, adminHospID, err := u.hospitalAdminContext(ctx, adminID)
+	if err != nil {
+		return nil, err
+	}
+
+	total, active, inactive, err := u.repo.CountHospitalStaffByStatus(ctx, adminHospID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.HospitalAdminPersonnelWidgetResponse{
+		TotalPersonnel: total,
+		ActiveDuty:     active,
+		Inactive:       inactive,
+		AccessRequests: 0,
+	}, nil
+}
+

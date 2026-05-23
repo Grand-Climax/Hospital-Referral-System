@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
 	irepository "Hospital-Referral-System/internal/domain/interfaces/repository"
 )
@@ -47,4 +48,5 @@ type UserUseCase interface {
 	HospitalAdminReassignStaffDepartment(ctx context.Context, adminID, staffID uuid.UUID, departmentID *uuid.UUID) error
 	HospitalAdminListActiveStaffSessions(ctx context.Context, adminID uuid.UUID, filter HospitalAdminSessionFilter) ([]entity.Session, int64, error)
 	HospitalAdminForceLogoutStaff(ctx context.Context, adminID, staffID uuid.UUID) (int64, error)
+	GetPersonnelWidgetStats(ctx context.Context, adminID uuid.UUID) (*dto.HospitalAdminPersonnelWidgetResponse, error)
 }
