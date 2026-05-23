@@ -638,6 +638,14 @@ func (m *MockReferralUseCase) SpecialistRerunML(ctx context.Context, id, special
 	return args.Error(0)
 }
 
+func (m *MockReferralUseCase) GetMLPredictionForSpecialist(ctx context.Context, referralID, hospID uuid.UUID) (*entity.MLPrediction, error) {
+	args := m.Called(ctx, referralID, hospID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.MLPrediction), args.Error(1)
+}
+
 func (m *MockReferralUseCase) RedirectReferral(ctx context.Context, id, specialistID, hospID, targetHospitalID uuid.UUID, reason string, newDeptID *uuid.UUID) error {
 	args := m.Called(ctx, id, specialistID, hospID, targetHospitalID, reason, newDeptID)
 	return args.Error(0)

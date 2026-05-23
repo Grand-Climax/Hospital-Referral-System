@@ -15,4 +15,6 @@ type MLPredictionRepository interface {
 	GetActiveByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error)
 	GetPendingFeedbackByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error)
 	MapActiveByReferralIDs(ctx context.Context, referralIDs []uuid.UUID) (map[uuid.UUID]*entity.MLPrediction, error)
+	GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error)
+	Upsert(ctx context.Context, pred *entity.MLPrediction) error
 }
