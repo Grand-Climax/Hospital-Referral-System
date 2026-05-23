@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/domain/entity"
@@ -137,3 +138,29 @@ func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
 	user.Department = nil
 	return r.db.WithContext(ctx).Omit("Hospital", "Department").Save(user).Error
 }
+
+func (r *userRepository) CountHospitalStaffByStatus(ctx context.Context, hospitalID uuid.UUID) (total int64, active int64, inactive int64, err error) {
+	err = r.db.WithContext(ctx).Model(&entity.User{}).
+		Where("hospital_id = ? AND is_deleted = false", hospitalID).
+		Count(&total).Error
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&entity.User{}).
+		Where("hospital_id = ? AND is_deleted = false AND is_active = true", hospitalID).
+		Count(&active).Error
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&entity.User{}).
+		Where("hospital_id = ? AND is_deleted = false AND is_active = false", hospitalID).
+		Count(&inactive).Error
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	return total, active, inactive, nil
+}
+

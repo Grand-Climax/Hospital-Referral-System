@@ -76,6 +76,12 @@ func (m *MockUserRepo) CreateStaffReplacementLog(ctx context.Context, log *entit
 	return args.Error(0)
 }
 
+func (m *MockUserRepo) CountHospitalStaffByStatus(ctx context.Context, hospitalID uuid.UUID) (total int64, active int64, inactive int64, err error) {
+	args := m.Called(ctx, hospitalID)
+	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Error(3)
+}
+
+
 // ---------------------------------------------------------------------------
 // Mock: ReferralRepository
 // ---------------------------------------------------------------------------
@@ -1784,6 +1790,15 @@ func (m *MockUserUseCase) HospitalAdminForceLogoutStaff(ctx context.Context, adm
 	args := m.Called(ctx, adminID, staffID)
 	return args.Get(0).(int64), args.Error(1)
 }
+
+func (m *MockUserUseCase) GetPersonnelWidgetStats(ctx context.Context, adminID uuid.UUID) (*dto.HospitalAdminPersonnelWidgetResponse, error) {
+	args := m.Called(ctx, adminID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.HospitalAdminPersonnelWidgetResponse), args.Error(1)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: HospitalUseCase

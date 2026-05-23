@@ -549,6 +549,26 @@ definitions:
     required:
     - department_id
     type: object
+  dto.HospitalAdminPersonnelWidgetResponse:
+    properties:
+      access_requests:
+        example: 0
+        type: integer
+      active_duty:
+        example: 120
+        type: integer
+      inactive:
+        example: 30
+        type: integer
+      message:
+        type: string
+      success:
+        example: true
+        type: boolean
+      total_personnel:
+        example: 150
+        type: integer
+    type: object
   dto.HospitalAdminReassignDepartmentRequest:
     properties:
       department_id:
@@ -4567,6 +4587,40 @@ paths:
       security:
       - BearerAuth: []
       summary: View hospital audit logs (Hospital Admin)
+      tags:
+      - Hospital Admin
+  /api/v1/hospital-admin/dashboard/personnel-widget:
+    get:
+      description: |-
+        Retrieve dashboard metrics for hospital personnel (Total Registered Users, Active Duty, Inactive).
+        **Roles:** HOSPITAL_ADMIN
+        **Visibility:** Scoped to the authenticated hospital admin's hospital.
+        **Metrics Returned:**
+        - **TOTAL PERSONNEL:** All registered system users in the hospital (excluding soft-deleted users `is_deleted = true`).
+        - **ACTIVE DUTY (ONLINE):** Currently active accounts (`is_active = true`, `is_deleted = false`).
+        - **INACTIVE (AWAY):** Disabled or on leave accounts (`is_active = false`, `is_deleted = false`).
+        - **ACCESS REQUESTS (PENDING):** Placeholder `0` for now.
+        **Common Errors:**
+        - 403 Forbidden (not a hospital admin or no hospital assigned)
+        - 404 Hospital admin not found
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HospitalAdminPersonnelWidgetResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get personnel widget stats (Hospital Admin)
       tags:
       - Hospital Admin
   /api/v1/hospital-admin/departments:
