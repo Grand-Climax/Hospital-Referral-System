@@ -108,9 +108,9 @@ func (u *mlUseCase) scoreReferral(ctx context.Context, referralID uuid.UUID, for
 		}
 	}
 
-	// 3. Rerun Cooldown Guard (if failed in the last 3 minutes)
-	if ref.MLStatus == entity.MLStatusFailed && ref.MLLastFailedAt != nil && time.Since(*ref.MLLastFailedAt) < 3*time.Minute {
-		remaining := 3*time.Minute - time.Since(*ref.MLLastFailedAt)
+	// 3. Rerun Cooldown Guard (if failed in the last 1 minute)
+	if ref.MLStatus == entity.MLStatusFailed && ref.MLLastFailedAt != nil && time.Since(*ref.MLLastFailedAt) < 1*time.Minute {
+		remaining := 1*time.Minute - time.Since(*ref.MLLastFailedAt)
 		return fmt.Errorf("ML scoring is in cooldown, please wait %s before retrying", remaining.Round(time.Second))
 	}
 

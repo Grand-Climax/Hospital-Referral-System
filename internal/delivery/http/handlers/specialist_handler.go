@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/domain/entity"
@@ -615,6 +617,64 @@ func (h *SpecialistHandler) RerunML(c *gin.Context) {
 		Message: "ML prediction rerun successfully",
 	})
 }
+
+// GetMLPrediction godoc
+// @Summary      Get ML Prediction Details
+// @Description  Get the machine learning prediction details for a specific referral.
+// @Description  **Roles:** RECEIVING_SPECIALIST
+// @Description  **Visibility:** The specialist must belong to the target hospital of the referral.
+// @Description  **Common Errors:**
+// @Description  - 400 invalid format
+// @Description  - 403 unauthorized hospital access
+// @Description  - 404 ML prediction not found
+// @Tags         Specialist
+// @Produce      json
+// @Param        id path string true "Referral ID"
+// @Success      200 {object} dto.MLPredictionResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/ml-prediction [get]
+func (h *SpecialistHandler) GetMLPrediction(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid format"})
+		return
+	}
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	pred, err := h.referralUC.GetMLPredictionForSpecialist(c.Request.Context(), id, hospID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Success: false,
+				Error:   "ML prediction not found for this referral",
+			})
+			return
+		}
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MLPredictionResponse{
+		Success: true,
+		Message: "ML prediction retrieved successfully",
+		Data:    pred,
+	})
+}
+
 
 // Release godoc
 // @Summary      Release Referral (Unassign Self)

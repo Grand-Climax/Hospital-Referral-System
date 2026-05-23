@@ -1353,7 +1353,10 @@ func (u *referralUseCase) SpecialistRerunML(ctx context.Context, id, specialistI
 	if err != nil {
 		return err
 	}
-	
+	if ref.SpecialistID == nil || *ref.SpecialistID != specialistID {
+		return errors.New("ML rerun is only allowed for the specialist assigned to this referral")
+	}
+
 	// If stuck PENDING for > 2.5 minutes, or FAILED, bypass constraints to allow recovery
 	isStuckOrFailed := ref.MLStatus == entity.MLStatusFailed || 
 		(ref.MLStatus == entity.MLStatusPending && ref.MLRunStartedAt != nil && time.Since(*ref.MLRunStartedAt) > 150*time.Second)
@@ -1361,9 +1364,6 @@ func (u *referralUseCase) SpecialistRerunML(ctx context.Context, id, specialistI
 	if !isStuckOrFailed {
 		if ref.Status != entity.StatusUnderSpecialistReview {
 			return errors.New("ML can only be rerun while the referral is under specialist review")
-		}
-		if ref.SpecialistID != nil && *ref.SpecialistID != specialistID {
-			return errors.New("referral is claimed by another specialist")
 		}
 	}
 
@@ -1689,3 +1689,19 @@ func (u *referralUseCase) ChangeDepartment(ctx context.Context, referralID, spec
 	reason := fmt.Sprintf("Department changed from %s to %s by specialist", oldDeptID, newDeptID)
 	return u.logStatusChange(ctx, referralID, specialistID, &ref.Status, ref.Status, reason)
 }
+
+func (u *referralUseCase) GetMLPredictionForSpecialist(ctx context.Context, referralID, hospID uuid.UUID) (*entity.MLPrediction, error) {
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
+		return nil, err
+	}
+	if ref.TargetHospitalID != hospID {
+		return nil, errors.New("unauthorized: this referral is targeted to another hospital")
+	}
+	pred, err := u.mlRepo.GetByReferralID(ctx, referralID)
+	if err != nil {
+		return nil, err
+	}
+	return pred, nil
+}
+
