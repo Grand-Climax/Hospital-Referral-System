@@ -209,6 +209,12 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 		return errors.New("cannot mark a future appointment as missed")
 	}
 
+	today := time.Now().Truncate(24 * time.Hour)
+	exists, err := u.clinicalRepo.ExistsForReferralAndDate(ctx, queue.ReferralID, "MISSED_APPOINTMENT_RE_EVALUATION", today)
+	if err == nil && exists {
+		return errors.New("a missed appointment update has already been recorded today")
+	}
+
 	queue.ArrivalStatus = entity.ArrivalMissed
 	queue.MissReason = &missReason
 
