@@ -10162,6 +10162,10 @@ const docTemplate = `{
                     "minLength": 8,
                     "example": "password123"
                 },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+251911234567"
+                },
                 "region": {
                     "type": "string",
                     "example": "Addis Ababa"
@@ -11980,6 +11984,9 @@ const docTemplate = `{
                 "national_id": {
                     "type": "string"
                 },
+                "phone_number": {
+                    "type": "string"
+                },
                 "profile_image_url": {
                     "type": "string"
                 },
@@ -13088,6 +13095,10 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 8,
                     "example": "password123"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "+251911234567"
                 },
                 "region": {
                     "type": "string",

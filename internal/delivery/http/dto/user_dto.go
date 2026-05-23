@@ -13,6 +13,7 @@ type UserResponse struct {
 	HospitalID     *string         `json:"hospital_id,omitempty"`
 	DepartmentID   *string         `json:"department_id,omitempty"`
 	Region         *string         `json:"region,omitempty"`
+	PhoneNumber    *string         `json:"phone_number,omitempty"`
 	Hospital       *HospitalResponse `json:"hospital,omitempty"`
 	Department     *DepartmentResponse `json:"department,omitempty"`
 	ProfileImageURL string         `json:"profile_image_url,omitempty"`
