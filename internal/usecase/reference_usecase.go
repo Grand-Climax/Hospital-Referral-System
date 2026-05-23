@@ -31,7 +31,36 @@ func (u *referenceUseCase) ListICDCodes(ctx context.Context, search string, cate
 }
 
 func (u *referenceUseCase) ListICDCategories(ctx context.Context) ([]string, error) {
-	return u.referenceRepo.ListICDCategories(ctx)
+	categories, err := u.referenceRepo.ListICDCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(categories) == 0 {
+		return []string{
+			"Blood & Immune Disorders",
+			"Cancers & Tumors",
+			"Circulatory System Diseases",
+			"Conditions Originating in Perinatal Period",
+			"Congenital Malformations & Chromosomal Abnormalities",
+			"Digestive System Diseases",
+			"Ear & Mastoid Diseases",
+			"Endocrine, Nutritional & Metabolic Diseases",
+			"External Causes of Morbidity & Mortality",
+			"Eye & Adnexa Diseases",
+			"Genitourinary System Diseases",
+			"Infectious & Parasitic Diseases",
+			"Injury, Poisoning & External Causes",
+			"Mental & Behavioral Disorders",
+			"Musculoskeletal & Connective Tissue Diseases",
+			"Nervous System Diseases",
+			"Pregnancy, Childbirth & Puerperium",
+			"Respiratory System Diseases",
+			"Skin & Subcutaneous Tissue Diseases",
+			"Symptoms, Signs & Abnormal Findings",
+			"Unknown",
+		}, nil
+	}
+	return categories, nil
 }
 
 func (u *referenceUseCase) GetNetworkedHospitals(ctx context.Context, senderHospitalID uuid.UUID) ([]entity.Hospital, error) {
