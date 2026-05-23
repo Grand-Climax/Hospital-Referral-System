@@ -191,6 +191,7 @@ func (h *HospitalAdminStaffHandler) CreateStaff(c *gin.Context) {
 		HospitalID:   &hospID,
 		DepartmentID: deptID,
 		Region:       finalRegion,
+		PhoneNumber:  req.PhoneNumber,
 	}
 
 	if err := h.userUseCase.HospitalAdminCreateStaff(c.Request.Context(), adminID, user, req.Password); err != nil {

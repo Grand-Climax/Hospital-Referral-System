@@ -98,6 +98,7 @@ type CreateUserRequest struct {
 	HospitalID   *string         `json:"hospital_id" example:"0f74f069-d52d-4482-9ba5-41b007fdc1e5"`
 	DepartmentID *string         `json:"department_id" example:"dfc2b777-a5d5-424b-911a-976b2e8d8614"`
 	Region       *string         `json:"region,omitempty" example:"Addis Ababa"`
+	PhoneNumber  *string         `json:"phone_number,omitempty" example:"+251911234567"`
 }
 
 type UpdateUserRequest struct {
@@ -129,6 +130,7 @@ func toUserResponse(u *entity.User) dto.UserResponse {
 		Role:            u.Role,
 		IsActive:        u.IsActive,
 		ProfileImageURL: utils.OptimizeCloudinaryURL(u.ProfileImageURL),
+		PhoneNumber:     u.PhoneNumber,
 		CreatedAt:       u.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:       u.UpdatedAt.Format(time.RFC3339),
 	}
@@ -260,6 +262,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		HospitalID:   finalHospitalID,
 		DepartmentID: finalDepartmentID,
 		Region:       finalRegion,
+		PhoneNumber:  req.PhoneNumber,
 	}
 
 	if err := h.userUseCase.CreateUser(c.Request.Context(), user, req.Password); err != nil {
