@@ -300,7 +300,16 @@ func (h *HospitalAdminOperationsHandler) AssignDepartmentHead(c *gin.Context) {
 		return
 	}
 
-	staffID, err := uuid.Parse(req.StaffID)
+	staffIDStr := req.ResolvedStaffID()
+	if staffIDStr == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "staff_id is required in the request body (accepted keys: staff_id, staffId, user_id, userId)",
+		})
+		return
+	}
+
+	staffID, err := uuid.Parse(staffIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid staff_id"})
 		return
