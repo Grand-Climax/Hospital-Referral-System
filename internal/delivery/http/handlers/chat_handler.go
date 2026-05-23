@@ -452,8 +452,12 @@ func (h *ChatHandler) ListContacts(c *gin.Context) {
 	userID, _ := userIdVal.(uuid.UUID)
 
 	userRoleVal, _ := c.Get("role")
-	roleStr, _ := userRoleVal.(string)
-	role := entity.UserRole(roleStr)
+	var role entity.UserRole
+	if r, ok := userRoleVal.(entity.UserRole); ok {
+		role = r
+	} else if rStr, ok := userRoleVal.(string); ok {
+		role = entity.UserRole(rStr)
+	}
 
 	hospIdVal, _ := c.Get("hospID")
 	hospID := uuid.Nil
