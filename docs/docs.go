@@ -8187,6 +8187,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/specialist/referrals/{id}/ml-prediction": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the machine learning prediction details for a specific referral.\n**Roles:** RECEIVING_SPECIALIST\n**Visibility:** The specialist must belong to the target hospital of the referral.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access\n- 404 ML prediction not found",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Get ML Prediction Details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MLPredictionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/specialist/referrals/{id}/read": {
             "post": {
                 "security": [
@@ -9893,6 +9945,9 @@ const docTemplate = `{
                 "department_name": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string"
+                },
                 "first_name": {
                     "type": "string"
                 },
@@ -9931,10 +9986,19 @@ const docTemplate = `{
                 "last_message_at": {
                     "type": "string"
                 },
+                "other_user_email": {
+                    "type": "string"
+                },
+                "other_user_first_name": {
+                    "type": "string"
+                },
                 "other_user_hospital": {
                     "type": "string"
                 },
                 "other_user_id": {
+                    "type": "string"
+                },
+                "other_user_last_name": {
                     "type": "string"
                 },
                 "other_user_name": {
@@ -10255,13 +10319,19 @@ const docTemplate = `{
         },
         "dto.HospitalAdminAssignDepartmentHeadRequest": {
             "type": "object",
-            "required": [
-                "staff_id"
-            ],
             "properties": {
+                "staffId": {
+                    "type": "string"
+                },
                 "staff_id": {
                     "type": "string",
                     "example": "d3000000-0000-0000-0000-000000000003"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
@@ -10839,6 +10909,22 @@ const docTemplate = `{
                 },
                 "refresh_token": {
                     "type": "string"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.MLPredictionResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/entity.MLPrediction"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "ML prediction retrieved successfully"
                 },
                 "success": {
                     "type": "boolean",
@@ -11636,11 +11722,17 @@ const docTemplate = `{
                 "ml_last_error": {
                     "type": "string"
                 },
+                "ml_last_failed_at": {
+                    "type": "string"
+                },
                 "ml_model_version": {
                     "type": "string"
                 },
                 "ml_retry_count": {
                     "type": "integer"
+                },
+                "ml_run_started_at": {
+                    "type": "string"
                 },
                 "ml_severity_score": {
                     "type": "number"
@@ -11652,6 +11744,9 @@ const docTemplate = `{
                 "ml_status": {
                     "description": "Handle ML Failure",
                     "type": "string"
+                },
+                "ml_successful_rerun_count": {
+                    "type": "integer"
                 },
                 "patient": {
                     "description": "Relationships",
@@ -12555,6 +12650,76 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.MLPrediction": {
+            "type": "object",
+            "properties": {
+                "confidence_level": {
+                    "type": "number"
+                },
+                "explanation": {
+                    "type": "object"
+                },
+                "external_prediction_id": {
+                    "type": "string"
+                },
+                "feedback_sent_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "input_features": {
+                    "type": "object"
+                },
+                "is_overridden": {
+                    "type": "boolean"
+                },
+                "model_version": {
+                    "type": "string"
+                },
+                "output_score": {
+                    "type": "number"
+                },
+                "overridden_at": {
+                    "type": "string"
+                },
+                "overridden_by": {
+                    "type": "string"
+                },
+                "overridden_by_user": {
+                    "$ref": "#/definitions/entity.User"
+                },
+                "overridden_score": {
+                    "type": "number"
+                },
+                "override_justification": {
+                    "type": "string"
+                },
+                "predicted_at": {
+                    "type": "string"
+                },
+                "processing_time_ms": {
+                    "type": "number"
+                },
+                "referral": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Referral"
+                        }
+                    ]
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "severity_tier": {
+                    "type": "string"
+                },
+                "trigger_reason": {
+                    "type": "string"
+                }
+            }
+        },
         "entity.MissReason": {
             "type": "string",
             "enum": [
@@ -12721,11 +12886,17 @@ const docTemplate = `{
                 "ml_last_error": {
                     "type": "string"
                 },
+                "ml_last_failed_at": {
+                    "type": "string"
+                },
                 "ml_model_version": {
                     "type": "string"
                 },
                 "ml_retry_count": {
                     "type": "integer"
+                },
+                "ml_run_started_at": {
+                    "type": "string"
                 },
                 "ml_severity_score": {
                     "type": "number"
@@ -12737,6 +12908,9 @@ const docTemplate = `{
                 "ml_status": {
                     "description": "Handle ML Failure",
                     "type": "string"
+                },
+                "ml_successful_rerun_count": {
+                    "type": "integer"
                 },
                 "patient": {
                     "description": "Relationships",
