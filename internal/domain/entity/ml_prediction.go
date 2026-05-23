@@ -10,7 +10,7 @@ import (
 
 type MLPrediction struct {
 	ID                    uuid.UUID       `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	ReferralID            uuid.UUID       `gorm:"type:uuid;not null;index:idx_ml_prediction_referral_active" json:"referral_id"`
+	ReferralID            uuid.UUID       `gorm:"type:uuid;not null;uniqueIndex" json:"referral_id"`
 	ExternalPredictionID  *string         `gorm:"type:varchar(128);uniqueIndex" json:"external_prediction_id,omitempty"`
 	TriggerReason         string          `gorm:"type:varchar(30);not null;default:'INITIAL'" json:"trigger_reason"`
 	InputFeatures         json.RawMessage `gorm:"type:jsonb;not null" json:"input_features"`
@@ -27,7 +27,6 @@ type MLPrediction struct {
 	OverriddenBy          *uuid.UUID      `gorm:"type:uuid" json:"overridden_by,omitempty"`
 	OverrideJustification *string         `gorm:"type:text" json:"override_justification,omitempty"`
 	OverriddenAt          *time.Time      `json:"overridden_at,omitempty"`
-	IsActive              bool            `gorm:"default:true;index:idx_ml_prediction_referral_active" json:"is_active"`
 
 	// Relationships
 	Referral         *Referral `gorm:"foreignKey:ReferralID" json:"referral,omitempty"`

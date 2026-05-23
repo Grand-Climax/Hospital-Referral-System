@@ -28,31 +28,34 @@ func (r *mlPredictionRepository) Create(ctx context.Context, prediction *entity.
 	return r.db.WithContext(ctx).Create(prediction).Error
 }
 
-func (r *mlPredictionRepository) GetLatestByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error) {
+func (r *mlPredictionRepository) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error) {
 	var prediction entity.MLPrediction
 	err := r.db.WithContext(ctx).
 		Where("referral_id = ?", referralID).
-		Order("predicted_at desc").
 		First(&prediction).Error
-	return &prediction, err
+	if err != nil {
+		return nil, err
+	}
+	return &prediction, nil
+}
+
+func (r *mlPredictionRepository) GetLatestByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error) {
+	return r.GetByReferralID(ctx, referralID)
 }
 
 func (r *mlPredictionRepository) GetActiveByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error) {
-	var prediction entity.MLPrediction
-	err := r.db.WithContext(ctx).
-		Where("referral_id = ? AND is_active = ?", referralID, true).
-		Order("predicted_at desc").
-		First(&prediction).Error
-	return &prediction, err
+	return r.GetByReferralID(ctx, referralID)
 }
 
 func (r *mlPredictionRepository) GetPendingFeedbackByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.MLPrediction, error) {
 	var prediction entity.MLPrediction
 	err := r.db.WithContext(ctx).
 		Where("referral_id = ? AND external_prediction_id IS NOT NULL AND external_prediction_id != '' AND feedback_sent_at IS NULL", referralID).
-		Order("predicted_at desc").
 		First(&prediction).Error
-	return &prediction, err
+	if err != nil {
+		return nil, err
+	}
+	return &prediction, nil
 }
 
 func (r *mlPredictionRepository) MapActiveByReferralIDs(ctx context.Context, referralIDs []uuid.UUID) (map[uuid.UUID]*entity.MLPrediction, error) {
@@ -62,17 +65,26 @@ func (r *mlPredictionRepository) MapActiveByReferralIDs(ctx context.Context, ref
 	}
 	var preds []entity.MLPrediction
 	err := r.db.WithContext(ctx).
-		Where("referral_id IN ? AND is_active = ?", referralIDs, true).
-		Order("predicted_at desc").
+		Where("referral_id IN ?", referralIDs).
 		Find(&preds).Error
 	if err != nil {
 		return nil, err
 	}
 	for i := range preds {
-		id := preds[i].ReferralID
-		if _, exists := out[id]; !exists {
-			out[id] = &preds[i]
-		}
+		out[preds[i].ReferralID] = &preds[i]
 	}
 	return out, nil
+}
+
+func (r *mlPredictionRepository) Upsert(ctx context.Context, pred *entity.MLPrediction) error {
+	var existing entity.MLPrediction
+	err := r.db.WithContext(ctx).Where("referral_id = ?", pred.ReferralID).First(&existing).Error
+	if err == nil {
+		pred.ID = existing.ID
+		return r.db.WithContext(ctx).Save(pred).Error
+	}
+	if err == gorm.ErrRecordNotFound {
+		return r.db.WithContext(ctx).Create(pred).Error
+	}
+	return err
 }
