@@ -11,7 +11,8 @@ import (
 
 type ChatUseCase interface {
 	SendMessage(ctx context.Context, senderID, receiverID uuid.UUID, referralID *uuid.UUID, content string) (*entity.ChatMessage, error)
-	ListConversations(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.ConversationResponse, int64, error)
+	ListConversations(ctx context.Context, userID uuid.UUID, filterType string, limit, offset int) ([]dto.ConversationResponse, int64, error)
+	ListContacts(ctx context.Context, userID uuid.UUID, role entity.UserRole, hospID uuid.UUID, referralID *uuid.UUID, search string, roleFilter *entity.UserRole, limit, offset int) ([]dto.ContactResponse, int64, error)
 	GetMessages(ctx context.Context, userID uuid.UUID, conversationID uuid.UUID, limit, offset int) ([]entity.ChatMessage, int64, error)
 	MarkRead(ctx context.Context, userID uuid.UUID, conversationID uuid.UUID) error
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)

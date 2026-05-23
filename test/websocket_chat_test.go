@@ -55,8 +55,8 @@ func (m *MockChatMessageRepo) Delete(ctx context.Context, id interface{}) error 
 	return args.Error(0)
 }
 
-func (m *MockChatMessageRepo) GetConversations(ctx context.Context, userID uuid.UUID, limit, offset int) ([]entity.Conversation, int64, error) {
-	args := m.Called(ctx, userID, limit, offset)
+func (m *MockChatMessageRepo) GetConversations(ctx context.Context, userID uuid.UUID, filterType string, limit, offset int) ([]entity.Conversation, int64, error) {
+	args := m.Called(ctx, userID, filterType, limit, offset)
 	return args.Get(0).([]entity.Conversation), args.Get(1).(int64), args.Error(2)
 }
 

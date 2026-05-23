@@ -9,6 +9,7 @@ import (
 
 type Conversation struct {
 	ID                 uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	ParticipantHash    string         `gorm:"type:varchar(64);uniqueIndex:idx_conversation_participant_hash" json:"-"`
 	ReferralID         *uuid.UUID     `gorm:"type:uuid;index:idx_conversation_referral" json:"referral_id,omitempty"`
 	TargetHospitalID   *uuid.UUID     `gorm:"type:uuid;index:idx_conversation_target_hospital" json:"target_hospital_id,omitempty"`
 	Title              string         `gorm:"type:varchar(255)" json:"title,omitempty"`

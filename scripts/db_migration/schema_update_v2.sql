@@ -99,21 +99,21 @@ ALTER TABLE patients ADD COLUMN IF NOT EXISTS allow_sms BOOLEAN DEFAULT TRUE;
 -- 1. CapacityOverride
 CREATE TABLE IF NOT EXISTS capacity_overrides (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dept_id UUID NOT NULL REFERENCES hospital_departments(id) ON DELETE CASCADE,
+    department_id UUID NOT NULL REFERENCES hospital_departments(id) ON DELETE CASCADE,
     target_date DATE NOT NULL,
     new_limit INT NOT NULL CHECK (new_limit >= 0),
     reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(dept_id, target_date)
+    UNIQUE(department_id, target_date)
 );
-CREATE INDEX IF NOT EXISTS idx_capacity_override_dept_date ON capacity_overrides(dept_id, target_date);
+CREATE INDEX IF NOT EXISTS idx_capacity_override_dept_date ON capacity_overrides(department_id, target_date);
 
 -- 2. TriageQueue
 CREATE TABLE IF NOT EXISTS triage_queues (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     referral_id UUID NOT NULL REFERENCES referrals(id) ON DELETE CASCADE,
-    dept_id UUID NOT NULL REFERENCES hospital_departments(id),
+    department_id UUID NOT NULL REFERENCES hospital_departments(id),
     appointment_date DATE,
     composite_score DECIMAL(5,2) NOT NULL,
     assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -128,22 +128,22 @@ CREATE TABLE IF NOT EXISTS triage_queues (
     reschedule_reason VARCHAR(50),
     UNIQUE(referral_id, appointment_date)
 );
-CREATE INDEX IF NOT EXISTS idx_triage_queue_dept_score ON triage_queues(dept_id, appointment_date, composite_score DESC);
+CREATE INDEX IF NOT EXISTS idx_triage_queue_dept_score ON triage_queues(department_id, appointment_date, composite_score DESC);
 CREATE INDEX IF NOT EXISTS idx_triage_queue_date_status ON triage_queues(appointment_date, arrival_status);
 CREATE INDEX IF NOT EXISTS idx_triage_queue_doctor ON triage_queues(assigned_doctor_id);
 
 -- 3. DailySchedule
 CREATE TABLE IF NOT EXISTS daily_schedules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dept_id UUID NOT NULL REFERENCES hospital_departments(id),
+    department_id UUID NOT NULL REFERENCES hospital_departments(id),
     schedule_date DATE NOT NULL,
     booked_slots INT DEFAULT 0 CHECK (booked_slots >= 0),
     max_slots INT NOT NULL CHECK (max_slots > 0),
     overbook_limit INT DEFAULT 0,
     version INT DEFAULT 1,
-    UNIQUE(dept_id, schedule_date)
+    UNIQUE(department_id, schedule_date)
 );
-CREATE INDEX IF NOT EXISTS idx_daily_schedule_availability ON daily_schedules(dept_id, schedule_date, booked_slots);
+CREATE INDEX IF NOT EXISTS idx_daily_schedule_availability ON daily_schedules(department_id, schedule_date, booked_slots);
 
 -- 4. Notification
 CREATE TABLE IF NOT EXISTS notifications (
@@ -233,11 +233,11 @@ CREATE TABLE IF NOT EXISTS referral_redirections (
 CREATE TABLE IF NOT EXISTS scheduler_checkpoints (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     hospital_id UUID NOT NULL REFERENCES hospitals(id),
-    dept_id UUID NOT NULL REFERENCES hospital_departments(id),
+    department_id UUID NOT NULL REFERENCES hospital_departments(id),
     last_processed_at TIMESTAMP WITH TIME ZONE,
     lease_holder VARCHAR(255),
     lease_expires_at TIMESTAMP WITH TIME ZONE,
-    UNIQUE(hospital_id, dept_id)
+    UNIQUE(hospital_id, department_id)
 );
 
 -- 11. SystemConfig

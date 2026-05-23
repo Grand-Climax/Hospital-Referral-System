@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
+	"Hospital-Referral-System/internal/domain/entity"
 	iusecase "Hospital-Referral-System/internal/domain/interfaces/usecase"
 )
 
@@ -77,21 +78,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	var refID *string
-	if req.ReferralID != nil {
-		s := req.ReferralID.String()
-		refID = &s
-	}
-
-	c.JSON(http.StatusCreated, dto.SuccessPayload(dto.ChatMessageResponse{
-		ID:             msg.ID.String(),
-		ConversationID: msg.ConversationID.String(),
-		ReferralID:     refID,
-		SenderID:       msg.SenderID.String(),
-		ReceiverID:     req.ReceiverID.String(),
-		Content:        msg.Content,
-		CreatedAt:      msg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}, "Message sent successfully"))
+	c.JSON(http.StatusCreated, dto.SuccessPayload(dto.ToChatMessageResponse(*msg, req.ReceiverID.String()), "Message sent successfully"))
 }
 
 // ListConversations godoc
@@ -107,8 +94,9 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 // @Description  - Accessible by all authenticated roles except `MOH_ANALYST`.
 // @Tags         Chat
 // @Produce      json
-// @Param        limit  query  int  false  "Pagination limit (safe sanitized minimum of 1)"  default(20)
-// @Param        page   query  int  false  "Page number (safe sanitized minimum of 1)"       default(1)
+// @Param        limit  query  int     false  "Pagination limit (safe sanitized minimum of 1)"  default(20)
+// @Param        page   query  int     false  "Page number (safe sanitized minimum of 1)"       default(1)
+// @Param        type   query  string  false  "Filter by conversation type: all (default), direct (no referral), referral (scoped to a referral)"
 // @Success      200  {object}  dto.PaginatedConversationResponse
 // @Failure      401  {object}  dto.ErrorResponse  "Unauthorized: Invalid session token"
 // @Failure      500  {object}  dto.ErrorResponse  "Internal database retrieval error"
@@ -128,7 +116,12 @@ func (h *ChatHandler) ListConversations(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
-	conversations, total, err := h.chatUC.ListConversations(c.Request.Context(), userID, limit, offset)
+	filterType := c.DefaultQuery("type", "all")
+	if filterType != "direct" && filterType != "referral" {
+		filterType = "all"
+	}
+
+	conversations, total, err := h.chatUC.ListConversations(c.Request.Context(), userID, filterType, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
@@ -410,4 +403,109 @@ func (h *ChatHandler) DeleteConversation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Conversation soft-deleted successfully"})
+}
+
+// ListContacts godoc
+// @Summary      List Eligible Chat Contacts
+// @Description  Retrieve a paginated and searchable list of active users that the authenticated caller is legally authorized to chat with based on role visual boundaries, active access grants, and clinical referral relationships.
+// @Description  
+// @Description  ### Contact Search Modes:
+// @Description  
+// @Description  #### 1. Same-Hospital Mode (Without `referral_id`)
+// @Description  Returns colleagues working at the **same hospital** as the caller:
+// @Description  - **Self-Exclusion:** The caller is never included in the contact list.
+// @Description  - **Specialist Visibility:** Specialists can only see referring doctors to whom they have **active access** (via accepted referrals or explicit access grants).
+// @Description  - **Liaison Officer / Receptionist / Dept Head:** Follow standard hospital-wide visual scopes.
+// @Description  - **Admin & Super-Admin:** Standard administrative and super-admin visual bounds.
+// @Description  - **System Constraints:** Excludes `MOH_ANALYST` completely and excludes `SYSTEM_SUPER_ADMIN` (unless the caller themselves is a super-admin).
+// @Description  
+// @Description  #### 2. Cross-Hospital Mode (With `referral_id`)
+// @Description  Returns eligible clinical contacts at the **opposite hospital** involved in that specific referral context:
+// @Description  - **Visually Scoped Roles:** Limit eligible chat contacts to:
+// @Description    - The referring doctor who created/managed the referral.
+// @Description    - Liaison officers at the target hospital.
+// @Description    - Specialists with active access or assignment to the referral.
+// @Description    - The target department head and the target hospital administrator.
+// @Description  - **Access Gate:** The caller must have permission to access the referral to use this mode.
+// @Description  
+// @Description  ### Filtering & Search Options:
+// @Description  - **`search`:** Filter users dynamically by first name, middle name, or last name.
+// @Description  - **`role`:** Limit contacts to a specific user role (e.g., `RECEIVING_SPECIALIST`, `REFERRING_DOCTOR`).
+// @Description  
+// @Description  ### System Constraints:
+// @Description  - `MOH_ANALYST` users are completely barred from using or being returned by this endpoint.
+// @Tags         Chat
+// @Produce      json
+// @Param        referral_id query string false "Referral UUID to list eligible cross-hospital contacts for a referral"
+// @Param        search      query string false "Search pattern targeting first, middle, or last names of contacts"
+// @Param        role        query string false "Filter by specific user role (e.g., REFERRING_DOCTOR)"
+// @Param        limit       query int    false "Pagination limit (default 50)"
+// @Param        page        query int    false "Page number (default 1)"
+// @Success      200 {object} dto.PaginatedContactResponse
+// @Failure      400 {object} dto.ErrorResponse "Invalid referral ID, unauthorized role, or access boundaries violation"
+// @Failure      403 {object} dto.ErrorResponse "MOH Analyst role completely blocked"
+// @Failure      500 {object} dto.ErrorResponse "Internal database lookup error"
+// @Security     BearerAuth
+// @Router       /api/v1/chat/contacts [get]
+func (h *ChatHandler) ListContacts(c *gin.Context) {
+	userIdVal, _ := c.Get("userID")
+	userID, _ := userIdVal.(uuid.UUID)
+
+	userRoleVal, _ := c.Get("role")
+	roleStr, _ := userRoleVal.(string)
+	role := entity.UserRole(roleStr)
+
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if limit <= 0 {
+		limit = 50
+	}
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+
+	var referralID *uuid.UUID
+	if refIDStr := c.Query("referral_id"); refIDStr != "" {
+		parsed, err := uuid.Parse(refIDStr)
+		if err == nil {
+			referralID = &parsed
+		} else {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral_id format"})
+			return
+		}
+	}
+
+	search := c.Query("search")
+
+	var roleFilter *entity.UserRole
+	if rFilterStr := c.Query("role"); rFilterStr != "" {
+		parsed := entity.UserRole(rFilterStr)
+		roleFilter = &parsed
+	}
+
+	contacts, total, err := h.chatUC.ListContacts(c.Request.Context(), userID, role, hospID, referralID, search, roleFilter, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.PaginatedContactResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Eligible contacts retrieved successfully",
+		},
+		Data:     contacts,
+		Total:    total,
+		Page:     page,
+		PageSize: limit,
+	})
 }
