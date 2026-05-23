@@ -13,20 +13,23 @@ type SendMessageRequest struct {
 }
 
 type ConversationResponse struct {
-	ConversationID    string  `json:"conversation_id"`
-	Type              string  `json:"type"` // "direct" or "referral"
-	OtherUserID       string  `json:"other_user_id"`
-	OtherUserName     string  `json:"other_user_name"`
-	OtherUserRole     string  `json:"other_user_role"`
-	OtherUserHospital string  `json:"other_user_hospital"`
-	LastMessage       string  `json:"last_message"`
-	LastMessageAt     string  `json:"last_message_at"`
-	UnreadCount       int64   `json:"unread_count"`
-	ReferralID        *string `json:"referral_id,omitempty"`
-	ReferralStatus    *string `json:"referral_status,omitempty"` // "ACCEPTED", "SUBMITTED", etc. or nil if direct
-	IsReadOnly        bool    `json:"is_read_only"`
-	IsDisabled        bool    `json:"is_disabled"`
-	DisabledReason    string  `json:"disabled_reason,omitempty"`
+	ConversationID     string  `json:"conversation_id"`
+	Type               string  `json:"type"` // "direct" or "referral"
+	OtherUserID        string  `json:"other_user_id"`
+	OtherUserName      string  `json:"other_user_name"`
+	OtherUserFirstName string  `json:"other_user_first_name"`
+	OtherUserLastName  string  `json:"other_user_last_name"`
+	OtherUserEmail     string  `json:"other_user_email"`
+	OtherUserRole      string  `json:"other_user_role"`
+	OtherUserHospital  string  `json:"other_user_hospital"`
+	LastMessage        string  `json:"last_message"`
+	LastMessageAt      string  `json:"last_message_at"`
+	UnreadCount        int64   `json:"unread_count"`
+	ReferralID         *string `json:"referral_id,omitempty"`
+	ReferralStatus     *string `json:"referral_status,omitempty"` // "ACCEPTED", "SUBMITTED", etc. or nil if direct
+	IsReadOnly         bool    `json:"is_read_only"`
+	IsDisabled         bool    `json:"is_disabled"`
+	DisabledReason     string  `json:"disabled_reason,omitempty"`
 }
 
 type ChatMessageResponse struct {
@@ -120,6 +123,7 @@ type ContactResponse struct {
 	UserID         string `json:"user_id"`
 	FirstName      string `json:"first_name"`
 	LastName       string `json:"last_name"`
+	Email          string `json:"email"`
 	Role           string `json:"role"`
 	HospitalName   string `json:"hospital_name"`
 	DepartmentName string `json:"department_name"`
