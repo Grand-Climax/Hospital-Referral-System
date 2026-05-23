@@ -295,6 +295,8 @@ func (u *referralUseCase) CreateReferralWithAttachments(ctx context.Context, doc
 	}
 
 	if ref.Status == entity.StatusSubmitted {
+		_ = u.logStatusChange(ctx, ref.ID, doctorID, nil, entity.StatusSubmitted, "Initial submission")
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "REFERRAL_SUBMITTED", ref.ID, doctorID)
 		u.triggerMLScore(ref.ID)
 	}
 

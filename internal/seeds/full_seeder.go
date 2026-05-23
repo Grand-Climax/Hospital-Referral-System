@@ -210,21 +210,37 @@ func seedHospitals(ctx context.Context, db *gorm.DB) error {
 
 func seedDepartments(ctx context.Context, db *gorm.DB) error {
 	departments := []entity.Department{
-		{ID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), Name: "Cardiology", Description: ptrStr("Heart and blood vessel disorders")},
-		{ID: uuid.MustParse("b2000000-0000-0000-0000-000000000002"), Name: "Neurology", Description: ptrStr("Disorders of the nervous system")},
-		{ID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), Name: "Orthopedics", Description: ptrStr("Conditions involving the musculoskeletal system")},
+		{ID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), Name: "Cardiology", Description: ptrStr("Diagnosis and treatment of heart and vascular conditions")},
+		{ID: uuid.MustParse("b2000000-0000-0000-0000-000000000002"), Name: "Neurology", Description: ptrStr("Care for brain, spinal cord, and nervous system disorders")},
+		{ID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), Name: "Orthopedics", Description: ptrStr("Treatment of musculoskeletal system issues")},
 		{ID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), Name: "Internal Medicine", Description: ptrStr("General internal medicine")},
-		{ID: uuid.MustParse("b5000000-0000-0000-0000-000000000005"), Name: "Pediatrics", Description: ptrStr("Care of infants, children, and adolescents")},
-		{ID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), Name: "General Surgery", Description: ptrStr("Surgical procedures")},
-		{ID: uuid.MustParse("b7000000-0000-0000-0000-000000000007"), Name: "Obstetrics & Gynecology", Description: ptrStr("Pregnancy and female reproductive system")},
-		{ID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), Name: "Oncology", Description: ptrStr("Cancer treatment")},
-		{ID: uuid.MustParse("b9000000-0000-0000-0000-000000000009"), Name: "Ophthalmology", Description: ptrStr("Eye care")},
-		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000010"), Name: "Dermatology", Description: ptrStr("Skin conditions")},
+		{ID: uuid.MustParse("b5000000-0000-0000-0000-000000000005"), Name: "Pediatrics", Description: ptrStr("Medical care for infants, children, and adolescents")},
+		{ID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), Name: "General Surgery", Description: ptrStr("Surgical procedures for a wide range of conditions")},
+		{ID: uuid.MustParse("b7000000-0000-0000-0000-000000000007"), Name: "Obstetrics and Gynecology", Description: ptrStr("Women’s reproductive health and childbirth")},
+		{ID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), Name: "Oncology", Description: ptrStr("Diagnosis and treatment of cancer")},
+		{ID: uuid.MustParse("b9000000-0000-0000-0000-000000000009"), Name: "Ophthalmology", Description: ptrStr("Eye care and vision services")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000010"), Name: "Dermatology", Description: ptrStr("Care for skin, hair, and nail conditions")},
 		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000011"), Name: "Emergency Medicine", Description: ptrStr("Acute care for trauma and illnesses")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000012"), Name: "Emergency Department (ED)", Description: ptrStr("Immediate care for acute illnesses and injuries")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000013"), Name: "Radiology", Description: ptrStr("Imaging services for diagnosis and treatment")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000014"), Name: "Pathology", Description: ptrStr("Laboratory analysis of body tissues and fluids")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000015"), Name: "Urology", Description: ptrStr("Treatment of urinary and male reproductive systems")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000016"), Name: "Gastroenterology", Description: ptrStr("Treatment of digestive system disorders")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000017"), Name: "Nephrology", Description: ptrStr("Care for kidney-related conditions")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000018"), Name: "Pulmonology", Description: ptrStr("Treatment of lung and respiratory tract disorders")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000019"), Name: "Psychiatry", Description: ptrStr("Mental health care and treatment")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000020"), Name: "Endocrinology", Description: ptrStr("Treatment of hormonal and metabolic disorders")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000021"), Name: "Rheumatology", Description: ptrStr("Care for autoimmune and inflammatory diseases")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000022"), Name: "Anesthesiology", Description: ptrStr("Pain management and anesthesia for surgeries")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000023"), Name: "Intensive Care Unit (ICU)", Description: ptrStr("Critical care for severely ill or injured patients")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000024"), Name: "Infectious Diseases", Description: ptrStr("Treatment of infections and contagious diseases")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000025"), Name: "ENT (Otorhinolaryngology)", Description: ptrStr("Care for ear, nose, and throat conditions")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000026"), Name: "Hematology", Description: ptrStr("Treatment of blood disorders")},
+		{ID: uuid.MustParse("b0000000-0000-0000-0000-000000000027"), Name: "Physical Medicine and Rehab", Description: ptrStr("Rehabilitation and physical therapy services")},
 	}
 
 	for _, d := range departments {
-		if err := db.WithContext(ctx).Create(&d).Error; err != nil {
+		if err := db.WithContext(ctx).Save(&d).Error; err != nil {
 			return err
 		}
 	}
