@@ -6928,6 +6928,31 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/reference/icd-categories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all unique chapter categories present in the ICD-10 dataset.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "References"
+                ],
+                "summary": "List ICD-10 Categories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegionListResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/reference/icd-codes": {
             "get": {
                 "security": [
@@ -6935,7 +6960,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all available ICD-10 codes. Used by doctors and specialists when filling in diagnoses.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Returns all available ICD-10 codes with optional pagination, category filtering, and search matching. Used by doctors and specialists when filling in diagnoses.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -6949,13 +6974,33 @@ const docTemplate = `{
                         "description": "Search by code or description",
                         "name": "search",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Number of items per page",
+                        "name": "page_size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ICDCodeListResponse"
+                            "$ref": "#/definitions/dto.PaginatedICDCodeResponse"
                         }
                     }
                 }
@@ -10412,24 +10457,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ICDCodeListResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entity.ICDCode"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        },
         "dto.InAppNotificationResponse": {
             "type": "object",
             "properties": {
@@ -11053,6 +11080,33 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.ConversationResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PaginatedICDCodeResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ICDCode"
                     }
                 },
                 "message": {
