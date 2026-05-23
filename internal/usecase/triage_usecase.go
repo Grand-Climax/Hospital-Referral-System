@@ -204,30 +204,47 @@ func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userI
 			log.Printf("ml feedback override referral %s: %v", referralID, err)
 		}
 	}
-
 	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 1. Deactivate old active predictions
-		if err := tx.Model(&entity.MLPrediction{}).
-			Where("referral_id = ? AND is_active = ?", referralID, true).
-			Update("is_active", false).Error; err != nil {
-			return err
-		}
-
-		// 2. Create new overridden prediction
-		newPred := &entity.MLPrediction{
-			ReferralID:            referralID,
-			TriggerReason:         "MANUAL",
-			InputFeatures:         []byte("{}"),
-			OutputScore:           score,
-			ConfidenceLevel:       nil,
-			ModelVersion:          "manual-v1",
-			IsOverridden:          true,
-			OverriddenScore:       &score,
-			OverriddenBy:          &userID,
-			OverrideJustification: &justification,
-			IsActive:              true,
-		}
-		if err := tx.Create(newPred).Error; err != nil {
+		// 1. Query existing prediction or initialize new one
+		var pred entity.MLPrediction
+		err := tx.Where("referral_id = ?", referralID).First(&pred).Error
+		if err == nil {
+			// Found existing, update it and clear ML-specific fields
+			pred.TriggerReason = "MANUAL"
+			pred.InputFeatures = []byte("{}")
+			pred.OutputScore = score
+			pred.ConfidenceLevel = nil
+			pred.Explanation = nil
+			pred.ModelVersion = "manual-v1"
+			pred.IsOverridden = true
+			pred.OverriddenScore = &score
+			pred.OverriddenBy = &userID
+			pred.OverrideJustification = &justification
+			pred.PredictedAt = time.Now()
+			
+			if err := tx.Save(&pred).Error; err != nil {
+				return err
+			}
+		} else if err == gorm.ErrRecordNotFound {
+			// Create new overridden prediction
+			pred = entity.MLPrediction{
+				ReferralID:            referralID,
+				TriggerReason:         "MANUAL",
+				InputFeatures:         []byte("{}"),
+				OutputScore:           score,
+				ConfidenceLevel:       nil,
+				Explanation:           nil,
+				ModelVersion:          "manual-v1",
+				IsOverridden:          true,
+				OverriddenScore:       &score,
+				OverriddenBy:          &userID,
+				OverrideJustification: &justification,
+				PredictedAt:           time.Now(),
+			}
+			if err := tx.Create(&pred).Error; err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 
@@ -235,9 +252,11 @@ func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userI
 		if err := tx.Model(&entity.Referral{}).
 			Where("id = ?", referralID).
 			Updates(map[string]interface{}{
-				"active_ml_prediction_id": newPred.ID,
+				"active_ml_prediction_id": pred.ID,
 				"ml_severity_score":       score,
 				"triage_status":           entity.TriageOverridden,
+				"ml_status":               entity.MLStatusManual,
+				"ml_run_started_at":       nil,
 			}).Error; err != nil {
 			return err
 		}

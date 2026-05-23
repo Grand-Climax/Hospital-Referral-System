@@ -58,6 +58,10 @@ type Referral struct {
 	MLRetryCount   int    `gorm:"default:0" json:"ml_retry_count"`
 	MLLastError    *string `gorm:"type:text" json:"ml_last_error,omitempty"`
 
+	MLRunStartedAt         *time.Time `gorm:"type:timestamp" json:"ml_run_started_at,omitempty"`
+	MLSuccessfulRerunCount int        `gorm:"default:0" json:"ml_successful_rerun_count"`
+	MLLastFailedAt         *time.Time `gorm:"type:timestamp" json:"ml_last_failed_at,omitempty"`
+
 	// Populated for API responses from active ml_predictions (not persisted on referrals).
 	MLSeverityTier  *string  `gorm:"-" json:"ml_severity_tier,omitempty"`
 	MLExplanations  []string `gorm:"-" json:"ml_explanations,omitempty"`

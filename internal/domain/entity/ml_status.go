@@ -5,4 +5,5 @@ const (
 	MLStatusSuccess = "SUCCESS"
 	MLStatusFailed  = "FAILED"
 	MLStatusSkipped = "SKIPPED"
+	MLStatusManual  = "MANUAL"
 )
