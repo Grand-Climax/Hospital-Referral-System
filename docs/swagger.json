@@ -6928,7 +6928,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all unique chapter categories present in the ICD-10 dataset.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Returns all unique chapter categories present in the ICD-10 dataset (with a robust static fallback).\n**Categories Included:**\n- \"Blood \u0026 Immune Disorders\"\n- \"Cancers \u0026 Tumors\"\n- \"Circulatory System Diseases\"\n- \"Conditions Originating in Perinatal Period\"\n- \"Congenital Malformations \u0026 Chromosomal Abnormalities\"\n- \"Digestive System Diseases\"\n- \"Ear \u0026 Mastoid Diseases\"\n- \"Endocrine, Nutritional \u0026 Metabolic Diseases\"\n- \"External Causes of Morbidity \u0026 Mortality\"\n- \"Eye \u0026 Adnexa Diseases\"\n- \"Genitourinary System Diseases\"\n- \"Infectious \u0026 Parasitic Diseases\"\n- \"Injury, Poisoning \u0026 External Causes\"\n- \"Mental \u0026 Behavioral Disorders\"\n- \"Musculoskeletal \u0026 Connective Tissue Diseases\"\n- \"Nervous System Diseases\"\n- \"Pregnancy, Childbirth \u0026 Puerperium\"\n- \"Respiratory System Diseases\"\n- \"Skin \u0026 Subcutaneous Tissue Diseases\"\n- \"Symptoms, Signs \u0026 Abnormal Findings\"\n- \"Unknown\"\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
@@ -6953,7 +6953,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all available ICD-10 codes with optional pagination, category filtering, and search matching. Used by doctors and specialists when filling in diagnoses.\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Returns all available ICD-10 codes with optional pagination, category filtering, and search matching. Used by doctors and specialists when filling in diagnoses.\n**Valid Chapter Categories:**\n- \"Blood \u0026 Immune Disorders\"\n- \"Cancers \u0026 Tumors\"\n- \"Circulatory System Diseases\"\n- \"Conditions Originating in Perinatal Period\"\n- \"Congenital Malformations \u0026 Chromosomal Abnormalities\"\n- \"Digestive System Diseases\"\n- \"Ear \u0026 Mastoid Diseases\"\n- \"Endocrine, Nutritional \u0026 Metabolic Diseases\"\n- \"External Causes of Morbidity \u0026 Mortality\"\n- \"Eye \u0026 Adnexa Diseases\"\n- \"Genitourinary System Diseases\"\n- \"Infectious \u0026 Parasitic Diseases\"\n- \"Injury, Poisoning \u0026 External Causes\"\n- \"Mental \u0026 Behavioral Disorders\"\n- \"Musculoskeletal \u0026 Connective Tissue Diseases\"\n- \"Nervous System Diseases\"\n- \"Pregnancy, Childbirth \u0026 Puerperium\"\n- \"Respiratory System Diseases\"\n- \"Skin \u0026 Subcutaneous Tissue Diseases\"\n- \"Symptoms, Signs \u0026 Abnormal Findings\"\n- \"Unknown\"\n**Roles:** Any authenticated user.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],

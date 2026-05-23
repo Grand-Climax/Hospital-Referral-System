@@ -122,6 +122,28 @@ func (h *ReferenceHandler) GetDepartments(c *gin.Context) {
 // ListICDCodes godoc
 // @Summary      List all ICD-10 Codes
 // @Description  Returns all available ICD-10 codes with optional pagination, category filtering, and search matching. Used by doctors and specialists when filling in diagnoses.
+// @Description  **Valid Chapter Categories:**
+// @Description  - "Blood & Immune Disorders"
+// @Description  - "Cancers & Tumors"
+// @Description  - "Circulatory System Diseases"
+// @Description  - "Conditions Originating in Perinatal Period"
+// @Description  - "Congenital Malformations & Chromosomal Abnormalities"
+// @Description  - "Digestive System Diseases"
+// @Description  - "Ear & Mastoid Diseases"
+// @Description  - "Endocrine, Nutritional & Metabolic Diseases"
+// @Description  - "External Causes of Morbidity & Mortality"
+// @Description  - "Eye & Adnexa Diseases"
+// @Description  - "Genitourinary System Diseases"
+// @Description  - "Infectious & Parasitic Diseases"
+// @Description  - "Injury, Poisoning & External Causes"
+// @Description  - "Mental & Behavioral Disorders"
+// @Description  - "Musculoskeletal & Connective Tissue Diseases"
+// @Description  - "Nervous System Diseases"
+// @Description  - "Pregnancy, Childbirth & Puerperium"
+// @Description  - "Respiratory System Diseases"
+// @Description  - "Skin & Subcutaneous Tissue Diseases"
+// @Description  - "Symptoms, Signs & Abnormal Findings"
+// @Description  - "Unknown"
 // @Description  **Roles:** Any authenticated user.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
@@ -165,7 +187,29 @@ func (h *ReferenceHandler) ListICDCodes(c *gin.Context) {
 
 // ListICDCategories godoc
 // @Summary      List ICD-10 Categories
-// @Description  Returns all unique chapter categories present in the ICD-10 dataset.
+// @Description  Returns all unique chapter categories present in the ICD-10 dataset (with a robust static fallback).
+// @Description  **Categories Included:**
+// @Description  - "Blood & Immune Disorders"
+// @Description  - "Cancers & Tumors"
+// @Description  - "Circulatory System Diseases"
+// @Description  - "Conditions Originating in Perinatal Period"
+// @Description  - "Congenital Malformations & Chromosomal Abnormalities"
+// @Description  - "Digestive System Diseases"
+// @Description  - "Ear & Mastoid Diseases"
+// @Description  - "Endocrine, Nutritional & Metabolic Diseases"
+// @Description  - "External Causes of Morbidity & Mortality"
+// @Description  - "Eye & Adnexa Diseases"
+// @Description  - "Genitourinary System Diseases"
+// @Description  - "Infectious & Parasitic Diseases"
+// @Description  - "Injury, Poisoning & External Causes"
+// @Description  - "Mental & Behavioral Disorders"
+// @Description  - "Musculoskeletal & Connective Tissue Diseases"
+// @Description  - "Nervous System Diseases"
+// @Description  - "Pregnancy, Childbirth & Puerperium"
+// @Description  - "Respiratory System Diseases"
+// @Description  - "Skin & Subcutaneous Tissue Diseases"
+// @Description  - "Symptoms, Signs & Abnormal Findings"
+// @Description  - "Unknown"
 // @Description  **Roles:** Any authenticated user.
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized

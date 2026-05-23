@@ -7916,7 +7916,29 @@ paths:
   /api/v1/reference/icd-categories:
     get:
       description: |-
-        Returns all unique chapter categories present in the ICD-10 dataset.
+        Returns all unique chapter categories present in the ICD-10 dataset (with a robust static fallback).
+        **Categories Included:**
+        - "Blood & Immune Disorders"
+        - "Cancers & Tumors"
+        - "Circulatory System Diseases"
+        - "Conditions Originating in Perinatal Period"
+        - "Congenital Malformations & Chromosomal Abnormalities"
+        - "Digestive System Diseases"
+        - "Ear & Mastoid Diseases"
+        - "Endocrine, Nutritional & Metabolic Diseases"
+        - "External Causes of Morbidity & Mortality"
+        - "Eye & Adnexa Diseases"
+        - "Genitourinary System Diseases"
+        - "Infectious & Parasitic Diseases"
+        - "Injury, Poisoning & External Causes"
+        - "Mental & Behavioral Disorders"
+        - "Musculoskeletal & Connective Tissue Diseases"
+        - "Nervous System Diseases"
+        - "Pregnancy, Childbirth & Puerperium"
+        - "Respiratory System Diseases"
+        - "Skin & Subcutaneous Tissue Diseases"
+        - "Symptoms, Signs & Abnormal Findings"
+        - "Unknown"
         **Roles:** Any authenticated user.
         **Common Errors:**
         - 401 Unauthorized
@@ -7937,6 +7959,28 @@ paths:
     get:
       description: |-
         Returns all available ICD-10 codes with optional pagination, category filtering, and search matching. Used by doctors and specialists when filling in diagnoses.
+        **Valid Chapter Categories:**
+        - "Blood & Immune Disorders"
+        - "Cancers & Tumors"
+        - "Circulatory System Diseases"
+        - "Conditions Originating in Perinatal Period"
+        - "Congenital Malformations & Chromosomal Abnormalities"
+        - "Digestive System Diseases"
+        - "Ear & Mastoid Diseases"
+        - "Endocrine, Nutritional & Metabolic Diseases"
+        - "External Causes of Morbidity & Mortality"
+        - "Eye & Adnexa Diseases"
+        - "Genitourinary System Diseases"
+        - "Infectious & Parasitic Diseases"
+        - "Injury, Poisoning & External Causes"
+        - "Mental & Behavioral Disorders"
+        - "Musculoskeletal & Connective Tissue Diseases"
+        - "Nervous System Diseases"
+        - "Pregnancy, Childbirth & Puerperium"
+        - "Respiratory System Diseases"
+        - "Skin & Subcutaneous Tissue Diseases"
+        - "Symptoms, Signs & Abnormal Findings"
+        - "Unknown"
         **Roles:** Any authenticated user.
         **Common Errors:**
         - 401 Unauthorized
