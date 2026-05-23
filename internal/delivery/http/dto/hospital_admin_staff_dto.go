@@ -12,6 +12,7 @@ type HospitalAdminCreateStaffRequest struct {
 	Role         entity.UserRole `json:"role" binding:"required" example:"LIAISON_OFFICER"`
 	DepartmentID *string         `json:"department_id" example:"b5000000-0000-0000-0000-000000000005"`
 	Region       *string         `json:"region,omitempty" example:"Addis Ababa"`
+	PhoneNumber  *string         `json:"phone_number,omitempty" example:"+251911234567"`
 }
 
 type HospitalAdminChangeRoleRequest struct {
