@@ -17,7 +17,7 @@ type MLPrediction struct {
 	OutputScore           float64         `gorm:"type:numeric(5,2);not null" json:"output_score"`
 	SeverityTier          *string         `gorm:"type:varchar(30)" json:"severity_tier,omitempty"`
 	ConfidenceLevel       *float64        `gorm:"type:numeric(5,2)" json:"confidence_level,omitempty"`
-	Explanation           json.RawMessage `gorm:"type:jsonb" json:"explanation,omitempty" swaggertype:"object"`
+	Explanation           json.RawMessage `gorm:"type:jsonb" json:"explanation,omitempty" swaggertype:"array,string"`
 	ModelVersion          string          `gorm:"type:varchar(50);not null;index:idx_ml_prediction_model_override" json:"model_version"`
 	ProcessingTimeMs      *float64        `gorm:"type:numeric(10,2)" json:"processing_time_ms,omitempty"`
 	PredictedAt           time.Time       `gorm:"default:now()" json:"predicted_at"`
