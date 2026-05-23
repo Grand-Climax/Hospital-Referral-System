@@ -249,6 +249,8 @@ definitions:
     properties:
       department_name:
         type: string
+      email:
+        type: string
       first_name:
         type: string
       hospital_name:
@@ -274,9 +276,15 @@ definitions:
         type: string
       last_message_at:
         type: string
+      other_user_email:
+        type: string
+      other_user_first_name:
+        type: string
       other_user_hospital:
         type: string
       other_user_id:
+        type: string
+      other_user_last_name:
         type: string
       other_user_name:
         type: string
@@ -502,8 +510,12 @@ definitions:
       staff_id:
         example: d3000000-0000-0000-0000-000000000003
         type: string
-    required:
-    - staff_id
+      staffId:
+        type: string
+      user_id:
+        type: string
+      userId:
+        type: string
     type: object
   dto.HospitalAdminChangeRoleRequest:
     properties:
@@ -894,6 +906,17 @@ definitions:
       message:
         type: string
       refresh_token:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MLPredictionResponse:
+    properties:
+      data:
+        $ref: '#/definitions/entity.MLPrediction'
+      message:
+        example: ML prediction retrieved successfully
         type: string
       success:
         example: true
@@ -1426,10 +1449,14 @@ definitions:
         type: array
       ml_last_error:
         type: string
+      ml_last_failed_at:
+        type: string
       ml_model_version:
         type: string
       ml_retry_count:
         type: integer
+      ml_run_started_at:
+        type: string
       ml_severity_score:
         type: number
       ml_severity_tier:
@@ -1439,6 +1466,8 @@ definitions:
       ml_status:
         description: Handle ML Failure
         type: string
+      ml_successful_rerun_count:
+        type: integer
       patient:
         allOf:
         - $ref: '#/definitions/entity.Patient'
@@ -2093,6 +2122,51 @@ definitions:
       description:
         type: string
     type: object
+  entity.MLPrediction:
+    properties:
+      confidence_level:
+        type: number
+      explanation:
+        type: object
+      external_prediction_id:
+        type: string
+      feedback_sent_at:
+        type: string
+      id:
+        type: string
+      input_features:
+        type: object
+      is_overridden:
+        type: boolean
+      model_version:
+        type: string
+      output_score:
+        type: number
+      overridden_at:
+        type: string
+      overridden_by:
+        type: string
+      overridden_by_user:
+        $ref: '#/definitions/entity.User'
+      overridden_score:
+        type: number
+      override_justification:
+        type: string
+      predicted_at:
+        type: string
+      processing_time_ms:
+        type: number
+      referral:
+        allOf:
+        - $ref: '#/definitions/entity.Referral'
+        description: Relationships
+      referral_id:
+        type: string
+      severity_tier:
+        type: string
+      trigger_reason:
+        type: string
+    type: object
   entity.MissReason:
     enum:
     - PATIENT_NO_SHOW
@@ -2207,10 +2281,14 @@ definitions:
         type: array
       ml_last_error:
         type: string
+      ml_last_failed_at:
+        type: string
       ml_model_version:
         type: string
       ml_retry_count:
         type: integer
+      ml_run_started_at:
+        type: string
       ml_severity_score:
         type: number
       ml_severity_tier:
@@ -2220,6 +2298,8 @@ definitions:
       ml_status:
         description: Handle ML Failure
         type: string
+      ml_successful_rerun_count:
+        type: integer
       patient:
         allOf:
         - $ref: '#/definitions/entity.Patient'
@@ -8812,6 +8892,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Manual Emergency Scheduling
+      tags:
+      - Specialist
+  /api/v1/specialist/referrals/{id}/ml-prediction:
+    get:
+      description: |-
+        Get the machine learning prediction details for a specific referral.
+        **Roles:** RECEIVING_SPECIALIST
+        **Visibility:** The specialist must belong to the target hospital of the referral.
+        **Common Errors:**
+        - 400 invalid format
+        - 403 unauthorized hospital access
+        - 404 ML prediction not found
+      parameters:
+      - description: Referral ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MLPredictionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get ML Prediction Details
       tags:
       - Specialist
   /api/v1/specialist/referrals/{id}/read:
