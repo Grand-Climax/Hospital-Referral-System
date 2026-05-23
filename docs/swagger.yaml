@@ -228,6 +228,13 @@ definitions:
         type: string
       sender_id:
         type: string
+      sender_name:
+        type: string
+      sender_role:
+        type: string
+      type:
+        description: '"direct" or "referral"'
+        type: string
     type: object
   dto.ChatUnreadCountResponse:
     properties:
@@ -237,6 +244,21 @@ definitions:
         type: boolean
       unread_count:
         type: integer
+    type: object
+  dto.ContactResponse:
+    properties:
+      department_name:
+        type: string
+      first_name:
+        type: string
+      hospital_name:
+        type: string
+      last_name:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: string
     type: object
   dto.ConversationResponse:
     properties:
@@ -261,6 +283,12 @@ definitions:
       other_user_role:
         type: string
       referral_id:
+        type: string
+      referral_status:
+        description: '"ACCEPTED", "SUBMITTED", etc. or nil if direct'
+        type: string
+      type:
+        description: '"direct" or "referral"'
         type: string
       unread_count:
         type: integer
@@ -1135,6 +1163,24 @@ definitions:
       data:
         items:
           $ref: '#/definitions/dto.ChatMessageResponse'
+        type: array
+      message:
+        type: string
+      page:
+        type: integer
+      page_size:
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dto.PaginatedContactResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ContactResponse'
         type: array
       message:
         type: string
@@ -3088,6 +3134,83 @@ paths:
       summary: Refresh token
       tags:
       - Authentication
+  /api/v1/chat/contacts:
+    get:
+      description: |-
+        Retrieve a paginated and searchable list of active users that the authenticated caller is legally authorized to chat with based on role visual boundaries, active access grants, and clinical referral relationships.
+
+        ### Contact Search Modes:
+
+        #### 1. Same-Hospital Mode (Without `referral_id`)
+        Returns colleagues working at the **same hospital** as the caller:
+        - **Self-Exclusion:** The caller is never included in the contact list.
+        - **Specialist Visibility:** Specialists can only see referring doctors to whom they have **active access** (via accepted referrals or explicit access grants).
+        - **Liaison Officer / Receptionist / Dept Head:** Follow standard hospital-wide visual scopes.
+        - **Admin & Super-Admin:** Standard administrative and super-admin visual bounds.
+        - **System Constraints:** Excludes `MOH_ANALYST` completely and excludes `SYSTEM_SUPER_ADMIN` (unless the caller themselves is a super-admin).
+
+        #### 2. Cross-Hospital Mode (With `referral_id`)
+        Returns eligible clinical contacts at the **opposite hospital** involved in that specific referral context:
+        - **Visually Scoped Roles:** Limit eligible chat contacts to:
+        - The referring doctor who created/managed the referral.
+        - Liaison officers at the target hospital.
+        - Specialists with active access or assignment to the referral.
+        - The target department head and the target hospital administrator.
+        - **Access Gate:** The caller must have permission to access the referral to use this mode.
+
+        ### Filtering & Search Options:
+        - **`search`:** Filter users dynamically by first name, middle name, or last name.
+        - **`role`:** Limit contacts to a specific user role (e.g., `RECEIVING_SPECIALIST`, `REFERRING_DOCTOR`).
+
+        ### System Constraints:
+        - `MOH_ANALYST` users are completely barred from using or being returned by this endpoint.
+      parameters:
+      - description: Referral UUID to list eligible cross-hospital contacts for a
+          referral
+        in: query
+        name: referral_id
+        type: string
+      - description: Search pattern targeting first, middle, or last names of contacts
+        in: query
+        name: search
+        type: string
+      - description: Filter by specific user role (e.g., REFERRING_DOCTOR)
+        in: query
+        name: role
+        type: string
+      - description: Pagination limit (default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedContactResponse'
+        "400":
+          description: Invalid referral ID, unauthorized role, or access boundaries
+            violation
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: MOH Analyst role completely blocked
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal database lookup error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Eligible Chat Contacts
+      tags:
+      - Chat
   /api/v1/chat/conversations:
     get:
       description: |-
@@ -3111,6 +3234,11 @@ paths:
         in: query
         name: page
         type: integer
+      - description: 'Filter by conversation type: all (default), direct (no referral),
+          referral (scoped to a referral)'
+        in: query
+        name: type
+        type: string
       produces:
       - application/json
       responses:
