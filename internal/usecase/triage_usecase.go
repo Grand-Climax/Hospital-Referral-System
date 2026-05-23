@@ -92,7 +92,7 @@ func (u *triageUseCase) CalculateCompositeScore(ctx context.Context, referralID 
 		triageScore = 10
 	}
 
-	mlSeverity := 0.0
+	mlSeverity := 50.0
 	pred, err := u.mlRepo.GetLatestByReferralID(ctx, referralID)
 	if err == nil && pred != nil {
 		mlSeverity = pred.OutputScore

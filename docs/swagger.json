@@ -462,6 +462,81 @@
                 }
             }
         },
+        "/api/v1/chat/contacts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated and searchable list of active users that the authenticated caller is legally authorized to chat with based on role visual boundaries, active access grants, and clinical referral relationships.\n\n### Contact Search Modes:\n\n#### 1. Same-Hospital Mode (Without `referral_id`)\nReturns colleagues working at the **same hospital** as the caller:\n- **Self-Exclusion:** The caller is never included in the contact list.\n- **Specialist Visibility:** Specialists can only see referring doctors to whom they have **active access** (via accepted referrals or explicit access grants).\n- **Liaison Officer / Receptionist / Dept Head:** Follow standard hospital-wide visual scopes.\n- **Admin \u0026 Super-Admin:** Standard administrative and super-admin visual bounds.\n- **System Constraints:** Excludes `MOH_ANALYST` completely and excludes `SYSTEM_SUPER_ADMIN` (unless the caller themselves is a super-admin).\n\n#### 2. Cross-Hospital Mode (With `referral_id`)\nReturns eligible clinical contacts at the **opposite hospital** involved in that specific referral context:\n- **Visually Scoped Roles:** Limit eligible chat contacts to:\n- The referring doctor who created/managed the referral.\n- Liaison officers at the target hospital.\n- Specialists with active access or assignment to the referral.\n- The target department head and the target hospital administrator.\n- **Access Gate:** The caller must have permission to access the referral to use this mode.\n\n### Filtering \u0026 Search Options:\n- **`search`:** Filter users dynamically by first name, middle name, or last name.\n- **`role`:** Limit contacts to a specific user role (e.g., `RECEIVING_SPECIALIST`, `REFERRING_DOCTOR`).\n\n### System Constraints:\n- `MOH_ANALYST` users are completely barred from using or being returned by this endpoint.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "List Eligible Chat Contacts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral UUID to list eligible cross-hospital contacts for a referral",
+                        "name": "referral_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search pattern targeting first, middle, or last names of contacts",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by specific user role (e.g., REFERRING_DOCTOR)",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit (default 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedContactResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid referral ID, unauthorized role, or access boundaries violation",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "MOH Analyst role completely blocked",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal database lookup error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/chat/conversations": {
             "get": {
                 "security": [
@@ -490,6 +565,12 @@
                         "default": 1,
                         "description": "Page number (safe sanitized minimum of 1)",
                         "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by conversation type: all (default), direct (no referral), referral (scoped to a referral)",
+                        "name": "type",
                         "in": "query"
                     }
                 ],
@@ -9772,6 +9853,16 @@
                 },
                 "sender_id": {
                     "type": "string"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "sender_role": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"direct\" or \"referral\"",
+                    "type": "string"
                 }
             }
         },
@@ -9786,6 +9877,29 @@
                 },
                 "unread_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.ContactResponse": {
+            "type": "object",
+            "properties": {
+                "department_name": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "hospital_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
@@ -9823,6 +9937,14 @@
                     "type": "string"
                 },
                 "referral_id": {
+                    "type": "string"
+                },
+                "referral_status": {
+                    "description": "\"ACCEPTED\", \"SUBMITTED\", etc. or nil if direct",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"direct\" or \"referral\"",
                     "type": "string"
                 },
                 "unread_count": {
@@ -11115,6 +11237,33 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.ChatMessageResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PaginatedContactResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ContactResponse"
                     }
                 },
                 "message": {

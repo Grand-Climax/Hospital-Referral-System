@@ -2,8 +2,11 @@ package usecase
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -184,24 +187,15 @@ func (u *chatUseCase) SendMessage(ctx context.Context, senderID, receiverID uuid
 		return nil, fmt.Errorf("failed to save message: %v", err)
 	}
 
+	// Link loaded relations for rich DTO mapping
+	chatMsg.Conversation = conv
+	chatMsg.Sender = sender
+
 	// 8. Push via WebSocket
 	if u.hub != nil {
-		var refIDStr *string
-		if conv.ReferralID != nil {
-			s := conv.ReferralID.String()
-			refIDStr = &s
-		}
 		wsMsg := dto.WebSocketMessage{
 			Type: "chat",
-			Data: dto.ChatMessageResponse{
-				ID:             chatMsg.ID.String(),
-				ConversationID: conv.ID.String(),
-				ReferralID:     refIDStr,
-				SenderID:       chatMsg.SenderID.String(),
-				ReceiverID:     receiverID.String(),
-				Content:        chatMsg.Content,
-				CreatedAt:      chatMsg.CreatedAt.Format(time.RFC3339),
-			},
+			Data: dto.ToChatMessageResponse(*chatMsg, receiverID.String()),
 		}
 		go u.hub.SendToUser(receiverID.String(), wsMsg)
 	}
@@ -209,8 +203,8 @@ func (u *chatUseCase) SendMessage(ctx context.Context, senderID, receiverID uuid
 	return chatMsg, nil
 }
 
-func (u *chatUseCase) ListConversations(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.ConversationResponse, int64, error) {
-	conversations, total, err := u.chatRepo.GetConversations(ctx, userID, limit, offset)
+func (u *chatUseCase) ListConversations(ctx context.Context, userID uuid.UUID, filterType string, limit, offset int) ([]dto.ConversationResponse, int64, error) {
+	conversations, total, err := u.chatRepo.GetConversations(ctx, userID, filterType, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -268,9 +262,14 @@ func (u *chatUseCase) ListConversations(ctx context.Context, userID uuid.UUID, l
 		}
 
 		var refIDStr *string
+		var refStatusStr *string
 		if cm.ReferralID != nil {
 			s := cm.ReferralID.String()
 			refIDStr = &s
+			if cm.Referral != nil {
+				status := string(cm.Referral.Status)
+				refStatusStr = &status
+			}
 		}
 
 		preview := cm.LastMessageContent
@@ -278,8 +277,14 @@ func (u *chatUseCase) ListConversations(ctx context.Context, userID uuid.UUID, l
 			preview = preview[:57] + "..."
 		}
 
+		convType := "direct"
+		if cm.ReferralID != nil {
+			convType = "referral"
+		}
+
 		responses = append(responses, dto.ConversationResponse{
 			ConversationID:    cm.ID.String(),
+			Type:              convType,
 			OtherUserID:       otherUser.ID.String(),
 			OtherUserName:     fmt.Sprintf("%s %s", otherUser.FirstName, otherUser.LastName),
 			OtherUserRole:     string(otherUser.Role),
@@ -288,6 +293,7 @@ func (u *chatUseCase) ListConversations(ctx context.Context, userID uuid.UUID, l
 			LastMessageAt:     cm.LastMessageAt.Format(time.RFC3339),
 			UnreadCount:       unreadCount,
 			ReferralID:        refIDStr,
+			ReferralStatus:    refStatusStr,
 			IsReadOnly:        isReadOnly,
 			IsDisabled:        cm.IsDisabled,
 			DisabledReason:    cm.DisabledReason,
@@ -339,6 +345,11 @@ func (u *chatUseCase) GetMessages(ctx context.Context, userID uuid.UUID, convers
 	messages, total, err := u.chatRepo.GetMessages(ctx, conversationID, limit, offset)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	// Link loaded conversation to each message for DTO mapping
+	for i := range messages {
+		messages[i].Conversation = conv
 	}
 
 	// Mark all read
@@ -672,4 +683,160 @@ func (u *chatUseCase) GetConversationID(ctx context.Context, userID, otherUserID
 		return uuid.Nil, err
 	}
 	return conv.ID, nil
+}
+
+func (u *chatUseCase) computeParticipantHash(user1, user2 uuid.UUID, referralID *uuid.UUID) string {
+	ids := []string{user1.String(), user2.String()}
+	sort.Strings(ids)
+	combined := strings.Join(ids, "|")
+	if referralID != nil {
+		combined += "|" + referralID.String()
+	}
+	hash := sha256.Sum256([]byte(combined))
+	return hex.EncodeToString(hash[:])
+}
+
+func (u *chatUseCase) ListContacts(
+	ctx context.Context,
+	userID uuid.UUID,
+	role entity.UserRole,
+	hospID uuid.UUID,
+	referralID *uuid.UUID,
+	search string,
+	roleFilter *entity.UserRole,
+	limit, offset int,
+) ([]dto.ContactResponse, int64, error) {
+	query := u.db.WithContext(ctx).Model(&entity.User{}).Preload("Hospital").Preload("Department")
+
+	// Apply search filter (partial match on first_name, last_name)
+	if search != "" {
+		searchPattern := "%" + strings.ToLower(search) + "%"
+		query = query.Where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?", searchPattern, searchPattern)
+	}
+
+	// Apply role filter if provided
+	if roleFilter != nil {
+		query = query.Where("role = ?", *roleFilter)
+	}
+
+	if referralID != nil {
+		// Fetch the referral
+		ref, err := u.referralRepo.GetReferralByID(ctx, *referralID)
+		if err != nil {
+			return nil, 0, errors.New("referral not found")
+		}
+
+		// Verify current user involvement in this referral
+		if ref.SenderHospitalID != hospID && ref.TargetHospitalID != hospID {
+			return nil, 0, errors.New("you are not involved in this referral")
+		}
+
+		// Determine the other hospital
+		var targetHospID uuid.UUID
+		if hospID == ref.SenderHospitalID {
+			targetHospID = ref.TargetHospitalID
+		} else {
+			targetHospID = ref.SenderHospitalID
+		}
+
+		// Get all users at targetHospID who are linked to this referral:
+		// - The referring doctor (if at target hospital)
+		// - The liaison officer (if at target hospital)
+		// - Specialists at target hospital who have accepted or have active ReferralAccess
+		// - Dept head of the target department
+		// - Hospital admin of the target hospital
+		var accessUsers []uuid.UUID
+		u.db.Model(&entity.ReferralAccess{}).
+			Where("referral_id = ? AND revoked_at IS NULL", *referralID).
+			Pluck("user_id", &accessUsers)
+
+		var connectedUserIDs []uuid.UUID
+		connectedUserIDs = append(connectedUserIDs, ref.ReferringDoctorID)
+		if ref.LiaisonOfficerID != nil {
+			connectedUserIDs = append(connectedUserIDs, *ref.LiaisonOfficerID)
+		}
+		if ref.SpecialistID != nil {
+			connectedUserIDs = append(connectedUserIDs, *ref.SpecialistID)
+		}
+		connectedUserIDs = append(connectedUserIDs, accessUsers...)
+
+		query = query.Where("hospital_id = ? AND id != ? AND role != ? AND is_active = ? AND is_deleted = ?", targetHospID, userID, entity.RoleMohAnalyst, true, false)
+		query = query.Where("id IN ? OR (role = ? AND department_id = ?) OR role = ?",
+			connectedUserIDs,
+			entity.RoleDeptHead, ref.TargetDeptID,
+			entity.RoleHospitalAdmin,
+		)
+	} else {
+		// Same-hospital contacts only
+		targetHospID := hospID
+		if role == entity.RoleSystemSuperAdmin {
+			query = query.Where("id != ? AND role != ? AND is_active = ? AND is_deleted = ?", userID, entity.RoleMohAnalyst, true, false)
+		} else {
+			query = query.Where("hospital_id = ? AND id != ? AND role != ? AND is_active = ? AND is_deleted = ?", targetHospID, userID, entity.RoleMohAnalyst, true, false)
+
+			// Role-based same-hospital visibility rules
+			switch role {
+			case entity.RoleReferringDoctor:
+				query = query.Where("role IN ?", []entity.UserRole{entity.RoleReferringDoctor, entity.RoleReceptionist, entity.RoleDeptHead, entity.RoleLiaisonOfficer, entity.RoleHospitalAdmin})
+			case entity.RoleReceivingSpecialist:
+				var doctorIDs []uuid.UUID
+				u.db.Table("referrals").
+					Joins("LEFT JOIN referral_accesses ra ON ra.referral_id = referrals.id").
+					Where("(referrals.specialist_id = ? OR (ra.user_id = ? AND ra.revoked_at IS NULL)) AND referrals.is_deleted = false", userID, userID).
+					Pluck("referrals.referring_doctor_id", &doctorIDs)
+
+				if len(doctorIDs) > 0 {
+					query = query.Where("role IN ? OR (role = ? AND id IN ?)",
+						[]entity.UserRole{entity.RoleReceivingSpecialist, entity.RoleDeptHead, entity.RoleHospitalAdmin},
+						entity.RoleReferringDoctor,
+						doctorIDs,
+					)
+				} else {
+					query = query.Where("role IN ?", []entity.UserRole{entity.RoleReceivingSpecialist, entity.RoleDeptHead, entity.RoleHospitalAdmin})
+				}
+			case entity.RoleLiaisonOfficer:
+				query = query.Where("role IN ?", []entity.UserRole{entity.RoleReferringDoctor, entity.RoleHospitalAdmin})
+			case entity.RoleReceptionist:
+				return []dto.ContactResponse{}, 0, nil
+			case entity.RoleDeptHead:
+				query = query.Where("role IN ?", []entity.UserRole{entity.RoleReferringDoctor, entity.RoleReceptionist, entity.RoleHospitalAdmin})
+			case entity.RoleHospitalAdmin:
+				query = query.Where("role != ?", entity.RoleMohAnalyst)
+			default:
+				return nil, 0, errors.New("unauthorized role")
+			}
+		}
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var users []entity.User
+	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var response []dto.ContactResponse
+	for _, user := range users {
+		var hospitalName string
+		if user.Hospital != nil {
+			hospitalName = user.Hospital.Name
+		}
+		var departmentName string
+		if user.Department != nil {
+			departmentName = user.Department.Name
+		}
+		response = append(response, dto.ContactResponse{
+			UserID:         user.ID.String(),
+			FirstName:      user.FirstName,
+			LastName:       user.LastName,
+			Role:           string(user.Role),
+			HospitalName:   hospitalName,
+			DepartmentName: departmentName,
+		})
+	}
+
+	return response, total, nil
 }
