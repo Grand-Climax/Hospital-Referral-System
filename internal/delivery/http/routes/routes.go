@@ -319,6 +319,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			specialistGroup.POST("/:id/reject", specialistHandler.Reject)
 			specialistGroup.POST("/:id/release", specialistHandler.Release)
 			specialistGroup.POST("/:id/rerun-ml", specialistHandler.RerunML)
+			specialistGroup.GET("/:id/ml-prediction", specialistHandler.GetMLPrediction)
 			specialistGroup.POST("/:id/redirect", specialistHandler.RedirectReferral)
 			specialistGroup.GET("/:id/redirect-options", specialistHandler.ListRedirectionOptions)
 			specialistGroup.PUT("/:id/department", specialistHandler.ChangeDepartment)
