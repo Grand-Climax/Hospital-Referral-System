@@ -12657,7 +12657,10 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "explanation": {
-                    "type": "object"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "external_prediction_id": {
                     "type": "string"

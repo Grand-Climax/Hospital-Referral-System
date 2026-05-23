@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -81,7 +82,7 @@ func LoadConfig() Config {
 }
 
 func loadMLConfig() MLConfig {
-	baseURL := os.Getenv("ML_SERVICE_BASE_URL")
+	baseURL := strings.TrimSpace(os.Getenv("ML_SERVICE_BASE_URL"))
 	if baseURL == "" {
 		baseURL = "http://localhost:8000"
 	}

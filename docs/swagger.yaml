@@ -2127,7 +2127,9 @@ definitions:
       confidence_level:
         type: number
       explanation:
-        type: object
+        items:
+          type: string
+        type: array
       external_prediction_id:
         type: string
       feedback_sent_at:
