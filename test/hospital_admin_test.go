@@ -158,6 +158,26 @@ func TestHospitalAdminOperations(t *testing.T) {
 
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("PATCH", "/api/v1/hospital-admin/departments/"+deptID.String()+"/head", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockDept.AssertExpectations(t)
+		mockUser.AssertExpectations(t)
+	})
+
+	t.Run("Assign Department Head with staffId camelCase", func(t *testing.T) {
+		r, mockUser, _, _, mockDept := setupHospitalAdminTestRouter()
+		staffID := uuid.New()
+
+		mockDept.On("ListHospitalDepartments", mock.Anything, mock.Anything).Return([]entity.HospitalDepartment{{DepartmentID: deptID}}, nil)
+		mockUser.On("HospitalAdminReassignStaffDepartment", mock.Anything, mock.Anything, staffID, &deptID).Return(nil)
+		mockUser.On("HospitalAdminChangeStaffRole", mock.Anything, mock.Anything, staffID, entity.RoleDeptHead).Return(nil)
+
+		body := []byte(`{"staffId":"` + staffID.String() + `"}`)
+		req, _ := http.NewRequest("PATCH", "/api/v1/hospital-admin/departments/"+deptID.String()+"/head", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
 		resp := httptest.NewRecorder()
 		r.ServeHTTP(resp, req)
 
