@@ -248,54 +248,44 @@ func seedDepartments(ctx context.Context, db *gorm.DB) error {
 }
 
 func seedHospitalDepartmentsAndSchedules(ctx context.Context, db *gorm.DB) error {
+	// Under the Schedule-on-Demand model we DO NOT pre-create DailySchedule
+	// rows. Each row is inserted lazily on the first booking for a given
+	// (hospital, department, date). We only seed the HospitalDepartment
+	// rows (with defaults for the new OverbookLimit and MaxCapacityOfStaff
+	// columns) and the SchedulerCheckpoint rows.
+	defaultOverbook := 2
+	defaultStaffCap := 10
+
 	mappings := []entity.HospitalDepartment{
 		// TA (Tertiary) - Cardiology, Neurology, General Surgery, Oncology
-		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 20},
-		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b2000000-0000-0000-0000-000000000002"), StandardDailyLimit: 20},
-		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), StandardDailyLimit: 15},
-		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), StandardDailyLimit: 10},
-		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 15},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 20, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b2000000-0000-0000-0000-000000000002"), StandardDailyLimit: 20, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), StandardDailyLimit: 15, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), StandardDailyLimit: 10, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005"), HospitalID: uuid.MustParse("a1000000-0000-0000-0000-000000000001"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 15, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
 		// St. Paul's (Specialized) - Orthopedics, Internal Med, OB/GYN
-		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 20},
-		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 22},
-		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b7000000-0000-0000-0000-000000000007"), StandardDailyLimit: 18},
+		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b3000000-0000-0000-0000-000000000003"), StandardDailyLimit: 20, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 22, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c2000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a2000000-0000-0000-0000-000000000002"), DepartmentID: uuid.MustParse("b7000000-0000-0000-0000-000000000007"), StandardDailyLimit: 18, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
 		// Black Lion (Tertiary) - Pediatrics, Cardiology, Oncology
-		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b5000000-0000-0000-0000-000000000005"), StandardDailyLimit: 20},
-		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 18},
-		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), StandardDailyLimit: 12},
+		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b5000000-0000-0000-0000-000000000005"), StandardDailyLimit: 20, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b1000000-0000-0000-0000-000000000001"), StandardDailyLimit: 18, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c3000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a3000000-0000-0000-0000-000000000003"), DepartmentID: uuid.MustParse("b8000000-0000-0000-0000-000000000008"), StandardDailyLimit: 12, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
 		// Yekatit 12 (Secondary) - Internal Med, General Surgery, Emergency
-		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 30},
-		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), StandardDailyLimit: 20},
-		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b0000000-0000-0000-0000-000000000011"), StandardDailyLimit: 25},
+		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 30, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000002"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b6000000-0000-0000-0000-000000000006"), StandardDailyLimit: 20, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c9000000-0000-0000-0000-000000000003"), HospitalID: uuid.MustParse("a9000000-0000-0000-0000-000000000009"), DepartmentID: uuid.MustParse("b0000000-0000-0000-0000-000000000011"), StandardDailyLimit: 25, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
 		// Primary hospitals - Internal Medicine only
-		{ID: uuid.MustParse("c4000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a4000000-0000-0000-0000-000000000004"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
-		{ID: uuid.MustParse("c5000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a5000000-0000-0000-0000-000000000005"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
-		{ID: uuid.MustParse("c6000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a6000000-0000-0000-0000-000000000006"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
-		{ID: uuid.MustParse("c7000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a7000000-0000-0000-0000-000000000007"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
-		{ID: uuid.MustParse("c8000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a8000000-0000-0000-0000-000000000008"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10},
+		{ID: uuid.MustParse("c4000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a4000000-0000-0000-0000-000000000004"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c5000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a5000000-0000-0000-0000-000000000005"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c6000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a6000000-0000-0000-0000-000000000006"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c7000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a7000000-0000-0000-0000-000000000007"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
+		{ID: uuid.MustParse("c8000000-0000-0000-0000-000000000001"), HospitalID: uuid.MustParse("a8000000-0000-0000-0000-000000000008"), DepartmentID: uuid.MustParse("b4000000-0000-0000-0000-000000000004"), StandardDailyLimit: 10, OverbookLimit: defaultOverbook, MaxCapacityOfStaff: defaultStaffCap},
 	}
 
 	for _, m := range mappings {
 		if err := db.WithContext(ctx).Create(&m).Error; err != nil {
 			return err
-		}
-
-		// Generate 30 days of schedules
-		today := time.Now().Truncate(24 * time.Hour)
-		for i := 0; i <= 30; i++ {
-			scheduleDate := today.AddDate(0, 0, i)
-			sched := entity.DailySchedule{
-				HospitalID:    m.HospitalID,
-				DepartmentID:  m.DepartmentID,
-				ScheduleDate:  scheduleDate,
-				MaxSlots:      m.StandardDailyLimit,
-				OverbookLimit: 2,
-				BookedSlots:   0,
-				Version:       1,
-			}
-			if err := db.WithContext(ctx).Create(&sched).Error; err != nil {
-				return err
-			}
 		}
 	}
 
