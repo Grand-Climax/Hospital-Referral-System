@@ -382,7 +382,11 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 	if err != nil {
 		return false, err
 	}
-	if booked >= int64(maxSlots+overbookLimit) {
+	// Critical patients bypass the max_slots + overbook ceiling entirely:
+	// the whole point of "critical" is that the system must accommodate
+	// them regardless of normal capacity. Non-critical emergencies still
+	// have to fit inside the overbook buffer.
+	if !isCritical && booked >= int64(maxSlots+overbookLimit) {
 		return false, errors.New("even overbook capacity is full for this date")
 	}
 
@@ -401,8 +405,13 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		}
 
 		if err := u.auditRepo.LogWithContext(ctx, userID, entity.ActionEmergencySchedule, &referralID, nil, map[string]interface{}{
-			"appointment_date": appointmentDate.Format("2006-01-02"),
-			"justification":    justification,
+			"appointment_date":      appointmentDate.Format("2006-01-02"),
+			"justification":         justification,
+			"is_critical":           isCritical,
+			"booked_at_decision":    booked,
+			"max_slots":             maxSlots,
+			"overbook_limit":        overbookLimit,
+			"bypassed_overbook_cap": isCritical && booked >= int64(maxSlots+overbookLimit),
 		}); err != nil {
 			return err
 		}
