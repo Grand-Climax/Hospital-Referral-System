@@ -1382,7 +1382,17 @@ func (u *referralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.U
 	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
 		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
 	}
-	return u.referralRepo.ListForReceptionist(ctx, hospID, filter)
+	referrals, count, err := u.referralRepo.ListForReceptionist(ctx, hospID, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
+		}
+	}
+	u.enrichReferralsMLBatch(ctx, referrals)
+	return referrals, count, nil
 }
 
 func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -1405,6 +1415,10 @@ func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hos
 		return nil, errors.New("unauthorized: referral has not been accepted/scheduled yet")
 	}
 
+	if ref.Patient != nil {
+		_ = ref.Patient.DecryptFields(u.cryptoSvc)
+	}
+	u.enrichReferralML(ctx, ref)
 	return ref, nil
 }
 
