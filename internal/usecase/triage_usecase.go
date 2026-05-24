@@ -202,7 +202,7 @@ func (u *triageUseCase) mapQueueToListItem(q *entity.TriageQueue, ref *entity.Re
 		CreatedAt:       q.AssignedAt,
 		PatientName:     "Unknown",
 	}
-	if q.Department.Name != "" {
+	if q.Department != nil && q.Department.Name != "" {
 		item.DepartmentName = q.Department.Name
 	}
 	if q.AssignedDoctorID != nil {
