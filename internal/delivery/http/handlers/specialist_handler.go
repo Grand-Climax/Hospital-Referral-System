@@ -748,18 +748,42 @@ func (h *SpecialistHandler) Release(c *gin.Context) {
 }
 
 // ManualEmergencySchedule godoc
-// @Summary      Manual Emergency Schedule
-// @Description  Bypass standard booking capacity limits and queue slot guards to record an immediate emergency appointment slot.
-// @Description  **Detailed Behavior & Rules:**
-// @Description  - Strict date validation: The appointment date must be today or in the future; scheduling for past dates is blocked.
-// @Description  - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. If the patient has already arrived ('ARRIVED') or is admitted ('ADMITTED'), emergency booking is blocked.
-// @Description  - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', emergency-scheduling will transition the 'ArrivalStatus' back to 'ArrivalExpected', set the new appointment date, trigger apology-free SMS reschedule alerts, and dispatch a 'MISSED_APPOINTMENT_RESCHEDULED' doctor in-app notification.
-// @Description  - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
+// @Summary      Manual emergency schedule (Schedule-on-Demand, overbook allowed)
+// @Description  Books a referral as an emergency for a specific date. This is the ONLY scheduling path allowed to consume overbook capacity.
+// @Description
 // @Description  **Roles:** RECEIVING_SPECIALIST
+// @Description
+// @Description  **Prerequisites:**
+// @Description  - Referral.Status must be ACCEPTED or SCHEDULED.
+// @Description  - TriageQueue.ArrivalStatus must be EXPECTED or MISSED (already-ARRIVED / ADMITTED patients are blocked).
+// @Description  - Appointment date must be today or in the future.
+// @Description  - Either Referral.ReferralForm.condition_at_referral = "critical" OR a non-empty justification must be provided.
+// @Description
+// @Description  **Capacity Rule (Schedule-on-Demand):**
+// @Description  - booked count is read live from TriageQueue (Expected/Arrived/Admitted) via CountByDeptAndDate.
+// @Description  - maxSlots = active CapacityOverride.NewLimit OR HospitalDepartment.StandardDailyLimit.
+// @Description  - overbookLimit = HospitalDepartment.OverbookLimit.
+// @Description  - Rejected when booked >= maxSlots + overbookLimit.
+// @Description
+// @Description  **State Transitions:**
+// @Description  - Referral.Status: ACCEPTED/SCHEDULED -> SCHEDULED.
+// @Description  - TriageQueue.ArrivalStatus: MISSED -> EXPECTED (rescheduled_from_missed=true) or unchanged.
+// @Description  - TriageQueue.AppointmentDate set to the target date.
+// @Description
+// @Description  **Side Effects:**
+// @Description  - Creates or updates the DailySchedule snapshot row for the (hospital, department, date).
+// @Description  - Writes an audit log row with action EMERGENCY_SCHEDULE.
+// @Description  - Queues SMS via NotifyScheduling / NotifyMissedReschedule.
+// @Description  - Dispatches in-app event APPOINTMENT_SCHEDULED or MISSED_APPOINTMENT_RESCHEDULED.
+// @Description
+// @Description  **Common Errors:**
+// @Description  - 400 invalid referral ID / past date / not critical and no justification
+// @Description  - 401 Unauthorized
+// @Description  - 500 capacity full even with overbook / DB error
 // @Tags         Specialist
 // @Accept       json
 // @Produce      json
-// @Param        id path string true "Referral ID"
+// @Param        id path string true "Referral ID (UUID)"
 // @Param        body body dto.ManualEmergencyScheduleRequest true "Emergency scheduling details"
 // @Success      200 {object} dto.SchedulingResponse
 // @Failure      400 {object} dto.ErrorResponse
@@ -952,19 +976,39 @@ func (h *SpecialistHandler) GetCapacity(c *gin.Context) {
 }
 
 // Schedule godoc
-// @Summary      Schedule Appointment
-// @Description  Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.
-// @Description  **Detailed Behavior & Rules:**
-// @Description  - Capacity limits: Respects standard daily slots and capacity overrides for the target hospital department.
-// @Description  - Strict date validation: The appointment date must be today or in the future; past booking dates are blocked.
-// @Description  - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. Arrived ('ARRIVED') or admitted ('ADMITTED') patients are blocked.
-// @Description  - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', scheduling transitions 'ArrivalStatus' to 'ArrivalExpected', registers the new date, sends apology-free SMS rescheduled updates, and dispatches a 'MISSED_APPOINTMENT_RESCHEDULED' in-app notification to the treating doctor.
-// @Description  - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
+// @Summary      Schedule appointment (routine, Schedule-on-Demand)
+// @Description  Books or reschedules a referral for a specific date under the routine capacity rule (no overbooking).
+// @Description
 // @Description  **Roles:** RECEIVING_SPECIALIST
+// @Description
+// @Description  **Prerequisites:**
+// @Description  - Referral.Status must be ACCEPTED or SCHEDULED.
+// @Description  - TriageQueue.ArrivalStatus must be EXPECTED or MISSED.
+// @Description  - Appointment date must be today or in the future.
+// @Description
+// @Description  **Capacity Rule (Schedule-on-Demand):**
+// @Description  - booked = live TriageQueue count (Expected/Arrived/Admitted) for that (hospital, department, date).
+// @Description  - maxSlots = active CapacityOverride.NewLimit OR HospitalDepartment.StandardDailyLimit.
+// @Description  - Rejected when booked >= maxSlots. Overbook capacity is NEVER used here - call /emergency-schedule for that.
+// @Description
+// @Description  **State Transitions:**
+// @Description  - Referral.Status: ACCEPTED/SCHEDULED -> SCHEDULED.
+// @Description  - TriageQueue.ArrivalStatus: MISSED -> EXPECTED (rescheduled_from_missed=true).
+// @Description  - TriageQueue.AppointmentDate set.
+// @Description
+// @Description  **Side Effects:**
+// @Description  - Creates / updates DailySchedule snapshot row.
+// @Description  - Writes audit log.
+// @Description  - Queues SMS and in-app notification (APPOINTMENT_SCHEDULED or MISSED_APPOINTMENT_RESCHEDULED).
+// @Description
+// @Description  **Common Errors:**
+// @Description  - 400 invalid referral ID / past date / patient already arrived or admitted
+// @Description  - 401 Unauthorized
+// @Description  - 500 capacity reached - emergency override required / DB error
 // @Tags         Specialist
 // @Accept       json
 // @Produce      json
-// @Param        id path string true "Referral ID"
+// @Param        id path string true "Referral ID (UUID)"
 // @Param        body body dto.SchedulingRequest true "Scheduling details"
 // @Success      200 {object} dto.SchedulingResponse
 // @Failure      400 {object} dto.BaseResponse
@@ -1172,19 +1216,33 @@ func (h *SpecialistHandler) ChangeDepartment(c *gin.Context) {
 }
 
 // ReturnToTriage godoc
-// @Summary      Return Missed Patient to Triage (Specialist)
-// @Description  Allows a specialist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).
-// @Description  **Detailed Behavior:**
-// @Description  - Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).
-// @Description  - Wipes out the missed appointment date ('AppointmentDate' = nil).
-// @Description  - Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).
-// @Description  - Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.
+// @Summary      Return missed patient to triage
+// @Description  Resets a MISSED patient back to the waiting pool so they can be re-scheduled. Under Schedule-on-Demand this also frees the slot for the original date automatically (capacity is read live from TriageQueue, and Missed rows are excluded from the count).
+// @Description
 // @Description  **Roles:** RECEIVING_SPECIALIST
+// @Description
+// @Description  **Prerequisites:** Valid TriageQueue ID; record must currently be MISSED.
+// @Description
+// @Description  **State Transitions:**
+// @Description  - TriageQueue.ArrivalStatus: MISSED -> EXPECTED.
+// @Description  - TriageQueue.AppointmentDate: cleared.
+// @Description  - TriageQueue.AssignedDoctorID / DoctorAssignedAt: cleared.
+// @Description  - Referral.Status: -> ACCEPTED (so it is eligible for batch / manual scheduling again).
+// @Description
+// @Description  **Side Effects:**
+// @Description  - The slot count for the original date drops by 1 on the next read because the row is no longer Expected/Arrived/Admitted.
+// @Description
+// @Description  **Common Errors:**
+// @Description  - 400 invalid ID / record not MISSED
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
 // @Tags         Specialist
 // @Produce      json
-// @Param        id path string true "TriageQueue ID"
+// @Param        id path string true "TriageQueue ID (UUID)"
 // @Success      200 {object} dto.BaseResponse
 // @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/specialist/referrals/{id}/return-to-triage [post]
 func (h *SpecialistHandler) ReturnToTriage(c *gin.Context) {
@@ -1208,4 +1266,62 @@ func (h *SpecialistHandler) ReturnToTriage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Patient successfully returned to triage"})
+}
+
+// ScheduleOptions godoc
+// @Summary      Get next N routine scheduling options for a referral
+// @Description  Returns up to N upcoming days starting at today + system_configs.buffer_days where the referral's target department still has routine capacity. Each entry includes max_slots, booked_slots, available_slots, overbook_limit, and whether an active capacity override is in effect.
+// @Description
+// @Description  **Roles:** RECEIVING_SPECIALIST, REFERRING_DOCTOR
+// @Description
+// @Description  **Prerequisites:** Referral must exist and have a target hospital + department set.
+// @Description
+// @Description  **Side Effects:** None. Read-only. The same rule is applied when actually booking, so callers can rely on the dates to be schedulable at the moment of the call (subject to concurrent bookings).
+// @Description
+// @Description  **Common Errors:**
+// @Description  - 400 invalid referral ID / days
+// @Description  - 401 Unauthorized
+// @Description  - 404 referral not found
+// @Description  - 500 Internal Server Error
+// @Tags         Specialist
+// @Produce      json
+// @Param        id   path  string true  "Referral ID (UUID)"
+// @Param        days query int    false "Number of days to scan starting at today + buffer_days (1-60, default 14)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} dto.BaseResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.BaseResponse
+// @Failure      500 {object} dto.BaseResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/schedule-options [get]
+func (h *SpecialistHandler) ScheduleOptions(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: "Invalid referral ID"})
+		return
+	}
+
+	days := 14
+	if d := c.Query("days"); d != "" {
+		if v, err := strconv.Atoi(d); err == nil && v > 0 {
+			days = v
+		}
+	}
+
+	options, err := h.schedUC.ListScheduleOptions(c.Request.Context(), referralID, days)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.BaseResponse{Success: false, Message: "referral not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":     true,
+		"referral_id": referralID,
+		"days_window": days,
+		"data":        options,
+	})
 }
