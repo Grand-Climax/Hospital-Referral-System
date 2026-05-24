@@ -142,7 +142,7 @@ func seedSystemConfigs(ctx context.Context, db *gorm.DB) error {
 		{Key: "auto_notify", Value: "false"},
 		{Key: "last_waiting_weight_update", Value: ""},
 		{Key: "enable_cron_jobs", Value: "false"},
-		{Key: "sms_otp_enabled", Value: "true"},
+		{Key: "sms_otp_enabled", Value: "false"},
 		{Key: "mfa_enabled", Value: "false"},
 		{Key: "mfa_sms_fallback_email", Value: "true"},
 		{Key: "mfa_otp_ttl_seconds", Value: "300"},
