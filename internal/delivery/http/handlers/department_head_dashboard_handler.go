@@ -65,9 +65,9 @@ func (h *DepartmentHeadDashboardHandler) scopedHospDept(c *gin.Context) (uuid.UU
 // @Description  - 500 Internal Server Error
 // @Tags         Department Head
 // @Produce      json
-// @Success      200 {object} dto.DepartmentHeadDashboardStats
+// @Success      200 {object} dto.DeptHeadDashboardStatsResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/dashboard/stats [get]
 func (h *DepartmentHeadDashboardHandler) GetDashboardStats(c *gin.Context) {
@@ -105,10 +105,10 @@ func (h *DepartmentHeadDashboardHandler) GetDashboardStats(c *gin.Context) {
 // @Tags         Department Head
 // @Produce      json
 // @Param        days query int false "Lookback window in days (1-90, default 14)"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadTrendsResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/dashboard/trends [get]
 func (h *DepartmentHeadDashboardHandler) GetTrends(c *gin.Context) {
@@ -155,9 +155,9 @@ func (h *DepartmentHeadDashboardHandler) GetTrends(c *gin.Context) {
 // @Description  - 500 Internal Server Error
 // @Tags         Department Head
 // @Produce      json
-// @Success      200 {object} dto.PriorityBucketResponse
+// @Success      200 {object} dto.DeptHeadPriorityBucketsResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/triage-queue/buckets [get]
 func (h *DepartmentHeadDashboardHandler) GetPriorityBuckets(c *gin.Context) {
@@ -193,9 +193,9 @@ func (h *DepartmentHeadDashboardHandler) GetPriorityBuckets(c *gin.Context) {
 // @Description  - 500 Internal Server Error
 // @Tags         Department Head
 // @Produce      json
-// @Success      200 {object} dto.StaffSummaryResponse
+// @Success      200 {object} dto.DeptHeadStaffSummaryResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/staff/summary [get]
 func (h *DepartmentHeadDashboardHandler) GetStaffSummary(c *gin.Context) {
@@ -234,10 +234,10 @@ func (h *DepartmentHeadDashboardHandler) GetStaffSummary(c *gin.Context) {
 // @Param        limit query int false "Max number of rows to return (1-100, default 20)"
 // @Param        start_date query string false "Inclusive start date (YYYY-MM-DD)"
 // @Param        end_date   query string false "Inclusive end date (YYYY-MM-DD)"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadActivityResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/activity [get]
 func (h *DepartmentHeadDashboardHandler) GetActivity(c *gin.Context) {

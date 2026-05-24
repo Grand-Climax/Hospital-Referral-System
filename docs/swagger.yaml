@@ -61,6 +61,9 @@ definitions:
       created_at:
         type: string
       department:
+        description: target department display name
+        type: string
+      department_id:
         type: string
       diagnosis:
         description: Typically the primary diagnosis CodeInfo name
@@ -198,11 +201,37 @@ definitions:
         example: true
         type: boolean
     type: object
+  Hospital-Referral-System_internal_delivery_http_dto.BatchScheduleResult:
+    properties:
+      message:
+        type: string
+      scheduled_count:
+        type: integer
+      waiting_count:
+        type: integer
+    type: object
   Hospital-Referral-System_internal_delivery_http_dto.CancelReferralRequest:
     properties:
       reason:
         example: Patient decided not to proceed with the referral
         type: string
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.CapacityCalendarDay:
+    properties:
+      available_slots:
+        type: integer
+      booked_slots:
+        type: integer
+      date:
+        type: string
+      has_log:
+        type: boolean
+      has_override:
+        type: boolean
+      max_slots:
+        type: integer
+      overbook_limit:
+        type: integer
     type: object
   Hospital-Referral-System_internal_delivery_http_dto.CapacityDetailResponse:
     properties:
@@ -228,6 +257,37 @@ definitions:
       staff_capacity:
         description: HospitalDepartment.MaxCapacityOfStaff - soft hint only
         type: integer
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.CapacityOverrideListItem:
+    properties:
+      created_at:
+        type: string
+      department_id:
+        example: 9f8e7d6c-5b4a-3c2d-1e0f-9a8b7c6d5e4f
+        type: string
+      hospital_id:
+        example: 3a5d8c14-2e1d-4c2f-9a3b-1c2d3e4f5a6b
+        type: string
+      id:
+        example: 6c3c2b54-6a4e-4f0c-b8d1-7c1e3a2b1c4f
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      new_limit:
+        example: 35
+        type: integer
+      reason:
+        example: Public holiday — reduced staffing
+        type: string
+      set_by_id:
+        example: 11111111-2222-3333-4444-555555555555
+        type: string
+      target_date:
+        example: "2026-06-15T00:00:00Z"
+        type: string
+      updated_at:
+        type: string
     type: object
   Hospital-Referral-System_internal_delivery_http_dto.ChangeDepartmentRequest:
     properties:
@@ -398,6 +458,28 @@ definitions:
     - phone_number
     - sex
     type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadActivityItem:
+    properties:
+      action_type:
+        type: string
+      actor_id:
+        type: string
+      actor_name:
+        type: string
+      actor_role:
+        type: string
+      id:
+        type: string
+      new_value:
+        additionalProperties: true
+        type: object
+      referral_id:
+        type: string
+      summary:
+        type: string
+      timestamp:
+        type: string
+    type: object
   Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadDashboardStats:
     properties:
       active_overrides:
@@ -424,6 +506,24 @@ definitions:
         $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityDetailResponse'
       waiting_queue_size:
         type: integer
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadTrendPoint:
+    properties:
+      available_slots:
+        type: integer
+      booked_slots:
+        type: integer
+      date:
+        type: string
+      has_override:
+        type: boolean
+      max_slots:
+        type: integer
+      overbook_limit:
+        type: integer
+      utilization:
+        description: 0..1
+        type: number
     type: object
   Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse:
     properties:
@@ -477,6 +577,189 @@ definitions:
         type: boolean
       updated_at:
         type: string
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadActivityResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadActivityItem'
+        type: array
+      success:
+        example: true
+        type: boolean
+      total:
+        example: 20
+        type: integer
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadBatchScheduleResponse:
+    properties:
+      data:
+        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BatchScheduleResult'
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadCapacityCalendarResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityCalendarDay'
+        type: array
+      month:
+        example: 6
+        type: integer
+      success:
+        example: true
+        type: boolean
+      year:
+        example: 2026
+        type: integer
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadCapacityDetailResponse:
+    properties:
+      data:
+        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityDetailResponse'
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadDashboardStatsResponse:
+    properties:
+      data:
+        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadDashboardStats'
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse:
+    properties:
+      message:
+        example: invalid date format; expected YYYY-MM-DD
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadOverrideByMonthResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityOverrideListItem'
+        type: array
+      month:
+        example: 6
+        type: integer
+      success:
+        example: true
+        type: boolean
+      year:
+        example: 2026
+        type: integer
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadOverrideDetailResponse:
+    properties:
+      data:
+        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityOverrideListItem'
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadOverrideListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityOverrideListItem'
+        type: array
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadPriorityBucketsResponse:
+    properties:
+      data:
+        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PriorityBucketResponse'
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadScheduleResponse:
+    properties:
+      data:
+        type: object
+      has_schedule:
+        example: true
+        type: boolean
+      message:
+        example: No schedule log for this date yet
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadScheduledPatientsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ScheduledPatientListItem'
+        type: array
+      date:
+        example: "2026-06-15"
+        type: string
+      success:
+        example: true
+        type: boolean
+      total:
+        example: 12
+        type: integer
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadStaffCapacityUpdateResponse:
+    properties:
+      message:
+        example: staff capacity (soft hint) updated
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadStaffSummaryResponse:
+    properties:
+      data:
+        $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.StaffSummaryResponse'
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadTrendsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadTrendPoint'
+        type: array
+      days:
+        example: 14
+        type: integer
+      success:
+        example: true
+        type: boolean
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.DeptHeadTriageQueueResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.TriageListResponse'
+        type: array
+      limit:
+        example: 50
+        type: integer
+      page:
+        example: 1
+        type: integer
+      success:
+        example: true
+        type: boolean
+      total:
+        example: 42
+        type: integer
     type: object
   Hospital-Referral-System_internal_delivery_http_dto.DeptReferralStatusItem:
     properties:
@@ -898,6 +1181,9 @@ definitions:
       created_at:
         type: string
       department:
+        description: target department display name
+        type: string
+      department_id:
         type: string
       diagnosis:
         description: Typically the primary diagnosis CodeInfo name
@@ -1735,6 +2021,34 @@ definitions:
     required:
     - reason
     type: object
+  Hospital-Referral-System_internal_delivery_http_dto.ScheduledPatientListItem:
+    properties:
+      appointment_date:
+        type: string
+      arrival_status:
+        example: EXPECTED
+        type: string
+      assigned_doctor_id:
+        type: string
+      composite_score:
+        example: 82.5
+        type: number
+      id:
+        type: string
+      patient_age_years:
+        example: 35
+        type: integer
+      patient_id:
+        type: string
+      patient_name:
+        example: Abebe Kebede
+        type: string
+      patient_sex:
+        example: male
+        type: string
+      referral_id:
+        type: string
+    type: object
   Hospital-Referral-System_internal_delivery_http_dto.SchedulingRequest:
     properties:
       appointment_date:
@@ -1835,6 +2149,21 @@ definitions:
       hospital_id:
         type: string
       hospital_name:
+        type: string
+    type: object
+  Hospital-Referral-System_internal_delivery_http_dto.TriageListResponse:
+    properties:
+      appointment_date:
+        type: string
+      composite_score:
+        type: number
+      id:
+        type: string
+      patient_name:
+        type: string
+      referral_id:
+        type: string
+      target_dept:
         type: string
     type: object
   Hospital-Referral-System_internal_delivery_http_dto.TriageReviewRequest:
@@ -3799,12 +4128,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadActivityResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -3812,7 +4140,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Recent dept-head activity stream
@@ -3850,12 +4178,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadCapacityCalendarResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -3863,7 +4190,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Per-day capacity rollup for a calendar month
@@ -3896,11 +4223,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityDetailResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadCapacityDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -3908,7 +4235,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Get rich capacity detail for a date
@@ -3934,8 +4261,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadOverrideListResponse'
         "401":
           description: Unauthorized
           schema:
@@ -3943,7 +4269,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: List capacity overrides (active + historical)
@@ -3990,7 +4316,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -3998,11 +4324,11 @@ paths:
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Create capacity override (immutable)
@@ -4042,7 +4368,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4050,11 +4376,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete (deactivate) capacity override
@@ -4087,12 +4413,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadOverrideDetailResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4100,11 +4425,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Get a single capacity override by ID
@@ -4141,12 +4466,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadOverrideByMonthResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4154,7 +4478,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: List capacity overrides filtered by year and optional month
@@ -4180,7 +4504,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadDashboardStats'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadDashboardStatsResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4188,7 +4512,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Department Head dashboard landing summary
@@ -4220,12 +4544,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadTrendsResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4233,7 +4556,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Department Head capacity utilization trends
@@ -4268,8 +4591,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadScheduleResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4277,7 +4599,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: View department schedule history log
@@ -4318,8 +4640,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadBatchScheduleResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4327,7 +4648,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Run batch scheduling (Schedule-on-Demand, no overbook)
@@ -4360,12 +4681,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadScheduledPatientsResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4373,7 +4693,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: List scheduled patients for a date
@@ -4411,11 +4731,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadStaffCapacityUpdateResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4423,7 +4743,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Update HospitalDepartment.MaxCapacityOfStaff (soft hint)
@@ -4449,7 +4769,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.StaffSummaryResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadStaffSummaryResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4457,7 +4777,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Department staff summary (active/inactive + roster)
@@ -4486,8 +4806,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadTriageQueueResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4495,7 +4814,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Get department triage queue
@@ -4521,7 +4840,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PriorityBucketResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadPriorityBucketsResponse'
         "401":
           description: Unauthorized
           schema:
@@ -4529,7 +4848,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse'
+            $ref: '#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse'
       security:
       - BearerAuth: []
       summary: Priority bucket counts for the dept's waiting queue

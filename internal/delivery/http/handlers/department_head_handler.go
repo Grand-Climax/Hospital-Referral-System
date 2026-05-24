@@ -38,9 +38,9 @@ func NewDepartmentHeadHandler(capacityUC iusecase.CapacityManagementUseCase, sch
 // @Produce      json
 // @Param        limit query int false "Pagination limit" default(50)
 // @Param        page query int false "Page number" default(1)
-// @Success      200 {object} map[string]interface{}
+// @Success      200 {object} dto.DeptHeadTriageQueueResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/triage-queue [get]
 func (h *DepartmentHeadHandler) GetTriageQueue(c *gin.Context) {
@@ -110,9 +110,9 @@ func (h *DepartmentHeadHandler) GetTriageQueue(c *gin.Context) {
 // @Description  - 500 Internal Server Error
 // @Tags         Department Head
 // @Produce      json
-// @Success      200 {object} map[string]interface{}
+// @Success      200 {object} dto.DeptHeadBatchScheduleResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/schedule/batch [post]
 func (h *DepartmentHeadHandler) BatchSchedule(c *gin.Context) {
@@ -156,9 +156,9 @@ func (h *DepartmentHeadHandler) BatchSchedule(c *gin.Context) {
 // @Description  - 500 Internal Server Error
 // @Tags         Department Head
 // @Produce      json
-// @Success      200 {object} map[string]interface{}
+// @Success      200 {object} dto.DeptHeadOverrideListResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/capacity/overrides [get]
 func (h *DepartmentHeadHandler) ListOverrides(c *gin.Context) {
@@ -212,10 +212,10 @@ func (h *DepartmentHeadHandler) ListOverrides(c *gin.Context) {
 // @Produce      json
 // @Param        body body dto.CreateOverrideRequest true "Override details"
 // @Success      201 {object} dto.BaseResponse
-// @Failure      400 {object} dto.BaseResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      409 {object} dto.BaseResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      409 {object} dto.DeptHeadErrorResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/capacity/overrides [post]
 func (h *DepartmentHeadHandler) CreateOverride(c *gin.Context) {
@@ -280,10 +280,10 @@ func (h *DepartmentHeadHandler) CreateOverride(c *gin.Context) {
 // @Produce      json
 // @Param        id path string true "Override ID"
 // @Success      200 {object} dto.BaseResponse
-// @Failure      400 {object} dto.BaseResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      404 {object} dto.BaseResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      404 {object} dto.DeptHeadErrorResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/capacity/overrides/{id} [delete]
 func (h *DepartmentHeadHandler) DeleteOverride(c *gin.Context) {
@@ -322,10 +322,10 @@ func (h *DepartmentHeadHandler) DeleteOverride(c *gin.Context) {
 // @Produce      json
 // @Param        year  query int true  "Year (e.g. 2026)"
 // @Param        month query int false "Month (1-12); omit for the entire year"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadOverrideByMonthResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/capacity/overrides/by-month [get]
 func (h *DepartmentHeadHandler) ListOverridesByMonth(c *gin.Context) {
@@ -392,10 +392,10 @@ func (h *DepartmentHeadHandler) ListOverridesByMonth(c *gin.Context) {
 // @Tags         Department Head
 // @Produce      json
 // @Param        date query string true "Target date (YYYY-MM-DD)"
-// @Success      200 {object} dto.CapacityDetailResponse
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadCapacityDetailResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/capacity/detail [get]
 func (h *DepartmentHeadHandler) GetCapacityDetail(c *gin.Context) {
@@ -444,10 +444,10 @@ func (h *DepartmentHeadHandler) GetCapacityDetail(c *gin.Context) {
 // @Tags         Department Head
 // @Produce      json
 // @Param        date query string true "Target date (YYYY-MM-DD)"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadScheduledPatientsResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/schedule/patients [get]
 func (h *DepartmentHeadHandler) GetScheduledPatients(c *gin.Context) {
@@ -499,10 +499,10 @@ func (h *DepartmentHeadHandler) GetScheduledPatients(c *gin.Context) {
 // @Produce      json
 // @Param        year  query int true "Year (e.g. 2026)"
 // @Param        month query int true "Month (1-12)"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadCapacityCalendarResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/capacity/calendar [get]
 func (h *DepartmentHeadHandler) GetCapacityCalendar(c *gin.Context) {
@@ -562,10 +562,10 @@ func (h *DepartmentHeadHandler) GetCapacityCalendar(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        body body dto.UpdateStaffCapacityRequest true "Soft staff hint"
-// @Success      200 {object} dto.BaseResponse
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadStaffCapacityUpdateResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/staff-capacity [put]
 func (h *DepartmentHeadHandler) UpdateStaffCapacity(c *gin.Context) {
@@ -641,11 +641,11 @@ func (h *DepartmentHeadHandler) scopedHospDept(c *gin.Context) (uuid.UUID, uuid.
 // @Tags         Department Head
 // @Produce      json
 // @Param        id path string true "Override ID (UUID)"
-// @Success      200 {object} map[string]interface{}
-// @Failure      400 {object} dto.BaseResponse
+// @Success      200 {object} dto.DeptHeadOverrideDetailResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      404 {object} dto.BaseResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      404 {object} dto.DeptHeadErrorResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/capacity/overrides/{id} [get]
 func (h *DepartmentHeadHandler) GetOverride(c *gin.Context) {
