@@ -922,6 +922,20 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.MLSeverityOverrideRequest:
+    properties:
+      justification:
+        example: Patient risk factors not fully captured by automatic vitals scoring
+        type: string
+      score:
+        example: 85
+        maximum: 100
+        minimum: 0
+        type: number
+    required:
+    - justification
+    - score
+    type: object
   dto.ManualEmergencyScheduleRequest:
     properties:
       appointment_date:
@@ -1649,18 +1663,6 @@ definitions:
     required:
     - content
     - receiver_id
-    type: object
-  dto.SetManualSeverityRequest:
-    properties:
-      justification:
-        type: string
-      score:
-        maximum: 100
-        minimum: 0
-        type: number
-    required:
-    - justification
-    - score
     type: object
   dto.TopReferringHospitalListResponse:
     properties:
@@ -2869,7 +2871,7 @@ info:
     ---
     ## Critical Business Rules
 
-    - **ML Triage Gate**: On submit, the backend calls the ML service (`POST /score`) asynchronously. A referral cannot be accepted while `ml_status` is PENDING, or without a severity score (from ML or manual `POST /specialist/referrals/{id}/triage-severity`).
+    - **ML Triage Gate**: On submit, the backend calls the ML service (`POST /score`) asynchronously. A referral cannot be accepted while `ml_status` is PENDING, or without a severity score (from ML or manual `POST /specialist/referrals/{id}/ml-severity-override`).
     - **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.
     - **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.
     - **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.
@@ -8937,6 +8939,63 @@ paths:
       summary: Get ML Prediction Details
       tags:
       - Specialist
+  /api/v1/specialist/referrals/{id}/ml-severity-override:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Allows a specialist to manually override the machine learning model's severity score for a patient referral.
+        This action sets the referral's machine learning pipeline status (`ml_status`) to MANUAL, updates the referral's severity score,
+        deletes any existing automated ML predictions for this referral to ensure data integrity, and recalculates the priority composite score in the triage queue.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** The referral must belong to the specialist's target hospital and department.
+        **Side Effects:** Changes `ml_status` to MANUAL, sets `triage_status` to OVERRIDDEN, clears active ML prediction association, and updates the triage composite score.
+        **Common Errors:**
+        - 400 Bad Request: Invalid referral ID format or malformed request payload
+        - 401 Unauthorized: Invalid or missing authorization token
+        - 403 Forbidden: Specialist does not belong to the target hospital/department of the referral
+        - 500 Internal Server Error: Database transaction failures
+      parameters:
+      - description: Referral ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Manual override parameters including new score and clinical justification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MLSeverityOverrideRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Severity score manually overridden and triage queue successfully
+            updated
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Invalid inputs / bad request format
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden operation / mismatching hospital scopes
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server / database transaction error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Manual ML Severity Override
+      tags:
+      - Specialist
   /api/v1/specialist/referrals/{id}/read:
     post:
       description: |-
@@ -9257,50 +9316,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Review Triage Prediction
-      tags:
-      - Specialist
-  /api/v1/specialist/referrals/{id}/triage-severity:
-    post:
-      consumes:
-      - application/json
-      description: |-
-        Manually set the severity score for a referral. Overrides ML score and updates triage queue.
-        **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** referral must exist and be under the specialist's purview.
-        **Side Effect:** Overrides ML score, updates triage queue composite score.
-        **Common Errors:**
-        - 400 invalid format
-        - 403 unauthorized hospital access
-      parameters:
-      - description: Referral ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Severity details
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.SetManualSeverityRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.BaseResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Set Manual Severity Score
       tags:
       - Specialist
   /api/v1/specialist/referrals/approved:

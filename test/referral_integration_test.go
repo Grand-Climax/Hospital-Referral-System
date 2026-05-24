@@ -259,7 +259,8 @@ func TestSpecialistOperations(t *testing.T) {
 	mockSched := new(MockSchedulingUseCase)
 	mockTriage := new(MockTriageUseCase)
 	mockPatientUC := new(MockPatientUseCase)
-	handler := handlers.NewSpecialistHandler(mockUC, mockSched, mockTriage, mockPatientUC)
+	mockML := new(MockMLUseCase)
+	handler := handlers.NewSpecialistHandler(mockUC, mockSched, mockTriage, mockPatientUC, mockML)
 	specialistID := uuid.New()
 	hospID := uuid.New()
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,9 @@ type mlUseCase struct {
 	db           *gorm.DB
 	referralRepo irepository.ReferralRepository
 	mlRepo       irepository.MLPredictionRepository
+	triageRepo   irepository.TriageQueueRepository
+	configRepo   irepository.SystemConfigRepository
+	auditRepo    irepository.AuditLogRepository
 	client       ml.Client
 	enabled      bool
 	maxRetries   int
@@ -31,6 +35,9 @@ func NewMLUseCase(
 	db *gorm.DB,
 	referralRepo irepository.ReferralRepository,
 	mlRepo irepository.MLPredictionRepository,
+	triageRepo irepository.TriageQueueRepository,
+	configRepo irepository.SystemConfigRepository,
+	auditRepo irepository.AuditLogRepository,
 	client ml.Client,
 	enabled bool,
 	maxRetries int,
@@ -42,6 +49,9 @@ func NewMLUseCase(
 		db:           db,
 		referralRepo: referralRepo,
 		mlRepo:       mlRepo,
+		triageRepo:   triageRepo,
+		configRepo:   configRepo,
+		auditRepo:    auditRepo,
 		client:       client,
 		enabled:      enabled,
 		maxRetries:   maxRetries,
@@ -367,3 +377,81 @@ func (u *mlUseCase) ProcessMLResult(
 
 	return txErr
 }
+
+func (u *mlUseCase) MLSeverityOverride(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
+	if score < 0 || score > 100 {
+		return errors.New("severity score must be between 0 and 100")
+	}
+
+	if err := u.SendFeedbackOverride(ctx, referralID, score, justification); err != nil {
+		log.Printf("ml feedback override referral %s: %v", referralID, err)
+	}
+
+	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. Delete any existing ML predictions for this referral to completely remove manual inputs from ML prediction tables
+		if err := tx.Where("referral_id = ?", referralID).Delete(&entity.MLPrediction{}).Error; err != nil {
+			return err
+		}
+
+		// 2. Update Referral: set active_ml_prediction_id to nil, store the manual override score, and mark ml_status as MANUAL
+		if err := tx.Model(&entity.Referral{}).
+			Where("id = ?", referralID).
+			Updates(map[string]interface{}{
+				"active_ml_prediction_id": nil,
+				"ml_severity_score":       score,
+				"triage_status":           entity.TriageOverridden,
+				"ml_status":               entity.MLStatusManual,
+				"ml_run_started_at":       nil,
+			}).Error; err != nil {
+			return err
+		}
+
+		// 3. Recalculate TriageQueue composite score
+		queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
+		if err == nil && queue != nil {
+			ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+			if err != nil {
+				return err
+			}
+			if ref.ReferralForm == nil {
+				return errors.New("referral form missing")
+			}
+
+			var triageScore float64
+			switch ref.ReferralForm.ConditionAtReferral {
+			case "critical":
+				triageScore = 100
+			case "urgent":
+				triageScore = 70
+			case "stable":
+				triageScore = 30
+			default:
+				triageScore = 10
+			}
+
+			agingFactor := 1.0
+			cfg, err := u.configRepo.GetByKey(ctx, "aging_factor")
+			if err == nil && cfg != nil {
+				if af, err := strconv.ParseFloat(cfg.Value, 64); err == nil && af > 0 {
+					agingFactor = af
+				}
+			}
+			daysWait := time.Since(ref.CreatedAt).Hours() / 24
+			agingBonus := daysWait * agingFactor
+
+			newComposite := (triageScore * 0.6) + (score * 0.3) + agingBonus
+			queue.CompositeScore = newComposite
+
+			if err := tx.Save(queue).Error; err != nil {
+				return err
+			}
+		}
+
+		// 4. Log audit event
+		return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideMLScore, &referralID, nil, map[string]interface{}{
+			"score":         score,
+			"justification": justification,
+		})
+	})
+}
+

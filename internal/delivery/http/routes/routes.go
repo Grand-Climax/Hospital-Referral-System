@@ -92,7 +92,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Use mock if needed: smsClient := sms.NewMockSMSClient()
 
 	mlClient := ml.NewClient(cfg.ML.BaseURL, time.Duration(cfg.ML.TimeoutSec)*time.Second)
-	mlUseCase := usecase.NewMLUseCase(db, referralRepo, mlRepo, mlClient, cfg.ML.Enabled, cfg.ML.MaxRetries)
+	mlUseCase := usecase.NewMLUseCase(db, referralRepo, mlRepo, triageRepo, configRepo, auditLogRepo, mlClient, cfg.ML.Enabled, cfg.ML.MaxRetries)
 
 	cryptoSvc, err := crypto.NewPatientCryptoService(os.Getenv("PATIENT_AES_KEY"), os.Getenv("PATIENT_HMAC_KEY"))
 	if err != nil {
@@ -142,7 +142,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Role-Based State Machine Handlers
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase, patientUseCase, arrivalUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase, patientUseCase)
-	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase)
+	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase, mlUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase, userUseCase)
 	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo, patientUseCase)
 	mohAnalyticsHandler := handlers.NewMohAnalyticsHandler(referralUseCase)
@@ -326,7 +326,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 
 			// Triage & Scheduling
 			specialistGroup.GET("/triage-queue", specialistHandler.GetTriageQueue)
-			specialistGroup.POST("/:id/triage-severity", specialistHandler.SetManualSeverity)
+			specialistGroup.POST("/:id/ml-severity-override", specialistHandler.MLSeverityOverride)
 			specialistGroup.POST("/:id/triage-review", triageHandler.Review)
 			specialistGroup.GET("/capacity", specialistHandler.GetCapacity)
 			specialistGroup.POST("/:id/schedule", specialistHandler.Schedule)

@@ -22,14 +22,16 @@ type SpecialistHandler struct {
 	schedUC    iusecase.SchedulingUseCase
 	triageUC   iusecase.TriageUseCase
 	patientUC  iusecase.PatientUseCase
+	mlUC       iusecase.MLUseCase
 }
 
-func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase, patientUC iusecase.PatientUseCase) *SpecialistHandler {
+func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase, patientUC iusecase.PatientUseCase, mlUC iusecase.MLUseCase) *SpecialistHandler {
 	return &SpecialistHandler{
 		referralUC: referralUC,
 		schedUC:    schedUC,
 		triageUC:   triageUC,
 		patientUC:  patientUC,
+		mlUC:       mlUC,
 	}
 }
 
@@ -798,26 +800,32 @@ func (h *SpecialistHandler) ManualEmergencySchedule(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Emergency appointment scheduled successfully"})
 }
 
-// SetManualSeverity godoc
-// @Summary      Set Manual Severity Score
-// @Description  Manually set the severity score for a referral. Overrides ML score and updates triage queue.
+// MLSeverityOverride godoc
+// @Summary      Manual ML Severity Override
+// @Description  Allows a specialist to manually override the machine learning model's severity score for a patient referral.
+// @Description  This action sets the referral's machine learning pipeline status (`ml_status`) to MANUAL, updates the referral's severity score,
+// @Description  deletes any existing automated ML predictions for this referral to ensure data integrity, and recalculates the priority composite score in the triage queue.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** referral must exist and be under the specialist's purview.
-// @Description  **Side Effect:** Overrides ML score, updates triage queue composite score.
+// @Description  **Prerequisites:** The referral must belong to the specialist's target hospital and department.
+// @Description  **Side Effects:** Changes `ml_status` to MANUAL, sets `triage_status` to OVERRIDDEN, clears active ML prediction association, and updates the triage composite score.
 // @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 403 unauthorized hospital access
+// @Description  - 400 Bad Request: Invalid referral ID format or malformed request payload
+// @Description  - 401 Unauthorized: Invalid or missing authorization token
+// @Description  - 403 Forbidden: Specialist does not belong to the target hospital/department of the referral
+// @Description  - 500 Internal Server Error: Database transaction failures
 // @Tags         Specialist
 // @Accept       json
 // @Produce      json
-// @Param        id path string true "Referral ID"
-// @Param        body body dto.SetManualSeverityRequest true "Severity details"
-// @Success      200 {object} dto.BaseResponse
-// @Failure      400 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.ErrorResponse
+// @Param        id path string true "Referral ID (UUID)"
+// @Param        body body dto.MLSeverityOverrideRequest true "Manual override parameters including new score and clinical justification"
+// @Success      200 {object} dto.BaseResponse "Severity score manually overridden and triage queue successfully updated"
+// @Failure      400 {object} dto.ErrorResponse "Invalid inputs / bad request format"
+// @Failure      401 {object} dto.ErrorResponse "Unauthorized access"
+// @Failure      403 {object} dto.ErrorResponse "Forbidden operation / mismatching hospital scopes"
+// @Failure      500 {object} dto.ErrorResponse "Internal server / database transaction error"
 // @Security     BearerAuth
-// @Router       /api/v1/specialist/referrals/{id}/triage-severity [post]
-func (h *SpecialistHandler) SetManualSeverity(c *gin.Context) {
+// @Router       /api/v1/specialist/referrals/{id}/ml-severity-override [post]
+func (h *SpecialistHandler) MLSeverityOverride(c *gin.Context) {
 	referralID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral ID"})
@@ -832,13 +840,13 @@ func (h *SpecialistHandler) SetManualSeverity(c *gin.Context) {
 		userID = *uID
 	}
 
-	var req dto.SetManualSeverityRequest
+	var req dto.MLSeverityOverrideRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	if err := h.triageUC.SetManualSeverity(c.Request.Context(), referralID, userID, req.Score, req.Justification); err != nil {
+	if err := h.mlUC.MLSeverityOverride(c.Request.Context(), referralID, userID, req.Score, req.Justification); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}

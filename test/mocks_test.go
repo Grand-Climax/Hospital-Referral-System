@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -1314,9 +1315,6 @@ func (m *MockTriageUseCase) ListScheduledInRange(ctx context.Context, hospitalID
 	return args.Get(0).([]entity.TriageQueue), args.Error(1)
 }
 
-func (m *MockTriageUseCase) SetManualSeverity(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
-	return m.Called(ctx, referralID, userID, score, justification).Error(0)
-}
 
 // ---------------------------------------------------------------------------
 // Mock: ArrivalUseCase
@@ -2072,3 +2070,44 @@ func (m *MockJobCheckpointRepo) GetLastRun(ctx context.Context, jobName string) 
 func (m *MockJobCheckpointRepo) UpdateLastRun(ctx context.Context, jobName string, timestamp time.Time) error {
 	return m.Called(ctx, jobName, timestamp).Error(0)
 }
+
+// ---------------------------------------------------------------------------
+// Mock: MLUseCase
+// ---------------------------------------------------------------------------
+
+type MockMLUseCase struct {
+	mock.Mock
+}
+
+func (m *MockMLUseCase) ScheduleScore(referralID uuid.UUID) {
+	m.Called(referralID)
+}
+
+func (m *MockMLUseCase) ScheduleScoreForce(referralID uuid.UUID) {
+	m.Called(referralID)
+}
+
+func (m *MockMLUseCase) ScoreReferral(ctx context.Context, referralID uuid.UUID) error {
+	return m.Called(ctx, referralID).Error(0)
+}
+
+func (m *MockMLUseCase) ScoreReferralForce(ctx context.Context, referralID uuid.UUID) error {
+	return m.Called(ctx, referralID).Error(0)
+}
+
+func (m *MockMLUseCase) SendFeedbackAccept(ctx context.Context, referralID uuid.UUID) error {
+	return m.Called(ctx, referralID).Error(0)
+}
+
+func (m *MockMLUseCase) SendFeedbackOverride(ctx context.Context, referralID uuid.UUID, correctedScore float64, doctorExplanation string) error {
+	return m.Called(ctx, referralID, correctedScore, doctorExplanation).Error(0)
+}
+
+func (m *MockMLUseCase) MLSeverityOverride(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
+	return m.Called(ctx, referralID, userID, score, justification).Error(0)
+}
+
+func (m *MockMLUseCase) ProcessMLResult(ctx context.Context, referralID uuid.UUID, score float64, confidence float64, severityTier string, explanation json.RawMessage, modelVersion string, inputFeatures json.RawMessage, externalPredictionID *string, processingTimeMs *float64, triggerReason string) error {
+	return m.Called(ctx, referralID, score, confidence, severityTier, explanation, modelVersion, inputFeatures, externalPredictionID, processingTimeMs, triggerReason).Error(0)
+}
+
