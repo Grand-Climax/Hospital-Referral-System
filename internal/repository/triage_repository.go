@@ -148,3 +148,119 @@ func (r *triageRepository) FindMissedByDate(ctx context.Context, beforeDate time
 		Find(&queues).Error
 	return queues, err
 }
+
+// CountByDeptAndDate returns the number of triage queue rows currently
+// occupying capacity for (hospital, department, date). Rows whose
+// ArrivalStatus is Expected, Arrived, or Admitted are counted; Missed
+// and Completed rows are deliberately excluded so a no-show frees the
+// slot for an in-day re-book (which is also why DailySchedule is now
+// a snapshot rather than a counter).
+func (r *triageRepository) CountByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (int64, error) {
+	var c int64
+	err := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Where("hospital_id = ? AND department_id = ? AND appointment_date = ? AND arrival_status IN ?",
+			hospitalID, deptID, date.Format("2006-01-02"),
+			[]entity.ArrivalStatus{
+				entity.ArrivalExpected,
+				entity.ArrivalArrived,
+				entity.ArrivalAdmitted,
+			}).
+		Count(&c).Error
+	return c, err
+}
+
+// CountAssignedDoctorsByDeptAndDate returns the number of distinct
+// assigned_doctor_ids on the triage queue for (hospital, department,
+// date), restricted to rows whose patient has actually arrived
+// (Arrived/Admitted) and whose referral is in SCHEDULED status. Used
+// purely as a "staff_assigned" hint in capacity views; it does not
+// gate any booking.
+func (r *triageRepository) CountAssignedDoctorsByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (int64, error) {
+	var c int64
+	err := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Joins("JOIN referrals ON referrals.id = triage_queues.referral_id").
+		Where("triage_queues.hospital_id = ? AND triage_queues.department_id = ? AND triage_queues.appointment_date = ?",
+			hospitalID, deptID, date.Format("2006-01-02")).
+		Where("triage_queues.arrival_status IN ?", []entity.ArrivalStatus{
+			entity.ArrivalArrived,
+			entity.ArrivalAdmitted,
+		}).
+		Where("referrals.status = ?", entity.StatusScheduled).
+		Where("triage_queues.assigned_doctor_id IS NOT NULL").
+		Distinct("triage_queues.assigned_doctor_id").
+		Count(&c).Error
+	return c, err
+}
+
+// CountMissedByDeptInRange returns the count of triage rows missed in the
+// inclusive [start, end] window. Used by the dept-head dashboard to
+// drive the "missed last 7 days" KPI.
+func (r *triageRepository) CountMissedByDeptInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) (int64, error) {
+	var c int64
+	err := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).
+		Where("appointment_date BETWEEN ? AND ?", start.Format("2006-01-02"), end.Format("2006-01-02")).
+		Where("arrival_status = ?", entity.ArrivalMissed).
+		Count(&c).Error
+	return c, err
+}
+
+// CountScheduledByDeptInRange returns the count of triage rows scheduled
+// in [start, end] with status Expected/Arrived/Admitted (i.e. still
+// counts toward capacity).
+func (r *triageRepository) CountScheduledByDeptInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) (int64, error) {
+	var c int64
+	err := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).
+		Where("appointment_date BETWEEN ? AND ?", start.Format("2006-01-02"), end.Format("2006-01-02")).
+		Where("arrival_status IN ?", []entity.ArrivalStatus{
+			entity.ArrivalExpected,
+			entity.ArrivalArrived,
+			entity.ArrivalAdmitted,
+		}).
+		Count(&c).Error
+	return c, err
+}
+
+// OldestWaitingDaysByDept returns the integer number of days since the
+// earliest unscheduled EXPECTED triage row in the dept was created. Zero
+// when the queue is empty or the query fails (caller should treat the
+// metric as best-effort).
+func (r *triageRepository) OldestWaitingDaysByDept(ctx context.Context, hospitalID, deptID uuid.UUID) (int, error) {
+	var oldest *time.Time
+	err := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Joins("JOIN referrals ON referrals.id = triage_queues.referral_id").
+		Where("triage_queues.hospital_id = ? AND triage_queues.department_id = ?", hospitalID, deptID).
+		Where("triage_queues.appointment_date IS NULL AND triage_queues.arrival_status = ?", entity.ArrivalExpected).
+		Select("MIN(referrals.created_at)").Scan(&oldest).Error
+	if err != nil || oldest == nil {
+		return 0, err
+	}
+	days := int(time.Since(*oldest).Hours() / 24)
+	if days < 0 {
+		days = 0
+	}
+	return days, nil
+}
+
+// FindScheduledByDeptAndDate returns the triage rows scheduled for the
+// given date in any "occupying-the-slot" arrival status (Expected,
+// Arrived, Admitted). Referral + Patient are eagerly loaded so the
+// dept-head schedule-patients view can render names without an extra
+// round-trip.
+func (r *triageRepository) FindScheduledByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) ([]entity.TriageQueue, error) {
+	var queues []entity.TriageQueue
+	err := r.db.WithContext(ctx).
+		Preload("Referral").
+		Preload("Referral.Patient").
+		Where("hospital_id = ? AND department_id = ? AND appointment_date = ? AND arrival_status IN ?",
+			hospitalID, deptID, date.Format("2006-01-02"),
+			[]entity.ArrivalStatus{
+				entity.ArrivalExpected,
+				entity.ArrivalArrived,
+				entity.ArrivalAdmitted,
+			}).
+		Order("composite_score desc").
+		Find(&queues).Error
+	return queues, err
+}

@@ -2,8 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,78 +23,44 @@ func NewDailyScheduleRepository(db *gorm.DB) irepository.DailyScheduleRepository
 	}
 }
 
-func (r *dailyScheduleRepository) GetByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (*entity.DailySchedule, error) {
+// FindByDeptAndDate returns the existing log row for the given
+// (hospital, department, date) or gorm.ErrRecordNotFound. The schedule_date
+// column is a DATE in Postgres so we compare formatted as YYYY-MM-DD.
+func (r *dailyScheduleRepository) FindByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (*entity.DailySchedule, error) {
 	var schedule entity.DailySchedule
 	err := r.db.WithContext(ctx).
-		Where("hospital_id = ? AND department_id = ? AND schedule_date = ?", hospitalID, deptID, date.Format("2006-01-02")).
+		Where("hospital_id = ? AND department_id = ? AND schedule_date = ?",
+			hospitalID, deptID, date.Format("2006-01-02")).
 		First(&schedule).Error
-	return &schedule, err
-}
-
-func (r *dailyScheduleRepository) GetOrCreate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time, defaultMaxSlots int) (*entity.DailySchedule, error) {
-	var schedule entity.DailySchedule
-	dateStr := date.Format("2006-01-02")
-	
-	err := r.db.WithContext(ctx).
-		Where("hospital_id = ? AND department_id = ? AND schedule_date = ?", hospitalID, deptID, dateStr).
-		First(&schedule).Error
-	
-	if err == nil {
-		return &schedule, nil
-	}
-
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil {
 		return nil, err
 	}
-
-	var hospDept entity.HospitalDepartment
-	r.db.WithContext(ctx).Where("hospital_id = ? AND department_id = ?", hospitalID, deptID).First(&hospDept)
-
-	var defaultOverbook int = 0
-	var config entity.SystemConfig
-	if err := r.db.WithContext(ctx).Where("key = ?", "overbook_limit_default").First(&config).Error; err == nil {
-		if val, err := strconv.Atoi(config.Value); err == nil && val >= 0 {
-			defaultOverbook = val
-		}
-	}
-
-	schedule = entity.DailySchedule{
-		HospitalID:    hospitalID,
-		DepartmentID:  deptID,
-		ScheduleDate:  date,
-		MaxSlots:      defaultMaxSlots,
-		OverbookLimit: defaultOverbook,
-		Version:       1,
-	}
-
-	if err := r.db.WithContext(ctx).Create(&schedule).Error; err != nil {
-		return r.GetByDeptAndDate(ctx, hospitalID, deptID, date)
-	}
-
 	return &schedule, nil
 }
 
-func (r *dailyScheduleRepository) IncrementBookedSlots(ctx context.Context, id uuid.UUID, version int) error {
-	result := r.db.WithContext(ctx).Model(&entity.DailySchedule{}).
-		Where("id = ? AND version = ?", id, version).
-		Updates(map[string]interface{}{
-			"booked_slots": gorm.Expr("booked_slots + 1"),
-			"version":      gorm.Expr("version + 1"),
-		})
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.New("concurrent_modification: schedule was modified by another request")
-	}
-	return nil
-}
-
+// FindByDeptAndDateRange returns log rows for the inclusive date range,
+// ordered ascending by schedule_date. Used by calendar views.
 func (r *dailyScheduleRepository) FindByDeptAndDateRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.DailySchedule, error) {
 	var schedules []entity.DailySchedule
 	err := r.db.WithContext(ctx).
-		Where("hospital_id = ? AND department_id = ? AND schedule_date BETWEEN ? AND ?", hospitalID, deptID, start.Format("2006-01-02"), end.Format("2006-01-02")).
+		Where("hospital_id = ? AND department_id = ? AND schedule_date BETWEEN ? AND ?",
+			hospitalID, deptID, start.Format("2006-01-02"), end.Format("2006-01-02")).
 		Order("schedule_date ASC").
 		Find(&schedules).Error
 	return schedules, err
+}
+
+// CreateLog inserts the immutable history row for the first booking
+// of a (hospital, department, date) tuple. MaxSlots / OverbookLimit are
+// captured by the caller from the effective capacity at booking time.
+func (r *dailyScheduleRepository) CreateLog(ctx context.Context, log *entity.DailySchedule) error {
+	return r.db.WithContext(ctx).Create(log).Error
+}
+
+// UpdateBookedSlots updates the BookedSlots snapshot. MaxSlots is never
+// updated after creation.
+func (r *dailyScheduleRepository) UpdateBookedSlots(ctx context.Context, id uuid.UUID, count int) error {
+	return r.db.WithContext(ctx).Model(&entity.DailySchedule{}).
+		Where("id = ?", id).
+		Update("booked_slots", count).Error
 }

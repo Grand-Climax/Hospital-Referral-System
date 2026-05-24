@@ -756,6 +756,54 @@ func (r *referralRepository) CountAcceptedOrCompletedToday(ctx context.Context, 
 	return count, err
 }
 
+// CountByTargetDeptAndStatuses returns one ReferralStatusCount per requested
+// status for inbound referrals at (target hospital, target department).
+// Archived rows are excluded. If startDate / endDate are non-nil they bound
+// referrals.created_at. Statuses that yield zero rows still appear in the
+// result with Count = 0 so the front-end can render every bucket
+// deterministically.
+func (r *referralRepository) CountByTargetDeptAndStatuses(
+	ctx context.Context,
+	hospID, deptID uuid.UUID,
+	statuses []entity.ReferralStatus,
+	startDate, endDate *time.Time,
+) ([]irepository.ReferralStatusCount, error) {
+	if len(statuses) == 0 {
+		return []irepository.ReferralStatusCount{}, nil
+	}
+
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("target_hospital_id = ? AND target_dept_id = ? AND is_archived = false", hospID, deptID).
+		Where("status IN ?", statuses)
+
+	if startDate != nil {
+		query = query.Where("created_at >= ?", *startDate)
+	}
+	if endDate != nil {
+		query = query.Where("created_at <= ?", *endDate)
+	}
+
+	type row struct {
+		Status string
+		Count  int64
+	}
+	var rows []row
+	if err := query.Select("status, COUNT(*) AS count").Group("status").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	got := make(map[entity.ReferralStatus]int64, len(rows))
+	for _, r := range rows {
+		got[entity.ReferralStatus(r.Status)] = r.Count
+	}
+
+	out := make([]irepository.ReferralStatusCount, 0, len(statuses))
+	for _, s := range statuses {
+		out = append(out, irepository.ReferralStatusCount{Status: s, Count: got[s]})
+	}
+	return out, nil
+}
+
 func (r *referralRepository) UpdateFields(ctx context.Context, referralID uuid.UUID, updates irepository.ReferralUpdateFields) error {
 	return r.db.WithContext(ctx).Model(&entity.Referral{}).Where("id = ?", referralID).Updates(updates).Error
 }

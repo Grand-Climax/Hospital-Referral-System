@@ -87,3 +87,14 @@ func (r *departmentRepository) FindHospitalDepartment(ctx context.Context, hospi
 func (r *departmentRepository) UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error {
 	return r.db.WithContext(ctx).Save(link).Error
 }
+
+// UpdateStaffCapacity is a narrow update path used by the soft-hint
+// PUT /staff-capacity endpoint. It avoids loading + Save (which would
+// touch every column) so concurrent capacity-related writes do not
+// stomp each other.
+func (r *departmentRepository) UpdateStaffCapacity(ctx context.Context, hospitalID, departmentID uuid.UUID, value int) error {
+	return r.db.WithContext(ctx).
+		Model(&entity.HospitalDepartment{}).
+		Where("hospital_id = ? AND department_id = ?", hospitalID, departmentID).
+		Update("max_capacity_of_staff", value).Error
+}
