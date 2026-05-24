@@ -84,6 +84,35 @@ func (m *MockAuthUseCase) Logout(ctx context.Context, accessToken, refreshToken 
 	return args.Error(0)
 }
 
+func (m *MockAuthUseCase) ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword, ipAddress, userAgent string) (*auth.TokenPair, error) {
+	args := m.Called(ctx, userID, currentPassword, newPassword, ipAddress, userAgent)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*auth.TokenPair), args.Error(1)
+}
+
+func (m *MockAuthUseCase) ForgotPassword(ctx context.Context, email string) error {
+	args := m.Called(ctx, email)
+	return args.Error(0)
+}
+
+func (m *MockAuthUseCase) VerifyForgotPasswordOTP(ctx context.Context, email, code string) (*iusecase.PasswordResetVerifyResult, error) {
+	args := m.Called(ctx, email, code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*iusecase.PasswordResetVerifyResult), args.Error(1)
+}
+
+func (m *MockAuthUseCase) ResetPassword(ctx context.Context, userID uuid.UUID, newPassword, ipAddress, userAgent string) (*auth.TokenPair, error) {
+	args := m.Called(ctx, userID, newPassword, ipAddress, userAgent)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*auth.TokenPair), args.Error(1)
+}
+
 func TestAuthHandlerLogin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

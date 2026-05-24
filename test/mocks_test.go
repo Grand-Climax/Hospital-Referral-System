@@ -1827,6 +1827,14 @@ func (m *MockUserUseCase) GetMyProfile(ctx context.Context, userID uuid.UUID) (*
 	return nil, args.Error(1)
 }
 
+func (m *MockUserUseCase) UpdateMyProfile(ctx context.Context, userID uuid.UUID, input iusecase.UpdateMyProfileInput) (*entity.User, error) {
+	args := m.Called(ctx, userID, input)
+	if args.Get(0) != nil {
+		return args.Get(0).(*entity.User), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func (m *MockUserUseCase) UpdateUser(ctx context.Context, user *entity.User) error {
 	args := m.Called(ctx, user)
 	return args.Error(0)
