@@ -732,7 +732,7 @@ func main() {
 		}
 
 		// Set severity
-		set, err := c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA1+"/triage-severity", specTAToken, map[string]any{
+		set, err := c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA1+"/ml-severity-override", specTAToken, map[string]any{
 			"score":         85,
 			"justification": "High risk",
 		})
@@ -793,7 +793,7 @@ func main() {
 		if err := mustStatus(r2.status, 200, r2.body); err != nil {
 			return err
 		}
-		set2, err := c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA2+"/triage-severity", specBLToken, map[string]any{
+		set2, err := c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA2+"/ml-severity-override", specBLToken, map[string]any{
 			"score":         95,
 			"justification": "Critical",
 		})
@@ -1253,7 +1253,7 @@ func main() {
 		if err := mustStatus(rd.status, 200, rd.body); err != nil {
 			return err
 		}
-		sv, err := c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA3+"/triage-severity", specTAToken, map[string]any{
+		sv, err := c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA3+"/ml-severity-override", specTAToken, map[string]any{
 			"score":         70,
 			"justification": "Moderate",
 		})
@@ -1399,7 +1399,7 @@ func main() {
 		}
 		if ac2.status != 200 {
 			// best-effort: set severity then accept
-			_, _ = c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA3+"/triage-severity", specSPToken, map[string]any{
+			_, _ = c.doJSON("POST", "/api/v1/specialist/referrals/"+refTA3+"/ml-severity-override", specSPToken, map[string]any{
 				"score":         75,
 				"justification": "Post-redirect review",
 			})

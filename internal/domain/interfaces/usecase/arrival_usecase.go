@@ -21,5 +21,6 @@ type ArrivalUseCase interface {
 	// Consult management
 	GrantConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID) error
 	RevokeConsultAccess(ctx context.Context, referralID, granterID, doctorID uuid.UUID, reason string) error
+	ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID) error
 }
 

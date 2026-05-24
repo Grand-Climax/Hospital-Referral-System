@@ -922,6 +922,20 @@ definitions:
         example: true
         type: boolean
     type: object
+  dto.MLSeverityOverrideRequest:
+    properties:
+      justification:
+        example: Patient risk factors not fully captured by automatic vitals scoring
+        type: string
+      score:
+        example: 85
+        maximum: 100
+        minimum: 0
+        type: number
+    required:
+    - justification
+    - score
+    type: object
   dto.ManualEmergencyScheduleRequest:
     properties:
       appointment_date:
@@ -1636,6 +1650,16 @@ definitions:
     required:
     - appointment_date
     type: object
+  dto.SchedulingResponse:
+    properties:
+      message:
+        type: string
+      rescheduled_from_missed:
+        type: boolean
+      success:
+        example: true
+        type: boolean
+    type: object
   dto.SendMessageRequest:
     properties:
       content:
@@ -1649,18 +1673,6 @@ definitions:
     required:
     - content
     - receiver_id
-    type: object
-  dto.SetManualSeverityRequest:
-    properties:
-      justification:
-        type: string
-      score:
-        maximum: 100
-        minimum: 0
-        type: number
-    required:
-    - justification
-    - score
     type: object
   dto.TopReferringHospitalListResponse:
     properties:
@@ -2216,12 +2228,14 @@ definitions:
     - SCHEDULING
     - REMINDER
     - RESCHEDULE
+    - MISSED_RESCHEDULE
     type: string
     x-enum-varnames:
     - NotifyAcceptance
     - NotifyScheduling
     - NotifyReminder
     - NotifyReschedule
+    - NotifyMissedReschedule
   entity.Patient:
     properties:
       allow_sms:
@@ -2869,7 +2883,7 @@ info:
     ---
     ## Critical Business Rules
 
-    - **ML Triage Gate**: On submit, the backend calls the ML service (`POST /score`) asynchronously. A referral cannot be accepted while `ml_status` is PENDING, or without a severity score (from ML or manual `POST /specialist/referrals/{id}/triage-severity`).
+    - **ML Triage Gate**: On submit, the backend calls the ML service (`POST /score`) asynchronously. A referral cannot be accepted while `ml_status` is PENDING, or without a severity score (from ML or manual `POST /specialist/referrals/{id}/ml-severity-override`).
     - **Duplicate Prevention**: A patient may not have more than one active referral (status not COMPLETED, CANCELLED, REJECTED_*, DECEASED) to the same target department. The API returns 409 Conflict.
     - **Walk‑in Restriction**: Walk‑ins can only be registered for referrals in ACCEPTED or SCHEDULED status.
     - **Emergency Scheduling**: Bypasses buffer days and allows overbooking up to `overbook_limit`. Requires critical condition or explicit justification.
@@ -8009,6 +8023,38 @@ paths:
       summary: Mark Appointment as Missed
       tags:
       - Receptionist
+  /api/v1/receptionist/referrals/{id}/return-to-triage:
+    post:
+      description: |-
+        Allows a receptionist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).
+        **Detailed Behavior:**
+        - Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).
+        - Wipes out the missed appointment date ('AppointmentDate' = nil).
+        - Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).
+        - Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.
+        **Roles:** RECEPTIONIST
+      parameters:
+      - description: TriageQueue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Return Missed Patient to Triage
+      tags:
+      - Receptionist
   /api/v1/receptionist/referrals/{id}/revoke-doctor:
     post:
       consumes:
@@ -8856,21 +8902,20 @@ paths:
       consumes:
       - application/json
       description: |-
-        Schedule an emergency appointment bypassing buffer days and allowing overbooking.
+        Bypass standard booking capacity limits and queue slot guards to record an immediate emergency appointment slot.
+        **Detailed Behavior & Rules:**
+        - Strict date validation: The appointment date must be today or in the future; scheduling for past dates is blocked.
+        - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. If the patient has already arrived ('ARRIVED') or is admitted ('ADMITTED'), emergency booking is blocked.
+        - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', emergency-scheduling will transition the 'ArrivalStatus' back to 'ArrivalExpected', set the new appointment date, trigger apology-free SMS reschedule alerts, and dispatch a 'MISSED_APPOINTMENT_RESCHEDULED' doctor in-app notification.
+        - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** referral must be accepted; condition must be `critical` OR justification provided.
-        **State Transition:** Sets appointment_date, bypasses buffer, allows overbooking.
-        **Gatekeepers:** Allows overbooking up to `overbook_limit`.
-        **Common Errors:**
-        - 400 invalid format
-        - 500 internal error
       parameters:
       - description: Referral ID
         in: path
         name: id
         required: true
         type: string
-      - description: Scheduling details
+      - description: Emergency scheduling details
         in: body
         name: body
         required: true
@@ -8882,9 +8927,13 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.BaseResponse'
+            $ref: '#/definitions/dto.SchedulingResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "500":
@@ -8893,7 +8942,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Manual Emergency Scheduling
+      summary: Manual Emergency Schedule
       tags:
       - Specialist
   /api/v1/specialist/referrals/{id}/ml-prediction:
@@ -8935,6 +8984,63 @@ paths:
       security:
       - BearerAuth: []
       summary: Get ML Prediction Details
+      tags:
+      - Specialist
+  /api/v1/specialist/referrals/{id}/ml-severity-override:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Allows a specialist to manually override the machine learning model's severity score for a patient referral.
+        This action sets the referral's machine learning pipeline status (`ml_status`) to MANUAL, updates the referral's severity score,
+        deletes any existing automated ML predictions for this referral to ensure data integrity, and recalculates the priority composite score in the triage queue.
+        **Roles:** RECEIVING_SPECIALIST
+        **Prerequisites:** The referral must belong to the specialist's target hospital and department.
+        **Side Effects:** Changes `ml_status` to MANUAL, sets `triage_status` to OVERRIDDEN, clears active ML prediction association, and updates the triage composite score.
+        **Common Errors:**
+        - 400 Bad Request: Invalid referral ID format or malformed request payload
+        - 401 Unauthorized: Invalid or missing authorization token
+        - 403 Forbidden: Specialist does not belong to the target hospital/department of the referral
+        - 500 Internal Server Error: Database transaction failures
+      parameters:
+      - description: Referral ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Manual override parameters including new score and clinical justification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MLSeverityOverrideRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Severity score manually overridden and triage queue successfully
+            updated
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Invalid inputs / bad request format
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden operation / mismatching hospital scopes
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server / database transaction error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Manual ML Severity Override
       tags:
       - Specialist
   /api/v1/specialist/referrals/{id}/read:
@@ -9162,18 +9268,51 @@ paths:
       summary: Rerun ML Prediction
       tags:
       - Specialist
+  /api/v1/specialist/referrals/{id}/return-to-triage:
+    post:
+      description: |-
+        Allows a specialist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).
+        **Detailed Behavior:**
+        - Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).
+        - Wipes out the missed appointment date ('AppointmentDate' = nil).
+        - Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).
+        - Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.
+        **Roles:** RECEIVING_SPECIALIST
+      parameters:
+      - description: TriageQueue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Return Missed Patient to Triage (Specialist)
+      tags:
+      - Specialist
   /api/v1/specialist/referrals/{id}/schedule:
     post:
       consumes:
       - application/json
       description: |-
         Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.
+        **Detailed Behavior & Rules:**
+        - Capacity limits: Respects standard daily slots and capacity overrides for the target hospital department.
+        - Strict date validation: The appointment date must be today or in the future; past booking dates are blocked.
+        - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. Arrived ('ARRIVED') or admitted ('ADMITTED') patients are blocked.
+        - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', scheduling transitions 'ArrivalStatus' to 'ArrivalExpected', registers the new date, sends apology-free SMS rescheduled updates, and dispatches a 'MISSED_APPOINTMENT_RESCHEDULED' in-app notification to the treating doctor.
+        - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** status = ACCEPTED.
-        **State Transition:** → SCHEDULED.
-        **Common Errors:**
-        - 400 invalid format
-        - 500 internal error
       parameters:
       - description: Referral ID
         in: path
@@ -9192,7 +9331,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.BaseResponse'
+            $ref: '#/definitions/dto.SchedulingResponse'
         "400":
           description: Bad Request
           schema:
@@ -9257,50 +9396,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Review Triage Prediction
-      tags:
-      - Specialist
-  /api/v1/specialist/referrals/{id}/triage-severity:
-    post:
-      consumes:
-      - application/json
-      description: |-
-        Manually set the severity score for a referral. Overrides ML score and updates triage queue.
-        **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** referral must exist and be under the specialist's purview.
-        **Side Effect:** Overrides ML score, updates triage queue composite score.
-        **Common Errors:**
-        - 400 invalid format
-        - 403 unauthorized hospital access
-      parameters:
-      - description: Referral ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Severity details
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.SetManualSeverityRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.BaseResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Set Manual Severity Score
       tags:
       - Specialist
   /api/v1/specialist/referrals/approved:

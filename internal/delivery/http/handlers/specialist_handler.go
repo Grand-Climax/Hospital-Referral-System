@@ -22,14 +22,18 @@ type SpecialistHandler struct {
 	schedUC    iusecase.SchedulingUseCase
 	triageUC   iusecase.TriageUseCase
 	patientUC  iusecase.PatientUseCase
+	mlUC       iusecase.MLUseCase
+	arrivalUC  iusecase.ArrivalUseCase
 }
 
-func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase, patientUC iusecase.PatientUseCase) *SpecialistHandler {
+func NewSpecialistHandler(referralUC iusecase.ReferralUseCase, schedUC iusecase.SchedulingUseCase, triageUC iusecase.TriageUseCase, patientUC iusecase.PatientUseCase, mlUC iusecase.MLUseCase, arrivalUC iusecase.ArrivalUseCase) *SpecialistHandler {
 	return &SpecialistHandler{
 		referralUC: referralUC,
 		schedUC:    schedUC,
 		triageUC:   triageUC,
 		patientUC:  patientUC,
+		mlUC:       mlUC,
+		arrivalUC:  arrivalUC,
 	}
 }
 
@@ -744,22 +748,22 @@ func (h *SpecialistHandler) Release(c *gin.Context) {
 }
 
 // ManualEmergencySchedule godoc
-// @Summary      Manual Emergency Scheduling
-// @Description  Schedule an emergency appointment bypassing buffer days and allowing overbooking.
+// @Summary      Manual Emergency Schedule
+// @Description  Bypass standard booking capacity limits and queue slot guards to record an immediate emergency appointment slot.
+// @Description  **Detailed Behavior & Rules:**
+// @Description  - Strict date validation: The appointment date must be today or in the future; scheduling for past dates is blocked.
+// @Description  - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. If the patient has already arrived ('ARRIVED') or is admitted ('ADMITTED'), emergency booking is blocked.
+// @Description  - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', emergency-scheduling will transition the 'ArrivalStatus' back to 'ArrivalExpected', set the new appointment date, trigger apology-free SMS reschedule alerts, and dispatch a 'MISSED_APPOINTMENT_RESCHEDULED' doctor in-app notification.
+// @Description  - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** referral must be accepted; condition must be `critical` OR justification provided.
-// @Description  **State Transition:** Sets appointment_date, bypasses buffer, allows overbooking.
-// @Description  **Gatekeepers:** Allows overbooking up to `overbook_limit`.
-// @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 500 internal error
 // @Tags         Specialist
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
-// @Param        body body dto.ManualEmergencyScheduleRequest true "Scheduling details"
-// @Success      200 {object} dto.BaseResponse
+// @Param        body body dto.ManualEmergencyScheduleRequest true "Emergency scheduling details"
+// @Success      200 {object} dto.SchedulingResponse
 // @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/specialist/referrals/{id}/emergency-schedule [post]
@@ -790,34 +794,44 @@ func (h *SpecialistHandler) ManualEmergencySchedule(c *gin.Context) {
 		return
 	}
 
-	if err := h.schedUC.ManualEmergencySchedule(c.Request.Context(), referralID, date, req.Justification, userID); err != nil {
+	wasMissed, err := h.schedUC.ManualEmergencySchedule(c.Request.Context(), referralID, date, req.Justification, userID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Emergency appointment scheduled successfully"})
+	c.JSON(http.StatusOK, dto.SchedulingResponse{
+		BaseResponse: dto.BaseResponse{Success: true, Message: "Emergency appointment scheduled successfully"},
+		RescheduledFromMissed: wasMissed,
+	})
 }
 
-// SetManualSeverity godoc
-// @Summary      Set Manual Severity Score
-// @Description  Manually set the severity score for a referral. Overrides ML score and updates triage queue.
+// MLSeverityOverride godoc
+// @Summary      Manual ML Severity Override
+// @Description  Allows a specialist to manually override the machine learning model's severity score for a patient referral.
+// @Description  This action sets the referral's machine learning pipeline status (`ml_status`) to MANUAL, updates the referral's severity score,
+// @Description  deletes any existing automated ML predictions for this referral to ensure data integrity, and recalculates the priority composite score in the triage queue.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** referral must exist and be under the specialist's purview.
-// @Description  **Side Effect:** Overrides ML score, updates triage queue composite score.
+// @Description  **Prerequisites:** The referral must belong to the specialist's target hospital and department.
+// @Description  **Side Effects:** Changes `ml_status` to MANUAL, sets `triage_status` to OVERRIDDEN, clears active ML prediction association, and updates the triage composite score.
 // @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 403 unauthorized hospital access
+// @Description  - 400 Bad Request: Invalid referral ID format or malformed request payload
+// @Description  - 401 Unauthorized: Invalid or missing authorization token
+// @Description  - 403 Forbidden: Specialist does not belong to the target hospital/department of the referral
+// @Description  - 500 Internal Server Error: Database transaction failures
 // @Tags         Specialist
 // @Accept       json
 // @Produce      json
-// @Param        id path string true "Referral ID"
-// @Param        body body dto.SetManualSeverityRequest true "Severity details"
-// @Success      200 {object} dto.BaseResponse
-// @Failure      400 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.ErrorResponse
+// @Param        id path string true "Referral ID (UUID)"
+// @Param        body body dto.MLSeverityOverrideRequest true "Manual override parameters including new score and clinical justification"
+// @Success      200 {object} dto.BaseResponse "Severity score manually overridden and triage queue successfully updated"
+// @Failure      400 {object} dto.ErrorResponse "Invalid inputs / bad request format"
+// @Failure      401 {object} dto.ErrorResponse "Unauthorized access"
+// @Failure      403 {object} dto.ErrorResponse "Forbidden operation / mismatching hospital scopes"
+// @Failure      500 {object} dto.ErrorResponse "Internal server / database transaction error"
 // @Security     BearerAuth
-// @Router       /api/v1/specialist/referrals/{id}/triage-severity [post]
-func (h *SpecialistHandler) SetManualSeverity(c *gin.Context) {
+// @Router       /api/v1/specialist/referrals/{id}/ml-severity-override [post]
+func (h *SpecialistHandler) MLSeverityOverride(c *gin.Context) {
 	referralID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral ID"})
@@ -832,13 +846,13 @@ func (h *SpecialistHandler) SetManualSeverity(c *gin.Context) {
 		userID = *uID
 	}
 
-	var req dto.SetManualSeverityRequest
+	var req dto.MLSeverityOverrideRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	if err := h.triageUC.SetManualSeverity(c.Request.Context(), referralID, userID, req.Score, req.Justification); err != nil {
+	if err := h.mlUC.MLSeverityOverride(c.Request.Context(), referralID, userID, req.Score, req.Justification); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
@@ -940,18 +954,19 @@ func (h *SpecialistHandler) GetCapacity(c *gin.Context) {
 // Schedule godoc
 // @Summary      Schedule Appointment
 // @Description  Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.
+// @Description  **Detailed Behavior & Rules:**
+// @Description  - Capacity limits: Respects standard daily slots and capacity overrides for the target hospital department.
+// @Description  - Strict date validation: The appointment date must be today or in the future; past booking dates are blocked.
+// @Description  - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. Arrived ('ARRIVED') or admitted ('ADMITTED') patients are blocked.
+// @Description  - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', scheduling transitions 'ArrivalStatus' to 'ArrivalExpected', registers the new date, sends apology-free SMS rescheduled updates, and dispatches a 'MISSED_APPOINTMENT_RESCHEDULED' in-app notification to the treating doctor.
+// @Description  - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** status = ACCEPTED.
-// @Description  **State Transition:** → SCHEDULED.
-// @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 500 internal error
 // @Tags         Specialist
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Param        body body dto.SchedulingRequest true "Scheduling details"
-// @Success      200 {object} dto.BaseResponse
+// @Success      200 {object} dto.SchedulingResponse
 // @Failure      400 {object} dto.BaseResponse
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.BaseResponse
@@ -978,12 +993,16 @@ func (h *SpecialistHandler) Schedule(c *gin.Context) {
 		return
 	}
 
-	if err := h.schedUC.ScheduleAppointment(c.Request.Context(), referralID, userID, req); err != nil {
+	wasMissed, err := h.schedUC.ScheduleAppointment(c.Request.Context(), referralID, userID, req)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Appointment scheduled successfully"})
+	c.JSON(http.StatusOK, dto.SchedulingResponse{
+		BaseResponse: dto.BaseResponse{Success: true, Message: "Appointment scheduled successfully"},
+		RescheduledFromMissed: wasMissed,
+	})
 }
 
 // RedirectReferral godoc
@@ -1150,4 +1169,43 @@ func (h *SpecialistHandler) ChangeDepartment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Department updated successfully"})
+}
+
+// ReturnToTriage godoc
+// @Summary      Return Missed Patient to Triage (Specialist)
+// @Description  Allows a specialist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).
+// @Description  **Detailed Behavior:**
+// @Description  - Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).
+// @Description  - Wipes out the missed appointment date ('AppointmentDate' = nil).
+// @Description  - Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).
+// @Description  - Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.
+// @Description  **Roles:** RECEIVING_SPECIALIST
+// @Tags         Specialist
+// @Produce      json
+// @Param        id path string true "TriageQueue ID"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/return-to-triage [post]
+func (h *SpecialistHandler) ReturnToTriage(c *gin.Context) {
+	triageQueueID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid triage queue id format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	userID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		userID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		userID = *uID
+	}
+
+	if err := h.arrivalUC.ReturnToTriage(c.Request.Context(), triageQueueID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Patient successfully returned to triage"})
 }

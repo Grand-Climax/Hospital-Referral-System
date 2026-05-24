@@ -209,28 +209,11 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 		return errors.New("cannot mark a future appointment as missed")
 	}
 
-	today := time.Now().Truncate(24 * time.Hour)
-	exists, err := u.clinicalRepo.ExistsForReferralAndDate(ctx, queue.ReferralID, "MISSED_APPOINTMENT_RE_EVALUATION", today)
-	if err == nil && exists {
-		return errors.New("a missed appointment update has already been recorded today")
-	}
-
 	queue.ArrivalStatus = entity.ArrivalMissed
 	queue.MissReason = &missReason
 
 	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(queue).Error; err != nil {
-			return err
-		}
-
-		update := &entity.ClinicalUpdate{
-			ReferralID:     queue.ReferralID,
-			UpdatedByID:    userID,
-			UpdateReason:   "MISSED_APPOINTMENT_RE_EVALUATION",
-			ClinicalNotes:  "Missed appointment – flagged for re-evaluation",
-			RequiresReview: true,
-		}
-		if err := tx.Create(update).Error; err != nil {
 			return err
 		}
 
@@ -240,6 +223,41 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 		})
 
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_MISSED", queue.ReferralID, userID)
+
+		return nil
+	})
+}
+
+func (u *arrivalUseCase) ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID) error {
+	queue, err := u.triageRepo.FindByID(ctx, queueID)
+	if err != nil {
+		return err
+	}
+
+	if queue.ArrivalStatus != entity.ArrivalMissed {
+		return errors.New("only missed appointments can be returned to triage")
+	}
+
+	queue.ArrivalStatus = entity.ArrivalExpected
+	queue.AppointmentDate = nil
+	queue.MissReason = nil
+	queue.AssignedDoctorID = nil
+	queue.DoctorAssignedAt = nil
+
+	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(queue).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&entity.Referral{}).
+			Where("id = ?", queue.ReferralID).
+			Update("status", entity.StatusAccepted).Error; err != nil {
+			return err
+		}
+
+		u.auditRepo.LogWithContext(ctx, userID, "RETURN_TO_TRIAGE", &queue.ReferralID, nil, map[string]interface{}{
+			"queue_id": queueID,
+		})
 
 		return nil
 	})
