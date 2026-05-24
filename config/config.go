@@ -86,7 +86,7 @@ func loadMLConfig() MLConfig {
 	if baseURL == "" {
 		baseURL = "http://localhost:8000"
 	}
-	timeoutSec := 30
+	timeoutSec := 120
 	if v := os.Getenv("ML_SERVICE_TIMEOUT_SEC"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			timeoutSec = n
