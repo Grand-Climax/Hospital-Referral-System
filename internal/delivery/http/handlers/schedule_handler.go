@@ -36,9 +36,9 @@ func NewScheduleHandler(capacityUC iusecase.CapacityManagementUseCase) *Schedule
 // @Produce      json
 // @Param        start_date query string false "Start date (YYYY-MM-DD); defaults to today"
 // @Param        end_date   query string false "End date (YYYY-MM-DD); defaults to start_date + 30 days"
-// @Success      200 {object} map[string]interface{}
+// @Success      200 {object} dto.DeptHeadScheduleResponse
 // @Failure      401 {object} dto.ErrorResponse
-// @Failure      500 {object} dto.BaseResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/schedule [get]
 func (h *ScheduleHandler) GetSchedule(c *gin.Context) {
