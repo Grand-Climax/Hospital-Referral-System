@@ -26,6 +26,15 @@ func NewReferralRepository(db *gorm.DB) irepository.ReferralRepository {
 	}
 }
 
+func preloadReferralListRelations(query *gorm.DB) *gorm.DB {
+	return query.
+		Preload("Patient").
+		Preload("ReferralForm").
+		Preload("Diagnoses").
+		Preload("Diagnoses.CodeInfo").
+		Preload("TargetDepartment")
+}
+
 func (r *referralRepository) CreateReferralTransaction(ctx context.Context, referral *entity.Referral) error {
 	// GORM automatically manages the transaction for associated creations
 	// Patient, ReferralForm, and Diagnoses will be inserted atomically.
@@ -184,8 +193,7 @@ func (r *referralRepository) ListForSystemAdmin(ctx context.Context, filter irep
 	query := r.db.WithContext(ctx).Model(&entity.Referral{})
 	query = r.applyFilter(query, filter)
 
-	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
-		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -208,8 +216,7 @@ func (r *referralRepository) listHospitalAdminReferrals(ctx context.Context, hos
 	}
 	query = r.applyFilter(query, filter)
 
-	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
-		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -426,8 +433,7 @@ func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UU
 	}
 	query = r.applyFilter(query, filter)
 
-	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
-		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -439,8 +445,7 @@ func (r *referralRepository) ListOutgoingForLiaison(ctx context.Context, hospID 
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("sender_hospital_id = ? AND status != ?", hospID, entity.StatusDraft)
 	query = r.applyFilter(query, filter)
 
-	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
-		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -465,8 +470,7 @@ func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID 
 
 	query = r.applyFilter(query, filter)
 
-	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
-		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -485,8 +489,7 @@ func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.
 
 	query = r.applyFilter(query, filter)
 
-	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
-		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -502,8 +505,7 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 
 	query = r.applyFilter(query, filter)
 
-	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
-		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
+	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -561,15 +563,10 @@ func (r *referralRepository) GetLatestPendingForDoctor(ctx context.Context, doct
 		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded,
 		entity.StatusUnderSpecialistReview, entity.StatusNeedRevision,
 	}
-	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
+	err := preloadReferralListRelations(r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("referring_doctor_id = ? AND status IN ?", doctorID, pendingStatuses).
 		Order("created_at desc").
-		Limit(limit).
-		Preload("Patient").
-		Preload("Diagnoses").
-		Preload("Diagnoses.CodeInfo").
-		Preload("ReferralForm").
-		Find(&referrals).Error
+		Limit(limit)).Find(&referrals).Error
 	return referrals, err
 }
 
