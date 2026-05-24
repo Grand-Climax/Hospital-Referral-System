@@ -1259,12 +1259,14 @@ func (m *MockSchedulingUseCase) GetCapacityStatus(ctx context.Context, hospitalI
 	return args.Get(0).([]dto.CapacityStatusResponse), args.Error(1)
 }
 
-func (m *MockSchedulingUseCase) ScheduleAppointment(ctx context.Context, referralID, userID uuid.UUID, req dto.SchedulingRequest) error {
-	return m.Called(ctx, referralID, userID, req).Error(0)
+func (m *MockSchedulingUseCase) ScheduleAppointment(ctx context.Context, referralID, userID uuid.UUID, req dto.SchedulingRequest) (bool, error) {
+	args := m.Called(ctx, referralID, userID, req)
+	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockSchedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) error {
-	return m.Called(ctx, referralID, appointmentDate, justification, userID).Error(0)
+func (m *MockSchedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) (bool, error) {
+	args := m.Called(ctx, referralID, appointmentDate, justification, userID)
+	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockSchedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, deptID, userID uuid.UUID, sendNotifications bool) (*dto.BatchScheduleResult, error) {
@@ -1333,6 +1335,10 @@ func (m *MockArrivalUseCase) GetTodayAndTomorrowSchedule(ctx context.Context, ho
 }
 
 func (m *MockArrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID) error {
+	return m.Called(ctx, queueID, userID).Error(0)
+}
+
+func (m *MockArrivalUseCase) ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID) error {
 	return m.Called(ctx, queueID, userID).Error(0)
 }
 

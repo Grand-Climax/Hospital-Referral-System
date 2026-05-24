@@ -1650,6 +1650,16 @@ definitions:
     required:
     - appointment_date
     type: object
+  dto.SchedulingResponse:
+    properties:
+      message:
+        type: string
+      rescheduled_from_missed:
+        type: boolean
+      success:
+        example: true
+        type: boolean
+    type: object
   dto.SendMessageRequest:
     properties:
       content:
@@ -2218,12 +2228,14 @@ definitions:
     - SCHEDULING
     - REMINDER
     - RESCHEDULE
+    - MISSED_RESCHEDULE
     type: string
     x-enum-varnames:
     - NotifyAcceptance
     - NotifyScheduling
     - NotifyReminder
     - NotifyReschedule
+    - NotifyMissedReschedule
   entity.Patient:
     properties:
       allow_sms:
@@ -8011,6 +8023,38 @@ paths:
       summary: Mark Appointment as Missed
       tags:
       - Receptionist
+  /api/v1/receptionist/referrals/{id}/return-to-triage:
+    post:
+      description: |-
+        Allows a receptionist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).
+        **Detailed Behavior:**
+        - Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).
+        - Wipes out the missed appointment date ('AppointmentDate' = nil).
+        - Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).
+        - Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.
+        **Roles:** RECEPTIONIST
+      parameters:
+      - description: TriageQueue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Return Missed Patient to Triage
+      tags:
+      - Receptionist
   /api/v1/receptionist/referrals/{id}/revoke-doctor:
     post:
       consumes:
@@ -8858,21 +8902,20 @@ paths:
       consumes:
       - application/json
       description: |-
-        Schedule an emergency appointment bypassing buffer days and allowing overbooking.
+        Bypass standard booking capacity limits and queue slot guards to record an immediate emergency appointment slot.
+        **Detailed Behavior & Rules:**
+        - Strict date validation: The appointment date must be today or in the future; scheduling for past dates is blocked.
+        - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. If the patient has already arrived ('ARRIVED') or is admitted ('ADMITTED'), emergency booking is blocked.
+        - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', emergency-scheduling will transition the 'ArrivalStatus' back to 'ArrivalExpected', set the new appointment date, trigger apology-free SMS reschedule alerts, and dispatch a 'MISSED_APPOINTMENT_RESCHEDULED' doctor in-app notification.
+        - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** referral must be accepted; condition must be `critical` OR justification provided.
-        **State Transition:** Sets appointment_date, bypasses buffer, allows overbooking.
-        **Gatekeepers:** Allows overbooking up to `overbook_limit`.
-        **Common Errors:**
-        - 400 invalid format
-        - 500 internal error
       parameters:
       - description: Referral ID
         in: path
         name: id
         required: true
         type: string
-      - description: Scheduling details
+      - description: Emergency scheduling details
         in: body
         name: body
         required: true
@@ -8884,9 +8927,13 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.BaseResponse'
+            $ref: '#/definitions/dto.SchedulingResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "500":
@@ -8895,7 +8942,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Manual Emergency Scheduling
+      summary: Manual Emergency Schedule
       tags:
       - Specialist
   /api/v1/specialist/referrals/{id}/ml-prediction:
@@ -9221,18 +9268,51 @@ paths:
       summary: Rerun ML Prediction
       tags:
       - Specialist
+  /api/v1/specialist/referrals/{id}/return-to-triage:
+    post:
+      description: |-
+        Allows a specialist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).
+        **Detailed Behavior:**
+        - Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).
+        - Wipes out the missed appointment date ('AppointmentDate' = nil).
+        - Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).
+        - Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.
+        **Roles:** RECEIVING_SPECIALIST
+      parameters:
+      - description: TriageQueue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Return Missed Patient to Triage (Specialist)
+      tags:
+      - Specialist
   /api/v1/specialist/referrals/{id}/schedule:
     post:
       consumes:
       - application/json
       description: |-
         Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.
+        **Detailed Behavior & Rules:**
+        - Capacity limits: Respects standard daily slots and capacity overrides for the target hospital department.
+        - Strict date validation: The appointment date must be today or in the future; past booking dates are blocked.
+        - Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. Arrived ('ARRIVED') or admitted ('ADMITTED') patients are blocked.
+        - Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', scheduling transitions 'ArrivalStatus' to 'ArrivalExpected', registers the new date, sends apology-free SMS rescheduled updates, and dispatches a 'MISSED_APPOINTMENT_RESCHEDULED' in-app notification to the treating doctor.
+        - Returns an indicator `rescheduled_from_missed` that flags if the patient was rescheduled from a missed appointment.
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** status = ACCEPTED.
-        **State Transition:** → SCHEDULED.
-        **Common Errors:**
-        - 400 invalid format
-        - 500 internal error
       parameters:
       - description: Referral ID
         in: path
@@ -9251,7 +9331,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.BaseResponse'
+            $ref: '#/definitions/dto.SchedulingResponse'
         "400":
           description: Bad Request
           schema:

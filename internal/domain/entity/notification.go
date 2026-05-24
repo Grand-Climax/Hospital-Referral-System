@@ -25,10 +25,11 @@ const (
 type NotificationType string
 
 const (
-	NotifyAcceptance NotificationType = "ACCEPTANCE"
-	NotifyScheduling NotificationType = "SCHEDULING"
-	NotifyReminder   NotificationType = "REMINDER"
-	NotifyReschedule NotificationType = "RESCHEDULE"
+	NotifyAcceptance       NotificationType = "ACCEPTANCE"
+	NotifyScheduling       NotificationType = "SCHEDULING"
+	NotifyReminder         NotificationType = "REMINDER"
+	NotifyReschedule       NotificationType = "RESCHEDULE"
+	NotifyMissedReschedule NotificationType = "MISSED_RESCHEDULE"
 )
 
 type Notification struct {
