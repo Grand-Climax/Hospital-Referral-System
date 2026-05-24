@@ -62,7 +62,7 @@ func (u *mlUseCase) scheduleScore(referralID uuid.UUID, force bool) {
 		return
 	}
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 		if err := u.scoreReferral(ctx, referralID, force); err != nil {
 			log.Printf("ml score referral %s: %v", referralID, err)
@@ -140,8 +140,8 @@ func (u *mlUseCase) scoreReferral(ctx context.Context, referralID uuid.UUID, for
 
 	log.Printf("ml calling POST /score for referral %s (status=%s)", referralID, ref.Status)
 
-	// 4. Enforce strict 60-second timeout context for the API task execution
-	apiCtx, apiCancel := context.WithTimeout(ctx, 60*time.Second)
+	// 4. Enforce strict 120-second timeout context for the API task execution
+	apiCtx, apiCancel := context.WithTimeout(ctx, 120*time.Second)
 	defer apiCancel()
 
 	var scoreResp *ml.ScoreResponse
