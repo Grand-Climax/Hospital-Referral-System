@@ -32,6 +32,11 @@ type UserUseCase interface {
 	UpdateUser(ctx context.Context, user *entity.User) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	ListUsers(ctx context.Context, filter irepository.UserListFilter, requesterID uuid.UUID) ([]entity.User, int64, error)
+
+	// ListDepartmentStaff returns the REFERRING_DOCTOR and RECEPTIONIST
+	// users assigned to the given (hospital, department). Used by the
+	// dept-scoped UIs to populate staff dropdowns.
+	ListDepartmentStaff(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.User, error)
 	AssignRole(ctx context.Context, userID uuid.UUID, role entity.UserRole) error
 	DeleteProfileImage(ctx context.Context, userID uuid.UUID) error
 	ModerateProfileImage(ctx context.Context, userID, moderatorID uuid.UUID) error
