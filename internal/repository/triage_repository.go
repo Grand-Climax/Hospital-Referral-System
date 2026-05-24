@@ -31,8 +31,18 @@ func (r *triageRepository) Create(ctx context.Context, queue *entity.TriageQueue
 
 func (r *triageRepository) GetByReferralID(ctx context.Context, referralID uuid.UUID) (*entity.TriageQueue, error) {
 	var queue entity.TriageQueue
-	err := r.db.WithContext(ctx).Where("referral_id = ?", referralID).First(&queue).Error
-	return &queue, err
+	// Preload associations the detail projections rely on. Without these
+	// the role-aware detail endpoints dereferenced nil Department /
+	// AssignedDoctor pointers and panicked.
+	err := r.db.WithContext(ctx).
+		Preload("Department").
+		Preload("AssignedDoctor").
+		Where("referral_id = ?", referralID).
+		First(&queue).Error
+	if err != nil {
+		return nil, err
+	}
+	return &queue, nil
 }
 
 
