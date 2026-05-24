@@ -76,7 +76,9 @@ func (r *auditLogRepository) ListByHospital(ctx context.Context, hospitalID uuid
 		Joins("JOIN users ON users.id = audit_logs.user_id").
 		Where("users.hospital_id = ?", hospitalID)
 
-	if filter.ActionType != nil {
+	if len(filter.ActionTypes) > 0 {
+		query = query.Where("audit_logs.action_type IN ?", filter.ActionTypes)
+	} else if filter.ActionType != nil {
 		query = query.Where("audit_logs.action_type = ?", *filter.ActionType)
 	}
 	if filter.StartDate != nil && *filter.StartDate != "" {

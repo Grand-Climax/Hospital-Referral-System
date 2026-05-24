@@ -59,7 +59,9 @@ func (r *userRepository) ListUsers(ctx context.Context, filter irepository.UserL
 
 	query := r.db.WithContext(ctx).Model(&entity.User{}).Where("is_deleted = false")
 
-	if filter.Role != nil {
+	if len(filter.Roles) > 0 {
+		query = query.Where("role IN ?", filter.Roles)
+	} else if filter.Role != nil {
 		query = query.Where("role = ?", *filter.Role)
 	}
 	if filter.HospitalID != nil {
