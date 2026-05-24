@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -17,18 +18,19 @@ import (
 )
 
 type schedulingUseCase struct {
-	db           *gorm.DB
-	referralRepo irepository.ReferralRepository
-	triageRepo   irepository.TriageQueueRepository
-	scheduleRepo irepository.DailyScheduleRepository
-	overrideRepo irepository.CapacityOverrideRepository
-	deptRepo     irepository.DepartmentRepository
-	configRepo   irepository.SystemConfigRepository
-	auditRepo    irepository.AuditLogRepository
+	db                *gorm.DB
+	referralRepo      irepository.ReferralRepository
+	triageRepo        irepository.TriageQueueRepository
+	scheduleRepo      irepository.DailyScheduleRepository
+	overrideRepo      irepository.CapacityOverrideRepository
+	deptRepo          irepository.DepartmentRepository
+	configRepo        irepository.SystemConfigRepository
+	auditRepo         irepository.AuditLogRepository
 	notifUC           iusecase.NotificationUseCase
 	inAppNotifUC      iusecase.InAppNotificationUseCase
 	jobCheckpointRepo irepository.JobCheckpointRepository
 	clinicalRepo      irepository.ClinicalUpdateRepository
+	checkpointRepo    irepository.SchedulerCheckpointRepository
 }
 
 func NewSchedulingUseCase(
@@ -44,43 +46,175 @@ func NewSchedulingUseCase(
 	inAppNotifUC iusecase.InAppNotificationUseCase,
 	jRepo irepository.JobCheckpointRepository,
 	cRepo irepository.ClinicalUpdateRepository,
+	checkpointRepo irepository.SchedulerCheckpointRepository,
 ) iusecase.SchedulingUseCase {
 	return &schedulingUseCase{
-		db:           db,
-		referralRepo: rRepo,
-		triageRepo:   tRepo,
-		scheduleRepo: sRepo,
-		overrideRepo: ovRepo,
-		deptRepo:     deptRepo,
+		db:                db,
+		referralRepo:      rRepo,
+		triageRepo:        tRepo,
+		scheduleRepo:      sRepo,
+		overrideRepo:      ovRepo,
+		deptRepo:          deptRepo,
 		configRepo:        configRepo,
 		auditRepo:         auditRepo,
 		notifUC:           notifUC,
 		inAppNotifUC:      inAppNotifUC,
 		jobCheckpointRepo: jRepo,
 		clinicalRepo:      cRepo,
+		checkpointRepo:    checkpointRepo,
 	}
 }
 
+// EffectiveCapacity is the single source of truth for "is there room?".
+// It returns the effective maxSlots and overbookLimit for a given
+// (hospital, department, date) plus the live booked count.
+//
+//   - booked         : live count from TriageQueue (Expected/Arrived/Admitted)
+//   - maxSlots       : HospitalDepartment.StandardDailyLimit, overridden by
+//     CapacityOverride.NewLimit if an active override exists
+//   - overbookLimit  : HospitalDepartment.OverbookLimit (department-level only)
+//
+// Capacity decisions (Routine / Batch reject when booked >= maxSlots;
+// Emergency rejects when booked >= maxSlots + overbookLimit) live in the
+// caller so each path can apply its own rule. Exported so the capacity
+// manager (detail/calendar) and specialist schedule-options can reuse it.
+func (u *schedulingUseCase) EffectiveCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (maxSlots, overbookLimit int, booked int64, err error) {
+	booked, err = u.triageRepo.CountByDeptAndDate(ctx, hospitalID, deptID, date)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	maxSlots = dept.StandardDailyLimit
+	overbookLimit = dept.OverbookLimit
+
+	if ov, e := u.overrideRepo.GetActive(ctx, hospitalID, deptID, date); e == nil && ov != nil {
+		maxSlots = ov.NewLimit
+	}
+	return maxSlots, overbookLimit, booked, nil
+}
+
+// ListScheduleOptions returns the next `days` calendar days starting at
+// today + system_configs.buffer_days, each annotated with the live
+// available capacity (max - booked, floored at 0), overbook limit, and
+// whether an active override is in effect. Days where booked >= max are
+// skipped; the specialist UI uses the returned dates as routine booking
+// suggestions for the given referral.
+func (u *schedulingUseCase) ListScheduleOptions(ctx context.Context, referralID uuid.UUID, days int) ([]dto.ScheduleOption, error) {
+	if days <= 0 {
+		days = 14
+	}
+	if days > 60 {
+		days = 60
+	}
+
+	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
+		return nil, err
+	}
+
+	bufferDays := 2
+	if cfg, err := u.configRepo.GetByKey(ctx, "buffer_days"); err == nil && cfg != nil {
+		if val, err := strconv.Atoi(cfg.Value); err == nil {
+			bufferDays = val
+		}
+	}
+
+	start := time.Now().AddDate(0, 0, bufferDays)
+	out := make([]dto.ScheduleOption, 0, days)
+	for i := 0; i < days; i++ {
+		date := start.AddDate(0, 0, i)
+		maxSlots, overbook, booked, err := u.EffectiveCapacity(ctx, ref.TargetHospitalID, ref.TargetDeptID, date)
+		if err != nil {
+			continue
+		}
+		available := maxSlots - int(booked)
+		if available < 0 {
+			available = 0
+		}
+		if available == 0 {
+			continue
+		}
+		hasOverride := false
+		if ov, e := u.overrideRepo.GetActive(ctx, ref.TargetHospitalID, ref.TargetDeptID, date); e == nil && ov != nil {
+			hasOverride = true
+		}
+		out = append(out, dto.ScheduleOption{
+			Date:           date.Format("2006-01-02"),
+			MaxSlots:       maxSlots,
+			BookedSlots:    booked,
+			AvailableSlots: available,
+			OverbookLimit:  overbook,
+			HasOverride:    hasOverride,
+		})
+	}
+	return out, nil
+}
+
+// snapshotDailySchedule writes / updates the immutable history log row for
+// the given (hospital, department, date). It is called inside the booking
+// transaction AFTER the queue has been saved, so the recount reflects the
+// new booking. The log is non-critical: any error is logged but does not
+// fail the booking.
+func (u *schedulingUseCase) snapshotDailySchedule(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time, maxSlots, overbookLimit int) {
+	count, err := u.triageRepo.CountByDeptAndDate(ctx, hospitalID, deptID, date)
+	if err != nil {
+		log.Printf("snapshotDailySchedule: recount failed: %v", err)
+		return
+	}
+
+	existing, err := u.scheduleRepo.FindByDeptAndDate(ctx, hospitalID, deptID, date)
+	if errors.Is(err, gorm.ErrRecordNotFound) || existing == nil {
+		newLog := &entity.DailySchedule{
+			HospitalID:    hospitalID,
+			DepartmentID:  deptID,
+			ScheduleDate:  date,
+			BookedSlots:   int(count),
+			MaxSlots:      maxSlots,
+			OverbookLimit: overbookLimit,
+		}
+		if e := u.scheduleRepo.CreateLog(ctx, newLog); e != nil {
+			log.Printf("snapshotDailySchedule: create log failed: %v", e)
+		}
+		return
+	}
+	if err != nil {
+		log.Printf("snapshotDailySchedule: find log failed: %v", err)
+		return
+	}
+	if e := u.scheduleRepo.UpdateBookedSlots(ctx, existing.ID, int(count)); e != nil {
+		log.Printf("snapshotDailySchedule: update booked failed: %v", e)
+	}
+}
+
+// GetCapacityStatus returns a forward-looking capacity view for the given
+// hospital/department. Each entry is computed live from
+// EffectiveCapacity - no DailySchedule rows are created.
 func (u *schedulingUseCase) GetCapacityStatus(ctx context.Context, hospitalID, deptID uuid.UUID, dateRangeDays int) ([]dto.CapacityStatusResponse, error) {
 	var resp []dto.CapacityStatusResponse
 	for i := 0; i < dateRangeDays; i++ {
 		date := time.Now().AddDate(0, 0, i+1)
-		sched, err := u.getOrInitSchedule(ctx, hospitalID, deptID, date)
+		maxSlots, overbookLimit, booked, err := u.EffectiveCapacity(ctx, hospitalID, deptID, date)
 		if err != nil {
 			continue
 		}
-		overbookLimit := u.getOverbookLimit(ctx, sched.OverbookLimit)
 		resp = append(resp, dto.CapacityStatusResponse{
 			Date:          date,
-			TotalCapacity: sched.MaxSlots,
+			TotalCapacity: maxSlots,
 			OverbookLimit: overbookLimit,
-			BookedSlots:   sched.BookedSlots,
-			IsFull:        sched.BookedSlots >= (sched.MaxSlots + overbookLimit),
+			BookedSlots:   int(booked),
+			IsFull:        booked >= int64(maxSlots+overbookLimit),
 		})
 	}
 	return resp, nil
 }
 
+// ScheduleAppointment books or reschedules a referral for a specific date
+// under the routine (non-emergency) rule: booked < maxSlots. Returns
+// wasMissed = true when this booking rescues an earlier no-show.
 func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID, userID uuid.UUID, req dto.SchedulingRequest) (bool, error) {
 	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
@@ -106,21 +240,15 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 
 	wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
 
-	canSchedule, err := u.ValidateCapacity(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate.Format("2006-01-02"), req.Override)
-	if err != nil || !canSchedule {
-		return false, errors.New("capacity reached and no override granted")
+	maxSlots, overbookLimit, booked, err := u.EffectiveCapacity(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate)
+	if err != nil {
+		return false, err
+	}
+	if booked >= int64(maxSlots) {
+		return false, errors.New("capacity reached for this date - emergency override required")
 	}
 
 	err = u.db.Transaction(func(tx *gorm.DB) error {
-		sched, err := u.getOrInitSchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate)
-		if err != nil {
-			return err
-		}
-
-		if err := u.scheduleRepo.IncrementBookedSlots(ctx, sched.ID, sched.Version); err != nil {
-			return err
-		}
-
 		if wasMissed {
 			queue.ArrivalStatus = entity.ArrivalExpected
 		}
@@ -138,7 +266,8 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 			return err
 		}
 
-		// Queue Notification
+		u.snapshotDailySchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate, maxSlots, overbookLimit)
+
 		hospitalName := "the hospital"
 		deptName := "the department"
 		if ref.ReceiverHospital != nil {
@@ -151,7 +280,7 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 		notifType := entity.NotifyScheduling
 		eventType := "APPOINTMENT_SCHEDULED"
 		content := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
-		
+
 		if wasMissed {
 			notifType = entity.NotifyMissedReschedule
 			eventType = "MISSED_APPOINTMENT_RESCHEDULED"
@@ -159,7 +288,6 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 		}
 
 		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, content)
-
 		_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
 
 		return nil
@@ -171,54 +299,10 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 	return wasMissed, nil
 }
 
-func (u *schedulingUseCase) ValidateCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, date string, override bool) (bool, error) {
-	d, _ := time.Parse("2006-01-02", date)
-	
-	// Always ensure row exists with correct MaxSlots (synced with overrides)
-	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID)
-	if err != nil {
-		return false, err
-	}
-
-	sched, err := u.scheduleRepo.GetOrCreate(ctx, hospitalID, deptID, d, dept.StandardDailyLimit)
-	if err != nil {
-		return false, err
-	}
-
-	if override {
-		overbookLimit := u.getOverbookLimit(ctx, sched.OverbookLimit)
-		// If emergency override is requested, allow up to MaxSlots + Overbook
-		return sched.BookedSlots < (sched.MaxSlots + overbookLimit), nil
-	}
-
-	return sched.BookedSlots < sched.MaxSlots, nil
-}
-
-func (u *schedulingUseCase) ManageCapacityOverride(ctx context.Context, hospitalID, deptID, userID uuid.UUID, appointmentDate string, newLimit int, notes string) error {
-	d, err := time.Parse("2006-01-02", appointmentDate)
-	if err != nil {
-		return errors.New("invalid date format: YYYY-MM-DD")
-	}
-
-	override := &entity.CapacityOverride{
-		HospitalID:   hospitalID,
-		DepartmentID: deptID,
-		TargetDate:   d,
-		NewLimit:     newLimit,
-		Reason:       &notes,
-		IsActive:     true,
-		SetByID:      userID,
-	}
-
-	if err := u.overrideRepo.Create(ctx, override); err != nil {
-		return err
-	}
-
-	_ = u.inAppNotifUC.CreateForEvent(ctx, "CAPACITY_OVERRIDE_CREATED", uuid.Nil, userID)
-
-	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, nil, nil, override)
-}
-
+// ManualEmergencySchedule books a referral as an emergency: it is the only
+// path that may consume overbook capacity. Requires either a critical
+// referral or an explicit justification. Returns wasMissed = true when
+// this booking rescues an earlier no-show.
 func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) (bool, error) {
 	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
@@ -247,41 +331,25 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		ref.MLSeverityScore = &defaultScore
 	}
 
-	// 1. Eligibility Check: Critical condition or explicit emergency intent
 	isCritical := false
 	if ref.ReferralForm != nil && ref.ReferralForm.ConditionAtReferral == "critical" {
 		isCritical = true
 	}
-
 	if !isCritical && justification == "" {
 		return false, errors.New("manual emergency schedule requires a critical condition or explicit justification")
 	}
 
 	wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
 
-	// 2. Capacity Check: Allow overbooking up to (max_slots + overbook_limit)
-	hospDept, err := u.deptRepo.FindHospitalDepartment(ctx, ref.TargetHospitalID, ref.TargetDeptID)
+	maxSlots, overbookLimit, booked, err := u.EffectiveCapacity(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate)
 	if err != nil {
 		return false, err
 	}
-
-	sched, err := u.scheduleRepo.GetOrCreate(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate, hospDept.StandardDailyLimit)
-	if err != nil {
-		return false, err
-	}
-
-	overbookLimit := u.getOverbookLimit(ctx, sched.OverbookLimit)
-	if sched.BookedSlots >= (sched.MaxSlots + overbookLimit) {
+	if booked >= int64(maxSlots+overbookLimit) {
 		return false, errors.New("even overbook capacity is full for this date")
 	}
 
 	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 3. Increment BookedSlots
-		if err := u.scheduleRepo.IncrementBookedSlots(ctx, sched.ID, sched.Version); err != nil {
-			return err
-		}
-
-		// 4. Update TriageQueue
 		if wasMissed {
 			queue.ArrivalStatus = entity.ArrivalExpected
 		}
@@ -290,7 +358,6 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 			return err
 		}
 
-		// 5. Update Referral Status
 		ref.Status = entity.StatusScheduled
 		if err := tx.Save(ref).Error; err != nil {
 			return err
@@ -303,7 +370,8 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 			return err
 		}
 
-		// Queue Notification
+		u.snapshotDailySchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate, maxSlots, overbookLimit)
+
 		hospitalName := "the hospital"
 		deptName := "the department"
 		if ref.ReceiverHospital != nil {
@@ -324,8 +392,11 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		}
 
 		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, message)
-
 		_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
+		// Emergency bookings consume the overbook buffer; the dept head
+		// should know whenever that happens so they can re-evaluate
+		// capacity overrides for the affected date.
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "EMERGENCY_SCHEDULE_USED", referralID, userID)
 
 		return nil
 	})
@@ -336,7 +407,35 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 	return wasMissed, nil
 }
 
+// BatchSchedule walks the waiting queue of a department and books the
+// earliest available slot for each patient under the routine rule (no
+// overbooking). Each booking re-evaluates capacity through
+// EffectiveCapacity, so concurrent emergency bookings are respected.
+//
+// A soft 5-minute lease is acquired through SchedulerCheckpointRepository
+// before any work begins so that an accidental double-click (or a second
+// dept head clicking "Run batch" while the first is still in progress)
+// does not produce racing bookings. When the lease cannot be acquired
+// the call returns a friendly result (no error) with WaitingCount and
+// ScheduledCount left at zero and a Message describing the conflict;
+// the handler maps that to HTTP 200 so the UI can surface a toast.
 func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, departmentID, userID uuid.UUID, sendNotifications bool) (*dto.BatchScheduleResult, error) {
+	if u.checkpointRepo != nil {
+		holder := "manual-batch:" + userID.String()
+		ok, lerr := u.checkpointRepo.AcquireLease(ctx, hospitalID, departmentID, holder, 5*time.Minute)
+		if lerr != nil {
+			return nil, lerr
+		}
+		if !ok {
+			return &dto.BatchScheduleResult{
+				Message: "Batch already running for this department; try again in a few minutes",
+			}, nil
+		}
+		defer func() {
+			_ = u.checkpointRepo.UpdateLastProcessed(context.Background(), hospitalID, departmentID, holder)
+		}()
+	}
+
 	waiting, err := u.triageRepo.FindWaitingByHospitalAndDept(ctx, hospitalID, departmentID)
 	if err != nil {
 		return nil, err
@@ -347,7 +446,6 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 		return nil, err
 	}
 
-	// Load configuration
 	bufferDays := 2
 	if cfg, err := u.configRepo.GetByKey(ctx, "buffer_days"); err == nil && cfg != nil {
 		if val, err := strconv.Atoi(cfg.Value); err == nil {
@@ -370,71 +468,67 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 	}
 
 	for _, q := range waiting {
-		// Look for earliest slot
 		for i := 0; i < horizonDays; i++ {
 			targetDate := startDate.AddDate(0, 0, i)
-			
-			sched, err := u.scheduleRepo.GetOrCreate(ctx, hospitalID, departmentID, targetDate, dept.StandardDailyLimit)
+
+			maxSlots, overbookLimit, booked, err := u.EffectiveCapacity(ctx, hospitalID, departmentID, targetDate)
 			if err != nil {
 				continue
 			}
 
-			// Batch rule: No overbooking
-			if sched.BookedSlots < sched.MaxSlots {
-				err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					// Use pessimistic or optimistic locking? Repository uses versioning.
-					if err := u.scheduleRepo.IncrementBookedSlots(ctx, sched.ID, sched.Version); err != nil {
-						return err
-					}
+			if booked >= int64(maxSlots) {
+				continue
+			}
 
-					q.AppointmentDate = &targetDate
-					q.ArrivalStatus = entity.ArrivalExpected
-					if err := tx.Save(&q).Error; err != nil {
-						return err
-					}
-
-					ref, err := u.referralRepo.GetReferralByID(ctx, q.ReferralID)
-					if err != nil {
-						return err
-					}
-
-					oldStatus := ref.Status
-					ref.Status = entity.StatusScheduled
-					if err := tx.Save(ref).Error; err != nil {
-						return err
-					}
-
-					if err := u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
-						ReferralID:  q.ReferralID,
-						ChangedByID: userID,
-						FromStatus:  &oldStatus,
-						ToStatus:    entity.StatusScheduled,
-					}); err != nil {
-						return err
-					}
-
-					// Queue Notification
-					if sendNotifications {
-						hospitalName := "the hospital"
-						deptName := "the department"
-						if dept.Hospital.Name != "" {
-							hospitalName = dept.Hospital.Name
-						}
-						if dept.Department.Name != "" {
-							deptName = dept.Department.Name
-						}
-						message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, targetDate.Format("2006-01-02"))
-						_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotifyScheduling, message)
-					}
-
-					return nil
-				})
-
-				if err == nil {
-					result.ScheduledCount++
-					result.WaitingCount--
-					break
+			err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+				q.AppointmentDate = &targetDate
+				q.ArrivalStatus = entity.ArrivalExpected
+				if err := tx.Save(&q).Error; err != nil {
+					return err
 				}
+
+				ref, err := u.referralRepo.GetReferralByID(ctx, q.ReferralID)
+				if err != nil {
+					return err
+				}
+
+				oldStatus := ref.Status
+				ref.Status = entity.StatusScheduled
+				if err := tx.Save(ref).Error; err != nil {
+					return err
+				}
+
+				if err := u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
+					ReferralID:  q.ReferralID,
+					ChangedByID: userID,
+					FromStatus:  &oldStatus,
+					ToStatus:    entity.StatusScheduled,
+				}); err != nil {
+					return err
+				}
+
+				u.snapshotDailySchedule(ctx, hospitalID, departmentID, targetDate, maxSlots, overbookLimit)
+
+				if sendNotifications {
+					hospitalName := "the hospital"
+					deptName := "the department"
+					if dept.Hospital.Name != "" {
+						hospitalName = dept.Hospital.Name
+					}
+					if dept.Department.Name != "" {
+						deptName = dept.Department.Name
+					}
+					message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, targetDate.Format("2006-01-02"))
+					_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotifyScheduling, message)
+				}
+
+				return nil
+			})
+
+			if err == nil {
+				result.ScheduledCount++
+				result.WaitingCount--
+				break
 			}
 		}
 	}
@@ -446,34 +540,22 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 	})
 
 	if result.ScheduledCount > 0 {
-		// Just use Nil UUID for referral if it's a batch event, or logic inside UseCase handles it
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "BATCH_SCHEDULE_COMPLETED", uuid.Nil, userID)
+	} else if result.WaitingCount > 0 {
+		// The waiting queue had patients but nothing was placed, almost
+		// always because every viable date is at capacity. Surface this
+		// to the dept head so they can decide whether to file a
+		// CapacityOverride for the affected dates.
+		_ = u.inAppNotifUC.CreateForEvent(ctx, "BATCH_SCHEDULE_FAILED", uuid.Nil, userID)
 	}
 
 	return result, nil
 }
 
-func (u *schedulingUseCase) getOrInitSchedule(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (*entity.DailySchedule, error) {
-	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID) 
-	if err != nil {
-		return nil, err
-	}
-
-	return u.scheduleRepo.GetOrCreate(ctx, hospitalID, deptID, date, dept.StandardDailyLimit)
-}
-
-func (u *schedulingUseCase) getOverbookLimit(ctx context.Context, fallback int) int {
-	if fallback > 0 {
-		return fallback
-	}
-	if cfg, err := u.configRepo.GetByKey(ctx, "overbook_limit_default"); err == nil && cfg != nil {
-		if val, err := strconv.Atoi(cfg.Value); err == nil && val >= 0 {
-			return val
-		}
-	}
-	return fallback
-}
-
+// ProcessMissedAppointments is the daily sweep that flips Expected rows
+// whose appointment_date is already in the past to Missed. It does NOT
+// touch DailySchedule - capacity is recomputed live so missed slots
+// become available automatically.
 func (u *schedulingUseCase) ProcessMissedAppointments(ctx context.Context) error {
 	enabled, err := u.configRepo.GetBool(ctx, "enable_cron_jobs", false)
 	if err != nil || !enabled {
@@ -492,7 +574,6 @@ func (u *schedulingUseCase) ProcessMissedAppointments(ctx context.Context) error
 		_ = u.triageRepo.Update(ctx, &q)
 
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_MISSED", q.ReferralID, uuid.Nil)
-		
 		_ = u.notifUC.QueueNotification(ctx, q.ReferralID, entity.NotifyReschedule, "You have missed your scheduled appointment. Your case has been flagged for review.")
 	}
 
