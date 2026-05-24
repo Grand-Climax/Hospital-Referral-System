@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -190,6 +191,31 @@ func (u *schedulingUseCase) snapshotDailySchedule(ctx context.Context, hospitalI
 	}
 }
 
+// refreshOldDateSnapshotIfRescheduled recounts and persists the booked
+// snapshot for the OLD appointment date when a triage row is moved to a
+// new date. Without this, the daily_schedules row for the old date keeps
+// counting the patient that no longer occupies a slot there. A no-op
+// when there was no prior date (first booking) or the date is unchanged.
+// The recompute pulls effective capacity for the old date so that a
+// missing row is recreated with the correct max_slots / overbook_limit
+// (e.g. after a manual cleanup wiped daily_schedules historically).
+func (u *schedulingUseCase) refreshOldDateSnapshotIfRescheduled(ctx context.Context, hospitalID, deptID uuid.UUID, oldDate *time.Time, newDate time.Time) {
+	if oldDate == nil {
+		return
+	}
+	oldDay := oldDate.Truncate(24 * time.Hour)
+	newDay := newDate.Truncate(24 * time.Hour)
+	if oldDay.Equal(newDay) {
+		return
+	}
+	oldMax, oldOverbook, _, err := u.EffectiveCapacity(ctx, hospitalID, deptID, oldDay)
+	if err != nil {
+		log.Printf("refreshOldDateSnapshotIfRescheduled: effective capacity failed: %v", err)
+		return
+	}
+	u.snapshotDailySchedule(ctx, hospitalID, deptID, oldDay, oldMax, oldOverbook)
+}
+
 // GetCapacityStatus returns a forward-looking capacity view for the given
 // hospital/department. Each entry is computed live from
 // EffectiveCapacity - no DailySchedule rows are created.
@@ -239,6 +265,11 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 	}
 
 	wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
+	// Remember the OLD appointment date so we can refresh that day's
+	// daily_schedules.booked_slots snapshot if this is a reschedule.
+	// Without this, a patient moved from X -> Y leaves X's snapshot
+	// stale (still counting them as booked on X).
+	oldAppointmentDate := queue.AppointmentDate
 
 	maxSlots, overbookLimit, booked, err := u.EffectiveCapacity(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate)
 	if err != nil {
@@ -267,6 +298,7 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 		}
 
 		u.snapshotDailySchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate, maxSlots, overbookLimit)
+		u.refreshOldDateSnapshotIfRescheduled(ctx, ref.TargetHospitalID, ref.TargetDeptID, oldAppointmentDate, req.AppointmentDate)
 
 		hospitalName := "the hospital"
 		deptName := "the department"
@@ -331,15 +363,20 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		ref.MLSeverityScore = &defaultScore
 	}
 
+	// Normalize condition_at_referral so "Critical" / "CRITICAL" / " critical "
+	// all qualify the same as "critical". The DB value is free-text from the
+	// referral form so case + whitespace drift is real.
 	isCritical := false
-	if ref.ReferralForm != nil && ref.ReferralForm.ConditionAtReferral == "critical" {
-		isCritical = true
+	if ref.ReferralForm != nil {
+		cond := strings.ToLower(strings.TrimSpace(ref.ReferralForm.ConditionAtReferral))
+		isCritical = cond == "critical"
 	}
-	if !isCritical && justification == "" {
+	if !isCritical && strings.TrimSpace(justification) == "" {
 		return false, errors.New("manual emergency schedule requires a critical condition or explicit justification")
 	}
 
 	wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
+	oldAppointmentDate := queue.AppointmentDate
 
 	maxSlots, overbookLimit, booked, err := u.EffectiveCapacity(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate)
 	if err != nil {
@@ -371,6 +408,7 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		}
 
 		u.snapshotDailySchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate, maxSlots, overbookLimit)
+		u.refreshOldDateSnapshotIfRescheduled(ctx, ref.TargetHospitalID, ref.TargetDeptID, oldAppointmentDate, appointmentDate)
 
 		hospitalName := "the hospital"
 		deptName := "the department"
