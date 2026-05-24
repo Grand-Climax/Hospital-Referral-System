@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"Hospital-Referral-System/internal/domain/entity"
 	"Hospital-Referral-System/internal/infrastructure/ml"
@@ -31,8 +32,9 @@ func BuildMLScoreRequest(ref *entity.Referral) (ml.ScoreRequest, json.RawMessage
 	}
 
 	req := ml.ScoreRequest{
-		Vitals:       vitals,
-		ClinicalText: clinical,
+		Vitals:         vitals,
+		ClinicalText:   clinical,
+		PatientContext: mapPatientContextForML(ref),
 	}
 
 	raw, err := json.Marshal(req)
@@ -73,13 +75,30 @@ func mapVitalsForML(vitals []entity.Vital) (ml.VitalsPayload, error) {
 		return ml.VitalsPayload{}, fmt.Errorf("temperature %.1f outside ML range 30.0-43.0", temp)
 	}
 
-	return ml.VitalsPayload{
+	out := ml.VitalsPayload{
 		BPSystolic:  sys,
 		BPDiastolic: dia,
 		HeartRate:   hr,
 		SpO2:        spo2,
 		Temperature: temp,
-	}, nil
+	}
+
+	// Optional extended vitals — validate range and include when present.
+	if v.RespiratoryRate != nil {
+		rr := int(*v.RespiratoryRate)
+		if rr >= 5 && rr <= 60 {
+			out.RespiratoryRate = &rr
+		}
+	}
+	if v.GCSScore != nil {
+		gcs := int(*v.GCSScore)
+		// GCS range is 3 (deep coma) to 15 (fully alert).
+		if gcs >= 3 && gcs <= 15 {
+			out.GCSScore = &gcs
+		}
+	}
+
+	return out, nil
 }
 
 func mapClinicalTextForML(ref *entity.Referral) ml.ClinicalTextPayload {
@@ -95,8 +114,46 @@ func mapClinicalTextForML(ref *entity.Referral) ml.ClinicalTextPayload {
 	if f.TreatmentGivenBeforeReferral != nil {
 		out.TreatmentGiven = strings.TrimSpace(*f.TreatmentGivenBeforeReferral)
 	}
+	if f.InvestigationResults != nil && strings.TrimSpace(*f.InvestigationResults) != "" {
+		out.InvestigationResults = strings.TrimSpace(*f.InvestigationResults)
+	}
+	// Normalise the condition label to lowercase so the ML model
+	// receives a consistent token regardless of how the referring
+	// doctor typed it ("Critical", "CRITICAL", "critical" → "critical").
+	condition := strings.ToLower(strings.TrimSpace(f.ConditionAtReferral))
+	if condition != "" {
+		out.ConditionAtReferral = condition
+	}
 	out.Diagnosis = primaryDiagnosisLabel(ref.Diagnoses)
 	return out
+}
+
+// mapPatientContextForML extracts anonymised demographic context from
+// the patient record. Name, ID, and contact details are never sent.
+func mapPatientContextForML(ref *entity.Referral) *ml.PatientContextPayload {
+	if ref.Patient == nil {
+		return nil
+	}
+	p := ref.Patient
+	ctx := &ml.PatientContextPayload{}
+
+	if p.DateOfBirth != nil {
+		age := int(time.Since(*p.DateOfBirth).Hours() / (24 * 365.25))
+		if age >= 0 && age <= 130 {
+			ctx.AgeYears = &age
+		}
+	}
+	if p.Sex != "" {
+		ctx.Sex = strings.ToLower(strings.TrimSpace(p.Sex))
+	}
+	if p.HomeRegion != nil {
+		ctx.HomeRegion = string(*p.HomeRegion)
+	}
+
+	if ctx.AgeYears == nil && ctx.Sex == "" && ctx.HomeRegion == "" {
+		return nil
+	}
+	return ctx
 }
 
 func primaryDiagnosisLabel(diagnoses []entity.ReferralDiagnosis) string {
@@ -125,6 +182,7 @@ func hasClinicalText(c ml.ClinicalTextPayload) bool {
 		c.PhysicalExamination,
 		c.Diagnosis,
 		c.TreatmentGiven,
+		c.InvestigationResults,
 	}
 	for _, f := range fields {
 		if f != "" {
