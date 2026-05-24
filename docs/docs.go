@@ -77,7 +77,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -110,19 +110,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.NetworkRouteListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteListResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -151,7 +151,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateNetworkRouteRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreateNetworkRouteRequest"
                         }
                     }
                 ],
@@ -159,19 +159,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.NetworkRouteResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -205,19 +205,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -251,13 +251,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.AttachmentResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -283,7 +283,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.LoginRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.LoginRequest"
                         }
                     }
                 ],
@@ -291,25 +291,25 @@ const docTemplate = `{
                     "200": {
                         "description": "MFA intermediate token and channel",
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LoginResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -340,7 +340,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.LogoutRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.LogoutRequest"
                         }
                     }
                 ],
@@ -348,19 +348,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -391,7 +391,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.MFAVerifyRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.MFAVerifyRequest"
                         }
                     }
                 ],
@@ -399,25 +399,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Token pair",
                         "schema": {
-                            "$ref": "#/definitions/dto.MFAVerifyResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MFAVerifyResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -443,7 +443,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.RefreshRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.RefreshRequest"
                         }
                     }
                 ],
@@ -451,19 +451,19 @@ const docTemplate = `{
                     "200": {
                         "description": "New token pair",
                         "schema": {
-                            "$ref": "#/definitions/dto.RefreshResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RefreshResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -520,25 +520,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedContactResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedContactResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid referral ID, unauthorized role, or access boundaries violation",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "MOH Analyst role completely blocked",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal database lookup error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -585,19 +585,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedConversationResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedConversationResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized: Invalid session token",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal database retrieval error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -631,25 +631,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid or malformed conversation ID",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Unauthorized boundary violation, or non-admin role attempt",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal soft-delete execution failure",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -687,7 +687,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.ToggleDisabledRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.ToggleDisabledRequest"
                         }
                     }
                 ],
@@ -695,25 +695,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid conversation ID, or missing required justification reason",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Unauthorized admin boundary violation, or non-admin role attempt",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal update or audit logging failure",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -772,25 +772,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedChatResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedChatResponse"
                         }
                     },
                     "400": {
                         "description": "Missing both conversation_id and other_user_id, or malformed UUIDs",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Unauthorized: Boundary check violation or non-participant access",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal data processing failure",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -819,7 +819,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.SendMessageRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.SendMessageRequest"
                         }
                     }
                 ],
@@ -827,31 +827,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.ChatMessageResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ChatMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid parameters, empty content, content \u003e 5000 chars, self-send, or inactive recipient",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Unauthorized role, multi-hospital boundary violation, terminal referral (read-only), or admin locked",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Referral not found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal database or transmission error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -882,7 +882,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.MarkReadRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.MarkReadRequest"
                         }
                     }
                 ],
@@ -890,19 +890,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid payload, missing both IDs, or malformed UUIDs",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal update operation error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -927,19 +927,195 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ChatUnreadCountResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ChatUnreadCountResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized user session",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Unread count calculation failure",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/activity": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the most recent audit-log rows for the dept head's hospital, filtered to a curated set of actions (batch scheduling, override mutations, emergency scheduling, doctor assignments, arrival confirmations, missed marks, etc.). Each row is summarized for direct display in the activity feed.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Authenticated DEPT_HEAD session.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Recent dept-head activity stream",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max number of rows to return (1-100, default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Inclusive start date (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Inclusive end date (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/capacity/calendar": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns one entry per day of the requested (year, month) with the live max / overbook / booked / available slots and flags indicating whether an active CapacityOverride or a DailySchedule log exists for the day.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** year required, month required (1-12).\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 400 invalid or missing year / month\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Per-day capacity rollup for a calendar month",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year (e.g. 2026)",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Month (1-12)",
+                        "name": "month",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/capacity/detail": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the live max/booked/overbook capacity for a date along with the soft staff hint (HospitalDepartment.MaxCapacityOfStaff) and the distinct count of doctors currently assigned to triage rows. The staff fields are advisory only; the booking engine does NOT gate on them.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Authenticated DEPT_HEAD session with hospital + department scope. date must be YYYY-MM-DD.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 400 invalid or missing date\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Get rich capacity detail for a date",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Target date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -952,14 +1128,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all active and upcoming capacity overrides for the department.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Returns every CapacityOverride row recorded for the department, including inactive ones (IsActive=false). Useful for audit and for deciding whether you must delete an override before creating a new one.\n\n**Roles:** DEPT_HEAD (scope inferred from token).\n\n**Prerequisites:** Authenticated DEPT_HEAD session.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 401 Unauthorized / scope missing\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Department Head"
                 ],
-                "summary": "List Capacity Overrides",
+                "summary": "List capacity overrides (active + historical)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -971,13 +1147,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -988,7 +1164,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sets a temporary capacity override for a specific date.\n**Roles:** DEPT_HEAD\n**Side Effect:** Automatically synchronizes the daily schedule for that date.\n**Common Errors:**\n- 400 (date in past)\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Sets a fixed daily capacity for a future date under the Schedule-on-Demand model.\nOverrides are IMMUTABLE - to change a value, delete the existing override and create a new one.\n\n**Roles:** DEPT_HEAD (scoped to the authenticated user's hospital + department)\n\n**Prerequisites:**\n- target_date must be \u003e= today + system_configs.buffer_days + 1 (default buffer is 2 days)\n- new_limit must be \u003e= 0\n- no other active override may exist for the same (hospital, department, date)\n\n**Side Effects:**\n- On the next ScheduleAppointment / ManualEmergencySchedule / BatchSchedule for that date, getEffectiveCapacity will use new_limit instead of HospitalDepartment.StandardDailyLimit.\n- No DailySchedule rows are created here; one is logged lazily on the first booking for that date.\n- Emits a CAPACITY_OVERRIDE_CREATED in-app notification and an audit log row.\n\n**Common Errors:**\n- 400 invalid date format / inside booking buffer / negative new_limit\n- 401 Unauthorized\n- 409 active override already exists for that date - delete it first\n- 500 Internal Server Error",
                 "consumes": [
                     "application/json"
                 ],
@@ -998,7 +1174,7 @@ const docTemplate = `{
                 "tags": [
                     "Department Head"
                 ],
-                "summary": "Create Capacity Override",
+                "summary": "Create capacity override (immutable)",
                 "parameters": [
                     {
                         "description": "Override details",
@@ -1006,7 +1182,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateOverrideRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreateOverrideRequest"
                         }
                     }
                 ],
@@ -1014,89 +1190,149 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
             }
         },
-        "/api/v1/department-head/capacity/overrides/{id}": {
-            "put": {
+        "/api/v1/department-head/capacity/overrides/by-month": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates an existing capacity override's limit and reason.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 400 invalid ID or input\n- 401 Unauthorized\n- 500 Internal Server Error",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Returns overrides for the department whose target_date falls in the given year (required) and optional month. Both active and inactive rows are returned, ordered ascending so a calendar UI can render them in date order.\n\n**Roles:** DEPT_HEAD (scope inferred from token).\n\n**Prerequisites:** year must be a positive integer (e.g. 2026). month is optional (1-12).\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 400 invalid or missing year / month out of range\n- 401 Unauthorized / scope missing\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Department Head"
                 ],
-                "summary": "Update Capacity Override",
+                "summary": "List capacity overrides filtered by year and optional month",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Override ID",
-                        "name": "id",
-                        "in": "path",
+                        "type": "integer",
+                        "description": "Year (e.g. 2026)",
+                        "name": "year",
+                        "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Update details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UpdateOverrideRequest"
-                        }
+                        "type": "integer",
+                        "description": "Month (1-12); omit for the entire year",
+                        "name": "month",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/capacity/overrides/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches one CapacityOverride row. Useful for the UI before deciding to delete + recreate (overrides are immutable).\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Valid override UUID.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 400 invalid ID\n- 401 Unauthorized\n- 404 override not found\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Get a single capacity override by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Override ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -1107,14 +1343,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes a capacity override, reverting the daily schedule to standard limits.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 400 invalid ID\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Deactivates an override (IsActive=false) so subsequent capacity decisions for that date fall back to HospitalDepartment.StandardDailyLimit. The row is preserved for historical audit.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Valid override ID.\n\n**State Transition:** CapacityOverride.IsActive: true -\u003e false.\n\n**Side Effects:** No DailySchedule rows are touched - capacity is recomputed live on next booking.\n\n**Common Errors:**\n- 400 invalid ID\n- 401 Unauthorized\n- 404 override not found\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Department Head"
                 ],
-                "summary": "Delete Capacity Override",
+                "summary": "Delete (deactivate) capacity override",
                 "parameters": [
                     {
                         "type": "string",
@@ -1128,25 +1364,120 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/dashboard/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Aggregated, live-computed snapshot for the dept-head landing page. Each field is read from the same source the booking engine uses, so the numbers always match what /capacity/detail and /schedule/patients would return.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Authenticated DEPT_HEAD session with hospital + department scope.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 401 Unauthorized / scope missing\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Department Head dashboard landing summary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadDashboardStats"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/dashboard/trends": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Per-day capacity utilization for the last N days ending today (inclusive). Each entry reuses the same EffectiveCapacity helper used by the booking engine, so trends and live capacity always agree.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** days must be 1-90; defaults to 14.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 400 invalid days\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Department Head capacity utilization trends",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Lookback window in days (1-90, default 14)",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -1159,24 +1490,24 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns daily schedule records for the next 30 days for the department.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Returns the immutable DailySchedule history log for an inclusive date range. Under the Schedule-on-Demand model each row is a snapshot captured at the first booking for that date; only BookedSlots is updated thereafter and MaxSlots / OverbookLimit are frozen.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Authenticated DEPT_HEAD session - hospital and department are inferred from the token.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 401 Unauthorized / scope missing\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Department Head"
                 ],
-                "summary": "View department schedule",
+                "summary": "View department schedule history log",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Start date (YYYY-MM-DD)",
+                        "description": "Start date (YYYY-MM-DD); defaults to today",
                         "name": "start_date",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "End date (YYYY-MM-DD)",
+                        "description": "End date (YYYY-MM-DD); defaults to start_date + 30 days",
                         "name": "end_date",
                         "in": "query"
                     }
@@ -1192,7 +1523,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -1205,14 +1542,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Triggers the automated batch scheduling process for all WAITING referrals in priority order.\n**Roles:** DEPT_HEAD\n**Prerequisites:** Reads all WAITING entries for the department.\n**State Transition:** Assigns appointment dates to referrals and creates status history records.\n**Gatekeepers:** Respects buffer days and never overbooks.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Walks the department's waiting queue and books each patient into the earliest available slot in [today + buffer_days, today + buffer_days + max_horizon_days].\n\n**Roles:** DEPT_HEAD (scoped to caller's hospital + department).\n\n**Prerequisites:**\n- WAITING TriageQueue rows for the department (AppointmentDate IS NULL, ArrivalStatus = EXPECTED).\n- system_configs.buffer_days (default 2) and system_configs.max_horizon_days (default 30).\n\n**Capacity Rule:** Routine - booked \u003c maxSlots. Overbook capacity is never used here.\nFor each candidate date the helper re-evaluates getEffectiveCapacity, so concurrent emergency bookings are honored.\n\n**State Transitions per booking:**\n- TriageQueue.AppointmentDate set, ArrivalStatus = EXPECTED.\n- Referral.Status -\u003e SCHEDULED with a ReferralStatusHistory row.\n- DailySchedule snapshot row created/updated for the target date.\n\n**Side Effects:**\n- Per-booking SMS via NotifyScheduling (when auto_notify or sendNotifications=true).\n- One audit row with the aggregated result.\n- One in-app BATCH_SCHEDULE_COMPLETED event when at least one patient was placed.\n\n**Soft lease:** A 5-minute lease is acquired via SchedulerCheckpointRepository before any work begins. If another batch run is in progress for the same (hospital, department), this call returns 200 with ` + "`" + `{ scheduled_count: 0, waiting_count: 0, message: \"Batch already running for this department; try again in a few minutes\" }` + "`" + ` rather than racing.\n\n**Common Errors:**\n- 401 Unauthorized / scope missing\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Department Head"
                 ],
-                "summary": "Run Batch Scheduling",
+                "summary": "Run batch scheduling (Schedule-on-Demand, no overbook)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1224,26 +1561,79 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
             }
         },
-        "/api/v1/department-head/schedule/{id}/max-slots": {
+        "/api/v1/department-head/schedule/patients": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the triage rows scheduled for the given date in any \"occupying-the-slot\" arrival status (Expected, Arrived, Admitted). Referral + Patient are eagerly loaded so the UI can render names without a follow-up call.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Authenticated DEPT_HEAD session. date must be YYYY-MM-DD.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 400 invalid or missing date\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "List scheduled patients for a date",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Target date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/staff-capacity": {
             "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Manually adjust the maximum slots for a specific day.\n**Roles:** DEPT_HEAD\n**Common Errors:**\n- 400 invalid schedule ID or input\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "description": "Persists the staffing \"soft hint\" for the caller's hospital + department. This value is returned via /capacity/detail but is NOT enforced by the booking engine - it exists purely so the UI can warn dept heads when staff_assigned \u003e= staff_capacity.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** max_capacity_of_staff must be \u003e= 0.\n\n**Side Effects:**\n- Updates HospitalDepartment.MaxCapacityOfStaff.\n- Emits an audit log row (UPDATE_SYSTEM_CONFIG with the new value).\n\n**Common Errors:**\n- 400 invalid payload / negative value\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "consumes": [
                     "application/json"
                 ],
@@ -1253,22 +1643,15 @@ const docTemplate = `{
                 "tags": [
                     "Department Head"
                 ],
-                "summary": "Update Daily Max Slots",
+                "summary": "Update HospitalDepartment.MaxCapacityOfStaff (soft hint)",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Update details",
+                        "description": "Soft staff hint",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateMaxSlotsRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UpdateStaffCapacityRequest"
                         }
                     }
                 ],
@@ -1276,19 +1659,62 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/staff/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Per-role active/inactive counts for the dept's REFERRING_DOCTOR and RECEPTIONIST users, the soft staff-capacity hint (MaxCapacityOfStaff), the distinct count of doctors currently assigned to triage rows for today, and a lightweight roster of the active staff (id/name/email/role/profile image).\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Authenticated DEPT_HEAD session.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Department staff summary (active/inactive + roster)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.StaffSummaryResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -1336,13 +1762,50 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/department-head/triage-queue/buckets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Breaks the dept's current waiting queue down by clinical condition (critical/urgent/stable) and ML severity tier (HIGH/MEDIUM/LOW), and surfaces the top 5 highest-composite-score patients still waiting. The composite score is the same number the scheduling engine uses to prioritize batch bookings.\n\n**Roles:** DEPT_HEAD\n\n**Prerequisites:** Authenticated DEPT_HEAD session.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Priority bucket counts for the dept's waiting queue",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PriorityBucketResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -1389,7 +1852,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DepartmentListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse"
                         }
                     }
                 }
@@ -1418,7 +1881,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateDepartmentRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.CreateDepartmentRequest"
                         }
                     }
                 ],
@@ -1426,19 +1889,57 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.DepartmentResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/departments/staff": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the active REFERRING_DOCTOR and RECEPTIONIST users in the caller's (hospital, department). Used by dept-scoped UIs to populate staff dropdowns. The scope is taken from the JWT (hospID + deptID claims); no query parameters are needed.\n\n**Roles:** RECEPTIONIST, DEPT_HEAD, RECEIVING_SPECIALIST, REFERRING_DOCTOR\n\n**Prerequisites:** Caller must be assigned to a hospital and a department in their JWT scope.\n\n**Side Effects:** None. Read-only.\n\n**Common Errors:**\n- 401 Unauthorized / scope missing\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "List staff in the caller's department",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1472,13 +1973,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DepartmentResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1514,7 +2015,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateDepartmentRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.UpdateDepartmentRequest"
                         }
                     }
                 ],
@@ -1522,19 +2023,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DepartmentResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1566,13 +2067,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1606,7 +2107,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.LatestPendingReferralsResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LatestPendingReferralsResponse"
                         }
                     }
                 }
@@ -1685,19 +2186,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1744,13 +2245,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralCreationResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralCreationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1823,13 +2324,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1883,13 +2384,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.AssignedReferralListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AssignedReferralListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1962,13 +2463,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2002,19 +2503,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralDetailResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2050,7 +2551,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateReferralRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UpdateReferralRequest"
                         }
                     }
                 ],
@@ -2058,13 +2559,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralCreationResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralCreationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2098,19 +2599,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2148,7 +2649,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CancelReferralRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CancelReferralRequest"
                         }
                     }
                 ],
@@ -2156,13 +2657,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2200,7 +2701,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.GrantConsultRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.GrantConsultRequest"
                         }
                     }
                 ],
@@ -2208,19 +2709,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2258,7 +2759,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RevokeConsultRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RevokeConsultRequest"
                         }
                     }
                 ],
@@ -2266,13 +2767,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2310,7 +2811,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RejectDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO"
                         }
                     }
                 ],
@@ -2318,7 +2819,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -2356,7 +2857,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateReferralRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UpdateReferralRequest"
                         }
                     }
                 ],
@@ -2364,13 +2865,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralCreationResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralCreationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2395,7 +2896,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DoctorDashboardStatsResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DoctorDashboardStatsResponse"
                         }
                     }
                 }
@@ -2454,19 +2955,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.AuditLogListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AuditLogListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2491,19 +2992,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminPersonnelWidgetResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminPersonnelWidgetResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2528,19 +3029,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalDepartmentListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentListResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2569,7 +3070,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminLinkDepartmentRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminLinkDepartmentRequest"
                         }
                     }
                 ],
@@ -2577,31 +3078,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2639,7 +3140,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminSetDepartmentActiveRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSetDepartmentActiveRequest"
                         }
                     }
                 ],
@@ -2647,25 +3148,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2703,7 +3204,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminAssignDepartmentHeadRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminAssignDepartmentHeadRequest"
                         }
                     }
                 ],
@@ -2711,25 +3212,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2754,19 +3255,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2795,7 +3296,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminUpdateHospitalProfileRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminUpdateHospitalProfileRequest"
                         }
                     }
                 ],
@@ -2803,25 +3304,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2862,19 +3363,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedLogResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedLogResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2953,25 +3454,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3050,25 +3551,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3141,19 +3642,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3226,19 +3727,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3263,19 +3764,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralStatusCountListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralStatusCountListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3309,25 +3810,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralDetailResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3375,25 +3876,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedLogResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedLogResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3418,19 +3919,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.AcceptanceRejectionRateResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AcceptanceRejectionRateResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3455,19 +3956,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.AverageWaitTimeResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AverageWaitTimeResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3501,19 +4002,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DepartmentLoadListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentLoadListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3538,19 +4039,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MissedAppointmentRateResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MissedAppointmentRateResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3584,19 +4085,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MonthlyReferralTotalsResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MonthlyReferralTotalsResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3630,19 +4131,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.TopReferringHospitalListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.TopReferringHospitalListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3713,13 +4214,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserListResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3748,7 +4249,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminCreateStaffRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminCreateStaffRequest"
                         }
                     }
                 ],
@@ -3756,25 +4257,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3821,19 +4322,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminSessionListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSessionListResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3867,25 +4368,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3917,25 +4418,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3973,7 +4474,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminSetStaffActiveRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSetStaffActiveRequest"
                         }
                     }
                 ],
@@ -3981,25 +4482,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4037,7 +4538,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminReassignDepartmentRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminReassignDepartmentRequest"
                         }
                     }
                 ],
@@ -4045,25 +4546,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4097,25 +4598,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminForceLogoutResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminForceLogoutResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4153,7 +4654,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminReplaceStaffRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminReplaceStaffRequest"
                         }
                     }
                 ],
@@ -4161,31 +4662,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4223,7 +4724,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalAdminChangeRoleRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminChangeRoleRequest"
                         }
                     }
                 ],
@@ -4231,25 +4732,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4314,7 +4815,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse"
                         }
                     }
                 }
@@ -4343,7 +4844,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateHospitalRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.CreateHospitalRequest"
                         }
                     }
                 ],
@@ -4351,19 +4852,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4397,13 +4898,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4439,7 +4940,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateHospitalRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.UpdateHospitalRequest"
                         }
                     }
                 ],
@@ -4447,19 +4948,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4491,13 +4992,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4531,13 +5032,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalDepartmentListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentListResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4573,7 +5074,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.LinkDepartmentRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.LinkDepartmentRequest"
                         }
                     }
                 ],
@@ -4581,25 +5082,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4640,38 +5141,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/internal/jobs/extend-daily-schedule": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Triggers the expansion of the rolling capacity window. Typically called by a nightly cron job.\n**Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD\n**Prerequisites:** Authenticated administrative session.\n**Common Errors:**\n- 401 Unauthorized\n- 500 Internal Server Error",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Automation Jobs"
-                ],
-                "summary": "Extend Daily Schedule Window",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4800,7 +5276,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -4883,7 +5359,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.NotificationListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NotificationListResponse"
                         }
                     }
                 }
@@ -4922,7 +5398,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.NotificationSendSummary"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NotificationSendSummary"
                         }
                     }
                 }
@@ -4947,7 +5423,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.NotificationStatusSummary"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NotificationStatusSummary"
                         }
                     }
                 }
@@ -4980,7 +5456,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -5014,7 +5490,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -5079,19 +5555,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5164,13 +5640,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5202,7 +5678,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5267,19 +5743,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5352,13 +5828,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5392,19 +5868,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralDetailResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5438,13 +5914,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5528,7 +6004,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RejectDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO"
                         }
                     }
                 ],
@@ -5536,13 +6012,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5580,7 +6056,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RejectDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO"
                         }
                     }
                 ],
@@ -5588,7 +6064,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -5622,13 +6098,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReviewChecklistResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReviewChecklistResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5664,7 +6140,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ReviewChecklistRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReviewChecklistRequest"
                         }
                     }
                 ],
@@ -5672,13 +6148,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5716,7 +6192,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ReviseDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReviseDTO"
                         }
                     }
                 ],
@@ -5724,13 +6200,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5807,19 +6283,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedNotificationResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedNotificationResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized: Invalid or expired session token",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal repository query failure",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5844,13 +6320,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal batch update execution failure",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5875,13 +6351,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UnreadCountResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UnreadCountResponse"
                         }
                     },
                     "500": {
                         "description": "Unread count query retrieval error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5915,19 +6391,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid notification ID or malformed UUID",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal repository execution failure",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5978,19 +6454,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MohDashboardSummaryResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohDashboardSummaryResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6041,19 +6517,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MohDiseaseHotspotsResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohDiseaseHotspotsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6110,19 +6586,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MohHospitalLoadResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohHospitalLoadResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6180,19 +6656,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MohReferralTrendsResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohReferralTrendsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6249,19 +6725,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MohAnalyticsExportResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohAnalyticsExportResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6312,19 +6788,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MohSeverityDistributionResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohSeverityDistributionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6355,7 +6831,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreatePatientRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CreatePatientRequest"
                         }
                     }
                 ],
@@ -6363,19 +6839,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.PatientResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PatientResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict - patient already exists",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6414,19 +6890,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PatientResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PatientResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6461,19 +6937,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PatientResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PatientResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6498,13 +6974,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DoctorListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DoctorListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6583,19 +7059,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6649,13 +7125,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReceptionistOfflineDataResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReceptionistOfflineDataResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6687,13 +7163,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6727,19 +7203,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralDetailResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6773,19 +7249,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6823,7 +7299,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AssignDoctorRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AssignDoctorRequest"
                         }
                     }
                 ],
@@ -6831,19 +7307,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6881,7 +7357,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.MarkMissedRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MarkMissedRequest"
                         }
                     }
                 ],
@@ -6889,19 +7365,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6935,13 +7411,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6979,7 +7455,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RevokeDoctorRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RevokeDoctorRequest"
                         }
                     }
                 ],
@@ -6987,7 +7463,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -7012,7 +7488,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DepartmentListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse"
                         }
                     }
                 }
@@ -7045,7 +7521,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse"
                         }
                     }
                 }
@@ -7080,7 +7556,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DepartmentListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse"
                         }
                     }
                 }
@@ -7105,7 +7581,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.RegionListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RegionListResponse"
                         }
                     }
                 }
@@ -7158,7 +7634,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedICDCodeResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedICDCodeResponse"
                         }
                     }
                 }
@@ -7183,19 +7659,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.LiaisonListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LiaisonListResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7220,7 +7696,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.HospitalListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse"
                         }
                     }
                 }
@@ -7245,7 +7721,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.RegionListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RegionListResponse"
                         }
                     }
                 }
@@ -7279,7 +7755,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.AttachmentListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentListResponse"
                         }
                     }
                 }
@@ -7327,19 +7803,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.AttachmentListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentListResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7380,13 +7856,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7427,13 +7903,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7471,7 +7947,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RecordOutcomeRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RecordOutcomeRequest"
                         }
                     }
                 ],
@@ -7479,19 +7955,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7529,7 +8005,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AddClinicalUpdateRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AddClinicalUpdateRequest"
                         }
                     }
                 ],
@@ -7537,19 +8013,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7587,7 +8063,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RejectDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO"
                         }
                     }
                 ],
@@ -7595,13 +8071,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7642,13 +8118,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7727,19 +8203,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7812,13 +8288,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7859,13 +8335,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7938,13 +8414,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -7992,13 +8468,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8032,19 +8508,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReferralDetailResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8093,13 +8569,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8137,7 +8613,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ChangeDepartmentRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ChangeDepartmentRequest"
                         }
                     }
                 ],
@@ -8145,25 +8621,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8176,7 +8652,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Bypass standard booking capacity limits and queue slot guards to record an immediate emergency appointment slot.\n**Detailed Behavior \u0026 Rules:**\n- Strict date validation: The appointment date must be today or in the future; scheduling for past dates is blocked.\n- Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. If the patient has already arrived ('ARRIVED') or is admitted ('ADMITTED'), emergency booking is blocked.\n- Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', emergency-scheduling will transition the 'ArrivalStatus' back to 'ArrivalExpected', set the new appointment date, trigger apology-free SMS reschedule alerts, and dispatch a 'MISSED_APPOINTMENT_RESCHEDULED' doctor in-app notification.\n- Returns an indicator ` + "`" + `rescheduled_from_missed` + "`" + ` that flags if the patient was rescheduled from a missed appointment.\n**Roles:** RECEIVING_SPECIALIST",
+                "description": "Books a referral as an emergency for a specific date. This is the ONLY scheduling path allowed to consume overbook capacity.\n\n**Roles:** RECEIVING_SPECIALIST\n\n**Prerequisites:**\n- Referral.Status must be ACCEPTED or SCHEDULED.\n- TriageQueue.ArrivalStatus must be EXPECTED or MISSED (already-ARRIVED / ADMITTED patients are blocked).\n- Appointment date must be today or in the future.\n- Either Referral.ReferralForm.condition_at_referral = \"critical\" OR a non-empty justification must be provided.\n\n**Capacity Rule (Schedule-on-Demand):**\n- booked count is read live from TriageQueue (Expected/Arrived/Admitted) via CountByDeptAndDate.\n- maxSlots = active CapacityOverride.NewLimit OR HospitalDepartment.StandardDailyLimit.\n- overbookLimit = HospitalDepartment.OverbookLimit.\n- Rejected when booked \u003e= maxSlots + overbookLimit.\n\n**State Transitions:**\n- Referral.Status: ACCEPTED/SCHEDULED -\u003e SCHEDULED.\n- TriageQueue.ArrivalStatus: MISSED -\u003e EXPECTED (rescheduled_from_missed=true) or unchanged.\n- TriageQueue.AppointmentDate set to the target date.\n\n**Side Effects:**\n- Creates or updates the DailySchedule snapshot row for the (hospital, department, date).\n- Writes an audit log row with action EMERGENCY_SCHEDULE.\n- Queues SMS via NotifyScheduling / NotifyMissedReschedule.\n- Dispatches in-app event APPOINTMENT_SCHEDULED or MISSED_APPOINTMENT_RESCHEDULED.\n\n**Common Errors:**\n- 400 invalid referral ID / past date / not critical and no justification\n- 401 Unauthorized\n- 500 capacity full even with overbook / DB error",
                 "consumes": [
                     "application/json"
                 ],
@@ -8186,11 +8662,11 @@ const docTemplate = `{
                 "tags": [
                     "Specialist"
                 ],
-                "summary": "Manual Emergency Schedule",
+                "summary": "Manual emergency schedule (Schedule-on-Demand, overbook allowed)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Referral ID",
+                        "description": "Referral ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -8201,7 +8677,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ManualEmergencyScheduleRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ManualEmergencyScheduleRequest"
                         }
                     }
                 ],
@@ -8209,25 +8685,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.SchedulingResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.SchedulingResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8261,25 +8737,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MLPredictionResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MLPredictionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8317,7 +8793,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.MLSeverityOverrideRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MLSeverityOverrideRequest"
                         }
                     }
                 ],
@@ -8325,31 +8801,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Severity score manually overridden and triage queue successfully updated",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid inputs / bad request format",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized access",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden operation / mismatching hospital scopes",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server / database transaction error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8383,13 +8859,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8427,7 +8903,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RedirectReferralRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RedirectReferralRequest"
                         }
                     }
                 ],
@@ -8435,13 +8911,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8488,7 +8964,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8526,7 +9002,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RejectDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO"
                         }
                     }
                 ],
@@ -8534,13 +9010,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8578,7 +9054,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RejectDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RejectDTO"
                         }
                     }
                 ],
@@ -8586,13 +9062,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8626,25 +9102,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8657,18 +9133,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Allows a specialist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).\n**Detailed Behavior:**\n- Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).\n- Wipes out the missed appointment date ('AppointmentDate' = nil).\n- Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).\n- Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.\n**Roles:** RECEIVING_SPECIALIST",
+                "description": "Resets a MISSED patient back to the waiting pool so they can be re-scheduled. Under Schedule-on-Demand this also frees the slot for the original date automatically (capacity is read live from TriageQueue, and Missed rows are excluded from the count).\n\n**Roles:** RECEIVING_SPECIALIST\n\n**Prerequisites:** Valid TriageQueue ID; record must currently be MISSED.\n\n**State Transitions:**\n- TriageQueue.ArrivalStatus: MISSED -\u003e EXPECTED.\n- TriageQueue.AppointmentDate: cleared.\n- TriageQueue.AssignedDoctorID / DoctorAssignedAt: cleared.\n- Referral.Status: -\u003e ACCEPTED (so it is eligible for batch / manual scheduling again).\n\n**Side Effects:**\n- The slot count for the original date drops by 1 on the next read because the row is no longer Expected/Arrived/Admitted.\n\n**Common Errors:**\n- 400 invalid ID / record not MISSED\n- 401 Unauthorized\n- 500 Internal Server Error",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Specialist"
                 ],
-                "summary": "Return Missed Patient to Triage (Specialist)",
+                "summary": "Return missed patient to triage",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TriageQueue ID",
+                        "description": "TriageQueue ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -8678,13 +9154,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8697,7 +9185,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.\n**Detailed Behavior \u0026 Rules:**\n- Capacity limits: Respects standard daily slots and capacity overrides for the target hospital department.\n- Strict date validation: The appointment date must be today or in the future; past booking dates are blocked.\n- Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. Arrived ('ARRIVED') or admitted ('ADMITTED') patients are blocked.\n- Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', scheduling transitions 'ArrivalStatus' to 'ArrivalExpected', registers the new date, sends apology-free SMS rescheduled updates, and dispatches a 'MISSED_APPOINTMENT_RESCHEDULED' in-app notification to the treating doctor.\n- Returns an indicator ` + "`" + `rescheduled_from_missed` + "`" + ` that flags if the patient was rescheduled from a missed appointment.\n**Roles:** RECEIVING_SPECIALIST",
+                "description": "Books or reschedules a referral for a specific date under the routine capacity rule (no overbooking).\n\n**Roles:** RECEIVING_SPECIALIST\n\n**Prerequisites:**\n- Referral.Status must be ACCEPTED or SCHEDULED.\n- TriageQueue.ArrivalStatus must be EXPECTED or MISSED.\n- Appointment date must be today or in the future.\n\n**Capacity Rule (Schedule-on-Demand):**\n- booked = live TriageQueue count (Expected/Arrived/Admitted) for that (hospital, department, date).\n- maxSlots = active CapacityOverride.NewLimit OR HospitalDepartment.StandardDailyLimit.\n- Rejected when booked \u003e= maxSlots. Overbook capacity is NEVER used here - call /emergency-schedule for that.\n\n**State Transitions:**\n- Referral.Status: ACCEPTED/SCHEDULED -\u003e SCHEDULED.\n- TriageQueue.ArrivalStatus: MISSED -\u003e EXPECTED (rescheduled_from_missed=true).\n- TriageQueue.AppointmentDate set.\n\n**Side Effects:**\n- Creates / updates DailySchedule snapshot row.\n- Writes audit log.\n- Queues SMS and in-app notification (APPOINTMENT_SCHEDULED or MISSED_APPOINTMENT_RESCHEDULED).\n\n**Common Errors:**\n- 400 invalid referral ID / past date / patient already arrived or admitted\n- 401 Unauthorized\n- 500 capacity reached - emergency override required / DB error",
                 "consumes": [
                     "application/json"
                 ],
@@ -8707,11 +9195,11 @@ const docTemplate = `{
                 "tags": [
                     "Specialist"
                 ],
-                "summary": "Schedule Appointment",
+                "summary": "Schedule appointment (routine, Schedule-on-Demand)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Referral ID",
+                        "description": "Referral ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -8722,7 +9210,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.SchedulingRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.SchedulingRequest"
                         }
                     }
                 ],
@@ -8730,25 +9218,90 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.SchedulingResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.SchedulingResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/specialist/referrals/{id}/schedule-options": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns up to N upcoming days starting at today + system_configs.buffer_days where the referral's target department still has routine capacity. Each entry includes max_slots, booked_slots, available_slots, overbook_limit, and whether an active capacity override is in effect.\n\n**Roles:** RECEIVING_SPECIALIST, REFERRING_DOCTOR\n\n**Prerequisites:** Referral must exist and have a target hospital + department set.\n\n**Side Effects:** None. Read-only. The same rule is applied when actually booking, so callers can rely on the dates to be schedulable at the moment of the call (subject to concurrent bookings).\n\n**Common Errors:**\n- 400 invalid referral ID / days\n- 401 Unauthorized\n- 404 referral not found\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Get next N routine scheduling options for a referral",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Referral ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of days to scan starting at today + buffer_days (1-60, default 14)",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -8786,7 +9339,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.TriageReviewRequest"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.TriageReviewRequest"
                         }
                     }
                 ],
@@ -8794,25 +9347,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -8891,19 +9444,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -8976,13 +9529,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9055,13 +9608,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PaginatedReferralResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9138,19 +9691,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9179,7 +9732,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateUserRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.CreateUserRequest"
                         }
                     }
                 ],
@@ -9187,25 +9740,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9243,7 +9796,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateUserRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.UpdateUserRequest"
                         }
                     }
                 ],
@@ -9251,19 +9804,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9295,13 +9848,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9335,13 +9888,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9379,7 +9932,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.AssignRoleRequest"
+                            "$ref": "#/definitions/internal_delivery_http_handlers.AssignRoleRequest"
                         }
                     }
                 ],
@@ -9387,19 +9940,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9447,13 +10000,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     }
                 }
@@ -9524,13 +10077,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserListResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserListResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden for MOH Analysts",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9555,13 +10108,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9598,13 +10151,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9627,13 +10180,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9667,19 +10220,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden due to visibility restrictions",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -9687,7 +10240,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.AcceptanceRejectionRateResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AcceptanceRejectionRateResponse": {
             "type": "object",
             "properties": {
                 "acceptance_rate": {
@@ -9705,7 +10258,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AddClinicalUpdateRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AddClinicalUpdateRequest": {
             "type": "object",
             "required": [
                 "clinical_notes",
@@ -9725,7 +10278,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AssignDoctorRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AssignDoctorRequest": {
             "type": "object",
             "required": [
                 "doctor_id"
@@ -9740,13 +10293,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AssignedReferralListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AssignedReferralListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.AssignedReferralResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AssignedReferralResponse"
                     }
                 },
                 "message": {
@@ -9758,7 +10311,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AssignedReferralResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AssignedReferralResponse": {
             "type": "object",
             "properties": {
                 "access_granted_at": {
@@ -9818,13 +10371,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AttachmentListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AttachmentListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.AttachmentResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AttachmentResponse"
                     }
                 },
                 "message": {
@@ -9836,7 +10389,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AttachmentResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AttachmentResponse": {
             "type": "object",
             "properties": {
                 "category": {
@@ -9895,13 +10448,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AuditLogListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AuditLogListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.AuditLogResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.AuditLogResponse"
                     }
                 },
                 "message": {
@@ -9919,11 +10472,11 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AuditLogResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AuditLogResponse": {
             "type": "object",
             "properties": {
                 "action_type": {
-                    "$ref": "#/definitions/entity.ActionType"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ActionType"
                 },
                 "id": {
                     "type": "string"
@@ -9951,7 +10504,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AverageWaitTimeResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.AverageWaitTimeResponse": {
             "type": "object",
             "properties": {
                 "average_wait_time": {
@@ -9966,7 +10519,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.BaseResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.BaseResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -9978,7 +10531,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CancelReferralRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.CancelReferralRequest": {
             "type": "object",
             "properties": {
                 "reason": {
@@ -9987,7 +10540,43 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ChangeDepartmentRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.CapacityDetailResponse": {
+            "type": "object",
+            "properties": {
+                "available_slots": {
+                    "description": "max - booked, clamped to 0",
+                    "type": "integer"
+                },
+                "booked_slots": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "has_override": {
+                    "type": "boolean"
+                },
+                "is_full": {
+                    "description": "booked \u003e= max + overbook",
+                    "type": "boolean"
+                },
+                "max_slots": {
+                    "type": "integer"
+                },
+                "overbook_limit": {
+                    "type": "integer"
+                },
+                "staff_assigned": {
+                    "description": "distinct assigned_doctor_ids on TriageQueue for that date",
+                    "type": "integer"
+                },
+                "staff_capacity": {
+                    "description": "HospitalDepartment.MaxCapacityOfStaff - soft hint only",
+                    "type": "integer"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.ChangeDepartmentRequest": {
             "type": "object",
             "required": [
                 "department_id"
@@ -9999,7 +10588,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ChatMessageResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ChatMessageResponse": {
             "type": "object",
             "properties": {
                 "content": {
@@ -10035,7 +10624,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ChatUnreadCountResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ChatUnreadCountResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -10049,7 +10638,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ContactResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ContactResponse": {
             "type": "object",
             "properties": {
                 "department_name": {
@@ -10075,7 +10664,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ConversationResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ConversationResponse": {
             "type": "object",
             "properties": {
                 "conversation_id": {
@@ -10133,7 +10722,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateNetworkRouteRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.CreateNetworkRouteRequest": {
             "type": "object",
             "required": [
                 "receiver_hospital_id",
@@ -10156,7 +10745,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateOverrideRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.CreateOverrideRequest": {
             "type": "object",
             "required": [
                 "new_limit",
@@ -10176,7 +10765,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreatePatientRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.CreatePatientRequest": {
             "type": "object",
             "required": [
                 "first_name",
@@ -10230,13 +10819,54 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DepartmentListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DepartmentHeadDashboardStats": {
+            "type": "object",
+            "properties": {
+                "active_overrides": {
+                    "type": "integer"
+                },
+                "active_staff": {
+                    "type": "integer"
+                },
+                "completed_last_30_days": {
+                    "type": "integer"
+                },
+                "missed_last_7_days": {
+                    "type": "integer"
+                },
+                "oldest_waiting_days": {
+                    "type": "integer"
+                },
+                "pending_referrals": {
+                    "type": "integer"
+                },
+                "scheduled_next_7_days": {
+                    "type": "integer"
+                },
+                "scheduled_today": {
+                    "type": "integer"
+                },
+                "status_counts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptReferralStatusItem"
+                    }
+                },
+                "today_capacity": {
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.CapacityDetailResponse"
+                },
+                "waiting_queue_size": {
+                    "type": "integer"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.DepartmentListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.DepartmentResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse"
                     }
                 },
                 "message": {
@@ -10254,13 +10884,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DepartmentLoadListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DepartmentLoadListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.DepartmentLoadResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentLoadResponse"
                     }
                 },
                 "message": {
@@ -10272,7 +10902,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DepartmentLoadResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DepartmentLoadResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -10283,7 +10913,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DepartmentResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -10310,7 +10940,18 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DiagnosisDTO": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DeptReferralStatusItem": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.DiagnosisDTO": {
             "type": "object",
             "required": [
                 "diagnosis_certainty",
@@ -10336,7 +10977,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DoctorDashboardStatsResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DoctorDashboardStatsResponse": {
             "type": "object",
             "properties": {
                 "accepted": {
@@ -10360,7 +11001,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DoctorInfo": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DoctorInfo": {
             "type": "object",
             "properties": {
                 "first_name": {
@@ -10374,13 +11015,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DoctorListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.DoctorListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.DoctorInfo"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DoctorInfo"
                     }
                 },
                 "message": {
@@ -10392,7 +11033,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.EmergencyDetailDTO": {
+        "Hospital-Referral-System_internal_delivery_http_dto.EmergencyDetailDTO": {
             "type": "object",
             "required": [
                 "emergency_justification"
@@ -10404,7 +11045,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ErrorResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -10416,7 +11057,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.GrantConsultRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.GrantConsultRequest": {
             "type": "object",
             "required": [
                 "doctor_id"
@@ -10427,7 +11068,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminAssignDepartmentHeadRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminAssignDepartmentHeadRequest": {
             "type": "object",
             "properties": {
                 "staffId": {
@@ -10445,7 +11086,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminChangeRoleRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminChangeRoleRequest": {
             "type": "object",
             "required": [
                 "role"
@@ -10454,14 +11095,14 @@ const docTemplate = `{
                 "role": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.UserRole"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole"
                         }
                     ],
                     "example": "RECEIVING_SPECIALIST"
                 }
             }
         },
-        "dto.HospitalAdminCreateStaffRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminCreateStaffRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -10512,14 +11153,14 @@ const docTemplate = `{
                 "role": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.UserRole"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole"
                         }
                     ],
                     "example": "LIAISON_OFFICER"
                 }
             }
         },
-        "dto.HospitalAdminForceLogoutResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminForceLogoutResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -10534,7 +11175,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminLinkDepartmentRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminLinkDepartmentRequest": {
             "type": "object",
             "required": [
                 "department_id"
@@ -10550,7 +11191,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminPersonnelWidgetResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminPersonnelWidgetResponse": {
             "type": "object",
             "properties": {
                 "access_requests": {
@@ -10578,7 +11219,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminReassignDepartmentRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminReassignDepartmentRequest": {
             "type": "object",
             "properties": {
                 "department_id": {
@@ -10587,7 +11228,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminReplaceStaffRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminReplaceStaffRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -10626,13 +11267,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminSessionListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSessionListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.HospitalAdminSessionResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSessionResponse"
                     }
                 },
                 "message": {
@@ -10650,7 +11291,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminSessionResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSessionResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -10673,7 +11314,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminSetDepartmentActiveRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSetDepartmentActiveRequest": {
             "type": "object",
             "required": [
                 "is_active"
@@ -10685,7 +11326,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminSetStaffActiveRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminSetStaffActiveRequest": {
             "type": "object",
             "required": [
                 "is_active"
@@ -10697,7 +11338,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalAdminUpdateHospitalProfileRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalAdminUpdateHospitalProfileRequest": {
             "type": "object",
             "properties": {
                 "address": {
@@ -10714,13 +11355,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalDepartmentListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.HospitalDepartmentResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentResponse"
                     }
                 },
                 "message": {
@@ -10732,14 +11373,14 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalDepartmentResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalDepartmentResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
                 "department": {
-                    "$ref": "#/definitions/dto.DepartmentResponse"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse"
                 },
                 "department_id": {
                     "type": "string"
@@ -10765,13 +11406,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.HospitalResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse"
                     }
                 },
                 "message": {
@@ -10789,7 +11430,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.HospitalResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse": {
             "type": "object",
             "properties": {
                 "address": {
@@ -10828,7 +11469,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.InAppNotificationResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.InAppNotificationResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -10854,13 +11495,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LatestPendingReferralsResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.LatestPendingReferralsResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.ListReferralResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ListReferralResponse"
                     }
                 },
                 "message": {
@@ -10872,7 +11513,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LiaisonItem": {
+        "Hospital-Referral-System_internal_delivery_http_dto.LiaisonItem": {
             "type": "object",
             "properties": {
                 "email": {
@@ -10889,13 +11530,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LiaisonListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.LiaisonListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.LiaisonItem"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LiaisonItem"
                     }
                 },
                 "message": {
@@ -10907,7 +11548,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ListReferralResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ListReferralResponse": {
             "type": "object",
             "properties": {
                 "condition_at_referral": {
@@ -10958,7 +11599,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LogResponseDTO": {
+        "Hospital-Referral-System_internal_delivery_http_dto.LogResponseDTO": {
             "type": "object",
             "properties": {
                 "changed_by_id": {
@@ -10984,7 +11625,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -11008,7 +11649,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MFAVerifyResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MFAVerifyResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -11026,11 +11667,11 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MLPredictionResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MLPredictionResponse": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/entity.MLPrediction"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.MLPrediction"
                 },
                 "message": {
                     "type": "string",
@@ -11042,7 +11683,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MLSeverityOverrideRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MLSeverityOverrideRequest": {
             "type": "object",
             "required": [
                 "justification",
@@ -11061,7 +11702,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ManualEmergencyScheduleRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ManualEmergencyScheduleRequest": {
             "type": "object",
             "required": [
                 "appointment_date",
@@ -11076,7 +11717,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MarkMissedRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MarkMissedRequest": {
             "type": "object",
             "required": [
                 "miss_reason"
@@ -11093,7 +11734,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MissedAppointmentRateResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MissedAppointmentRateResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -11108,13 +11749,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohAnalyticsExportResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohAnalyticsExportResponse": {
             "type": "object",
             "properties": {
                 "hospital_load": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.MohHospitalLoadMetricResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohHospitalLoadMetricResponse"
                     }
                 },
                 "message": {
@@ -11125,11 +11766,11 @@ const docTemplate = `{
                     "example": true
                 },
                 "summary": {
-                    "$ref": "#/definitions/dto.MohDashboardSummaryResponse"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohDashboardSummaryResponse"
                 }
             }
         },
-        "dto.MohDashboardSummaryResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohDashboardSummaryResponse": {
             "type": "object",
             "properties": {
                 "acceptance_rate_percentage": {
@@ -11162,7 +11803,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohDiseaseHotspotResponseItem": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohDiseaseHotspotResponseItem": {
             "type": "object",
             "properties": {
                 "average_severity_score": {
@@ -11179,13 +11820,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohDiseaseHotspotsResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohDiseaseHotspotsResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.MohDiseaseHotspotResponseItem"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohDiseaseHotspotResponseItem"
                     }
                 },
                 "message": {
@@ -11197,7 +11838,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohHospitalLoadMetricResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohHospitalLoadMetricResponse": {
             "type": "object",
             "properties": {
                 "average_severity_score": {
@@ -11229,13 +11870,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohHospitalLoadResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohHospitalLoadResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.MohHospitalLoadMetricResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohHospitalLoadMetricResponse"
                     }
                 },
                 "message": {
@@ -11247,7 +11888,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohReferralTrendPointResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohReferralTrendPointResponse": {
             "type": "object",
             "properties": {
                 "accepted_referrals": {
@@ -11267,13 +11908,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohReferralTrendsResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohReferralTrendsResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.MohReferralTrendPointResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohReferralTrendPointResponse"
                     }
                 },
                 "message": {
@@ -11285,13 +11926,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohSeverityDistributionResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohSeverityDistributionResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.MohSeverityDistributionResponseItem"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MohSeverityDistributionResponseItem"
                     }
                 },
                 "message": {
@@ -11303,7 +11944,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MohSeverityDistributionResponseItem": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MohSeverityDistributionResponseItem": {
             "type": "object",
             "properties": {
                 "critical_count": {
@@ -11323,7 +11964,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MonthlyReferralTotalResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MonthlyReferralTotalResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -11334,13 +11975,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MonthlyReferralTotalsResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.MonthlyReferralTotalsResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.MonthlyReferralTotalResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.MonthlyReferralTotalResponse"
                     }
                 },
                 "message": {
@@ -11352,13 +11993,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.NetworkRouteListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.NetworkRouteResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteResponse"
                     }
                 },
                 "message": {
@@ -11370,7 +12011,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.NetworkRouteResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.NetworkRouteResponse": {
             "type": "object",
             "properties": {
                 "id": {
@@ -11397,13 +12038,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.NotificationListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.NotificationListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.Notification"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Notification"
                     }
                 },
                 "message": {
@@ -11421,7 +12062,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.NotificationSendSummary": {
+        "Hospital-Referral-System_internal_delivery_http_dto.NotificationSendSummary": {
             "type": "object",
             "properties": {
                 "failed_count": {
@@ -11435,7 +12076,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.NotificationStatusSummary": {
+        "Hospital-Referral-System_internal_delivery_http_dto.NotificationStatusSummary": {
             "type": "object",
             "properties": {
                 "delivered_count": {
@@ -11452,13 +12093,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PaginatedChatResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PaginatedChatResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.ChatMessageResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ChatMessageResponse"
                     }
                 },
                 "message": {
@@ -11479,13 +12120,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PaginatedContactResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PaginatedContactResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.ContactResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ContactResponse"
                     }
                 },
                 "message": {
@@ -11506,13 +12147,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PaginatedConversationResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PaginatedConversationResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.ConversationResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ConversationResponse"
                     }
                 },
                 "message": {
@@ -11533,13 +12174,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PaginatedICDCodeResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PaginatedICDCodeResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.ICDCode"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ICDCode"
                     }
                 },
                 "message": {
@@ -11560,13 +12201,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PaginatedLogResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PaginatedLogResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.LogResponseDTO"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.LogResponseDTO"
                     }
                 },
                 "message": {
@@ -11587,13 +12228,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PaginatedNotificationResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PaginatedNotificationResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.InAppNotificationResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.InAppNotificationResponse"
                     }
                 },
                 "message": {
@@ -11617,13 +12258,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PaginatedReferralResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PaginatedReferralResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.ListReferralResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ListReferralResponse"
                     }
                 },
                 "message": {
@@ -11644,7 +12285,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PatientResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PatientResponse": {
             "type": "object",
             "properties": {
                 "date_of_birth": {
@@ -11683,24 +12324,82 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReceptionistOfflineDataResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.PriorityBucket": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.PriorityBucketResponse": {
+            "type": "object",
+            "properties": {
+                "by_condition": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PriorityBucket"
+                    }
+                },
+                "by_severity": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PriorityBucket"
+                    }
+                },
+                "top_waiting": {
+                    "description": "top 5 highest composite_score",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.PriorityBucketWaitingItem"
+                    }
+                },
+                "total_waiting": {
+                    "type": "integer"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.PriorityBucketWaitingItem": {
+            "type": "object",
+            "properties": {
+                "composite_score": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "patient_name": {
+                    "type": "string"
+                },
+                "referral_id": {
+                    "type": "string"
+                },
+                "waiting_days": {
+                    "type": "integer"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.ReceptionistOfflineDataResponse": {
             "type": "object",
             "properties": {
                 "doctors": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.DoctorInfo"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DoctorInfo"
                     }
                 },
                 "schedule": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.TriageQueue"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.TriageQueue"
                     }
                 }
             }
         },
-        "dto.RecordOutcomeRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RecordOutcomeRequest": {
             "type": "object",
             "required": [
                 "outcome"
@@ -11727,7 +12426,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RedirectReferralRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RedirectReferralRequest": {
             "type": "object",
             "required": [
                 "target_hospital_id"
@@ -11747,7 +12446,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RedirectionResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RedirectionResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -11779,14 +12478,14 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReferralCreationResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ReferralCreationResponse": {
             "type": "object",
             "properties": {
                 "message": {
                     "type": "string"
                 },
                 "referral": {
-                    "$ref": "#/definitions/entity.Referral"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                 },
                 "success": {
                     "type": "boolean",
@@ -11794,7 +12493,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReferralDetailResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ReferralDetailResponse": {
             "type": "object",
             "properties": {
                 "active_ml_prediction_id": {
@@ -11807,7 +12506,7 @@ const docTemplate = `{
                 "attachments": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.Attachment"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Attachment"
                     }
                 },
                 "attachments_included": {
@@ -11823,11 +12522,11 @@ const docTemplate = `{
                 "diagnoses": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.ReferralDiagnosis"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralDiagnosis"
                     }
                 },
                 "emergency_detail": {
-                    "$ref": "#/definitions/entity.ReferralEmergencyDetail"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralEmergencyDetail"
                 },
                 "id": {
                     "type": "string"
@@ -11881,7 +12580,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Patient"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Patient"
                         }
                     ]
                 },
@@ -11893,16 +12592,16 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "receiver_hospital": {
-                    "$ref": "#/definitions/entity.Hospital"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                 },
                 "redirections": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.RedirectionResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.RedirectionResponse"
                     }
                 },
                 "referral_form": {
-                    "$ref": "#/definitions/entity.ReferralForm"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralForm"
                 },
                 "referring_doctor_id": {
                     "type": "string"
@@ -11915,7 +12614,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "sender_hospital": {
-                    "$ref": "#/definitions/entity.Hospital"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                 },
                 "sender_hospital_id": {
                     "type": "string"
@@ -11925,14 +12624,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/entity.ReferralStatus"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralStatus"
                 },
                 "success": {
                     "type": "boolean",
                     "example": true
                 },
                 "target_department": {
-                    "$ref": "#/definitions/entity.Department"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Department"
                 },
                 "target_dept_id": {
                     "type": "string"
@@ -11941,7 +12640,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "triage_status": {
-                    "$ref": "#/definitions/entity.TriageStatus"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.TriageStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -11949,7 +12648,7 @@ const docTemplate = `{
                 "vitals": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.Vital"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Vital"
                     }
                 },
                 "vitals_included": {
@@ -11960,13 +12659,13 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReferralStatusCountListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ReferralStatusCountListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.ReferralStatusCountResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ReferralStatusCountResponse"
                     }
                 },
                 "message": {
@@ -11978,7 +12677,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReferralStatusCountResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ReferralStatusCountResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -11989,7 +12688,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RefreshResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RefreshResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -12007,7 +12706,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RegionListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RegionListResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -12025,7 +12724,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RejectDTO": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RejectDTO": {
             "type": "object",
             "required": [
                 "reason"
@@ -12037,7 +12736,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReviewChecklistRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ReviewChecklistRequest": {
             "type": "object",
             "properties": {
                 "attachments_included": {
@@ -12058,7 +12757,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReviewChecklistResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ReviewChecklistResponse": {
             "type": "object",
             "properties": {
                 "attachments_included": {
@@ -12075,7 +12774,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ReviseDTO": {
+        "Hospital-Referral-System_internal_delivery_http_dto.ReviseDTO": {
             "type": "object",
             "required": [
                 "reason"
@@ -12087,7 +12786,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RevokeConsultRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RevokeConsultRequest": {
             "type": "object",
             "required": [
                 "doctor_id"
@@ -12101,7 +12800,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RevokeDoctorRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.RevokeDoctorRequest": {
             "type": "object",
             "required": [
                 "reason"
@@ -12112,7 +12811,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.SchedulingRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.SchedulingRequest": {
             "type": "object",
             "required": [
                 "appointment_date"
@@ -12130,7 +12829,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.SchedulingResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.SchedulingResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -12145,7 +12844,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.SendMessageRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.SendMessageRequest": {
             "type": "object",
             "required": [
                 "content",
@@ -12165,13 +12864,81 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.TopReferringHospitalListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.StaffMember": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "profile_image": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.StaffRoleCount": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "integer"
+                },
+                "inactive": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.StaffSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "department": {
+                    "type": "string"
+                },
+                "doctors": {
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.StaffRoleCount"
+                },
+                "doctors_assigned_today": {
+                    "type": "integer"
+                },
+                "members": {
+                    "description": "doctor + receptionist roster",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.StaffMember"
+                    }
+                },
+                "receptionists": {
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.StaffRoleCount"
+                },
+                "staff_capacity_hint": {
+                    "description": "MaxCapacityOfStaff",
+                    "type": "integer"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.TopReferringHospitalListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.TopReferringHospitalResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.TopReferringHospitalResponse"
                     }
                 },
                 "message": {
@@ -12183,7 +12950,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.TopReferringHospitalResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.TopReferringHospitalResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -12197,7 +12964,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.TriageReviewRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.TriageReviewRequest": {
             "type": "object",
             "required": [
                 "action"
@@ -12215,7 +12982,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UnreadCountResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.UnreadCountResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -12230,35 +12997,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateMaxSlotsRequest": {
-            "type": "object",
-            "required": [
-                "max_slots"
-            ],
-            "properties": {
-                "max_slots": {
-                    "type": "integer",
-                    "minimum": 1
-                }
-            }
-        },
-        "dto.UpdateOverrideRequest": {
-            "type": "object",
-            "required": [
-                "new_limit",
-                "reason"
-            ],
-            "properties": {
-                "new_limit": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.UpdateReferralRequest": {
+        "Hospital-Referral-System_internal_delivery_http_dto.UpdateReferralRequest": {
             "type": "object",
             "required": [
                 "liaison_officer_id",
@@ -12288,11 +13027,11 @@ const docTemplate = `{
                     "description": "Diagnoses",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.DiagnosisDTO"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DiagnosisDTO"
                     }
                 },
                 "emergency_detail": {
-                    "$ref": "#/definitions/dto.EmergencyDetailDTO"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.EmergencyDetailDTO"
                 },
                 "investigation_results": {
                     "type": "string",
@@ -12348,19 +13087,31 @@ const docTemplate = `{
                     "description": "Optional Extensions",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/dto.VitalsDTO"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.VitalsDTO"
                         }
                     ]
                 }
             }
         },
-        "dto.UserListResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.UpdateStaffCapacityRequest": {
+            "type": "object",
+            "required": [
+                "max_capacity_of_staff"
+            ],
+            "properties": {
+                "max_capacity_of_staff": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.UserListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.UserResponse"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UserResponse"
                     }
                 },
                 "message": {
@@ -12378,14 +13129,14 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserResponse": {
+        "Hospital-Referral-System_internal_delivery_http_dto.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
                 "department": {
-                    "$ref": "#/definitions/dto.DepartmentResponse"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DepartmentResponse"
                 },
                 "department_id": {
                     "type": "string"
@@ -12397,7 +13148,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "hospital": {
-                    "$ref": "#/definitions/dto.HospitalResponse"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.HospitalResponse"
                 },
                 "hospital_id": {
                     "type": "string"
@@ -12430,7 +13181,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role": {
-                    "$ref": "#/definitions/entity.UserRole"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole"
                 },
                 "success": {
                     "type": "boolean",
@@ -12441,7 +13192,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.VitalsDTO": {
+        "Hospital-Referral-System_internal_delivery_http_dto.VitalsDTO": {
             "type": "object",
             "properties": {
                 "diastolic_bp": {
@@ -12481,7 +13232,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.ActionType": {
+        "Hospital-Referral-System_internal_domain_entity.ActionType": {
             "type": "string",
             "enum": [
                 "CREATE_REFERRAL",
@@ -12560,7 +13311,7 @@ const docTemplate = `{
                 "ActionManageChat"
             ]
         },
-        "entity.ArrivalStatus": {
+        "Hospital-Referral-System_internal_domain_entity.ArrivalStatus": {
             "type": "string",
             "enum": [
                 "EXPECTED",
@@ -12575,7 +13326,7 @@ const docTemplate = `{
                 "ArrivalMissed"
             ]
         },
-        "entity.Attachment": {
+        "Hospital-Referral-System_internal_domain_entity.Attachment": {
             "type": "object",
             "properties": {
                 "category": {
@@ -12600,7 +13351,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Referral"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                         }
                     ]
                 },
@@ -12627,7 +13378,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.DeliveryStatus": {
+        "Hospital-Referral-System_internal_domain_entity.DeliveryStatus": {
             "type": "string",
             "enum": [
                 "QUEUED",
@@ -12648,7 +13399,7 @@ const docTemplate = `{
                 "DeliveryManualRequired"
             ]
         },
-        "entity.Department": {
+        "Hospital-Referral-System_internal_domain_entity.Department": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -12668,7 +13419,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.DiagnosisCertainty": {
+        "Hospital-Referral-System_internal_domain_entity.DiagnosisCertainty": {
             "type": "string",
             "enum": [
                 "CONFIRMED",
@@ -12681,7 +13432,7 @@ const docTemplate = `{
                 "CertaintySymptomOnly"
             ]
         },
-        "entity.EthiopianRegion": {
+        "Hospital-Referral-System_internal_domain_entity.EthiopianRegion": {
             "type": "string",
             "enum": [
                 "Addis Ababa",
@@ -12716,7 +13467,7 @@ const docTemplate = `{
                 "RegionTigray"
             ]
         },
-        "entity.Hospital": {
+        "Hospital-Referral-System_internal_domain_entity.Hospital": {
             "type": "object",
             "properties": {
                 "address": {
@@ -12738,17 +13489,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "region": {
-                    "$ref": "#/definitions/entity.EthiopianRegion"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.EthiopianRegion"
                 },
                 "tier_level": {
-                    "$ref": "#/definitions/entity.HospitalTier"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.HospitalTier"
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "entity.HospitalTier": {
+        "Hospital-Referral-System_internal_domain_entity.HospitalTier": {
             "type": "string",
             "enum": [
                 "PRIMARY",
@@ -12763,7 +13514,7 @@ const docTemplate = `{
                 "TertiaryHosp"
             ]
         },
-        "entity.ICDCode": {
+        "Hospital-Referral-System_internal_domain_entity.ICDCode": {
             "type": "object",
             "properties": {
                 "category": {
@@ -12777,7 +13528,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.MLPrediction": {
+        "Hospital-Referral-System_internal_domain_entity.MLPrediction": {
             "type": "object",
             "properties": {
                 "confidence_level": {
@@ -12817,7 +13568,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "overridden_by_user": {
-                    "$ref": "#/definitions/entity.User"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.User"
                 },
                 "overridden_score": {
                     "type": "number"
@@ -12835,7 +13586,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Referral"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                         }
                     ]
                 },
@@ -12850,7 +13601,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.MissReason": {
+        "Hospital-Referral-System_internal_domain_entity.MissReason": {
             "type": "string",
             "enum": [
                 "PATIENT_NO_SHOW",
@@ -12865,7 +13616,7 @@ const docTemplate = `{
                 "MissHospitalCapacityIssue"
             ]
         },
-        "entity.Notification": {
+        "Hospital-Referral-System_internal_domain_entity.Notification": {
             "type": "object",
             "properties": {
                 "content": {
@@ -12875,7 +13626,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "delivery_status": {
-                    "$ref": "#/definitions/entity.DeliveryStatus"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.DeliveryStatus"
                 },
                 "failure_reason": {
                     "type": "string"
@@ -12884,7 +13635,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "notification_type": {
-                    "$ref": "#/definitions/entity.NotificationType"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.NotificationType"
                 },
                 "phone_number": {
                     "type": "string"
@@ -12896,7 +13647,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Referral"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                         }
                     ]
                 },
@@ -12911,7 +13662,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.NotificationType": {
+        "Hospital-Referral-System_internal_domain_entity.NotificationType": {
             "type": "string",
             "enum": [
                 "ACCEPTANCE",
@@ -12928,7 +13679,7 @@ const docTemplate = `{
                 "NotifyMissedReschedule"
             ]
         },
-        "entity.Patient": {
+        "Hospital-Referral-System_internal_domain_entity.Patient": {
             "type": "object",
             "properties": {
                 "allow_sms": {
@@ -12942,7 +13693,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "home_region": {
-                    "$ref": "#/definitions/entity.EthiopianRegion"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.EthiopianRegion"
                 },
                 "id": {
                     "type": "string"
@@ -12964,7 +13715,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.Referral": {
+        "Hospital-Referral-System_internal_domain_entity.Referral": {
             "type": "object",
             "properties": {
                 "active_ml_prediction_id": {
@@ -12977,7 +13728,7 @@ const docTemplate = `{
                 "attachments": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.Attachment"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Attachment"
                     }
                 },
                 "attachments_included": {
@@ -12993,11 +13744,11 @@ const docTemplate = `{
                 "diagnoses": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.ReferralDiagnosis"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralDiagnosis"
                     }
                 },
                 "emergency_detail": {
-                    "$ref": "#/definitions/entity.ReferralEmergencyDetail"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralEmergencyDetail"
                 },
                 "id": {
                     "type": "string"
@@ -13048,7 +13799,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Patient"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Patient"
                         }
                     ]
                 },
@@ -13060,16 +13811,16 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "receiver_hospital": {
-                    "$ref": "#/definitions/entity.Hospital"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                 },
                 "redirections": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.ReferralRedirection"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralRedirection"
                     }
                 },
                 "referral_form": {
-                    "$ref": "#/definitions/entity.ReferralForm"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralForm"
                 },
                 "referring_doctor_id": {
                     "type": "string"
@@ -13082,7 +13833,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "sender_hospital": {
-                    "$ref": "#/definitions/entity.Hospital"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                 },
                 "sender_hospital_id": {
                     "type": "string"
@@ -13092,10 +13843,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/entity.ReferralStatus"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ReferralStatus"
                 },
                 "target_department": {
-                    "$ref": "#/definitions/entity.Department"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Department"
                 },
                 "target_dept_id": {
                     "type": "string"
@@ -13104,7 +13855,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "triage_status": {
-                    "$ref": "#/definitions/entity.TriageStatus"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.TriageStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -13112,7 +13863,7 @@ const docTemplate = `{
                 "vitals": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.Vital"
+                        "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Vital"
                     }
                 },
                 "vitals_included": {
@@ -13123,19 +13874,19 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.ReferralDiagnosis": {
+        "Hospital-Referral-System_internal_domain_entity.ReferralDiagnosis": {
             "type": "object",
             "properties": {
                 "code_info": {
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.ICDCode"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ICDCode"
                         }
                     ]
                 },
                 "diagnosis_certainty": {
-                    "$ref": "#/definitions/entity.DiagnosisCertainty"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.DiagnosisCertainty"
                 },
                 "icd_code": {
                     "type": "string"
@@ -13147,14 +13898,14 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "referral": {
-                    "$ref": "#/definitions/entity.Referral"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                 },
                 "referral_id": {
                     "type": "string"
                 }
             }
         },
-        "entity.ReferralEmergencyDetail": {
+        "Hospital-Referral-System_internal_domain_entity.ReferralEmergencyDetail": {
             "type": "object",
             "properties": {
                 "admitted_at": {
@@ -13171,7 +13922,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.ReferralForm": {
+        "Hospital-Referral-System_internal_domain_entity.ReferralForm": {
             "type": "object",
             "properties": {
                 "accompanying_person_name": {
@@ -13214,7 +13965,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Referral"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                         }
                     ]
                 },
@@ -13226,7 +13977,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.ReferralRedirection": {
+        "Hospital-Referral-System_internal_domain_entity.ReferralRedirection": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -13236,19 +13987,19 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "redirected_by": {
-                    "$ref": "#/definitions/entity.User"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.User"
                 },
                 "redirected_by_specialist_id": {
                     "type": "string"
                 },
                 "redirected_from_hospital": {
-                    "$ref": "#/definitions/entity.Hospital"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                 },
                 "redirected_from_hospital_id": {
                     "type": "string"
                 },
                 "redirected_to_hospital": {
-                    "$ref": "#/definitions/entity.Hospital"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                 },
                 "redirected_to_hospital_id": {
                     "type": "string"
@@ -13257,7 +14008,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "referral": {
-                    "$ref": "#/definitions/entity.Referral"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                 },
                 "referral_id": {
                     "type": "string"
@@ -13267,7 +14018,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.ReferralStatus": {
+        "Hospital-Referral-System_internal_domain_entity.ReferralStatus": {
             "type": "string",
             "enum": [
                 "DRAFT",
@@ -13304,14 +14055,14 @@ const docTemplate = `{
                 "StatusDeceased"
             ]
         },
-        "entity.TriageQueue": {
+        "Hospital-Referral-System_internal_domain_entity.TriageQueue": {
             "type": "object",
             "properties": {
                 "appointment_date": {
                     "type": "string"
                 },
                 "arrival_status": {
-                    "$ref": "#/definitions/entity.ArrivalStatus"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.ArrivalStatus"
                 },
                 "arrived_at": {
                     "type": "string"
@@ -13320,7 +14071,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "assigned_doctor": {
-                    "$ref": "#/definitions/entity.User"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.User"
                 },
                 "assigned_doctor_id": {
                     "type": "string"
@@ -13329,7 +14080,7 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "department": {
-                    "$ref": "#/definitions/entity.Department"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Department"
                 },
                 "department_id": {
                     "type": "string"
@@ -13338,7 +14089,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "hospital": {
-                    "$ref": "#/definitions/entity.Hospital"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                 },
                 "hospital_id": {
                     "type": "string"
@@ -13350,13 +14101,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "marked_by_admin": {
-                    "$ref": "#/definitions/entity.User"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.User"
                 },
                 "miss_reason": {
-                    "$ref": "#/definitions/entity.MissReason"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.MissReason"
                 },
                 "referral": {
-                    "$ref": "#/definitions/entity.Referral"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                 },
                 "referral_id": {
                     "type": "string"
@@ -13366,7 +14117,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.TriageStatus": {
+        "Hospital-Referral-System_internal_domain_entity.TriageStatus": {
             "type": "string",
             "enum": [
                 "AUTO_SCORED",
@@ -13379,14 +14130,14 @@ const docTemplate = `{
                 "TriageOverridden"
             ]
         },
-        "entity.User": {
+        "Hospital-Referral-System_internal_domain_entity.User": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
                 "department": {
-                    "$ref": "#/definitions/entity.Department"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Department"
                 },
                 "department_id": {
                     "type": "string"
@@ -13401,7 +14152,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Hospital"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Hospital"
                         }
                     ]
                 },
@@ -13430,17 +14181,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "region": {
-                    "$ref": "#/definitions/entity.EthiopianRegion"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.EthiopianRegion"
                 },
                 "role": {
-                    "$ref": "#/definitions/entity.UserRole"
+                    "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole"
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "entity.UserRole": {
+        "Hospital-Referral-System_internal_domain_entity.UserRole": {
             "type": "string",
             "enum": [
                 "REFERRING_DOCTOR",
@@ -13463,7 +14214,7 @@ const docTemplate = `{
                 "RoleSystemSuperAdmin"
             ]
         },
-        "entity.Vital": {
+        "Hospital-Referral-System_internal_domain_entity.Vital": {
             "type": "object",
             "properties": {
                 "diastolic_bp": {
@@ -13485,7 +14236,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.Referral"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.Referral"
                         }
                     ]
                 },
@@ -13506,7 +14257,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.AssignRoleRequest": {
+        "internal_delivery_http_handlers.AssignRoleRequest": {
             "type": "object",
             "required": [
                 "role"
@@ -13515,14 +14266,14 @@ const docTemplate = `{
                 "role": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.UserRole"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole"
                         }
                     ],
                     "example": "SYSTEM_SUPER_ADMIN"
                 }
             }
         },
-        "handlers.CreateDepartmentRequest": {
+        "internal_delivery_http_handlers.CreateDepartmentRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -13538,7 +14289,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.CreateHospitalRequest": {
+        "internal_delivery_http_handlers.CreateHospitalRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -13565,14 +14316,14 @@ const docTemplate = `{
                 "tier_level": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.HospitalTier"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.HospitalTier"
                         }
                     ],
                     "example": "SPECIALIZED"
                 }
             }
         },
-        "handlers.CreateUserRequest": {
+        "internal_delivery_http_handlers.CreateUserRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -13627,14 +14378,14 @@ const docTemplate = `{
                 "role": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.UserRole"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole"
                         }
                     ],
                     "example": "MOH_ANALYST"
                 }
             }
         },
-        "handlers.LinkDepartmentRequest": {
+        "internal_delivery_http_handlers.LinkDepartmentRequest": {
             "type": "object",
             "required": [
                 "department_id"
@@ -13650,7 +14401,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.LoginRequest": {
+        "internal_delivery_http_handlers.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -13675,7 +14426,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.LogoutRequest": {
+        "internal_delivery_http_handlers.LogoutRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -13686,7 +14437,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.MFAVerifyRequest": {
+        "internal_delivery_http_handlers.MFAVerifyRequest": {
             "type": "object",
             "required": [
                 "code"
@@ -13697,7 +14448,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.MarkReadRequest": {
+        "internal_delivery_http_handlers.MarkReadRequest": {
             "type": "object",
             "properties": {
                 "conversation_id": {
@@ -13709,7 +14460,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.RefreshRequest": {
+        "internal_delivery_http_handlers.RefreshRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -13720,7 +14471,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.ToggleDisabledRequest": {
+        "internal_delivery_http_handlers.ToggleDisabledRequest": {
             "type": "object",
             "required": [
                 "reason"
@@ -13734,7 +14485,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UpdateDepartmentRequest": {
+        "internal_delivery_http_handlers.UpdateDepartmentRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -13747,7 +14498,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UpdateHospitalRequest": {
+        "internal_delivery_http_handlers.UpdateHospitalRequest": {
             "type": "object",
             "properties": {
                 "address": {
@@ -13773,14 +14524,14 @@ const docTemplate = `{
                 "tier_level": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.HospitalTier"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.HospitalTier"
                         }
                     ],
                     "example": "SPECIALIZED"
                 }
             }
         },
-        "handlers.UpdateUserRequest": {
+        "internal_delivery_http_handlers.UpdateUserRequest": {
             "type": "object",
             "properties": {
                 "department_id": {
@@ -13827,7 +14578,7 @@ const docTemplate = `{
                 "role": {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/entity.UserRole"
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_domain_entity.UserRole"
                         }
                     ],
                     "example": "MOH_ANALYST"
