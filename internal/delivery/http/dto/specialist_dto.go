@@ -21,3 +21,7 @@ type MLPredictionResponse struct {
 	Data    *entity.MLPrediction `json:"data"`
 }
 
+type MLSeverityOverrideRequest struct {
+	Score         float64 `json:"score" binding:"required,min=0,max=100" example:"85.0"`
+	Justification string  `json:"justification" binding:"required" example:"Patient risk factors not fully captured by automatic vitals scoring"`
+}

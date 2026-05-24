@@ -81,18 +81,37 @@ func (u *schedulingUseCase) GetCapacityStatus(ctx context.Context, hospitalID, d
 	return resp, nil
 }
 
-func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID, userID uuid.UUID, req dto.SchedulingRequest) error {
+func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID, userID uuid.UUID, req dto.SchedulingRequest) (bool, error) {
 	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
-		return err
+		return false, err
 	}
+
+	if ref.Status != entity.StatusAccepted && ref.Status != entity.StatusScheduled {
+		return false, errors.New("only accepted or scheduled referrals can be scheduled")
+	}
+
+	if req.AppointmentDate.Before(time.Now().Truncate(24 * time.Hour)) {
+		return false, errors.New("appointment date cannot be in the past")
+	}
+
+	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
+	if err != nil {
+		return false, err
+	}
+
+	if queue.ArrivalStatus != entity.ArrivalExpected && queue.ArrivalStatus != entity.ArrivalMissed {
+		return false, errors.New("cannot schedule appointment: patient has already arrived or been admitted")
+	}
+
+	wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
 
 	canSchedule, err := u.ValidateCapacity(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate.Format("2006-01-02"), req.Override)
 	if err != nil || !canSchedule {
-		return errors.New("capacity reached and no override granted")
+		return false, errors.New("capacity reached and no override granted")
 	}
 
-	return u.db.Transaction(func(tx *gorm.DB) error {
+	err = u.db.Transaction(func(tx *gorm.DB) error {
 		sched, err := u.getOrInitSchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate)
 		if err != nil {
 			return err
@@ -102,17 +121,16 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 			return err
 		}
 
-		queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
-		if err != nil {
-			return err
+		if wasMissed {
+			queue.ArrivalStatus = entity.ArrivalExpected
 		}
 		queue.AppointmentDate = &req.AppointmentDate
-		if err := u.triageRepo.Update(ctx, queue); err != nil {
+		if err := tx.Save(queue).Error; err != nil {
 			return err
 		}
 
 		ref.Status = entity.StatusScheduled
-		if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+		if err := tx.Save(ref).Error; err != nil {
 			return err
 		}
 
@@ -134,15 +152,10 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 		eventType := "APPOINTMENT_SCHEDULED"
 		content := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
 		
-		if queue.ArrivalStatus == entity.ArrivalMissed {
-			notifType = entity.NotifyReschedule
-			eventType = "APPOINTMENT_RESCHEDULED"
-			content = fmt.Sprintf("Your appointment at %s, %s has been rescheduled to %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
-			// Reset arrival status for rescheduled appointment
-			queue.ArrivalStatus = entity.ArrivalExpected
-			if err := u.triageRepo.Update(ctx, queue); err != nil {
-				return err
-			}
+		if wasMissed {
+			notifType = entity.NotifyMissedReschedule
+			eventType = "MISSED_APPOINTMENT_RESCHEDULED"
+			content = fmt.Sprintf("Your missed appointment at %s has been rescheduled to %s.", hospitalName, req.AppointmentDate.Format("2006-01-02"))
 		}
 
 		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, content)
@@ -151,6 +164,11 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 
 		return nil
 	})
+	if err != nil {
+		return false, err
+	}
+
+	return wasMissed, nil
 }
 
 func (u *schedulingUseCase) ValidateCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, date string, override bool) (bool, error) {
@@ -201,14 +219,27 @@ func (u *schedulingUseCase) ManageCapacityOverride(ctx context.Context, hospital
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, nil, nil, override)
 }
 
-func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) error {
+func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referralID uuid.UUID, appointmentDate time.Time, justification string, userID uuid.UUID) (bool, error) {
 	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if ref.Status != entity.StatusAccepted {
-		return errors.New("only accepted referrals can be emergency-scheduled")
+	if ref.Status != entity.StatusAccepted && ref.Status != entity.StatusScheduled {
+		return false, errors.New("only accepted or scheduled referrals can be emergency-scheduled")
+	}
+
+	if appointmentDate.Before(time.Now().Truncate(24 * time.Hour)) {
+		return false, errors.New("appointment date cannot be in the past")
+	}
+
+	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
+	if err != nil {
+		return false, err
+	}
+
+	if queue.ArrivalStatus != entity.ArrivalExpected && queue.ArrivalStatus != entity.ArrivalMissed {
+		return false, errors.New("cannot schedule appointment: patient has already arrived or been admitted")
 	}
 
 	if ref.MLSeverityScore == nil {
@@ -223,12 +254,7 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 	}
 
 	if !isCritical && justification == "" {
-		return errors.New("manual emergency schedule requires a critical condition or explicit justification")
-	}
-
-	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
-	if err != nil {
-		return err
+		return false, errors.New("manual emergency schedule requires a critical condition or explicit justification")
 	}
 
 	wasMissed := queue.ArrivalStatus == entity.ArrivalMissed
@@ -236,20 +262,20 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 	// 2. Capacity Check: Allow overbooking up to (max_slots + overbook_limit)
 	hospDept, err := u.deptRepo.FindHospitalDepartment(ctx, ref.TargetHospitalID, ref.TargetDeptID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	sched, err := u.scheduleRepo.GetOrCreate(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate, hospDept.StandardDailyLimit)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	overbookLimit := u.getOverbookLimit(ctx, sched.OverbookLimit)
 	if sched.BookedSlots >= (sched.MaxSlots + overbookLimit) {
-		return errors.New("even overbook capacity is full for this date")
+		return false, errors.New("even overbook capacity is full for this date")
 	}
 
-	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 3. Increment BookedSlots
 		if err := u.scheduleRepo.IncrementBookedSlots(ctx, sched.ID, sched.Version); err != nil {
 			return err
@@ -292,9 +318,9 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 		message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
 
 		if wasMissed {
-			notifType = entity.NotifyReschedule
-			eventType = "APPOINTMENT_RESCHEDULED"
-			message = fmt.Sprintf("Your appointment at %s, %s has been rescheduled to %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
+			notifType = entity.NotifyMissedReschedule
+			eventType = "MISSED_APPOINTMENT_RESCHEDULED"
+			message = fmt.Sprintf("Your missed appointment at %s has been rescheduled to %s.", hospitalName, appointmentDate.Format("2006-01-02"))
 		}
 
 		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, message)
@@ -303,6 +329,11 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 
 		return nil
 	})
+	if err != nil {
+		return false, err
+	}
+
+	return wasMissed, nil
 }
 
 func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, departmentID, userID uuid.UUID, sendNotifications bool) (*dto.BatchScheduleResult, error) {
@@ -457,20 +488,6 @@ func (u *schedulingUseCase) ProcessMissedAppointments(ctx context.Context) error
 	}
 
 	for _, q := range queues {
-		exists, _ := u.clinicalRepo.ExistsForReferralAndDate(ctx, q.ReferralID, "MISSED_APPOINTMENT_RE_EVALUATION", today)
-		if exists {
-			continue
-		}
-
-		update := &entity.ClinicalUpdate{
-			ReferralID:     q.ReferralID,
-			UpdatedByID:    uuid.Nil,
-			UpdateReason:   "MISSED_APPOINTMENT_RE_EVALUATION",
-			ClinicalNotes:  "Missed appointment – automatically flagged for re-evaluation",
-			RequiresReview: true,
-		}
-		_ = u.clinicalRepo.Create(ctx, update)
-
 		q.ArrivalStatus = entity.ArrivalMissed
 		_ = u.triageRepo.Update(ctx, &q)
 

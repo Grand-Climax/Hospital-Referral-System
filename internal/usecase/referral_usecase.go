@@ -1199,13 +1199,13 @@ func (u *referralUseCase) SpecialistAccept(ctx context.Context, id, specialistID
 			ref.MLLastError = &errMsg
 			_ = u.referralRepo.Update(ctx, ref)
 		} else {
-			return errors.New("ML severity scoring is in progress; wait for scoring to finish or set manual severity via triage-severity")
+			return errors.New("ML severity scoring is in progress; wait for scoring to finish or set manual severity override via the ML severity override endpoint")
 		}
 	}
 
 	// Severity gate: ML success, manual override, or explicit score on accept
 	if severityScore == nil && ref.MLSeverityScore == nil {
-		return errors.New("severity score must be set before accepting a referral; wait for ML scoring or use the triage-severity endpoint")
+		return errors.New("severity score must be set before accepting a referral; wait for ML scoring or use the ml-severity-override endpoint")
 	}
 
 	oldStatus := ref.Status

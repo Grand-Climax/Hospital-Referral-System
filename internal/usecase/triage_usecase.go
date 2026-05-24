@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -194,91 +193,6 @@ func (u *triageUseCase) ReviewTriage(ctx context.Context, referralID, userID uui
 	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideQueue, &referralID, nil, req)
 }
 
-func (u *triageUseCase) SetManualSeverity(ctx context.Context, referralID, userID uuid.UUID, score float64, justification string) error {
-	if score < 0 || score > 100 {
-		return errors.New("severity score must be between 0 and 100")
-	}
-
-	if u.mlUC != nil {
-		if err := u.mlUC.SendFeedbackOverride(ctx, referralID, score, justification); err != nil {
-			log.Printf("ml feedback override referral %s: %v", referralID, err)
-		}
-	}
-	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 1. Query existing prediction or initialize new one
-		var pred entity.MLPrediction
-		err := tx.Where("referral_id = ?", referralID).First(&pred).Error
-		if err == nil {
-			// Found existing, update it and clear ML-specific fields
-			pred.TriggerReason = "MANUAL"
-			pred.InputFeatures = []byte("{}")
-			pred.OutputScore = score
-			pred.ConfidenceLevel = nil
-			pred.Explanation = nil
-			pred.ModelVersion = "manual-v1"
-			pred.IsOverridden = true
-			pred.OverriddenScore = &score
-			pred.OverriddenBy = &userID
-			pred.OverrideJustification = &justification
-			pred.PredictedAt = time.Now()
-			
-			if err := tx.Save(&pred).Error; err != nil {
-				return err
-			}
-		} else if err == gorm.ErrRecordNotFound {
-			// Create new overridden prediction
-			pred = entity.MLPrediction{
-				ReferralID:            referralID,
-				TriggerReason:         "MANUAL",
-				InputFeatures:         []byte("{}"),
-				OutputScore:           score,
-				ConfidenceLevel:       nil,
-				Explanation:           nil,
-				ModelVersion:          "manual-v1",
-				IsOverridden:          true,
-				OverriddenScore:       &score,
-				OverriddenBy:          &userID,
-				OverrideJustification: &justification,
-				PredictedAt:           time.Now(),
-			}
-			if err := tx.Create(&pred).Error; err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-
-		// 3. Update Referral
-		if err := tx.Model(&entity.Referral{}).
-			Where("id = ?", referralID).
-			Updates(map[string]interface{}{
-				"active_ml_prediction_id": pred.ID,
-				"ml_severity_score":       score,
-				"triage_status":           entity.TriageOverridden,
-				"ml_status":               entity.MLStatusManual,
-				"ml_run_started_at":       nil,
-			}).Error; err != nil {
-			return err
-		}
-
-		// 4. Recalculate TriageQueue composite score
-		queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
-		if err == nil && queue != nil {
-			// Using the logic from CalculateCompositeScore but we are in a transaction
-			// We can call CalculateCompositeScore if it doesn't create its own transaction
-			newComposite, _ := u.CalculateCompositeScore(ctx, referralID)
-			queue.CompositeScore = newComposite
-			if err := tx.Save(queue).Error; err != nil {
-				return err
-			}
-		}
-
-		return u.auditRepo.LogWithContext(ctx, userID, entity.ActionOverrideMLScore, &referralID, nil, map[string]interface{}{
-			"score":         score,
-			"justification": justification,
-		})
-	})
-}
 
 func (u *triageUseCase) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
 	return u.triageRepo.ListScheduledInRange(ctx, hospitalID, deptID, start, end)
