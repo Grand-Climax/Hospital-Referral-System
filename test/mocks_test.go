@@ -265,6 +265,14 @@ func (m *MockReferralRepo) CountAcceptedOrCompletedToday(ctx context.Context, ho
 	return args.Get(0).(int64), args.Error(1)
 }
 
+func (m *MockReferralRepo) CountByTargetDeptAndStatuses(ctx context.Context, hospID, deptID uuid.UUID, statuses []entity.ReferralStatus, startDate, endDate *time.Time) ([]irepository.ReferralStatusCount, error) {
+	args := m.Called(ctx, hospID, deptID, statuses, startDate, endDate)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]irepository.ReferralStatusCount), args.Error(1)
+}
+
 func (m *MockReferralRepo) GetMohDashboardSummary(ctx context.Context, filter irepository.MohAnalyticsFilter) (*irepository.MohDashboardSummary, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
@@ -481,6 +489,10 @@ func (m *MockDepartmentRepo) FindHospitalDepartment(ctx context.Context, hospita
 
 func (m *MockDepartmentRepo) UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error {
 	return m.Called(ctx, link).Error(0)
+}
+
+func (m *MockDepartmentRepo) UpdateStaffCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, value int) error {
+	return m.Called(ctx, hospitalID, deptID, value).Error(0)
 }
 
 func (m *MockReferralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*dto.ReferralCreationResponse, error) {
@@ -1090,6 +1102,36 @@ func (m *MockTriageQueueRepo) FindMissedByDate(ctx context.Context, beforeDate t
 	return args.Get(0).([]entity.TriageQueue), args.Error(1)
 }
 
+func (m *MockTriageQueueRepo) CountByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (int64, error) {
+	args := m.Called(ctx, hospitalID, deptID, date)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) CountAssignedDoctorsByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (int64, error) {
+	args := m.Called(ctx, hospitalID, deptID, date)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) FindScheduledByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID, date)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) CountMissedByDeptInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) (int64, error) {
+	args := m.Called(ctx, hospitalID, deptID, start, end)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) CountScheduledByDeptInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) (int64, error) {
+	args := m.Called(ctx, hospitalID, deptID, start, end)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockTriageQueueRepo) OldestWaitingDaysByDept(ctx context.Context, hospitalID, deptID uuid.UUID) (int, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	return args.Int(0), args.Error(1)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: ClinicalUpdateRepository
@@ -1281,6 +1323,19 @@ func (m *MockSchedulingUseCase) ProcessMissedAppointments(ctx context.Context) e
 	return m.Called(ctx).Error(0)
 }
 
+func (m *MockSchedulingUseCase) EffectiveCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (int, int, int64, error) {
+	args := m.Called(ctx, hospitalID, deptID, date)
+	return args.Int(0), args.Int(1), args.Get(2).(int64), args.Error(3)
+}
+
+func (m *MockSchedulingUseCase) ListScheduleOptions(ctx context.Context, referralID uuid.UUID, days int) ([]dto.ScheduleOption, error) {
+	args := m.Called(ctx, referralID, days)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]dto.ScheduleOption), args.Error(1)
+}
+
 // ---------------------------------------------------------------------------
 // Mock: TriageUseCase
 // ---------------------------------------------------------------------------
@@ -1424,28 +1479,85 @@ func (m *MockCapacityManagementUseCase) CreateOverride(ctx context.Context, hosp
 	return m.Called(ctx, hospitalID, deptID, date, newLimit, reason, userID).Error(0)
 }
 
-func (m *MockCapacityManagementUseCase) UpdateOverride(ctx context.Context, overrideID uuid.UUID, newLimit int, reason string, userID uuid.UUID) error {
-	return m.Called(ctx, overrideID, newLimit, reason, userID).Error(0)
-}
-
 func (m *MockCapacityManagementUseCase) DeleteOverride(ctx context.Context, overrideID, userID uuid.UUID) error {
 	return m.Called(ctx, overrideID, userID).Error(0)
 }
 
-func (m *MockCapacityManagementUseCase) UpdateMaxSlots(ctx context.Context, scheduleID uuid.UUID, maxSlots int, userID uuid.UUID) error {
-	return m.Called(ctx, scheduleID, maxSlots, userID).Error(0)
+func (m *MockCapacityManagementUseCase) ListOverridesByYearMonth(ctx context.Context, hospitalID, deptID uuid.UUID, year, month int) ([]entity.CapacityOverride, error) {
+	args := m.Called(ctx, hospitalID, deptID, year, month)
+	return args.Get(0).([]entity.CapacityOverride), args.Error(1)
 }
 
-func (m *MockCapacityManagementUseCase) ExtendSchedules(ctx context.Context) error {
-	return m.Called(ctx).Error(0)
-}
-
-func (m *MockCapacityManagementUseCase) BatchSchedule(ctx context.Context, hospitalID, deptID, userID uuid.UUID) (*dto.BatchScheduleResult, error) {
-	args := m.Called(ctx, hospitalID, deptID, userID)
+func (m *MockCapacityManagementUseCase) GetOverride(ctx context.Context, overrideID uuid.UUID) (*entity.CapacityOverride, error) {
+	args := m.Called(ctx, overrideID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*dto.BatchScheduleResult), args.Error(1)
+	return args.Get(0).(*entity.CapacityOverride), args.Error(1)
+}
+
+func (m *MockCapacityManagementUseCase) GetCapacityDetail(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (*dto.CapacityDetailResponse, error) {
+	args := m.Called(ctx, hospitalID, deptID, date)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.CapacityDetailResponse), args.Error(1)
+}
+
+func (m *MockCapacityManagementUseCase) GetScheduledPatientsForDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, deptID, date)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockCapacityManagementUseCase) BuildCapacityCalendar(ctx context.Context, hospitalID, deptID uuid.UUID, year, month int) ([]dto.CapacityCalendarDay, error) {
+	args := m.Called(ctx, hospitalID, deptID, year, month)
+	return args.Get(0).([]dto.CapacityCalendarDay), args.Error(1)
+}
+
+func (m *MockCapacityManagementUseCase) UpdateStaffCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, value int, userID uuid.UUID) error {
+	return m.Called(ctx, hospitalID, deptID, value, userID).Error(0)
+}
+
+// ---------------------------------------------------------------------------
+// Mock: DepartmentHeadDashboardUseCase
+// ---------------------------------------------------------------------------
+
+type MockDepartmentHeadDashboardUseCase struct {
+	mock.Mock
+}
+
+func (m *MockDepartmentHeadDashboardUseCase) GetDashboardStats(ctx context.Context, hospitalID, deptID uuid.UUID) (*dto.DepartmentHeadDashboardStats, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.DepartmentHeadDashboardStats), args.Error(1)
+}
+
+func (m *MockDepartmentHeadDashboardUseCase) GetTrends(ctx context.Context, hospitalID, deptID uuid.UUID, days int) ([]dto.DepartmentHeadTrendPoint, error) {
+	args := m.Called(ctx, hospitalID, deptID, days)
+	return args.Get(0).([]dto.DepartmentHeadTrendPoint), args.Error(1)
+}
+
+func (m *MockDepartmentHeadDashboardUseCase) GetPriorityBuckets(ctx context.Context, hospitalID, deptID uuid.UUID) (*dto.PriorityBucketResponse, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.PriorityBucketResponse), args.Error(1)
+}
+
+func (m *MockDepartmentHeadDashboardUseCase) GetStaffSummary(ctx context.Context, hospitalID, deptID uuid.UUID) (*dto.StaffSummaryResponse, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.StaffSummaryResponse), args.Error(1)
+}
+
+func (m *MockDepartmentHeadDashboardUseCase) GetActivity(ctx context.Context, hospitalID, deptID uuid.UUID, limit int, startDate, endDate *time.Time) ([]dto.DepartmentHeadActivityItem, error) {
+	args := m.Called(ctx, hospitalID, deptID, limit, startDate, endDate)
+	return args.Get(0).([]dto.DepartmentHeadActivityItem), args.Error(1)
 }
 
 // ---------------------------------------------------------------------------
@@ -1728,6 +1840,11 @@ func (m *MockUserUseCase) DeleteUser(ctx context.Context, id uuid.UUID) error {
 func (m *MockUserUseCase) ListUsers(ctx context.Context, filter irepository.UserListFilter, requesterID uuid.UUID) ([]entity.User, int64, error) {
 	args := m.Called(ctx, filter, requesterID)
 	return args.Get(0).([]entity.User), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockUserUseCase) ListDepartmentStaff(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.User, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	return args.Get(0).([]entity.User), args.Error(1)
 }
 
 func (m *MockUserUseCase) AssignRole(ctx context.Context, userID uuid.UUID, role entity.UserRole) error {
