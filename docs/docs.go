@@ -6907,6 +6907,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/receptionist/referrals/{id}/return-to-triage": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a receptionist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).\n**Detailed Behavior:**\n- Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).\n- Wipes out the missed appointment date ('AppointmentDate' = nil).\n- Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).\n- Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.\n**Roles:** RECEPTIONIST",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Receptionist"
+                ],
+                "summary": "Return Missed Patient to Triage",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TriageQueue ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/receptionist/referrals/{id}/revoke-doctor": {
             "post": {
                 "security": [
@@ -8136,7 +8176,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Schedule an emergency appointment bypassing buffer days and allowing overbooking.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** referral must be accepted; condition must be ` + "`" + `critical` + "`" + ` OR justification provided.\n**State Transition:** Sets appointment_date, bypasses buffer, allows overbooking.\n**Gatekeepers:** Allows overbooking up to ` + "`" + `overbook_limit` + "`" + `.\n**Common Errors:**\n- 400 invalid format\n- 500 internal error",
+                "description": "Bypass standard booking capacity limits and queue slot guards to record an immediate emergency appointment slot.\n**Detailed Behavior \u0026 Rules:**\n- Strict date validation: The appointment date must be today or in the future; scheduling for past dates is blocked.\n- Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. If the patient has already arrived ('ARRIVED') or is admitted ('ADMITTED'), emergency booking is blocked.\n- Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', emergency-scheduling will transition the 'ArrivalStatus' back to 'ArrivalExpected', set the new appointment date, trigger apology-free SMS reschedule alerts, and dispatch a 'MISSED_APPOINTMENT_RESCHEDULED' doctor in-app notification.\n- Returns an indicator ` + "`" + `rescheduled_from_missed` + "`" + ` that flags if the patient was rescheduled from a missed appointment.\n**Roles:** RECEIVING_SPECIALIST",
                 "consumes": [
                     "application/json"
                 ],
@@ -8146,7 +8186,7 @@ const docTemplate = `{
                 "tags": [
                     "Specialist"
                 ],
-                "summary": "Manual Emergency Scheduling",
+                "summary": "Manual Emergency Schedule",
                 "parameters": [
                     {
                         "type": "string",
@@ -8156,7 +8196,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Scheduling details",
+                        "description": "Emergency scheduling details",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -8169,11 +8209,17 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/dto.SchedulingResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -8604,6 +8650,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/specialist/referrals/{id}/return-to-triage": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a specialist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).\n**Detailed Behavior:**\n- Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).\n- Wipes out the missed appointment date ('AppointmentDate' = nil).\n- Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).\n- Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.\n**Roles:** RECEIVING_SPECIALIST",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Return Missed Patient to Triage (Specialist)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TriageQueue ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/specialist/referrals/{id}/schedule": {
             "post": {
                 "security": [
@@ -8611,7 +8697,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** status = ACCEPTED.\n**State Transition:** → SCHEDULED.\n**Common Errors:**\n- 400 invalid format\n- 500 internal error",
+                "description": "Manually assigns an appointment date to a referral. Use this for routine scheduling after acceptance.\n**Detailed Behavior \u0026 Rules:**\n- Capacity limits: Respects standard daily slots and capacity overrides for the target hospital department.\n- Strict date validation: The appointment date must be today or in the future; past booking dates are blocked.\n- Arrival state validation: Patients can only be rescheduled or booked if they are in 'EXPECTED' or 'MISSED' status. Arrived ('ARRIVED') or admitted ('ADMITTED') patients are blocked.\n- Rescheduling from missed: If the patient's prior slot was marked as 'MISSED', scheduling transitions 'ArrivalStatus' to 'ArrivalExpected', registers the new date, sends apology-free SMS rescheduled updates, and dispatches a 'MISSED_APPOINTMENT_RESCHEDULED' in-app notification to the treating doctor.\n- Returns an indicator ` + "`" + `rescheduled_from_missed` + "`" + ` that flags if the patient was rescheduled from a missed appointment.\n**Roles:** RECEIVING_SPECIALIST",
                 "consumes": [
                     "application/json"
                 ],
@@ -8644,7 +8730,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.BaseResponse"
+                            "$ref": "#/definitions/dto.SchedulingResponse"
                         }
                     },
                     "400": {
@@ -12044,6 +12130,21 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SchedulingResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "rescheduled_from_missed": {
+                    "type": "boolean"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "dto.SendMessageRequest": {
             "type": "object",
             "required": [
@@ -12816,13 +12917,15 @@ const docTemplate = `{
                 "ACCEPTANCE",
                 "SCHEDULING",
                 "REMINDER",
-                "RESCHEDULE"
+                "RESCHEDULE",
+                "MISSED_RESCHEDULE"
             ],
             "x-enum-varnames": [
                 "NotifyAcceptance",
                 "NotifyScheduling",
                 "NotifyReminder",
-                "NotifyReschedule"
+                "NotifyReschedule",
+                "NotifyMissedReschedule"
             ]
         },
         "entity.Patient": {

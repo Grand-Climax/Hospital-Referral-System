@@ -20,27 +20,30 @@ func GetLocalizedSMS(templateKey string, homeRegion string, placeholders map[str
 	switch lang {
 	case "am":
 		templates = map[string]string{
-			"accepted":    "ወደ {{Hospital}} – {{Department}} የተላከው ሪፈራል ተቀባይነት አግኝቷል። ለቀጠሮ ተቀባዩ ቡድን ያነጋግርዎታል። መለያ: {{ReferralID}}",
-			"scheduled":   "ቀጠሮዎ በ {{Date}} በ {{Hospital}}፣ {{Department}} ነው። እባክዎ በሰዓቱ ይድረሱ። መለያ: {{ReferralID}}",
-			"missed":      "በ {{Date}} በ {{Hospital}} የነበረዎትን ቀጠሮ አሳልፈዋል። እባክዎ በተቻለ ፍጥነት ሆስፒታሉን ይጎብኙ። ሪፈራልዎ እንደገና እየታየ ነው። መለያ: {{ReferralID}}",
-			"rescheduled": "ቀጠሮዎ ወደ {{NewDate}} በ {{Hospital}}፣ {{Department}} ተቀይሯል። የቀድሞው ቀጠሮ ተሰርዟል። መለያ: {{ReferralID}}",
-			"reminder":    "ማሳሰቢያ: ነገ በ {{Time}} በ {{Hospital}} ቀጠሮ አልዎት። እባክዎ መታወቂያዎን ይዘው ይምጡ። መለያ: {{ReferralID}}",
+			"accepted":          "ወደ {{Hospital}} – {{Department}} የተላከው ሪፈራል ተቀባይነት አግኝቷል። ለቀጠሮ ተቀባዩ ቡድን ያነጋግርዎታል። መለያ: {{ReferralID}}",
+			"scheduled":         "ቀጠሮዎ በ {{Date}} በ {{Hospital}}፣ {{Department}} ነው። እባክዎ በሰዓቱ ይድረሱ። መለያ: {{ReferralID}}",
+			"missed":            "በ {{Date}} በ {{Hospital}} የነበረዎትን ቀጠሮ አሳልፈዋል። እባክዎ በተቻለ ፍጥነት ሆስፒታሉን ይጎብኙ። ሪፈራልዎ እንደገና እየታየ ነው። መለያ: {{ReferralID}}",
+			"rescheduled":       "ቀጠሮዎ ወደ {{NewDate}} በ {{Hospital}}፣ {{Department}} ተቀይሯል። የቀድሞው ቀጠሮ ተሰርዟል። መለያ: {{ReferralID}}",
+			"missed_rescheduled": "ያሳለፉት ቀጠሮ ወደ {{NewDate}} በ {{Hospital}}፣ {{Department}} ድጋሚ ተይዟል። እባክዎ ተዘጋጅተው ይምጡ። መለያ: {{ReferralID}}",
+			"reminder":          "ማሳሰቢያ: ነገ በ {{Time}} በ {{Hospital}} ቀጠሮ አልዎት። እባክዎ መታወቂያዎን ይዘው ይምጡ። መለያ: {{ReferralID}}",
 		}
 	case "om":
 		templates = map[string]string{
-			"accepted":    "Rifeeraaliin keessan gara {{Hospital}} – {{Department}} fudhatameera. Gareen simatu beellamaaf isin quunnama. Lakk: {{ReferralID}}",
-			"scheduled":   "Beellamni keessan {{Date}} irratti {{Hospital}}, {{Department}} dha. Maaloo yeroon dhiyaadhaa. Lakk: {{ReferralID}}",
-			"missed":      "Beellama keessan {{Date}} irratti {{Hospital}} qabdan dabarsitaniittu. Maaloo saffisaan hospitaala deemaa. Rifeeraaliin keessan irra deebi'amee ilaalamutti jira. Lakk: {{ReferralID}}",
-			"rescheduled": "Beellamni keessan gara {{NewDate}} irratti {{Hospital}}, {{Department}} tti jijjiirameera. Beellamni duraa haqameera. Lakk: {{ReferralID}}",
-			"reminder":    "Yaadachiisa: Boru sa'aatii {{Time}} irratti {{Hospital}} beellama qabdu. Maaloo waraqaa eenyummaa keessan fidaa. Lakk: {{ReferralID}}",
+			"accepted":          "Rifeeraaliin keessan gara {{Hospital}} – {{Department}} fudhatameera. Gareen simatu beellamaaf isin quunnama. Lakk: {{ReferralID}}",
+			"scheduled":         "Beellamni keessan {{Date}} irratti {{Hospital}}, {{Department}} dha. Maaloo yeroon dhiyaadhaa. Lakk: {{ReferralID}}",
+			"missed":            "Beellama keessan {{Date}} irratti {{Hospital}} qabdan dabarsitaniittu. Maaloo saffisaan hospitaala deemaa. Rifeeraaliin keessan irra deebi'amee ilaalamutti jira. Lakk: {{ReferralID}}",
+			"rescheduled":       "Beellamni keessan gara {{NewDate}} irratti {{Hospital}}, {{Department}} tti jijjiirameera. Beellamni duraa haqameera. Lakk: {{ReferralID}}",
+			"missed_rescheduled": "Beellama keessan dabarsitan {{NewDate}} irratti {{Hospital}}, {{Department}} tti irra deebiin qindaa'eera. Maaloo yeroon dhiyaadhaa. Lakk: {{ReferralID}}",
+			"reminder":          "Yaadachiisa: Boru sa'aatii {{Time}} irratti {{Hospital}} beellama qabdu. Maaloo waraqaa eenyummaa keessan fidaa. Lakk: {{ReferralID}}",
 		}
 	default:
 		templates = map[string]string{
-			"accepted":    "Your referral to {{Hospital}} – {{Department}} has been ACCEPTED. The receiving team will contact you for scheduling. Ref: {{ReferralID}}",
-			"scheduled":   "Your appointment is on {{Date}} at {{Hospital}}, {{Department}}. Please arrive on time. Ref: {{ReferralID}}",
-			"missed":      "You missed your appointment on {{Date}} at {{Hospital}}. Please visit the hospital for a clinical update as soon as possible. Your referral is being re-evaluated. Ref: {{ReferralID}}",
-			"rescheduled": "Your appointment has been RESCHEDULED to {{NewDate}} at {{Hospital}}, {{Department}}. Previous appointment cancelled. Ref: {{ReferralID}}",
-			"reminder":    "Reminder: You have an appointment at {{Hospital}} tomorrow at {{Time}}. Please bring your ID. Ref: {{ReferralID}}",
+			"accepted":          "Your referral to {{Hospital}} – {{Department}} has been ACCEPTED. The receiving team will contact you for scheduling. Ref: {{ReferralID}}",
+			"scheduled":         "Your appointment is on {{Date}} at {{Hospital}}, {{Department}}. Please arrive on time. Ref: {{ReferralID}}",
+			"missed":            "You missed your appointment on {{Date}} at {{Hospital}}. Please visit the hospital as soon as possible. Your referral is being re-evaluated. Ref: {{ReferralID}}",
+			"rescheduled":       "Your appointment has been RESCHEDULED to {{NewDate}} at {{Hospital}}, {{Department}}. Previous appointment cancelled. Ref: {{ReferralID}}",
+			"missed_rescheduled": "Your missed appointment has been rescheduled to {{NewDate}} at {{Hospital}}, {{Department}}. Please arrive on time. Ref: {{ReferralID}}",
+			"reminder":          "Reminder: You have an appointment at {{Hospital}} tomorrow at {{Time}}. Please bring your ID. Ref: {{ReferralID}}",
 		}
 	}
 

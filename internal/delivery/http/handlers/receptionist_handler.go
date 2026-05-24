@@ -558,3 +558,42 @@ func (h *ReceptionistHandler) MarkMissed(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Patient marked as missed"})
 }
+
+// ReturnToTriage godoc
+// @Summary      Return Missed Patient to Triage
+// @Description  Allows a receptionist to reset a missed patient back to the waiting queue (EXPECTED, no appointment date).
+// @Description  **Detailed Behavior:**
+// @Description  - Resets the patient's queue record arrival status from 'MISSED' back to 'EXPECTED' (placing the patient back in the active triage pool).
+// @Description  - Wipes out the missed appointment date ('AppointmentDate' = nil).
+// @Description  - Clears the missed reasons and any active doctor assignment details ('AssignedDoctorID' = nil, 'DoctorAssignedAt' = nil).
+// @Description  - Transactionally updates the underlying Referral status back to 'ACCEPTED' so that the patient is eligible to be scheduled or manually triaged/rescheduled.
+// @Description  **Roles:** RECEPTIONIST
+// @Tags         Receptionist
+// @Produce      json
+// @Param        id path string true "TriageQueue ID"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/receptionist/referrals/{id}/return-to-triage [post]
+func (h *ReceptionistHandler) ReturnToTriage(c *gin.Context) {
+	triageQueueID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid triage queue id format"})
+		return
+	}
+
+	userIdVal, _ := c.Get("userID")
+	userID := uuid.Nil
+	if uID, ok := userIdVal.(uuid.UUID); ok {
+		userID = uID
+	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
+		userID = *uID
+	}
+
+	if err := h.arrivalUC.ReturnToTriage(c.Request.Context(), triageQueueID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Patient successfully returned to triage"})
+}

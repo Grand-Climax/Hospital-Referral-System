@@ -85,7 +85,7 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 	if ref.TargetDepartment != nil {
 		placeholders["Department"] = ref.TargetDepartment.Name
 	}
-	if notifType == entity.NotifyScheduling || notifType == entity.NotifyReschedule {
+	if notifType == entity.NotifyScheduling || notifType == entity.NotifyReschedule || notifType == entity.NotifyMissedReschedule {
 		queue, _ := u.triageRepo.GetByReferralID(ctx, referralID)
 		if queue != nil && queue.AppointmentDate != nil {
 			placeholders["Date"] = queue.AppointmentDate.Format("2006-01-02")
@@ -128,6 +128,8 @@ func mapTypeToKey(notifType entity.NotificationType) string {
 		return "scheduled"
 	case entity.NotifyReschedule:
 		return "rescheduled"
+	case entity.NotifyMissedReschedule:
+		return "missed_rescheduled"
 	case entity.NotifyReminder:
 		return "reminder"
 	default:

@@ -35,7 +35,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	mockNotificationUC := new(MockNotificationUseCase)
 	mockMLUC := new(MockMLUseCase)
 
-	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC, mockPatientUC, mockMLUC)
+	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC, mockPatientUC, mockMLUC, mockArrivalUC)
 	scheduleHandler := handlers.NewScheduleHandler(mockCapacityUC)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC, mockTriageUC)
 	mockUserUC := new(MockUserUseCase)
@@ -68,6 +68,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 			spec.POST("/:id/ml-severity-override", specialistHandler.MLSeverityOverride)
 			spec.GET("/capacity", specialistHandler.GetCapacity)
 			spec.POST("/:id/emergency-schedule", specialistHandler.ManualEmergencySchedule)
+			spec.POST("/:id/return-to-triage", specialistHandler.ReturnToTriage)
 		}
 
 		// Dept Head
@@ -92,6 +93,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 				rec.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
 				rec.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
 				rec.POST("/:id/miss", receptionistHandler.MarkMissed)
+				rec.POST("/:id/return-to-triage", receptionistHandler.ReturnToTriage)
 			}
 		}
 
@@ -128,7 +130,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 }
 
 func TestSpecialistEndpoints(t *testing.T) {
-	r, _, mockTriage, mockSched, _, _, _, _, _, _, _, _, mockML := setupPostAcceptanceTestRouter()
+	r, _, mockTriage, mockSched, mockArrival, _, _, _, _, _, _, _, mockML := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Override ML Severity", func(t *testing.T) {
@@ -153,7 +155,7 @@ func TestSpecialistEndpoints(t *testing.T) {
 			AppointmentDate: appDate,
 			Justification:   "Immediate intervention required",
 		}
-		mockSched.On("ManualEmergencySchedule", mock.Anything, referralID, mock.Anything, "Immediate intervention required", mock.Anything).Return(nil)
+		mockSched.On("ManualEmergencySchedule", mock.Anything, referralID, mock.Anything, "Immediate intervention required", mock.Anything).Return(false, nil)
 
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/v1/specialist/referrals/"+referralID.String()+"/emergency-schedule", bytes.NewBuffer(body))
@@ -184,6 +186,17 @@ func TestSpecialistEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.Code)
 		mockSched.AssertExpectations(t)
+	})
+
+	t.Run("Return To Triage - Success", func(t *testing.T) {
+		mockArrival.On("ReturnToTriage", mock.Anything, referralID, mock.Anything).Return(nil)
+
+		req, _ := http.NewRequest("POST", "/api/v1/specialist/referrals/"+referralID.String()+"/return-to-triage", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockArrival.AssertExpectations(t)
 	})
 }
 
@@ -344,6 +357,17 @@ func TestReceptionistEndpoints(t *testing.T) {
 
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/miss", bytes.NewBuffer(body))
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockArrival.AssertExpectations(t)
+	})
+
+	t.Run("Return To Triage", func(t *testing.T) {
+		mockArrival.On("ReturnToTriage", mock.Anything, queueID, mock.Anything).Return(nil)
+
+		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/return-to-triage", nil)
 		resp := httptest.NewRecorder()
 		r.ServeHTTP(resp, req)
 

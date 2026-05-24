@@ -214,6 +214,11 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 		message = fmt.Sprintf("The appointment for patient %s at %s has been rescheduled.", patientName, targetHospitalName)
 		recipientIDs = append(recipientIDs, referral.ReferringDoctorID)
 
+	case "MISSED_APPOINTMENT_RESCHEDULED":
+		title = "Missed Appointment Rescheduled"
+		message = fmt.Sprintf("Your missed appointment for patient %s at %s has been rescheduled.", patientName, targetHospitalName)
+		recipientIDs = append(recipientIDs, referral.ReferringDoctorID)
+
 	case "PATIENT_ARRIVED":
 		title = "Patient Arrived"
 		message = fmt.Sprintf("Your patient %s has arrived at %s for their appointment.", patientName, targetHospitalName)

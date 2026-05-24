@@ -31,3 +31,8 @@ type BatchScheduleResult struct {
 type UpdateMaxSlotsRequest struct {
 	MaxSlots int `json:"max_slots" binding:"required,min=1"`
 }
+
+type SchedulingResponse struct {
+	BaseResponse
+	RescheduledFromMissed bool `json:"rescheduled_from_missed"`
+}

@@ -142,7 +142,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Role-Based State Machine Handlers
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase, patientUseCase, arrivalUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase, patientUseCase)
-	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase, mlUseCase)
+	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase, mlUseCase, arrivalUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase, userUseCase)
 	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo, patientUseCase)
 	mohAnalyticsHandler := handlers.NewMohAnalyticsHandler(referralUseCase)
@@ -331,6 +331,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			specialistGroup.GET("/capacity", specialistHandler.GetCapacity)
 			specialistGroup.POST("/:id/schedule", specialistHandler.Schedule)
 			specialistGroup.POST("/:id/emergency-schedule", specialistHandler.ManualEmergencySchedule)
+			specialistGroup.POST("/:id/return-to-triage", specialistHandler.ReturnToTriage)
 		}
 
 		// Shared Referral Routes
@@ -355,6 +356,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				refGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
 				refGroup.POST("/:id/revoke-doctor", receptionistHandler.RevokeDoctor)
 				refGroup.POST("/:id/miss", receptionistHandler.MarkMissed)
+				refGroup.POST("/:id/return-to-triage", receptionistHandler.ReturnToTriage)
 			}
 		}
 
