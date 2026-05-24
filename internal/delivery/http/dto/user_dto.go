@@ -34,3 +34,10 @@ type UpdateProfileImageRequest struct {
 	PublicID string `json:"public_id" binding:"required" example:"profiles/hosp_1/user_1/abc"`
 	ImageURL string `json:"image_url" binding:"required" example:"https://res.cloudinary.com/..."`
 }
+
+type UpdateMyProfileRequest struct {
+	FirstName   *string `json:"first_name,omitempty" example:"Abebe"`
+	MiddleName  *string `json:"middle_name,omitempty" example:"Kebede"`
+	LastName    *string `json:"last_name,omitempty" example:"Bekele"`
+	PhoneNumber *string `json:"phone_number,omitempty" example:"+251911234567"`
+}

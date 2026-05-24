@@ -19,3 +19,20 @@ type RefreshResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	BaseResponse
 }
+
+type ChangePasswordResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	BaseResponse
+}
+
+type PasswordResetVerifyResponse struct {
+	ResetToken string `json:"reset_token"`
+	BaseResponse
+}
+
+type ResetPasswordResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	BaseResponse
+}
