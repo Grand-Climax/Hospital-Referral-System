@@ -14,18 +14,20 @@ import (
 )
 
 type ReceptionistHandler struct {
-	referralUC iusecase.ReferralUseCase
-	arrivalUC  iusecase.ArrivalUseCase
-	patientUC  iusecase.PatientUseCase
+	referralUC  iusecase.ReferralUseCase
+	arrivalUC   iusecase.ArrivalUseCase
+	patientUC   iusecase.PatientUseCase
 	userUseCase iusecase.UserUseCase
+	triageUC    iusecase.TriageUseCase
 }
 
-func NewReceptionistHandler(referralUC iusecase.ReferralUseCase, arrivalUC iusecase.ArrivalUseCase, patientUC iusecase.PatientUseCase, userUC iusecase.UserUseCase) *ReceptionistHandler {
+func NewReceptionistHandler(referralUC iusecase.ReferralUseCase, arrivalUC iusecase.ArrivalUseCase, patientUC iusecase.PatientUseCase, userUC iusecase.UserUseCase, triageUC iusecase.TriageUseCase) *ReceptionistHandler {
 	return &ReceptionistHandler{
 		referralUC:  referralUC,
 		arrivalUC:   arrivalUC,
 		patientUC:   patientUC,
 		userUseCase: userUC,
+		triageUC:    triageUC,
 	}
 }
 
@@ -168,6 +170,101 @@ func (h *ReceptionistHandler) ListMissedReferrals(c *gin.Context) {
 	})
 }
 
+
+// GetTriageQueue godoc
+// @Summary      Get Triage Queue (receptionist view, filterable)
+// @Description  Returns the triage queue for the receptionist's hospital with reduced clinical fields. Same filter/sort matrix as the specialist endpoint, but the response intentionally omits clinical text and severity scores; it surfaces only what a receptionist needs (name, time, arrival_status, assigned doctor).
+// @Description
+// @Description  **Roles:** RECEPTIONIST
+// @Description  **Scope:** Hospital-wide (caller's hospital from JWT).
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 500 Internal Server Error
+// @Tags         Receptionist
+// @Produce      json
+// @Param        limit query int false "Pagination limit (1-100)" default(20)
+// @Param        page query int false "Page number (1-based)" default(1)
+// @Param        department_id query string false "Filter by HospitalDepartment ID"
+// @Param        arrival_status query string false "Comma-separated: EXPECTED,ARRIVED,ADMITTED,MISSED"
+// @Param        referral_status query string false "Comma-separated: ACCEPTED,SCHEDULED"
+// @Param        has_doctor_assigned query bool false "Filter by treating-doctor assignment"
+// @Param        patient_id query string false "Filter by patient UUID"
+// @Param        national_id query string false "Filter by patient national ID (hashed server-side)"
+// @Param        sort_by query string false "composite_score|appointment_date|created_at" default(composite_score)
+// @Param        sort_order query string false "asc|desc" default(desc)
+// @Param        include_terminal query bool false "Include terminal-status referrals" default(false)
+// @Success      200 {object} dto.TriageListEnvelope
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/receptionist/referrals/triage-queue [get]
+func (h *ReceptionistHandler) GetTriageQueue(c *gin.Context) {
+	hospID, _ := h.getHospitalAndDept(c)
+	if hospID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid hospital scope"})
+		return
+	}
+
+	filter := parseTriageListFilter(c)
+	filter.HospitalID = hospID
+
+	items, total, err := h.triageUC.ListTriageFiltered(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.TriageListEnvelope{
+		Success: true,
+		Data:    items,
+		Total:   total,
+		Page:    pageFromOffset(filter.Limit, filter.Offset),
+		Limit:   filter.Limit,
+		HasMore: hasMorePage(filter.Offset, filter.Limit, total),
+	})
+}
+
+// GetTriageDetail godoc
+// @Summary      Get Triage Detail (receptionist view)
+// @Description  Returns the redacted operational detail a receptionist needs: patient identity, appointment date, arrival_status, assigned doctor, arrival_history timeline, and the role-aware available_actions. Clinical text, ML severity, ICD codes, and the consulting-doctors list are intentionally omitted.
+// @Description
+// @Description  **Roles:** RECEPTIONIST
+// @Description  **Path param:** {id} = REFERRAL UUID (not the queue UUID).
+// @Description  **Common Errors:**
+// @Description  - 400 Invalid referral id
+// @Description  - 404 Referral not in triage queue
+// @Tags         Receptionist
+// @Produce      json
+// @Param        id path string true "Referral UUID"
+// @Success      200 {object} dto.TriageDetailReceptionistResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/receptionist/referrals/{id}/triage-detail [get]
+func (h *ReceptionistHandler) GetTriageDetail(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral id"})
+		return
+	}
+	userIDVal, _ := c.Get("userID")
+	userID := uuid.Nil
+	if uid, ok := userIDVal.(uuid.UUID); ok {
+		userID = uid
+	} else if uid, ok := userIDVal.(*uuid.UUID); ok && uid != nil {
+		userID = *uid
+	}
+
+	resp, err := h.triageUC.GetTriageDetailForReceptionist(c.Request.Context(), referralID, userID)
+	if err != nil {
+		// gorm.ErrRecordNotFound from the queue lookup means the
+		// referral is not currently in the triage queue.
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "referral not in triage queue"})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
 
 // GetReferral godoc
 // @Summary      Get Referral Details for Receptionist

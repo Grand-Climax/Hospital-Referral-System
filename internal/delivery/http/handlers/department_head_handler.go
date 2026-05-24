@@ -30,15 +30,25 @@ func NewDepartmentHeadHandler(capacityUC iusecase.CapacityManagementUseCase, sch
 }
 
 // GetTriageQueue godoc
-// @Summary      Get department triage queue
-// @Description  Returns triage queue entries scoped to the authenticated department head's hospital and department.
+// @Summary      Get department triage queue (filterable)
+// @Description  Returns triage queue entries scoped to the authenticated department head's hospital and department. Supports the same filter/sort matrix as the specialist endpoint, but department_id from the JWT is FORCED - any department_id query param is ignored so a dept head cannot see another department's queue.
+// @Description
 // @Description  **Roles:** DEPT_HEAD
-// @Description  **Visibility:** Department-scoped queue only.
+// @Description  **Scope:** caller's (hospital, department) from JWT.
+// @Description  **Default sort:** composite_score DESC. Terminal referrals excluded by default.
 // @Tags         Department Head
 // @Produce      json
-// @Param        limit query int false "Pagination limit" default(50)
-// @Param        page query int false "Page number" default(1)
-// @Success      200 {object} dto.DeptHeadTriageQueueResponse
+// @Param        limit query int false "Pagination limit (1-100)" default(20)
+// @Param        page query int false "Page number (1-based)" default(1)
+// @Param        arrival_status query string false "Comma-separated: EXPECTED,ARRIVED,ADMITTED,MISSED"
+// @Param        referral_status query string false "Comma-separated: ACCEPTED,SCHEDULED"
+// @Param        has_doctor_assigned query bool false "Filter by treating-doctor assignment"
+// @Param        patient_id query string false "Filter by patient UUID"
+// @Param        national_id query string false "Filter by patient national ID (hashed server-side)"
+// @Param        sort_by query string false "composite_score|appointment_date|created_at" default(composite_score)
+// @Param        sort_order query string false "asc|desc" default(desc)
+// @Param        include_terminal query bool false "Include terminal-status referrals" default(false)
+// @Success      200 {object} dto.TriageListEnvelope
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.DeptHeadErrorResponse
 // @Security     BearerAuth
@@ -48,12 +58,16 @@ func (h *DepartmentHeadHandler) GetTriageQueue(c *gin.Context) {
 	hospID := uuid.Nil
 	if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
+	} else if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
 	}
 
 	deptIdVal, _ := c.Get("deptID")
 	deptID := uuid.Nil
 	if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
 		deptID = *dID
+	} else if dID, ok := deptIdVal.(uuid.UUID); ok {
+		deptID = dID
 	}
 
 	if hospID == uuid.Nil || deptID == uuid.Nil {
@@ -61,23 +75,71 @@ func (h *DepartmentHeadHandler) GetTriageQueue(c *gin.Context) {
 		return
 	}
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	offset := (page - 1) * limit
+	filter := parseTriageListFilter(c)
+	filter.HospitalID = hospID
+	// FORCE dept scope: ignore any department_id query param a client
+	// may have passed to attempt cross-dept reads.
+	filter.DepartmentID = &deptID
 
-	queues, total, err := h.triageUC.ListForTriageByDepartment(c.Request.Context(), hospID, deptID, limit, offset)
+	items, total, err := h.triageUC.ListTriageFiltered(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    queues,
-		"total":   total,
-		"page":    page,
-		"limit":   limit,
+	c.JSON(http.StatusOK, dto.TriageListEnvelope{
+		Success: true,
+		Data:    items,
+		Total:   total,
+		Page:    pageFromOffset(filter.Limit, filter.Offset),
+		Limit:   filter.Limit,
+		HasMore: hasMorePage(filter.Offset, filter.Limit, total),
 	})
+}
+
+// GetTriageDetail godoc
+// @Summary      Get Triage Detail (department-head view)
+// @Description  Returns the operations-oriented detail for one referral on the triage queue: composite_score, statuses, condition_at_referral, assigned doctor, patient identity (without national_id/phone), arrival_history timeline. Clinical text, ML severity, and ICD codes are intentionally omitted.
+// @Description
+// @Description  **Roles:** DEPT_HEAD
+// @Description  **Path param:** {id} = REFERRAL UUID (consistent with specialist + receptionist detail endpoints; pass the `referral_id` field from the list response, not `queue_id`).
+// @Description  **Common Errors:**
+// @Description  - 400 invalid id
+// @Description  - 401 missing scope
+// @Description  - 404 referral not in triage queue
+// @Tags         Department Head
+// @Produce      json
+// @Param        id path string true "Referral UUID"
+// @Success      200 {object} dto.TriageDetailDeptHeadResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.DeptHeadErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/department-head/triage-queue/{id} [get]
+func (h *DepartmentHeadHandler) GetTriageDetail(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral id"})
+		return
+	}
+	userIDVal, _ := c.Get("userID")
+	userID := uuid.Nil
+	if uid, ok := userIDVal.(uuid.UUID); ok {
+		userID = uid
+	} else if uid, ok := userIDVal.(*uuid.UUID); ok && uid != nil {
+		userID = *uid
+	}
+
+	resp, err := h.triageUC.GetTriageDetailForDeptHead(c.Request.Context(), referralID, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "referral not in triage queue"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // BatchSchedule godoc
