@@ -103,7 +103,8 @@ type ListReferralResponse struct {
 	PatientMiddleName   string    `json:"patient_middle_name"`
 	PatientLastName     string    `json:"patient_last_name"`
 	PatientRegion       string    `json:"patient_region"`
-	Department          string    `json:"department"`
+	DepartmentID        uuid.UUID `json:"department_id"`
+	Department          string    `json:"department"` // target department display name
 	Status              string    `json:"status"`
 	ICDCode             string    `json:"icd_code"`
 	Diagnosis           string    `json:"diagnosis"` // Typically the primary diagnosis CodeInfo name

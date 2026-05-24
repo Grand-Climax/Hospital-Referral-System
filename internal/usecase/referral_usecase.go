@@ -662,48 +662,12 @@ func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorI
 		return nil, err
 	}
 
-	var responseData []dto.ListReferralResponse
-	for _, r := range referrals {
-		diag := ""
-		icd := ""
-		if len(r.Diagnoses) > 0 && r.Diagnoses[0].CodeInfo != nil {
-			diag = r.Diagnoses[0].CodeInfo.Description
-			icd = r.Diagnoses[0].ICDCode
+	responseData := make([]dto.ListReferralResponse, 0, len(referrals))
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
 		}
-
-		patientNameFirst := ""
-		patientNameMiddle := ""
-		patientNameLast := ""
-		patientRegion := ""
-		if r.Patient != nil {
-			_ = r.Patient.DecryptFields(u.cryptoSvc)
-			patientNameFirst = r.Patient.FirstNamePlain
-			patientNameMiddle = r.Patient.MiddleNamePlain
-			patientNameLast = r.Patient.LastNamePlain
-			if r.Patient.HomeRegion != nil {
-				patientRegion = string(*r.Patient.HomeRegion)
-			}
-		}
-
-		condition := ""
-		if r.ReferralForm != nil {
-			condition = r.ReferralForm.ConditionAtReferral
-		}
-
-		responseData = append(responseData, dto.ListReferralResponse{
-			ID:                  r.ID,
-			PatientFirstName:    patientNameFirst,
-			PatientMiddleName:   patientNameMiddle,
-			PatientLastName:     patientNameLast,
-			PatientRegion:       patientRegion,
-			Department:          r.TargetDeptID.String(),
-			Status:              string(r.Status),
-			ICDCode:             icd,
-			Diagnosis:           diag,
-			ConditionAtReferral: condition,
-			CreatedAt:           r.CreatedAt,
-			UpdatedAt:           r.UpdatedAt,
-		})
+		responseData = append(responseData, dto.MapListReferralResponse(referrals[i]))
 	}
 	return responseData, nil
 }
