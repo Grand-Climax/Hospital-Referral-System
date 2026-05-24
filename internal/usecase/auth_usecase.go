@@ -23,13 +23,14 @@ import (
 )
 
 type authUseCase struct {
-	repo        irepository.AuthRepository
-	configRepo  irepository.SystemConfigRepository
-	blacklist   cache.TokenBlacklist
-	sessions    cache.SessionStore
-	otpStore    cache.MFAOTPStore
-	smsClient   sms.SMSClient
-	emailClient email.Client
+	repo              irepository.AuthRepository
+	configRepo        irepository.SystemConfigRepository
+	blacklist         cache.TokenBlacklist
+	sessions          cache.SessionStore
+	otpStore          cache.MFAOTPStore
+	passwordResetOTP  cache.PasswordResetOTPStore
+	smsClient         sms.SMSClient
+	emailClient       email.Client
 }
 
 func NewAuthUseCase(
@@ -38,17 +39,19 @@ func NewAuthUseCase(
 	blacklist cache.TokenBlacklist,
 	sessions cache.SessionStore,
 	otpStore cache.MFAOTPStore,
+	passwordResetOTP cache.PasswordResetOTPStore,
 	smsClient sms.SMSClient,
 	emailClient email.Client,
 ) iusecase.AuthUseCase {
 	return &authUseCase{
-		repo:        repo,
-		configRepo:  configRepo,
-		blacklist:   blacklist,
-		sessions:    sessions,
-		otpStore:    otpStore,
-		smsClient:   smsClient,
-		emailClient: emailClient,
+		repo:             repo,
+		configRepo:       configRepo,
+		blacklist:        blacklist,
+		sessions:         sessions,
+		otpStore:         otpStore,
+		passwordResetOTP: passwordResetOTP,
+		smsClient:        smsClient,
+		emailClient:      emailClient,
 	}
 }
 
@@ -63,7 +66,10 @@ var (
 	ErrOTPAttemptsExceeded = errors.New("OTP attempts exceeded")
 	ErrMissingSMSContact   = errors.New("SMS OTP is enabled but user has no valid phone number")
 	ErrMissingEmailContact = errors.New("Email OTP requires a valid user email")
-	ErrMFAOTPResendCooldown = errors.New("OTP resend cooldown active; please wait before requesting another code")
+	ErrMFAOTPResendCooldown   = errors.New("OTP resend cooldown active; please wait before requesting another code")
+	ErrIncorrectPassword      = errors.New("current password is incorrect")
+	ErrSamePassword           = errors.New("new password must be different from the current password")
+	ErrPasswordResetCooldown  = errors.New("password reset OTP resend cooldown active; please wait before requesting another code")
 )
 
 func hashToken(token string) string {
@@ -353,5 +359,180 @@ func (u *authUseCase) Logout(ctx context.Context, accessToken, refreshToken stri
 		_ = u.sessions.DeleteSession(ctx, refreshHash)
 	}
 
+	return nil
+}
+
+func (u *authUseCase) ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword, ipAddress, userAgent string) (*auth.TokenPair, error) {
+	user, err := u.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+	if !user.IsActive || user.IsDeleted {
+		return nil, ErrInactiveAccount
+	}
+	if !auth.CheckPasswordHash(currentPassword, user.PasswordHash) {
+		return nil, ErrIncorrectPassword
+	}
+	if auth.CheckPasswordHash(newPassword, user.PasswordHash) {
+		return nil, ErrSamePassword
+	}
+
+	hash, err := auth.HashPassword(newPassword)
+	if err != nil {
+		return nil, err
+	}
+	user.PasswordHash = hash
+	if err := u.repo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	if err := u.revokeAllUserSessions(ctx, userID); err != nil {
+		return nil, err
+	}
+
+	return u.createFullSessionToken(ctx, user, ipAddress, userAgent)
+}
+
+func (u *authUseCase) ForgotPassword(ctx context.Context, email string) error {
+	email = strings.TrimSpace(email)
+	user, err := u.repo.FindByEmail(ctx, email)
+	if err != nil || !user.IsActive || user.IsDeleted {
+		return nil
+	}
+
+	if u.passwordResetOTP == nil {
+		return errors.New("password reset is unavailable")
+	}
+
+	existing, err := u.passwordResetOTP.GetChallenge(ctx, user.ID)
+	if err == nil && existing != nil {
+		cooldownSeconds := u.getIntConfig(ctx, "password_reset_otp_resend_cooldown_seconds", 60)
+		if time.Since(existing.CreatedAt) < time.Duration(cooldownSeconds)*time.Second {
+			return ErrPasswordResetCooldown
+		}
+	}
+
+	otpCode, err := generateOTPCode()
+	if err != nil {
+		return err
+	}
+	otpTTLSeconds := u.getIntConfig(ctx, "password_reset_otp_ttl_seconds", 300)
+	if otpTTLSeconds <= 0 {
+		otpTTLSeconds = u.getIntConfig(ctx, "mfa_otp_ttl_seconds", 300)
+	}
+	maxAttempts := u.getIntConfig(ctx, "password_reset_otp_max_attempts", 5)
+	if maxAttempts <= 0 {
+		maxAttempts = u.getIntConfig(ctx, "mfa_otp_max_attempts", 5)
+	}
+	otpTTL := time.Duration(otpTTLSeconds) * time.Second
+
+	body := fmt.Sprintf("Your Hospital Referral password reset code is %s. It expires in %d minutes.", otpCode, otpTTLSeconds/60)
+	if err := u.emailClient.Send(ctx, user.Email, "Password reset code", body); err != nil {
+		return err
+	}
+
+	challenge := &cache.OTPChallenge{
+		CodeHash:    hashOTPCode(otpCode),
+		Channel:     "email",
+		Attempts:    0,
+		MaxAttempts: maxAttempts,
+		ExpiresAt:   time.Now().Add(otpTTL),
+		CreatedAt:   time.Now(),
+	}
+	return u.passwordResetOTP.SetChallenge(ctx, user.ID, challenge, otpTTL)
+}
+
+func (u *authUseCase) VerifyForgotPasswordOTP(ctx context.Context, email, code string) (*iusecase.PasswordResetVerifyResult, error) {
+	email = strings.TrimSpace(email)
+	user, err := u.repo.FindByEmail(ctx, email)
+	if err != nil || !user.IsActive || user.IsDeleted {
+		return nil, ErrInvalidOTPCode
+	}
+	if u.passwordResetOTP == nil {
+		return nil, errors.New("password reset is unavailable")
+	}
+
+	challenge, err := u.passwordResetOTP.GetChallenge(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if challenge == nil {
+		return nil, ErrOTPNotRequested
+	}
+	if time.Now().After(challenge.ExpiresAt) {
+		_ = u.passwordResetOTP.DeleteChallenge(ctx, user.ID)
+		return nil, ErrOTPExpired
+	}
+	if challenge.Attempts >= challenge.MaxAttempts {
+		_ = u.passwordResetOTP.DeleteChallenge(ctx, user.ID)
+		return nil, ErrOTPAttemptsExceeded
+	}
+
+	codeHash := hashOTPCode(strings.TrimSpace(code))
+	if codeHash != challenge.CodeHash {
+		challenge.Attempts++
+		remaining := time.Until(challenge.ExpiresAt)
+		if remaining < 0 {
+			remaining = 0
+		}
+		_ = u.passwordResetOTP.SetChallenge(ctx, user.ID, challenge, remaining)
+		if challenge.Attempts >= challenge.MaxAttempts {
+			_ = u.passwordResetOTP.DeleteChallenge(ctx, user.ID)
+			return nil, ErrOTPAttemptsExceeded
+		}
+		return nil, ErrInvalidOTPCode
+	}
+
+	_ = u.passwordResetOTP.DeleteChallenge(ctx, user.ID)
+
+	resetToken, _, err := auth.GeneratePasswordResetConfirmToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &iusecase.PasswordResetVerifyResult{ResetToken: resetToken}, nil
+}
+
+func (u *authUseCase) ResetPassword(ctx context.Context, userID uuid.UUID, newPassword, ipAddress, userAgent string) (*auth.TokenPair, error) {
+	user, err := u.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+	if !user.IsActive || user.IsDeleted {
+		return nil, ErrInactiveAccount
+	}
+	if auth.CheckPasswordHash(newPassword, user.PasswordHash) {
+		return nil, ErrSamePassword
+	}
+
+	hash, err := auth.HashPassword(newPassword)
+	if err != nil {
+		return nil, err
+	}
+	user.PasswordHash = hash
+	if err := u.repo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	if err := u.revokeAllUserSessions(ctx, userID); err != nil {
+		return nil, err
+	}
+
+	return u.createFullSessionToken(ctx, user, ipAddress, userAgent)
+}
+
+func (u *authUseCase) revokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
+	activeSessions, err := u.repo.ListActiveSessionsByUser(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if _, err := u.repo.RevokeActiveSessionsByUser(ctx, userID); err != nil {
+		return err
+	}
+	if u.sessions != nil {
+		for _, sess := range activeSessions {
+			_ = u.sessions.DeleteSession(ctx, sess.RefreshTokenHash)
+		}
+	}
 	return nil
 }
