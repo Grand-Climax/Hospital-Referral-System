@@ -25,12 +25,18 @@ import (
 // @description A national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.
 // @description
 // @description ---
-// @description ## Referral Lifecycle
+// @description ## Referral Lifecycle (referrals.status)
 // @description DRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED
-// @description ↘ REJECTED_BY_LIAISON
-// @description FORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST
-// @description ACCEPTED → SCHEDULED → ASSIGNED → COMPLETED
-// @description ↘ MISSED / RESCHEDULED / DECEASED
+// @description ↘ REJECTED_BY_LIAISON / REJECTED_AFTER_SEND / NEED_REVISION / CANCELLED
+// @description FORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST / REDIRECTED
+// @description ACCEPTED → SCHEDULED → COMPLETED
+// @description ↘ CANCELLED / DECEASED
+// @description
+// @description ## Arrival Lifecycle (triage_queues.arrival_status — separate from referrals.status)
+// @description EXPECTED → ARRIVED → ADMITTED
+// @description ↘ MISSED (resettable to EXPECTED via reschedule or return-to-triage)
+// @description
+// @description ⚠ Valid arrival_status values are ONLY: EXPECTED, ARRIVED, ADMITTED, MISSED. There is no "ASSIGNED" status — doctor assignment is tracked separately by `triage_queues.assigned_doctor_id`.
 // @description
 // @description ---
 // @description ## Visibility Rules

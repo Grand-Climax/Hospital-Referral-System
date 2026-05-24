@@ -3750,12 +3750,18 @@ info:
     A national‑scale hospital referral management platform that digitises the entire patient‑transfer workflow, from initial doctor referral to final clinical outcome. All actions are governed by strict role‑based access controls and clinical governance rules.
 
     ---
-    ## Referral Lifecycle
+    ## Referral Lifecycle (referrals.status)
     DRAFT → SUBMITTED → (Liaison) UNDER_LIAISON_REVIEW → FORWARDED
-    ↘ REJECTED_BY_LIAISON
-    FORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST
-    ACCEPTED → SCHEDULED → ASSIGNED → COMPLETED
-    ↘ MISSED / RESCHEDULED / DECEASED
+    ↘ REJECTED_BY_LIAISON / REJECTED_AFTER_SEND / NEED_REVISION / CANCELLED
+    FORWARDED → (Specialist) UNDER_SPECIALIST_REVIEW → ACCEPTED / REJECTED_BY_SPECIALIST / REDIRECTED
+    ACCEPTED → SCHEDULED → COMPLETED
+    ↘ CANCELLED / DECEASED
+
+    ## Arrival Lifecycle (triage_queues.arrival_status — separate from referrals.status)
+    EXPECTED → ARRIVED → ADMITTED
+    ↘ MISSED (resettable to EXPECTED via reschedule or return-to-triage)
+
+    ⚠ Valid arrival_status values are ONLY: EXPECTED, ARRIVED, ADMITTED, MISSED. There is no "ASSIGNED" status — doctor assignment is tracked separately by `triage_queues.assigned_doctor_id`.
 
     ---
     ## Visibility Rules
@@ -8800,7 +8806,7 @@ paths:
     get:
       description: |-
         Get a paginated list of referrals sent TO the liaison's hospital for monitoring.
-        **Visibility:** Includes FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, REJECTED_AFTER_SEND, and ADMITTED.
+        **Visibility:** Includes referral statuses FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, COMPLETED, REJECTED_BY_SPECIALIST, REDIRECTED, REJECTED_AFTER_SEND, CANCELLED, and DECEASED. (MISSED / ARRIVED / ADMITTED are arrival_status values, surfaced separately on each row.)
       parameters:
       - description: Filter by status
         in: query
@@ -10543,7 +10549,7 @@ paths:
       description: |-
         Get detailed information about a forwarded referral, including ML triage (`ml_severity_score`, `ml_severity_tier`, `ml_explanations`, `ml_model_version`, `ml_status`).
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** Status must be FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, or REJECTED_AFTER_SEND.
+        **Prerequisites:** Referral status must be one of: FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, COMPLETED, REJECTED_BY_SPECIALIST, REDIRECTED, REJECTED_AFTER_SEND, CANCELLED, or DECEASED.
         **Common Errors:**
         - 400 Invalid format
         - 403 Forbidden (wrong hospital)
