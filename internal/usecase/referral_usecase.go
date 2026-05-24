@@ -662,48 +662,12 @@ func (u *referralUseCase) GetLatestPendingReferrals(ctx context.Context, doctorI
 		return nil, err
 	}
 
-	var responseData []dto.ListReferralResponse
-	for _, r := range referrals {
-		diag := ""
-		icd := ""
-		if len(r.Diagnoses) > 0 && r.Diagnoses[0].CodeInfo != nil {
-			diag = r.Diagnoses[0].CodeInfo.Description
-			icd = r.Diagnoses[0].ICDCode
+	responseData := make([]dto.ListReferralResponse, 0, len(referrals))
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
 		}
-
-		patientNameFirst := ""
-		patientNameMiddle := ""
-		patientNameLast := ""
-		patientRegion := ""
-		if r.Patient != nil {
-			_ = r.Patient.DecryptFields(u.cryptoSvc)
-			patientNameFirst = r.Patient.FirstNamePlain
-			patientNameMiddle = r.Patient.MiddleNamePlain
-			patientNameLast = r.Patient.LastNamePlain
-			if r.Patient.HomeRegion != nil {
-				patientRegion = string(*r.Patient.HomeRegion)
-			}
-		}
-
-		condition := ""
-		if r.ReferralForm != nil {
-			condition = r.ReferralForm.ConditionAtReferral
-		}
-
-		responseData = append(responseData, dto.ListReferralResponse{
-			ID:                  r.ID,
-			PatientFirstName:    patientNameFirst,
-			PatientMiddleName:   patientNameMiddle,
-			PatientLastName:     patientNameLast,
-			PatientRegion:       patientRegion,
-			Department:          r.TargetDeptID.String(),
-			Status:              string(r.Status),
-			ICDCode:             icd,
-			Diagnosis:           diag,
-			ConditionAtReferral: condition,
-			CreatedAt:           r.CreatedAt,
-			UpdatedAt:           r.UpdatedAt,
-		})
+		responseData = append(responseData, dto.MapListReferralResponse(referrals[i]))
 	}
 	return responseData, nil
 }
@@ -1382,7 +1346,17 @@ func (u *referralUseCase) ListForReceptionist(ctx context.Context, hospID uuid.U
 	if filter.Status != "" && !u.IsValidStatus(filter.Status) {
 		return nil, 0, errors.New("forbidden: unknown or invalid referral status")
 	}
-	return u.referralRepo.ListForReceptionist(ctx, hospID, filter)
+	referrals, count, err := u.referralRepo.ListForReceptionist(ctx, hospID, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range referrals {
+		if referrals[i].Patient != nil {
+			_ = referrals[i].Patient.DecryptFields(u.cryptoSvc)
+		}
+	}
+	u.enrichReferralsMLBatch(ctx, referrals)
+	return referrals, count, nil
 }
 
 func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hospID uuid.UUID) (*entity.Referral, error) {
@@ -1405,6 +1379,10 @@ func (u *referralUseCase) GetDetailsForReceptionist(ctx context.Context, id, hos
 		return nil, errors.New("unauthorized: referral has not been accepted/scheduled yet")
 	}
 
+	if ref.Patient != nil {
+		_ = ref.Patient.DecryptFields(u.cryptoSvc)
+	}
+	u.enrichReferralML(ctx, ref)
 	return ref, nil
 }
 
