@@ -1058,6 +1058,11 @@ func (m *MockTriageQueueRepo) FindWaitingByHospitalAndDept(ctx context.Context, 
 	return args.Get(0).([]entity.TriageQueue), args.Error(1)
 }
 
+func (m *MockTriageQueueRepo) FindActiveByHospitalAndDept(ctx context.Context, hospitalID, departmentID uuid.UUID) ([]entity.TriageQueue, error) {
+	args := m.Called(ctx, hospitalID, departmentID)
+	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
 func (m *MockTriageQueueRepo) FindScheduledByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, startDate, endDate time.Time) ([]*entity.TriageQueue, error) {
 	args := m.Called(ctx, hospitalID, deptID, startDate, endDate)
 	return args.Get(0).([]*entity.TriageQueue), args.Error(1)

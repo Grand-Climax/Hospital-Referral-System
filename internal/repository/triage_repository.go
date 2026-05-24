@@ -204,6 +204,26 @@ func (r *triageRepository) FindWaitingByHospitalAndDept(ctx context.Context, hos
 	return queues, err
 }
 
+// FindActiveByHospitalAndDept returns triage rows that are still
+// "on the dept head's plate": arrival_status IN (EXPECTED, MISSED) and
+// the underlying referral is not in a terminal state. Joins referrals
+// so we can exclude COMPLETED / DECEASED / CANCELLED / REJECTED_* /
+// REDIRECTED in one query.
+func (r *triageRepository) FindActiveByHospitalAndDept(ctx context.Context, hospitalID, departmentID uuid.UUID) ([]entity.TriageQueue, error) {
+	var queues []entity.TriageQueue
+	err := r.db.WithContext(ctx).
+		Joins("JOIN referrals ON referrals.id = triage_queues.referral_id").
+		Where("triage_queues.hospital_id = ? AND triage_queues.department_id = ?", hospitalID, departmentID).
+		Where("triage_queues.arrival_status IN ?", []entity.ArrivalStatus{
+			entity.ArrivalExpected,
+			entity.ArrivalMissed,
+		}).
+		Where("referrals.status NOT IN ?", terminalReferralStatuses).
+		Order("triage_queues.composite_score desc").
+		Find(&queues).Error
+	return queues, err
+}
+
 func (r *triageRepository) FindScheduledByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, startDate, endDate time.Time) ([]*entity.TriageQueue, error) {
 	var queues []*entity.TriageQueue
 	err := r.db.WithContext(ctx).

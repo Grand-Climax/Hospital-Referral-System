@@ -138,6 +138,10 @@ func (u *departmentHeadDashboardUseCase) GetDashboardStats(ctx context.Context, 
 	hospStr := hospitalID.String()
 	deptStr := deptID.String()
 	active := true
+	// In this system "REFERRING_DOCTOR" is the universal doctor role
+	// (named that way for legacy reasons; it applies to receiver-side
+	// doctors and assigned treating doctors too, not just senders).
+	// Together with receptionists they form the dept's active staff.
 	if users, _, err := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
 		Roles:        []entity.UserRole{entity.RoleReferringDoctor, entity.RoleReceptionist},
 		HospitalID:   &hospStr,
@@ -202,12 +206,15 @@ func (u *departmentHeadDashboardUseCase) GetTrends(ctx context.Context, hospital
 	return out, nil
 }
 
-// GetPriorityBuckets pulls every waiting triage row, preloads referrals
-// (Patient + ReferralForm) once, and buckets in memory. The queue is
-// rarely large enough at the dept level to justify pushing the bucketing
-// to SQL; keeping it in Go makes the priority labels easy to change.
+// GetPriorityBuckets pulls every ACTIVE triage row (EXPECTED + MISSED,
+// scheduled or not, excluding terminal referrals) and buckets in memory.
+// Previously this widget used FindWaitingByHospitalAndDept which excluded
+// any row with an appointment_date — so a dept head with all patients
+// already scheduled would see zeroes across the board. The active set is
+// the correct population for the priority distribution view: it covers
+// both unscheduled backlog AND upcoming visits.
 func (u *departmentHeadDashboardUseCase) GetPriorityBuckets(ctx context.Context, hospitalID, deptID uuid.UUID) (*dto.PriorityBucketResponse, error) {
-	queue, err := u.triageRepo.FindWaitingByHospitalAndDept(ctx, hospitalID, deptID)
+	queue, err := u.triageRepo.FindActiveByHospitalAndDept(ctx, hospitalID, deptID)
 	if err != nil {
 		return nil, err
 	}
@@ -326,6 +333,10 @@ func (u *departmentHeadDashboardUseCase) GetStaffSummary(ctx context.Context, ho
 		return users
 	}
 
+	// REFERRING_DOCTOR is the universal doctor role in this system
+	// (used for both sender-side doctors and receiver-side treating
+	// doctors). Keep the original filter — assigned-doctor and dept
+	// staff lookups elsewhere depend on this same role.
 	docActive := listFor(entity.RoleReferringDoctor, true)
 	docInactive := listFor(entity.RoleReferringDoctor, false)
 	recActive := listFor(entity.RoleReceptionist, true)
