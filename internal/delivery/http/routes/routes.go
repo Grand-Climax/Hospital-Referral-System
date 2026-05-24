@@ -51,6 +51,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	tokenBlacklist := cache.NewRedisTokenBlacklist(redisClient)
 	sessionStore := cache.NewRedisSessionStore(redisClient)
 	otpStore := cache.NewRedisMFAOTPStore(redisClient)
+	passwordResetOTPStore := cache.NewRedisPasswordResetOTPStore(redisClient)
 
 	// Storage
 	storageSvc, _ := storage.NewCloudinaryStorage(
@@ -103,8 +104,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	// Initialize In-App Notification Use Case early as it's needed by others
 	inAppNotifUseCase := usecase.NewInAppNotificationUseCase(inAppNotifRepo, userRepo, referralRepo, hub)
 
-	authUseCase := usecase.NewAuthUseCase(authRepo, configRepo, tokenBlacklist, sessionStore, otpStore, smsClient, emailClient)
-	userUseCase := usecase.NewUserUseCase(userRepo, storageSvc, inAppNotifUseCase)
+	authUseCase := usecase.NewAuthUseCase(authRepo, configRepo, tokenBlacklist, sessionStore, otpStore, passwordResetOTPStore, smsClient, emailClient)
+	userUseCase := usecase.NewUserUseCaseWithSecurity(userRepo, storageSvc, authRepo, sessionStore, inAppNotifUseCase)
 	hospitalUseCase := usecase.NewHospitalUseCase(hospitalRepo, configRepo, auditLogRepo)
 	departmentUseCase := usecase.NewDepartmentUseCase(departmentRepo, hospitalRepo, checkpointRepo)
 	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc, inAppNotifUseCase)
@@ -176,6 +177,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			authRoutes.POST("/mfa/verify", middleware.RequireMFAPending(tokenBlacklist, userRepo), authHandler.VerifyOTP)
 			authRoutes.POST("/refresh", authHandler.Refresh)
 			authRoutes.POST("/logout", authHandler.Logout)
+			authRoutes.POST("/forgot-password", middleware.RateLimiter(redisClient, 20, time.Minute), authHandler.ForgotPassword)
+			authRoutes.POST("/forgot-password/verify", middleware.RateLimiter(redisClient, 30, time.Minute), authHandler.VerifyForgotPasswordOTP)
+			authRoutes.POST("/reset-password", middleware.RequirePasswordResetConfirm(tokenBlacklist, userRepo), authHandler.ResetPassword)
 		}
 
 		// Protected routes (require authentication + audit logging)
@@ -498,6 +502,8 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 		))
 		{
 			userAccesses.GET("/me", userHandler.GetMyProfile)
+			userAccesses.PUT("/me", userHandler.UpdateMyProfile)
+			userAccesses.PUT("/me/password", authHandler.ChangePassword)
 			userAccesses.GET("", userHandler.ListUsers)
 			userAccesses.GET("/:id", userHandler.GetUser)
 			userAccesses.PUT("/profile/image", userHandler.UpdateProfileImage)

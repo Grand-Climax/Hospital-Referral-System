@@ -39,6 +39,24 @@ type LogoutRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email" example:"doctor@hospital.et"`
+}
+
+type ForgotPasswordVerifyRequest struct {
+	Email string `json:"email" binding:"required,email" example:"doctor@hospital.et"`
+	Code  string `json:"code" binding:"required,len=6,numeric"`
+}
+
+type ResetPasswordRequest struct {
+	NewPassword string `json:"new_password" binding:"required,min=8" example:"newpassword123"`
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required" example:"password123"`
+	NewPassword     string `json:"new_password" binding:"required,min=8" example:"newpassword456"`
+}
+
 // Login godoc
 // @Summary      User login
 // @Description  Authenticate with email/password, then send OTP through configured MFA channel.
@@ -272,5 +290,197 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Message: "Logged out successfully",
+	})
+}
+
+// ForgotPassword godoc
+// @Summary      Request password reset OTP
+// @Description  Sends a one-time password reset code to the user's email if an active account exists.
+// @Description  Always returns the same success message to prevent email enumeration.
+// @Description  **Roles:** Public (no authentication required).
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        body body ForgotPasswordRequest true "Account email"
+// @Success      200 {object} dto.BaseResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      429 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /api/v1/auth/forgot-password [post]
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid request payload"})
+		return
+	}
+
+	err := h.authUseCase.ForgotPassword(c.Request.Context(), req.Email)
+	if err != nil {
+		if err == usecase.ErrPasswordResetCooldown {
+			c.JSON(http.StatusTooManyRequests, dto.ErrorResponse{Success: false, Error: err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to process password reset request"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.BaseResponse{
+		Success: true,
+		Message: "If an account with that email exists, a reset code has been sent",
+	})
+}
+
+// VerifyForgotPasswordOTP godoc
+// @Summary      Verify password reset OTP
+// @Description  Validates the email OTP and returns a short-lived reset token for setting a new password.
+// @Description  **Roles:** Public (no authentication required).
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        body body ForgotPasswordVerifyRequest true "Email and OTP code"
+// @Success      200 {object} dto.PasswordResetVerifyResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /api/v1/auth/forgot-password/verify [post]
+func (h *AuthHandler) VerifyForgotPasswordOTP(c *gin.Context) {
+	var req ForgotPasswordVerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid request payload"})
+		return
+	}
+
+	result, err := h.authUseCase.VerifyForgotPasswordOTP(c.Request.Context(), req.Email, req.Code)
+	if err != nil {
+		switch err {
+		case usecase.ErrInvalidOTPCode, usecase.ErrOTPExpired, usecase.ErrOTPAttemptsExceeded:
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: err.Error()})
+		case usecase.ErrOTPNotRequested:
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to verify reset code"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.PasswordResetVerifyResponse{
+		ResetToken: result.ResetToken,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Reset code verified successfully",
+		},
+	})
+}
+
+// ResetPassword godoc
+// @Summary      Reset password after OTP verification
+// @Description  Sets a new password using the reset token from OTP verification and logs the user in.
+// @Description  **Roles:** Public (requires password reset confirmation token).
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        body body ResetPasswordRequest true "New password"
+// @Success      200 {object} dto.ResetPasswordResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/auth/reset-password [post]
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid request payload"})
+		return
+	}
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "Unauthorized"})
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Invalid authentication context"})
+		return
+	}
+
+	tokenPair, err := h.authUseCase.ResetPassword(c.Request.Context(), userID, req.NewPassword, c.ClientIP(), c.Request.UserAgent())
+	if err != nil {
+		switch err {
+		case usecase.ErrSamePassword:
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		case usecase.ErrInactiveAccount, usecase.ErrInvalidCredentials:
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to reset password"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ResetPasswordResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Password reset successfully",
+		},
+	})
+}
+
+// ChangePassword godoc
+// @Summary      Change password (logged in)
+// @Description  Updates the password for the currently authenticated user. Requires the current password; no OTP needed.
+// @Description  Returns a new token pair and revokes all existing sessions.
+// @Description  **Roles:** Any authenticated user.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        body body ChangePasswordRequest true "Current and new password"
+// @Success      200 {object} dto.ChangePasswordResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/users/me/password [put]
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "Invalid request payload"})
+		return
+	}
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "Unauthorized"})
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Invalid authentication context"})
+		return
+	}
+
+	tokenPair, err := h.authUseCase.ChangePassword(c.Request.Context(), userID, req.CurrentPassword, req.NewPassword, c.ClientIP(), c.Request.UserAgent())
+	if err != nil {
+		switch err {
+		case usecase.ErrIncorrectPassword:
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: err.Error()})
+		case usecase.ErrSamePassword:
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		case usecase.ErrInactiveAccount:
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to change password"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ChangePasswordResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "Password changed successfully",
+		},
 	})
 }

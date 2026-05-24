@@ -25,10 +25,18 @@ type HospitalAdminSessionFilter struct {
 	PageSize int
 }
 
+type UpdateMyProfileInput struct {
+	FirstName   *string
+	MiddleName  *string
+	LastName    *string
+	PhoneNumber *string
+}
+
 type UserUseCase interface {
 	CreateUser(ctx context.Context, user *entity.User, rawPassword string) error
 	GetUserByID(ctx context.Context, id, requesterID uuid.UUID) (*entity.User, error)
 	GetMyProfile(ctx context.Context, userID uuid.UUID) (*entity.User, error)
+	UpdateMyProfile(ctx context.Context, userID uuid.UUID, input UpdateMyProfileInput) (*entity.User, error)
 	UpdateUser(ctx context.Context, user *entity.User) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	ListUsers(ctx context.Context, filter irepository.UserListFilter, requesterID uuid.UUID) ([]entity.User, int64, error)

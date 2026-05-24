@@ -730,6 +730,67 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// UpdateMyProfile godoc
+// @Summary      Update current user's profile
+// @Description  Updates editable profile fields for the authenticated user (name, phone number).
+// @Description  Email, role, hospital, department, and national ID cannot be changed through this endpoint.
+// @Description  **Roles:** Any authenticated user.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.UpdateMyProfileRequest true "Profile update payload"
+// @Success      200 {object} dto.UserResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/users/me [put]
+func (h *UserHandler) UpdateMyProfile(c *gin.Context) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "User not authenticated"})
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Invalid user ID in context"})
+		return
+	}
+
+	var req dto.UpdateMyProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if req.FirstName == nil && req.MiddleName == nil && req.LastName == nil && req.PhoneNumber == nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "At least one field must be provided"})
+		return
+	}
+
+	user, err := h.userUseCase.UpdateMyProfile(c.Request.Context(), userID, iusecase.UpdateMyProfileInput{
+		FirstName:   req.FirstName,
+		MiddleName:  req.MiddleName,
+		LastName:    req.LastName,
+		PhoneNumber: req.PhoneNumber,
+	})
+	if err != nil {
+		if err == usecase.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	resp := toUserResponse(user)
+	resp.BaseResponse = dto.BaseResponse{
+		Success: true,
+		Message: "Profile updated successfully",
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 // SystemAdminListUsers godoc
 // @Summary      Global User List (System Admin Only)
 // @Description  Administrative-only endpoint for global user discovery across all hospitals.
