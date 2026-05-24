@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -80,7 +81,7 @@ func (u *triageUseCase) CalculateCompositeScore(ctx context.Context, referralID 
 	}
 
 	var triageScore float64
-	switch ref.ReferralForm.ConditionAtReferral {
+	switch strings.ToLower(strings.TrimSpace(ref.ReferralForm.ConditionAtReferral)) {
 	case "critical":
 		triageScore = 100
 	case "urgent":
