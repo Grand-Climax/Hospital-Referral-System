@@ -42,7 +42,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC, mockTriageUC)
 	deptHeadDashboardHandler := handlers.NewDepartmentHeadDashboardHandler(mockDeptHeadDash)
 	mockUserUC := new(MockUserUseCase)
-	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC, mockPatientUC, mockUserUC)
+	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC, mockPatientUC, mockUserUC, mockTriageUC)
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
 	jobHandler := handlers.NewJobHandler(mockNotificationUC, mockDailyWeightUC, mockSchedulerUC, mockSchedulingUC)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
@@ -68,6 +68,7 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 		spec := api.Group("/specialist/referrals")
 		{
 			spec.GET("/triage-queue", specialistHandler.GetTriageQueue)
+			spec.GET("/:id/triage-detail", specialistHandler.GetTriageDetail)
 			spec.POST("/:id/ml-severity-override", specialistHandler.MLSeverityOverride)
 			spec.GET("/capacity", specialistHandler.GetCapacity)
 			spec.POST("/:id/emergency-schedule", specialistHandler.ManualEmergencySchedule)
@@ -93,7 +94,9 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 
 			dh.GET("/dashboard/stats", deptHeadDashboardHandler.GetDashboardStats)
 			dh.GET("/dashboard/trends", deptHeadDashboardHandler.GetTrends)
+			dh.GET("/triage-queue", deptHeadHandler.GetTriageQueue)
 			dh.GET("/triage-queue/buckets", deptHeadDashboardHandler.GetPriorityBuckets)
+			dh.GET("/triage-queue/:id", deptHeadHandler.GetTriageDetail)
 			dh.GET("/staff/summary", deptHeadDashboardHandler.GetStaffSummary)
 			dh.GET("/activity", deptHeadDashboardHandler.GetActivity)
 		}
@@ -112,6 +115,8 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 			rec := recBase.Group("/referrals")
 			{
 				rec.GET("/upcoming", receptionistHandler.GetSchedule)
+				rec.GET("/triage-queue", receptionistHandler.GetTriageQueue)
+				rec.GET("/:id/triage-detail", receptionistHandler.GetTriageDetail)
 				rec.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
 				rec.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
 				rec.POST("/:id/miss", receptionistHandler.MarkMissed)
@@ -189,7 +194,7 @@ func TestSpecialistEndpoints(t *testing.T) {
 	})
 
 	t.Run("Get Triage Queue", func(t *testing.T) {
-		mockTriage.On("ListForTriage", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]dto.TriageListResponse{}, int64(0), nil)
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.Anything).Return([]dto.TriageListItem{}, int64(0), nil).Once()
 
 		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/triage-queue", nil)
 		resp := httptest.NewRecorder()
@@ -916,3 +921,255 @@ func TestRejectionAfterSendEndpoints(t *testing.T) {
 		mockReferral.AssertExpectations(t)
 	})
 }
+
+// TestTriageQueueEnhancements exercises the role-aware filterable triage
+// queue list endpoints (specialist, receptionist, dept-head) plus the
+// three new detail endpoints. The focus is on filter parsing, scope
+// enforcement, the include_terminal toggle, and the redacted projections.
+func TestTriageQueueEnhancements(t *testing.T) {
+	t.Run("specialist list - default filter has composite_score desc and excludes terminal", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.MatchedBy(func(f dto.TriageListFilter) bool {
+			return f.SortBy == "composite_score" && f.SortOrder == "desc" && !f.IncludeTerminal && f.Limit == 20
+		})).Return([]dto.TriageListItem{{QueueID: uuid.New(), PatientName: "Test"}}, int64(1), nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/triage-queue", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"has_more":false`)
+		assert.Contains(t, resp.Body.String(), `"total":1`)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("specialist list - filters parsed: arrival_status, referral_status, sort, include_terminal", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.MatchedBy(func(f dto.TriageListFilter) bool {
+			if !f.IncludeTerminal {
+				return false
+			}
+			if f.SortBy != "appointment_date" || f.SortOrder != "asc" {
+				return false
+			}
+			if len(f.ArrivalStatuses) != 2 {
+				return false
+			}
+			if len(f.ReferralStatuses) != 1 || f.ReferralStatuses[0] != entity.StatusScheduled {
+				return false
+			}
+			return true
+		})).Return([]dto.TriageListItem{}, int64(0), nil).Once()
+
+		req, _ := http.NewRequest("GET",
+			"/api/v1/specialist/referrals/triage-queue?arrival_status=EXPECTED,MISSED&referral_status=SCHEDULED&sort_by=appointment_date&sort_order=asc&include_terminal=true",
+			nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("specialist list - has_more=true when total exceeds page", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		items := []dto.TriageListItem{{QueueID: uuid.New()}}
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.Anything).Return(items, int64(75), nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/triage-queue?limit=20&page=2", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"has_more":true`)
+		assert.Contains(t, resp.Body.String(), `"page":2`)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("specialist list - limit clamped to 100", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.MatchedBy(func(f dto.TriageListFilter) bool {
+			return f.Limit == 100
+		})).Return([]dto.TriageListItem{}, int64(0), nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/triage-queue?limit=500", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("specialist list - unknown sort_by falls back to composite_score", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.MatchedBy(func(f dto.TriageListFilter) bool {
+			return f.SortBy == "composite_score"
+		})).Return([]dto.TriageListItem{}, int64(0), nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/triage-queue?sort_by=garbage", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("specialist detail - happy path returns rich payload", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		referralID := uuid.New()
+		queueID := uuid.New()
+		resp := &dto.TriageDetailSpecialistResponse{Success: true}
+		resp.Data.QueueID = queueID
+		resp.Data.ReferralID = referralID
+		resp.Data.ArrivalStatus = "EXPECTED"
+		resp.Data.ReferralStatus = "ACCEPTED"
+		resp.Data.ConditionAtReferral = "critical"
+		resp.Data.CompositeScore = 91.5
+		resp.Data.ClinicalSummary = "Chest pain on exertion"
+		mockTriage.On("GetTriageDetailForSpecialist", mock.Anything, referralID, mock.Anything).Return(resp, nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/"+referralID.String()+"/triage-detail", nil)
+		recRes := httptest.NewRecorder()
+		r.ServeHTTP(recRes, req)
+		assert.Equal(t, http.StatusOK, recRes.Code)
+		assert.Contains(t, recRes.Body.String(), `"composite_score":91.5`)
+		assert.Contains(t, recRes.Body.String(), `"clinical_summary":"Chest pain on exertion"`)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("specialist detail - 404 when referral not in queue", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		referralID := uuid.New()
+		mockTriage.On("GetTriageDetailForSpecialist", mock.Anything, referralID, mock.Anything).Return(nil, gorm.ErrRecordNotFound).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/"+referralID.String()+"/triage-detail", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("specialist detail - 400 invalid referral id", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/not-a-uuid/triage-detail", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+	})
+
+	t.Run("receptionist list - hits same use case with hospital scope", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.MatchedBy(func(f dto.TriageListFilter) bool {
+			return f.HospitalID != uuid.Nil
+		})).Return([]dto.TriageListItem{}, int64(0), nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/receptionist/referrals/triage-queue", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("receptionist detail - redacted shape uses receptionist projection", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		referralID := uuid.New()
+		recpResp := &dto.TriageDetailReceptionistResponse{Success: true}
+		recpResp.Data.QueueID = uuid.New()
+		recpResp.Data.ReferralID = referralID
+		recpResp.Data.ArrivalStatus = "EXPECTED"
+		recpResp.Data.Patient.FullName = "Hanan Tadesse"
+		mockTriage.On("GetTriageDetailForReceptionist", mock.Anything, referralID, mock.Anything).Return(recpResp, nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/receptionist/referrals/"+referralID.String()+"/triage-detail", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		body := resp.Body.String()
+		assert.Contains(t, body, `"full_name":"Hanan Tadesse"`)
+		// Clinical fields must NOT be present in receptionist projection.
+		assert.NotContains(t, body, `"clinical_summary"`)
+		assert.NotContains(t, body, `"ml_severity_score"`)
+		assert.NotContains(t, body, `"diagnoses"`)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("receptionist detail - 404 maps missing queue row", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		referralID := uuid.New()
+		mockTriage.On("GetTriageDetailForReceptionist", mock.Anything, referralID, mock.Anything).Return(nil, gorm.ErrRecordNotFound).Once()
+		req, _ := http.NewRequest("GET", "/api/v1/receptionist/referrals/"+referralID.String()+"/triage-detail", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("dept-head list - department_id from JWT FORCED, query param ignored", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		// Even though the FE passes department_id=<some-other-uuid>, the
+		// handler must inject the caller's deptID from the JWT and the
+		// use case sees that deptID, never the query param's.
+		otherDept := uuid.New()
+		mockTriage.On("ListTriageFiltered", mock.Anything, mock.MatchedBy(func(f dto.TriageListFilter) bool {
+			return f.DepartmentID != nil && *f.DepartmentID != otherDept
+		})).Return([]dto.TriageListItem{}, int64(0), nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/triage-queue?department_id="+otherDept.String(), nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("dept-head detail - happy path with referral UUID", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		referralID := uuid.New()
+		dh := &dto.TriageDetailDeptHeadResponse{Success: true}
+		dh.Data.QueueID = uuid.New()
+		dh.Data.ReferralID = referralID
+		dh.Data.CompositeScore = 55
+		dh.Data.HasDoctorAssigned = true
+		mockTriage.On("GetTriageDetailForDeptHead", mock.Anything, referralID, mock.Anything).Return(dh, nil).Once()
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/triage-queue/"+referralID.String(), nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		body := resp.Body.String()
+		assert.Contains(t, body, `"has_doctor_assigned":true`)
+		// Dept-head projection omits clinical_summary + ml_severity even
+		// when underlying queue row carries them.
+		assert.NotContains(t, body, `"clinical_summary"`)
+		assert.NotContains(t, body, `"ml_severity_score"`)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("dept-head detail - 404 when referral not in queue", func(t *testing.T) {
+		r, _, mockTriage, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		referralID := uuid.New()
+		mockTriage.On("GetTriageDetailForDeptHead", mock.Anything, referralID, mock.Anything).Return(nil, gorm.ErrRecordNotFound).Once()
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/triage-queue/"+referralID.String(), nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+		mockTriage.AssertExpectations(t)
+	})
+
+	t.Run("dept-head detail - 400 invalid referral id", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/triage-queue/not-a-uuid", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+	})
+
+	t.Run("dept-head buckets static route still resolves (not shadowed by /:id)", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, mockDash := setupPostAcceptanceTestRouter()
+		mockDash.On("GetPriorityBuckets", mock.Anything, mock.Anything, mock.Anything).
+			Return(&dto.PriorityBucketResponse{TotalWaiting: 0}, nil)
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/triage-queue/buckets", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusOK, resp.Code)
+	})
+
+	// Silence time import drift if compiler folds future helpers in.
+	_ = time.Now
+}
+
