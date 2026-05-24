@@ -27,6 +27,8 @@ type HospitalDepartment struct {
 	HospitalID         uuid.UUID `gorm:"type:uuid;not null;index:idx_hosp_dept,unique" json:"hospital_id"`
 	DepartmentID       uuid.UUID `gorm:"type:uuid;not null;index:idx_hosp_dept,unique" json:"department_id"`
 	StandardDailyLimit int       `gorm:"not null;default:20" json:"standard_daily_limit"`
+	OverbookLimit      int       `gorm:"not null;default:0" json:"overbook_limit"`
+	MaxCapacityOfStaff int       `gorm:"not null;default:0" json:"max_capacity_of_staff"`
 	IsActive           bool      `gorm:"default:true" json:"is_active"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
