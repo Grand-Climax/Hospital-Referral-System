@@ -52,6 +52,18 @@ type TriageQueueRepository interface {
 	ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error)
 	GetWaitingByDept(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.TriageQueue, error)
 	FindWaitingByHospitalAndDept(ctx context.Context, hospitalID, departmentID uuid.UUID) ([]entity.TriageQueue, error)
+
+	// FindActiveByHospitalAndDept returns every triage row that still
+	// belongs on the dept head's "to-action" list: arrival_status IN
+	// {EXPECTED, MISSED} regardless of whether an appointment_date has
+	// been assigned, and whose referral is NOT in a terminal status
+	// (COMPLETED, DECEASED, CANCELLED, REJECTED_*, REDIRECTED). This is
+	// the right population for the priority buckets widget — it includes
+	// both unscheduled backlog AND scheduled-but-not-yet-arrived
+	// patients, so a department head sees their actual upcoming load.
+	// ARRIVED / ADMITTED patients are excluded because they are already
+	// on-site and no longer need triage attention.
+	FindActiveByHospitalAndDept(ctx context.Context, hospitalID, departmentID uuid.UUID) ([]entity.TriageQueue, error)
 	FindScheduledByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, startDate, endDate time.Time) ([]*entity.TriageQueue, error)
 	FindByHospitalAndDept(ctx context.Context, hospitalID, deptID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error)
 	FindAppointmentsForReminders(ctx context.Context, date time.Time) ([]*entity.TriageQueue, error)
