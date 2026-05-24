@@ -363,7 +363,7 @@ func (u *mlUseCase) ProcessMLResult(
 			}
 		}
 
-		return tx.Model(&entity.Referral{}).Where("id = ?", referralID).Updates(map[string]interface{}{
+		if err := tx.Model(&entity.Referral{}).Where("id = ?", referralID).Updates(map[string]interface{}{
 			"active_ml_prediction_id":   pred.ID,
 			"ml_severity_score":         score,
 			"ml_status":                 entity.MLStatusSuccess,
@@ -372,7 +372,47 @@ func (u *mlUseCase) ProcessMLResult(
 			"ml_last_error":             nil,
 			"ml_run_started_at":         nil,
 			"ml_successful_rerun_count": gorm.Expr("ml_successful_rerun_count + 1"),
-		}).Error
+		}).Error; err != nil {
+			return err
+		}
+
+		// Refresh the triage queue composite score with the new ML result.
+		// When a referral is accepted before async scoring completes,
+		// LandInQueue uses a 50.0 ML fallback. Once the real score arrives
+		// we update the queue row so ordering reflects actual severity.
+		queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
+		if err != nil || queue == nil {
+			// Not yet in the queue — nothing to refresh.
+			return nil
+		}
+
+		ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
+		if err != nil || ref == nil || ref.ReferralForm == nil {
+			return nil
+		}
+
+		var ts float64
+		switch strings.ToLower(strings.TrimSpace(ref.ReferralForm.ConditionAtReferral)) {
+		case "critical":
+			ts = 100
+		case "urgent":
+			ts = 70
+		case "stable":
+			ts = 30
+		default:
+			ts = 10
+		}
+
+		agingFactor := 1.0
+		if cfg, err := u.configRepo.GetByKey(ctx, "aging_factor"); err == nil && cfg != nil {
+			if af, err := strconv.ParseFloat(cfg.Value, 64); err == nil && af > 0 {
+				agingFactor = af
+			}
+		}
+		agingBonus := time.Since(ref.CreatedAt).Hours() / 24 * agingFactor
+		queue.CompositeScore = (ts * 0.6) + (score * 0.3) + agingBonus
+
+		return tx.Save(queue).Error
 	})
 
 	return txErr
@@ -418,7 +458,7 @@ func (u *mlUseCase) MLSeverityOverride(ctx context.Context, referralID, userID u
 			}
 
 			var triageScore float64
-			switch ref.ReferralForm.ConditionAtReferral {
+			switch strings.ToLower(strings.TrimSpace(ref.ReferralForm.ConditionAtReferral)) {
 			case "critical":
 				triageScore = 100
 			case "urgent":
