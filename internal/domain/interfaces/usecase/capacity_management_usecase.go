@@ -61,4 +61,23 @@ type CapacityManagementUseCase interface {
 	// The value is a soft hint exposed via GetCapacityDetail; no booking
 	// rule depends on it.
 	UpdateStaffCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, value int, userID uuid.UUID) error
+
+	// UpdateDailyCapacity persists the baseline daily capacity for a
+	// (hospital, department). Both fields are written together:
+	//   - standard_daily_limit replaces the prior baseline used by
+	//     getEffectiveCapacity when no active CapacityOverride exists
+	//     for the target date.
+	//   - overbook_limit replaces the prior overbook ceiling used for
+	//     emergency scheduling.
+	// The change takes effect immediately for all future dates that do
+	// not have an active CapacityOverride; existing CapacityOverride and
+	// already-frozen DailySchedule rows are unaffected by design (logs
+	// are immutable; overrides win).
+	UpdateDailyCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, standardDailyLimit, overbookLimit int, userID uuid.UUID) error
+
+	// GetDailyCapacity returns the current baseline daily capacity
+	// (standard_daily_limit, overbook_limit) for the (hospital,
+	// department) pair so the dept-head UI can pre-fill the edit form
+	// and reconcile its cache after a PUT round-trip.
+	GetDailyCapacity(ctx context.Context, hospitalID, deptID uuid.UUID) (*dto.DeptHeadDailyCapacityResponse, error)
 }
