@@ -175,6 +175,12 @@ type ReferralAccessRepository interface {
 	CheckAccess(ctx context.Context, referralID, userID uuid.UUID) (bool, error)
 	ListActiveByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error)
 
+	// ListAllByReferral returns every ReferralAccess row for a referral
+	// including revoked grants, preloading the User association so the
+	// triage-detail endpoint can render doctor names without an extra
+	// round trip. Ordered by granted_at ASC.
+	ListAllByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error)
+
 	// RevokeAllByReferral sets revoked_at = now() and revoke_reason = reason for all active (revoked_at IS NULL) access grants of a referral.
 	RevokeAllByReferral(ctx context.Context, referralID uuid.UUID, reason string) error
 

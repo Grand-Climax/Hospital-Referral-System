@@ -673,6 +673,19 @@ func (r *referralAccessRepository) ListActiveByReferral(ctx context.Context, ref
 	return accesses, err
 }
 
+// ListAllByReferral returns every ReferralAccess row (active + revoked)
+// for a referral, preloading the User association so a single round trip
+// is enough to render the access history in the triage-detail endpoint.
+func (r *referralAccessRepository) ListAllByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error) {
+	var accesses []entity.ReferralAccess
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Where("referral_id = ?", referralID).
+		Order("granted_at ASC").
+		Find(&accesses).Error
+	return accesses, err
+}
+
 func (r *referralAccessRepository) RevokeAllByReferral(ctx context.Context, referralID uuid.UUID, reason string) error {
 	return r.db.WithContext(ctx).Model(&entity.ReferralAccess{}).
 		Where("referral_id = ? AND revoked_at IS NULL", referralID).

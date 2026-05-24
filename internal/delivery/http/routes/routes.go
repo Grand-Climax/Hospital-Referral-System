@@ -111,7 +111,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	attachmentUseCase := usecase.NewAttachmentUseCase(attachmentRepo, referralRepo, storageSvc, inAppNotifUseCase)
 	// Post-acceptance Use Cases
 	notifUseCase := usecase.NewNotificationUseCase(referralRepo, notifRepo, triageRepo, configRepo, jobCheckpointRepo, smsClient, cryptoSvc)
-	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, cryptoSvc, mlUseCase)
+	triageUseCase := usecase.NewTriageUseCase(db, referralRepo, triageRepo, mlRepo, configRepo, auditLogRepo, referralAccessRepo, cryptoSvc, mlUseCase)
 	schedUseCase := usecase.NewSchedulingUseCase(db, referralRepo, triageRepo, scheduleRepo, overrideRepo, departmentRepo, configRepo, auditLogRepo, notifUseCase, inAppNotifUseCase, jobCheckpointRepo, clinicalRepo, checkpointRepo)
 	arrivalUseCase := usecase.NewArrivalUseCase(db, triageRepo, referralRepo, userRepo, referralAccessRepo, clinicalRepo, auditLogRepo, inAppNotifUseCase)
 	clinicalUseCase := usecase.NewClinicalUseCase(db, referralRepo, clinicalRepo, outcomeRepo, referralAccessRepo, auditLogRepo, inAppNotifUseCase)
@@ -145,7 +145,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 	doctorHandler := handlers.NewDoctorHandler(referralUseCase, attachmentUseCase, patientUseCase, arrivalUseCase)
 	liaisonHandler := handlers.NewLiaisonHandler(referralUseCase, patientUseCase)
 	specialistHandler := handlers.NewSpecialistHandler(referralUseCase, schedUseCase, triageUseCase, patientUseCase, mlUseCase, arrivalUseCase)
-	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase, userUseCase)
+	receptionistHandler := handlers.NewReceptionistHandler(referralUseCase, arrivalUseCase, patientUseCase, userUseCase, triageUseCase)
 	adminHandler := handlers.NewAdminHandlerWithAudit(referralUseCase, auditLogRepo, patientUseCase)
 	mohAnalyticsHandler := handlers.NewMohAnalyticsHandler(referralUseCase)
 	hospitalAdminStaffHandler := handlers.NewHospitalAdminStaffHandler(userUseCase, referralUseCase, departmentUseCase)
@@ -331,6 +331,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 
 			// Triage & Scheduling
 			specialistGroup.GET("/triage-queue", specialistHandler.GetTriageQueue)
+			specialistGroup.GET("/:id/triage-detail", specialistHandler.GetTriageDetail)
 			specialistGroup.POST("/:id/ml-severity-override", specialistHandler.MLSeverityOverride)
 			specialistGroup.POST("/:id/triage-review", triageHandler.Review)
 			specialistGroup.GET("/capacity", specialistHandler.GetCapacity)
@@ -357,7 +358,9 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 				// Keep static routes before :id to avoid "schedule/upcoming" being treated as UUIDs.
 				refGroup.GET("/upcoming", receptionistHandler.GetSchedule)
 				refGroup.GET("/offline-data", receptionistHandler.GetOfflineData)
+				refGroup.GET("/triage-queue", receptionistHandler.GetTriageQueue)
 				refGroup.GET("/:id", receptionistHandler.GetReferral)
+				refGroup.GET("/:id/triage-detail", receptionistHandler.GetTriageDetail)
 				refGroup.POST("/:id/arrive", receptionistHandler.ConfirmArrival)
 				refGroup.POST("/:id/assign-doctor", receptionistHandler.AssignDoctor)
 				refGroup.POST("/:id/revoke-doctor", receptionistHandler.RevokeDoctor)
@@ -450,6 +453,7 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 		deptHeadGroup.Use(middleware.RequireRole(entity.RoleDeptHead))
 		{
 			deptHeadGroup.GET("/triage-queue", deptHeadHandler.GetTriageQueue)
+			deptHeadGroup.GET("/triage-queue/:id", deptHeadHandler.GetTriageDetail)
 
 			// Capacity Overrides - IMMUTABLE: delete + recreate to change
 			deptHeadGroup.GET("/capacity/overrides", deptHeadHandler.ListOverrides)
