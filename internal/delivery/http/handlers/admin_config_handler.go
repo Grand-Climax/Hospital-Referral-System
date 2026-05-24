@@ -49,7 +49,9 @@ func (h *AdminConfigHandler) GetConfig(c *gin.Context) {
 // @Description  Update system-wide runtime configuration values.
 // @Description  **Roles:** SYSTEM_SUPER_ADMIN
 // @Description  **State Transition:** Immediately affects scheduling logic and triage weight calculations.
-// @Description  **Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default.
+// @Description  **Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default, mfa_enabled, sms_otp_enabled.
+// @Description  **Read-only keys (ignored on PUT):** schema_version — returned by GET for migration tracking only.
+// @Description  **MFA / SMS:** sms_otp_enabled requires mfa_enabled=true; disabling MFA automatically sets sms_otp_enabled=false.
 // @Description  **Common Errors:**
 // @Description  - 400 invalid key or value format
 // @Description  - 403 forbidden (not super admin)

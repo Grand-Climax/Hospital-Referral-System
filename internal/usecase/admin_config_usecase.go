@@ -20,6 +20,12 @@ type adminConfigUseCase struct {
 	inAppNotifUC iusecase.InAppNotificationUseCase
 }
 
+// readOnlyConfigKeys are returned by GET /admin/config but must not be updated via PUT
+// (e.g. migration-managed schema_version).
+var readOnlyConfigKeys = map[string]struct{}{
+	"schema_version": {},
+}
+
 func NewAdminConfigUseCase(configRepo irepository.SystemConfigRepository,
 	auditLogRepo irepository.AuditLogRepository,
 	inAppNotifUC iusecase.InAppNotificationUseCase,
@@ -36,17 +42,39 @@ func (u *adminConfigUseCase) GetConfig(ctx context.Context) (map[string]string, 
 }
 
 func (u *adminConfigUseCase) UpdateConfig(ctx context.Context, updates map[string]string, userID uuid.UUID) error {
-	// 1. Validation
+	// 0. Strip read-only keys (clients often round-trip the full GET payload).
+	for k := range readOnlyConfigKeys {
+		delete(updates, k)
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+
+	// 1. Retrieve current config (needed for MFA/SMS coupling and audit).
+	oldConfig, err := u.configRepo.GetAll(ctx)
+	if err != nil {
+		return err
+	}
+
+	// sms_otp_enabled only applies when MFA is on; disable SMS when MFA is turned off.
+	if v, ok := updates["mfa_enabled"]; ok && isConfigFalse(v) {
+		updates["sms_otp_enabled"] = "false"
+	}
+	if v, ok := updates["sms_otp_enabled"]; ok && isConfigTrue(v) {
+		mfaVal := oldConfig["mfa_enabled"]
+		if v2, inUpdate := updates["mfa_enabled"]; inUpdate {
+			mfaVal = v2
+		}
+		if isConfigFalse(mfaVal) {
+			return fmt.Errorf("sms_otp_enabled requires mfa_enabled to be true")
+		}
+	}
+
+	// 2. Validation
 	for k, v := range updates {
 		if err := validateConfig(k, v); err != nil {
 			return err
 		}
-	}
-
-	// 2. Retrieve current config for audit
-	oldConfig, err := u.configRepo.GetAll(ctx)
-	if err != nil {
-		return err
 	}
 
 	// 3. Perform bulk update
@@ -146,4 +174,12 @@ func validateConfig(key, value string) error {
 		return fmt.Errorf("invalid config key: %s", key)
 	}
 	return nil
+}
+
+func isConfigTrue(value string) bool {
+	return value == "true" || value == "1"
+}
+
+func isConfigFalse(value string) bool {
+	return value == "false" || value == "0" || value == ""
 }
