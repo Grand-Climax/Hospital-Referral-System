@@ -103,3 +103,25 @@ func (r *auditLogRepository) ListByHospital(ctx context.Context, hospitalID uuid
 	}
 	return logs, total, nil
 }
+
+// ListByReferralAndActions returns audit_log rows for a referral filtered
+// to the requested action types in chronological order. Preloads the
+// User association so the triage-detail endpoint can render actor names
+// in the arrival_history timeline without an extra round trip.
+func (r *auditLogRepository) ListByReferralAndActions(ctx context.Context, referralID uuid.UUID, actions []entity.ActionType, limit int) ([]entity.AuditLog, error) {
+	var logs []entity.AuditLog
+	q := r.db.WithContext(ctx).Model(&entity.AuditLog{}).
+		Preload("User").
+		Where("referral_id = ?", referralID)
+	if len(actions) > 0 {
+		q = q.Where("action_type IN ?", actions)
+	}
+	q = q.Order("timestamp ASC")
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
+	if err := q.Find(&logs).Error; err != nil {
+		return nil, err
+	}
+	return logs, nil
+}

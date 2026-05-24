@@ -885,19 +885,29 @@ func (h *SpecialistHandler) MLSeverityOverride(c *gin.Context) {
 }
 
 // GetTriageQueue godoc
-// @Summary      Get Triage Queue
-// @Description  Get the current prioritized triage queue for the specialist's hospital.
+// @Summary      Get Triage Queue (filterable)
+// @Description  Returns the prioritized triage queue scoped to the specialist's hospital. Supports filtering by department, arrival/referral status, doctor assignment, patient identifiers, and configurable sort. Terminal referrals (COMPLETED / DECEASED / CANCELLED / REJECTED_* / REDIRECTED) are excluded by default; pass include_terminal=true for audit views.
+// @Description
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** Authenticated session in a hospital.
-// @Description  **Gatekeepers:** Sorting based on severity score and waiting time.
+// @Description  **Scope:** Hospital-wide (caller's hospital from JWT).
+// @Description  **Default sort:** composite_score DESC (highest priority first).
 // @Description  **Common Errors:**
 // @Description  - 401 Unauthorized
 // @Description  - 500 Internal Server Error
 // @Tags         Specialist
 // @Produce      json
-// @Param        limit query int false "Pagination limit" default(50)
-// @Param        page query int false "Page number" default(1)
-// @Success      200 {object} map[string]interface{}
+// @Param        limit query int false "Pagination limit (1-100)" default(20)
+// @Param        page query int false "Page number (1-based)" default(1)
+// @Param        department_id query string false "Filter by HospitalDepartment ID"
+// @Param        arrival_status query string false "Comma-separated arrival statuses: EXPECTED,ARRIVED,ADMITTED,MISSED"
+// @Param        referral_status query string false "Comma-separated referral statuses: ACCEPTED,SCHEDULED"
+// @Param        has_doctor_assigned query bool false "Filter by treating-doctor assignment"
+// @Param        patient_id query string false "Filter by patient UUID"
+// @Param        national_id query string false "Filter by patient national ID (hashed server-side)"
+// @Param        sort_by query string false "Sort field: composite_score|appointment_date|created_at" default(composite_score)
+// @Param        sort_order query string false "asc|desc" default(desc)
+// @Param        include_terminal query bool false "Include terminal-status referrals" default(false)
+// @Success      200 {object} dto.TriageListEnvelope
 // @Failure      401 {object} dto.ErrorResponse
 // @Failure      500 {object} dto.ErrorResponse
 // @Security     BearerAuth
@@ -910,24 +920,74 @@ func (h *SpecialistHandler) GetTriageQueue(c *gin.Context) {
 	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
 		hospID = *hID
 	}
+	if hospID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "missing hospital scope"})
+		return
+	}
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	offset := (page - 1) * limit
+	filter := parseTriageListFilter(c)
+	filter.HospitalID = hospID
 
-	queues, total, err := h.triageUC.ListForTriage(c.Request.Context(), hospID, limit, offset)
+	items, total, err := h.triageUC.ListTriageFiltered(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    queues,
-		"total":   total,
-		"page":    page,
-		"limit":   limit,
+	c.JSON(http.StatusOK, dto.TriageListEnvelope{
+		Success: true,
+		Data:    items,
+		Total:   total,
+		Page:    pageFromOffset(filter.Limit, filter.Offset),
+		Limit:   filter.Limit,
+		HasMore: hasMorePage(filter.Offset, filter.Limit, total),
 	})
+}
+
+// GetTriageDetail godoc
+// @Summary      Get Triage Detail (specialist view)
+// @Description  Returns the rich clinical detail for a referral on the triage queue: full PII, vitals, ICD diagnoses, clinical summary, ML severity, treating + consulting doctors with grant timestamps, arrival_history timeline derived from audit_logs, and the role-aware available_actions bitmap.
+// @Description
+// @Description  **Roles:** RECEIVING_SPECIALIST
+// @Description  **Path param:** {id} = REFERRAL UUID (not the queue UUID).
+// @Description  **Available actions** are computed from the same guards the action endpoints enforce, so a button enabled here will not 400 when invoked.
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized
+// @Description  - 404 Referral not in triage queue
+// @Description  - 500 Internal Server Error
+// @Tags         Specialist
+// @Produce      json
+// @Param        id path string true "Referral UUID"
+// @Success      200 {object} dto.TriageDetailSpecialistResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/specialist/referrals/{id}/triage-detail [get]
+func (h *SpecialistHandler) GetTriageDetail(c *gin.Context) {
+	referralID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid referral id"})
+		return
+	}
+	userIDVal, _ := c.Get("userID")
+	userID := uuid.Nil
+	if uid, ok := userIDVal.(uuid.UUID); ok {
+		userID = uid
+	} else if uid, ok := userIDVal.(*uuid.UUID); ok && uid != nil {
+		userID = *uid
+	}
+
+	resp, err := h.triageUC.GetTriageDetailForSpecialist(c.Request.Context(), referralID, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "referral not in triage queue"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetCapacity godoc
