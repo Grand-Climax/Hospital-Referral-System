@@ -304,7 +304,7 @@ func (h *LiaisonHandler) listFilteredReferrals(c *gin.Context, statuses []entity
 // ListIncoming godoc
 // @Summary      List Incoming Referrals for Liaison
 // @Description  Get a paginated list of referrals sent TO the liaison's hospital for monitoring.
-// @Description  **Visibility:** Includes FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, REJECTED_AFTER_SEND, and ADMITTED.
+// @Description  **Visibility:** Includes referral statuses FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, COMPLETED, REJECTED_BY_SPECIALIST, REDIRECTED, REJECTED_AFTER_SEND, CANCELLED, and DECEASED. (MISSED / ARRIVED / ADMITTED are arrival_status values, surfaced separately on each row.)
 // @Tags         Liaison
 // @Produce      json
 // @Param        status query string false "Filter by status"
