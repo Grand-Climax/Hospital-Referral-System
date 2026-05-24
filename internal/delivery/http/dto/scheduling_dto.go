@@ -28,10 +28,9 @@ type BatchScheduleResult struct {
 	Message        string `json:"message,omitempty"`
 }
 
-type UpdateMaxSlotsRequest struct {
-	MaxSlots int `json:"max_slots" binding:"required,min=1"`
-}
-
+// SchedulingResponse is returned by routine and emergency scheduling endpoints.
+// RescheduledFromMissed = true indicates the booking rescued a prior no-show
+// (the triage row's ArrivalStatus was flipped MISSED -> EXPECTED).
 type SchedulingResponse struct {
 	BaseResponse
 	RescheduledFromMissed bool `json:"rescheduled_from_missed"`

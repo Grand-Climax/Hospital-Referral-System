@@ -628,6 +628,60 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	})
 }
 
+// ListDepartmentStaff godoc
+// @Summary      List staff in the caller's department
+// @Description  Returns the active REFERRING_DOCTOR and RECEPTIONIST users in the caller's (hospital, department). Used by dept-scoped UIs to populate staff dropdowns. The scope is taken from the JWT (hospID + deptID claims); no query parameters are needed.
+// @Description
+// @Description  **Roles:** RECEPTIONIST, DEPT_HEAD, RECEIVING_SPECIALIST, REFERRING_DOCTOR
+// @Description
+// @Description  **Prerequisites:** Caller must be assigned to a hospital and a department in their JWT scope.
+// @Description
+// @Description  **Side Effects:** None. Read-only.
+// @Description
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized / scope missing
+// @Description  - 500 Internal Server Error
+// @Tags         Users
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/departments/staff [get]
+func (h *UserHandler) ListDepartmentStaff(c *gin.Context) {
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+	deptIdVal, _ := c.Get("deptID")
+	deptID := uuid.Nil
+	if dID, ok := deptIdVal.(uuid.UUID); ok {
+		deptID = dID
+	} else if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
+		deptID = *dID
+	}
+
+	if hospID == uuid.Nil || deptID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Success: false, Error: "invalid user scopes (hospital/department missing)"})
+		return
+	}
+
+	users, err := h.userUseCase.ListDepartmentStaff(c.Request.Context(), hospID, deptID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    users,
+		"total":   len(users),
+	})
+}
+
 // GetMyProfile godoc
 // @Summary      Get current user's profile
 // @Description  Returns the profile of the currently authenticated user.

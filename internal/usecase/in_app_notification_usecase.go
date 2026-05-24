@@ -281,6 +281,58 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 			recipientIDs = append(recipientIDs, h.ID)
 		}
 
+	case "CAPACITY_OVERRIDE_DELETED":
+		title = "Capacity Override Removed"
+		message = "A capacity override for your department has been removed; live capacity now falls back to the standard daily limit for the affected date."
+		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:         ptrRole(entity.RoleDeptHead),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
+			PageSize:     10,
+		})
+		for _, h := range heads {
+			recipientIDs = append(recipientIDs, h.ID)
+		}
+
+	case "BATCH_SCHEDULE_FAILED":
+		title = "Batch Scheduling Could Not Place Patients"
+		message = "The last batch scheduling run for your department finished without placing any patients. Review the waiting queue and capacity overrides."
+		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:         ptrRole(entity.RoleDeptHead),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
+			PageSize:     10,
+		})
+		for _, h := range heads {
+			recipientIDs = append(recipientIDs, h.ID)
+		}
+
+	case "EMERGENCY_SCHEDULE_USED":
+		title = "Emergency Slot Booked"
+		message = fmt.Sprintf("An emergency appointment has been scheduled for patient %s; the overbook buffer is now in use for that date.", patientName)
+		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:         ptrRole(entity.RoleDeptHead),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
+			PageSize:     10,
+		})
+		for _, h := range heads {
+			recipientIDs = append(recipientIDs, h.ID)
+		}
+
+	case "STAFF_CAPACITY_UPDATED":
+		title = "Staff Capacity Hint Updated"
+		message = "The staff capacity hint for your department has been updated."
+		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:         ptrRole(entity.RoleDeptHead),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
+			PageSize:     10,
+		})
+		for _, h := range heads {
+			recipientIDs = append(recipientIDs, h.ID)
+		}
+
 	case "STAFF_ADDED":
 		title = "New Staff Added"
 		message = "A new staff member has been registered at your hospital."

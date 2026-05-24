@@ -20,18 +20,25 @@ func NewScheduleHandler(capacityUC iusecase.CapacityManagementUseCase) *Schedule
 }
 
 // GetSchedule godoc
-// @Summary      View department schedule
-// @Description  Returns daily schedule records for the next 30 days for the department.
+// @Summary      View department schedule history log
+// @Description  Returns the immutable DailySchedule history log for an inclusive date range. Under the Schedule-on-Demand model each row is a snapshot captured at the first booking for that date; only BookedSlots is updated thereafter and MaxSlots / OverbookLimit are frozen.
+// @Description
 // @Description  **Roles:** DEPT_HEAD
+// @Description
+// @Description  **Prerequisites:** Authenticated DEPT_HEAD session - hospital and department are inferred from the token.
+// @Description
+// @Description  **Side Effects:** None. Read-only.
+// @Description
 // @Description  **Common Errors:**
-// @Description  - 401 Unauthorized
+// @Description  - 401 Unauthorized / scope missing
 // @Description  - 500 Internal Server Error
 // @Tags         Department Head
 // @Produce      json
-// @Param        start_date query string false "Start date (YYYY-MM-DD)"
-// @Param        end_date   query string false "End date (YYYY-MM-DD)"
+// @Param        start_date query string false "Start date (YYYY-MM-DD); defaults to today"
+// @Param        end_date   query string false "End date (YYYY-MM-DD); defaults to start_date + 30 days"
 // @Success      200 {object} map[string]interface{}
 // @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.BaseResponse
 // @Security     BearerAuth
 // @Router       /api/v1/department-head/schedule [get]
 func (h *ScheduleHandler) GetSchedule(c *gin.Context) {
@@ -50,7 +57,7 @@ func (h *ScheduleHandler) GetSchedule(c *gin.Context) {
 	} else if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
 		deptID = *dID
 	}
-	
+
 	startStr := c.Query("start_date")
 	endStr := c.Query("end_date")
 
@@ -60,7 +67,7 @@ func (h *ScheduleHandler) GetSchedule(c *gin.Context) {
 	}
 	end, err := time.Parse("2006-01-02", endStr)
 	if err != nil {
-		end = start.AddDate(0, 0, 30) // Default 30-day window
+		end = start.AddDate(0, 0, 30)
 	}
 
 	schedules, err := h.capacityUC.GetSchedule(c.Request.Context(), hospID, deptID, start, end)
@@ -69,55 +76,43 @@ func (h *ScheduleHandler) GetSchedule(c *gin.Context) {
 		return
 	}
 
+	// Single-day request with no matching log: return a clear "no log yet"
+	// payload so the UI can render a friendly placeholder. Under the
+	// Schedule-on-Demand model a missing row simply means no booking has
+	// happened for that date, not an error.
+	if start.Equal(end) {
+		if len(schedules) == 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"success":      true,
+				"data":         nil,
+				"has_schedule": false,
+				"message":      "No schedule log for this date yet",
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success":      true,
+			"data":         schedules[0],
+			"has_schedule": true,
+		})
+		return
+	}
+
+	// Range request - empty range still gets a 200 with a guidance message
+	// rather than a silent empty list.
+	if len(schedules) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"success":      true,
+			"data":         []interface{}{},
+			"has_schedule": false,
+			"message":      "No schedule logs for the requested period",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    schedules,
+		"success":      true,
+		"data":         schedules,
+		"has_schedule": true,
 	})
-}
-
-// UpdateMaxSlots godoc
-// @Summary      Update Daily Max Slots
-// @Description  Manually adjust the maximum slots for a specific day.
-// @Description  **Roles:** DEPT_HEAD
-// @Description  **Common Errors:**
-// @Description  - 400 invalid schedule ID or input
-// @Description  - 401 Unauthorized
-// @Description  - 500 Internal Server Error
-// @Tags         Department Head
-// @Accept       json
-// @Produce      json
-// @Param        id path string true "Schedule ID"
-// @Param        body body dto.UpdateMaxSlotsRequest true "Update details"
-// @Success      200 {object} dto.BaseResponse
-// @Failure      400 {object} dto.BaseResponse
-// @Failure      500 {object} dto.BaseResponse
-// @Security     BearerAuth
-// @Router       /api/v1/department-head/schedule/{id}/max-slots [put]
-func (h *ScheduleHandler) UpdateMaxSlots(c *gin.Context) {
-	scheduleID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: "invalid schedule ID"})
-		return
-	}
-
-	userIdVal, _ := c.Get("userID")
-	userID := uuid.Nil
-	if uID, ok := userIdVal.(uuid.UUID); ok {
-		userID = uID
-	} else if uID, ok := userIdVal.(*uuid.UUID); ok && uID != nil {
-		userID = *uID
-	}
-
-	var req dto.UpdateMaxSlotsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: err.Error()})
-		return
-	}
-
-	if err := h.capacityUC.UpdateMaxSlots(c.Request.Context(), scheduleID, req.MaxSlots, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "Max slots updated successfully"})
 }

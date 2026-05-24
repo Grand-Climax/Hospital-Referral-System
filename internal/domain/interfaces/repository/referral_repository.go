@@ -139,6 +139,12 @@ type ReferralRepository interface {
 	// Dashboard Stats
 	CountBySenderHospitalAndStatuses(ctx context.Context, hospID uuid.UUID, statuses []entity.ReferralStatus, excludeDraft bool, startDate, endDate *time.Time) (int64, error)
 	CountAcceptedOrCompletedToday(ctx context.Context, hospID uuid.UUID) (int64, error)
+
+	// CountByTargetDeptAndStatuses returns a per-status count of inbound
+	// referrals targeted at (hospital, department). The dept-head dashboard
+	// uses this to surface "scheduled / accepted backlog / completed"
+	// figures without scanning the queue table. statuses is required.
+	CountByTargetDeptAndStatuses(ctx context.Context, hospID, deptID uuid.UUID, statuses []entity.ReferralStatus, startDate, endDate *time.Time) ([]ReferralStatusCount, error)
 	UpdateFields(ctx context.Context, referralID uuid.UUID, updates ReferralUpdateFields) error
 	GetMohDashboardSummary(ctx context.Context, filter MohAnalyticsFilter) (*MohDashboardSummary, error)
 	GetMohReferralTrends(ctx context.Context, filter MohAnalyticsFilter, granularity string) ([]MohReferralTrendPoint, error)
