@@ -56,6 +56,115 @@ func (r *triageRepository) ListForTriage(ctx context.Context, hospitalID uuid.UU
 	return queues, count, err
 }
 
+// terminalReferralStatuses is the set of referral statuses that are
+// considered "done" for active triage queue views. Rows whose referral
+// has any of these statuses are excluded by default in
+// ListTriageQueueFiltered. Audit views may opt-in via IncludeTerminal.
+//
+// Note: REDIRECTED, REJECTED_AFTER_SEND, and DECEASED also hard-delete
+// the TriageQueue row today (see referral_usecase.go), so the only way
+// they appear here is if the delete failed - filtering them is a
+// belt-and-suspenders safeguard.
+var terminalReferralStatuses = []entity.ReferralStatus{
+	entity.StatusCompleted,
+	entity.StatusDeceased,
+	entity.StatusCancelled,
+	entity.StatusRejectedByLiaison,
+	entity.StatusRejectedBySpecialist,
+	entity.StatusRejectedAfterSend,
+	entity.StatusRedirected,
+}
+
+// allowedTriageSortColumns maps the public sort_by token to the
+// fully-qualified column expression used in ORDER BY. Keeping it as a
+// whitelist makes SQL injection via the sort param impossible.
+var allowedTriageSortColumns = map[string]string{
+	"composite_score":  "triage_queues.composite_score",
+	"appointment_date": "triage_queues.appointment_date",
+	"created_at":       "triage_queues.assigned_at",
+}
+
+// ListTriageQueueFiltered is the single query path behind the
+// role-aware triage list endpoints. It joins triage_queues with
+// referrals (so we can filter on referrals.status), preloads
+// Department + AssignedDoctor + ReferralForm + Referral.Patient so the
+// use case can map names and clinical hints without an N+1 round trip.
+func (r *triageRepository) ListTriageQueueFiltered(ctx context.Context, filter irepository.TriageQueueFilter) ([]entity.TriageQueue, int64, error) {
+	var queues []entity.TriageQueue
+	var count int64
+
+	q := r.db.WithContext(ctx).Model(&entity.TriageQueue{}).
+		Joins("JOIN referrals ON referrals.id = triage_queues.referral_id").
+		Where("triage_queues.hospital_id = ?", filter.HospitalID)
+
+	if filter.DepartmentID != nil {
+		q = q.Where("triage_queues.department_id = ?", *filter.DepartmentID)
+	}
+	if len(filter.ArrivalStatuses) > 0 {
+		q = q.Where("triage_queues.arrival_status IN ?", filter.ArrivalStatuses)
+	}
+	if len(filter.ReferralStatuses) > 0 {
+		q = q.Where("referrals.status IN ?", filter.ReferralStatuses)
+	}
+	if filter.PatientID != nil {
+		q = q.Where("referrals.patient_id = ?", *filter.PatientID)
+	}
+	if filter.NationalIDHash != nil && *filter.NationalIDHash != "" {
+		q = q.Joins("JOIN patients ON patients.id = referrals.patient_id").
+			Where("patients.national_id_hash = ?", *filter.NationalIDHash)
+	}
+	if filter.HasDoctorAssigned != nil {
+		if *filter.HasDoctorAssigned {
+			q = q.Where("triage_queues.assigned_doctor_id IS NOT NULL")
+		} else {
+			q = q.Where("triage_queues.assigned_doctor_id IS NULL")
+		}
+	}
+	if !filter.IncludeTerminal {
+		q = q.Where("referrals.status NOT IN ?", terminalReferralStatuses)
+	}
+
+	if err := q.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	sortCol, ok := allowedTriageSortColumns[filter.SortBy]
+	if !ok {
+		sortCol = "triage_queues.composite_score"
+	}
+	sortOrder := "desc"
+	if filter.SortOrder == "asc" {
+		sortOrder = "asc"
+	}
+	// For appointment_date sorts in ASC, push NULLs to the end so
+	// waiting rows do not crowd out scheduled rows visually.
+	orderExpr := sortCol + " " + sortOrder
+	if filter.SortBy == "appointment_date" {
+		orderExpr = sortCol + " " + sortOrder + " NULLS LAST"
+	}
+
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+	offset := filter.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	err := q.
+		Preload("Department").
+		Preload("AssignedDoctor").
+		Preload("Referral").
+		Preload("Referral.Patient").
+		Preload("Referral.ReferralForm").
+		Order(orderExpr).
+		Limit(limit).
+		Offset(offset).
+		Find(&queues).Error
+	return queues, count, err
+}
+
 func (r *triageRepository) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
 	var queues []entity.TriageQueue
 	err := r.db.WithContext(ctx).
