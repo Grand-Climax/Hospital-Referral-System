@@ -8,11 +8,12 @@ import (
 )
 
 type AuditLogFilter struct {
-	Page       int
-	PageSize   int
-	ActionType *entity.ActionType
-	StartDate  *string
-	EndDate    *string
+	Page        int
+	PageSize    int
+	ActionType  *entity.ActionType
+	ActionTypes []entity.ActionType // OR-match across multiple actions when non-empty (takes precedence over ActionType)
+	StartDate   *string
+	EndDate     *string
 }
 
 type AuditLogRepository interface {

@@ -18,7 +18,7 @@ import (
 	"Hospital-Referral-System/internal/domain/entity"
 )
 
-func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase, *MockInAppNotificationUseCase, *MockUserUseCase, *MockNotificationUseCase, *MockMLUseCase) {
+func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTriageUseCase, *MockSchedulingUseCase, *MockArrivalUseCase, *MockClinicalUseCase, *MockCapacityManagementUseCase, *MockDailyWeightUseCase, *MockSchedulerServiceUseCase, *MockInAppNotificationUseCase, *MockUserUseCase, *MockNotificationUseCase, *MockMLUseCase, *MockDepartmentHeadDashboardUseCase) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -34,14 +34,16 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 	mockPatientUC := new(MockPatientUseCase)
 	mockNotificationUC := new(MockNotificationUseCase)
 	mockMLUC := new(MockMLUseCase)
+	mockDeptHeadDash := new(MockDepartmentHeadDashboardUseCase)
 
 	specialistHandler := handlers.NewSpecialistHandler(mockReferralUC, mockSchedulingUC, mockTriageUC, mockPatientUC, mockMLUC, mockArrivalUC)
 	scheduleHandler := handlers.NewScheduleHandler(mockCapacityUC)
 	deptHeadHandler := handlers.NewDepartmentHeadHandler(mockCapacityUC, mockSchedulingUC, mockTriageUC)
+	deptHeadDashboardHandler := handlers.NewDepartmentHeadDashboardHandler(mockDeptHeadDash)
 	mockUserUC := new(MockUserUseCase)
 	receptionistHandler := handlers.NewReceptionistHandler(mockReferralUC, mockArrivalUC, mockPatientUC, mockUserUC)
 	clinicalHandler := handlers.NewClinicalHandler(mockClinicalUC)
-	jobHandler := handlers.NewJobHandler(mockCapacityUC, mockNotificationUC, mockDailyWeightUC, mockSchedulerUC, mockSchedulingUC)
+	jobHandler := handlers.NewJobHandler(mockNotificationUC, mockDailyWeightUC, mockSchedulerUC, mockSchedulingUC)
 	inAppNotifHandler := handlers.NewInAppNotificationHandler(mockInAppNotifUC)
 	doctorHandler := handlers.NewDoctorHandler(mockReferralUC, nil, mockPatientUC, mockArrivalUC)
 	liaisonHandler := handlers.NewLiaisonHandler(mockReferralUC, mockPatientUC)
@@ -75,13 +77,30 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 		dh := api.Group("/department-head")
 		{
 			dh.GET("/capacity/overrides", deptHeadHandler.ListOverrides)
+			dh.GET("/capacity/overrides/by-month", deptHeadHandler.ListOverridesByMonth)
+			dh.GET("/capacity/overrides/:id", deptHeadHandler.GetOverride)
 			dh.POST("/capacity/overrides", deptHeadHandler.CreateOverride)
-			dh.PUT("/capacity/overrides/:id", deptHeadHandler.UpdateOverride)
 			dh.DELETE("/capacity/overrides/:id", deptHeadHandler.DeleteOverride)
 			dh.GET("/schedule", scheduleHandler.GetSchedule)
-			dh.PUT("/schedule/:id/max-slots", scheduleHandler.UpdateMaxSlots)
+			dh.GET("/schedule/patients", deptHeadHandler.GetScheduledPatients)
 			dh.POST("/schedule/batch", deptHeadHandler.BatchSchedule)
+			dh.GET("/capacity/detail", deptHeadHandler.GetCapacityDetail)
+			dh.GET("/capacity/calendar", deptHeadHandler.GetCapacityCalendar)
+			dh.PUT("/staff-capacity", deptHeadHandler.UpdateStaffCapacity)
+
+			dh.GET("/dashboard/stats", deptHeadDashboardHandler.GetDashboardStats)
+			dh.GET("/dashboard/trends", deptHeadDashboardHandler.GetTrends)
+			dh.GET("/triage-queue/buckets", deptHeadDashboardHandler.GetPriorityBuckets)
+			dh.GET("/staff/summary", deptHeadDashboardHandler.GetStaffSummary)
+			dh.GET("/activity", deptHeadDashboardHandler.GetActivity)
 		}
+
+		// Specialist Schedule Options
+		api.GET("/specialist/referrals/:id/schedule-options", specialistHandler.ScheduleOptions)
+
+		// Department Staff
+		userHandlerForTest := handlers.NewUserHandler(mockUserUC, nil)
+		api.GET("/departments/staff", userHandlerForTest.ListDepartmentStaff)
 
 		// Receptionist
 		recBase := api.Group("/receptionist")
@@ -126,11 +145,11 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 		api.POST("/liaison/referrals/:id/reject-after-send", liaisonHandler.RejectAfterSend)
 	}
 
-	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC, mockUserUC, mockNotificationUC, mockMLUC
+	return r, mockReferralUC, mockTriageUC, mockSchedulingUC, mockArrivalUC, mockClinicalUC, mockCapacityUC, mockDailyWeightUC, mockSchedulerUC, mockInAppNotifUC, mockUserUC, mockNotificationUC, mockMLUC, mockDeptHeadDash
 }
 
 func TestSpecialistEndpoints(t *testing.T) {
-	r, _, mockTriage, mockSched, mockArrival, _, _, _, _, _, _, _, mockML := setupPostAcceptanceTestRouter()
+	r, _, mockTriage, mockSched, mockArrival, _, _, _, _, _, _, _, mockML, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Override ML Severity", func(t *testing.T) {
@@ -201,8 +220,7 @@ func TestSpecialistEndpoints(t *testing.T) {
 }
 
 func TestDepartmentHeadEndpoints(t *testing.T) {
-	r, _, _, mockSched, _, _, mockCapacity, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
-	scheduleID := uuid.New()
+	r, _, _, mockSched, _, _, mockCapacity, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	overrideID := uuid.New()
 
 	t.Run("List Overrides", func(t *testing.T) {
@@ -217,8 +235,10 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 	})
 
 	t.Run("Create Override", func(t *testing.T) {
+		// Pick a date safely past the buffer window so the future-date
+		// check in the handler/use case never bites.
 		reqBody := dto.CreateOverrideRequest{
-			Date:     time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Date:     time.Now().Add(10 * 24 * time.Hour).Format("2006-01-02"),
 			NewLimit: 15,
 			Reason:   "Staff training",
 		}
@@ -230,22 +250,6 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 		r.ServeHTTP(resp, req)
 
 		assert.Equal(t, http.StatusCreated, resp.Code)
-		mockCapacity.AssertExpectations(t)
-	})
-
-	t.Run("Update Override", func(t *testing.T) {
-		reqBody := dto.UpdateOverrideRequest{
-			NewLimit: 12,
-			Reason:   "Staff shortage",
-		}
-		mockCapacity.On("UpdateOverride", mock.Anything, overrideID, 12, "Staff shortage", mock.Anything).Return(nil)
-
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", "/api/v1/department-head/capacity/overrides/"+overrideID.String(), bytes.NewBuffer(body))
-		resp := httptest.NewRecorder()
-		r.ServeHTTP(resp, req)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
 		mockCapacity.AssertExpectations(t)
 	})
 
@@ -271,19 +275,6 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 		mockCapacity.AssertExpectations(t)
 	})
 
-	t.Run("Update Max Slots", func(t *testing.T) {
-		reqBody := dto.UpdateMaxSlotsRequest{MaxSlots: 20}
-		mockCapacity.On("UpdateMaxSlots", mock.Anything, scheduleID, 20, mock.Anything).Return(nil)
-
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", "/api/v1/department-head/schedule/"+scheduleID.String()+"/max-slots", bytes.NewBuffer(body))
-		resp := httptest.NewRecorder()
-		r.ServeHTTP(resp, req)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
-		mockCapacity.AssertExpectations(t)
-	})
-
 	t.Run("Batch Schedule", func(t *testing.T) {
 		mockSched.On("BatchSchedule", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&dto.BatchScheduleResult{}, nil)
 
@@ -294,10 +285,273 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.Code)
 		mockSched.AssertExpectations(t)
 	})
+
+	t.Run("Batch Schedule - lease already held", func(t *testing.T) {
+		// Fresh router + mocks so the assertion below does not collide
+		// with the happy-path expectation above.
+		r2, _, _, mockSched2, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+
+		mockSched2.On("BatchSchedule", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return(&dto.BatchScheduleResult{Message: "Batch already running for this department; try again in a few minutes"}, nil)
+
+		req, _ := http.NewRequest("POST", "/api/v1/department-head/schedule/batch", nil)
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), "already running")
+		mockSched2.AssertExpectations(t)
+	})
+
+	t.Run("List Overrides By Month", func(t *testing.T) {
+		mockCapacity.On("ListOverridesByYearMonth", mock.Anything, mock.Anything, mock.Anything, 2026, 5).Return([]entity.CapacityOverride{}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/capacity/overrides/by-month?year=2026&month=5", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockCapacity.AssertExpectations(t)
+	})
+
+	t.Run("List Overrides By Month - missing year", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/capacity/overrides/by-month", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+	})
+
+	t.Run("Get Single Override", func(t *testing.T) {
+		id := uuid.New()
+		mockCapacity.On("GetOverride", mock.Anything, id).Return(&entity.CapacityOverride{ID: id, NewLimit: 7, IsActive: true}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/capacity/overrides/"+id.String(), nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockCapacity.AssertExpectations(t)
+	})
+
+	t.Run("Get Capacity Detail", func(t *testing.T) {
+		date := time.Now().Add(48 * time.Hour).Format("2006-01-02")
+		mockCapacity.On("GetCapacityDetail", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return(&dto.CapacityDetailResponse{Date: date, MaxSlots: 10, BookedSlots: 3, AvailableSlots: 7}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/capacity/detail?date="+date, nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockCapacity.AssertExpectations(t)
+	})
+
+	t.Run("Get Capacity Detail - missing date", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/capacity/detail", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+	})
+
+	t.Run("Get Scheduled Patients", func(t *testing.T) {
+		date := time.Now().Add(48 * time.Hour).Format("2006-01-02")
+		mockCapacity.On("GetScheduledPatientsForDate", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return([]entity.TriageQueue{}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/schedule/patients?date="+date, nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockCapacity.AssertExpectations(t)
+	})
+
+	t.Run("Get Capacity Calendar", func(t *testing.T) {
+		mockCapacity.On("BuildCapacityCalendar", mock.Anything, mock.Anything, mock.Anything, 2026, 5).
+			Return([]dto.CapacityCalendarDay{}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/capacity/calendar?year=2026&month=5", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockCapacity.AssertExpectations(t)
+	})
+
+	t.Run("Update Staff Capacity", func(t *testing.T) {
+		mockCapacity.On("UpdateStaffCapacity", mock.Anything, mock.Anything, mock.Anything, 12, mock.Anything).Return(nil)
+
+		body, _ := json.Marshal(dto.UpdateStaffCapacityRequest{MaxCapacityOfStaff: 12})
+		req, _ := http.NewRequest("PUT", "/api/v1/department-head/staff-capacity", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockCapacity.AssertExpectations(t)
+	})
+
+	t.Run("Get Schedule single-day missing", func(t *testing.T) {
+		// Fresh router so the existing GetSchedule expectation does not
+		// collide with this same-day variant.
+		r2, _, _, _, _, _, mockCap2, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		date := time.Now().Format("2006-01-02")
+		mockCap2.On("GetSchedule", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return([]entity.DailySchedule{}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/schedule?start_date="+date+"&end_date="+date, nil)
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), "No schedule log for this date yet")
+		mockCap2.AssertExpectations(t)
+	})
+}
+
+func TestPostV17ExtraEndpoints(t *testing.T) {
+	t.Run("List Department Staff", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, mockUserUC, _, _, _ := setupPostAcceptanceTestRouter()
+		mockUserUC.On("ListDepartmentStaff", mock.Anything, mock.Anything, mock.Anything).Return([]entity.User{}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/departments/staff", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockUserUC.AssertExpectations(t)
+	})
+
+	t.Run("Specialist Schedule Options", func(t *testing.T) {
+		r, _, _, mockSched, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		refID := uuid.New()
+
+		mockSched.On("ListScheduleOptions", mock.Anything, refID, mock.AnythingOfType("int")).
+			Return([]dto.ScheduleOption{}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/specialist/referrals/"+refID.String()+"/schedule-options?days=7", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockSched.AssertExpectations(t)
+	})
+}
+
+// TestDepartmentHeadDashboardEndpoints exercises the read-only widgets
+// that back the dept-head landing page. Each sub-test wires its own
+// router so mock expectations do not bleed across cases.
+func TestDepartmentHeadDashboardEndpoints(t *testing.T) {
+	t.Run("Dashboard Stats", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, mockDash := setupPostAcceptanceTestRouter()
+		stats := &dto.DepartmentHeadDashboardStats{
+			WaitingQueueSize:    7,
+			OldestWaitingDays:   3,
+			ScheduledToday:      4,
+			ScheduledNext7Days:  11,
+			MissedLast7Days:     2,
+			PendingReferrals:    5,
+			CompletedLast30Days: 18,
+			ActiveStaff:         9,
+			ActiveOverrides:     1,
+			StatusCounts: []dto.DeptReferralStatusItem{
+				{Status: "ACCEPTED", Count: 5},
+			},
+		}
+		mockDash.On("GetDashboardStats", mock.Anything, mock.Anything, mock.Anything).Return(stats, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/dashboard/stats", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"waiting_queue_size":7`)
+		assert.Contains(t, resp.Body.String(), `"completed_last_30_days":18`)
+		mockDash.AssertExpectations(t)
+	})
+
+	t.Run("Trends defaults to 14 days", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, mockDash := setupPostAcceptanceTestRouter()
+		mockDash.On("GetTrends", mock.Anything, mock.Anything, mock.Anything, 14).
+			Return([]dto.DepartmentHeadTrendPoint{}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/dashboard/trends", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"days":14`)
+		mockDash.AssertExpectations(t)
+	})
+
+	t.Run("Trends rejects invalid days", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/dashboard/trends?days=-3", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+	})
+
+	t.Run("Priority Buckets", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, mockDash := setupPostAcceptanceTestRouter()
+		mockDash.On("GetPriorityBuckets", mock.Anything, mock.Anything, mock.Anything).
+			Return(&dto.PriorityBucketResponse{TotalWaiting: 3}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/triage-queue/buckets", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"total_waiting":3`)
+		mockDash.AssertExpectations(t)
+	})
+
+	t.Run("Staff Summary", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, mockDash := setupPostAcceptanceTestRouter()
+		mockDash.On("GetStaffSummary", mock.Anything, mock.Anything, mock.Anything).
+			Return(&dto.StaffSummaryResponse{Department: "Cardiology"}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/staff/summary", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"department":"Cardiology"`)
+		mockDash.AssertExpectations(t)
+	})
+
+	t.Run("Activity Stream", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, mockDash := setupPostAcceptanceTestRouter()
+		mockDash.On("GetActivity", mock.Anything, mock.Anything, mock.Anything,
+			mock.AnythingOfType("int"), mock.Anything, mock.Anything).
+			Return([]dto.DepartmentHeadActivityItem{
+				{ActionType: "BATCH_SCHEDULE_RUN", Summary: "Ran batch scheduling"},
+			}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/activity?limit=5", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"action_type":"BATCH_SCHEDULE_RUN"`)
+		mockDash.AssertExpectations(t)
+	})
+
+	t.Run("Activity rejects malformed start_date", func(t *testing.T) {
+		r, _, _, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/activity?start_date=not-a-date", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+	})
 }
 
 func TestReceptionistEndpoints(t *testing.T) {
-	r, _, _, _, mockArrival, _, _, _, _, _, mockUserUC, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, mockArrival, _, _, _, _, _, mockUserUC, _, _, _ := setupPostAcceptanceTestRouter()
 	queueID := uuid.New()
 
 	t.Run("List Doctors", func(t *testing.T) {
@@ -377,7 +631,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 }
 
 func TestClinicalEndpoints(t *testing.T) {
-	r, _, _, _, _, mockClinical, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, mockClinical, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Add Clinical Update", func(t *testing.T) {
@@ -425,7 +679,7 @@ func TestClinicalEndpoints(t *testing.T) {
 }
 
 func TestInternalJobEndpoints(t *testing.T) {
-	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, _, _, mockDailyWeight, mockScheduler, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 
 	t.Run("Update Waiting Weights - Success", func(t *testing.T) {
 		mockDailyWeight.On("Execute", mock.Anything, mock.Anything).Return("Successfully updated 5 records", nil).Once()
@@ -476,7 +730,7 @@ func TestInternalJobEndpoints(t *testing.T) {
 }
 
 func TestInAppNotificationEndpoints(t *testing.T) {
-	r, _, _, _, _, _, _, _, _, mockInAppNotif, _, _, _ := setupPostAcceptanceTestRouter()
+	r, _, _, _, _, _, _, _, _, mockInAppNotif, _, _, _, _ := setupPostAcceptanceTestRouter()
 	notifID := uuid.New()
 
 	t.Run("List Notifications - Success", func(t *testing.T) {
@@ -529,7 +783,7 @@ func TestInAppNotificationEndpoints(t *testing.T) {
 }
 
 func TestRejectionAfterSendEndpoints(t *testing.T) {
-	r, mockReferral, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+	r, mockReferral, _, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
 	referralID := uuid.New()
 
 	t.Run("Doctor Reject After Send", func(t *testing.T) {

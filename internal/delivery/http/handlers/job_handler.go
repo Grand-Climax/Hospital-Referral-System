@@ -11,56 +11,24 @@ import (
 )
 
 type JobHandler struct {
-	capacityUC   iusecase.CapacityManagementUseCase
-	notifUC      iusecase.NotificationUseCase
+	notifUC       iusecase.NotificationUseCase
 	dailyWeightUC iusecase.DailyWeightUseCase
 	schedulerUC   iusecase.SchedulerServiceUseCase
 	schedulingUC  iusecase.SchedulingUseCase
 }
 
 func NewJobHandler(
-	capacityUC iusecase.CapacityManagementUseCase,
 	notifUC iusecase.NotificationUseCase,
 	dailyWeightUC iusecase.DailyWeightUseCase,
 	schedulerUC iusecase.SchedulerServiceUseCase,
 	schedulingUC iusecase.SchedulingUseCase,
 ) *JobHandler {
 	return &JobHandler{
-		capacityUC:    capacityUC,
 		notifUC:       notifUC,
 		dailyWeightUC: dailyWeightUC,
 		schedulerUC:   schedulerUC,
 		schedulingUC:  schedulingUC,
 	}
-}
-
-// ExtendDailySchedule godoc
-// @Summary      Extend Daily Schedule Window
-// @Description  Triggers the expansion of the rolling capacity window. Typically called by a nightly cron job.
-// @Description  **Roles:** SYSTEM_SUPER_ADMIN, HOSPITAL_ADMIN, DEPT_HEAD
-// @Description  **Prerequisites:** Authenticated administrative session.
-// @Description  **Common Errors:**
-// @Description  - 401 Unauthorized
-// @Description  - 500 Internal Server Error
-// @Tags         Automation Jobs
-// @Produce      json
-// @Success      200 {object} dto.BaseResponse
-// @Security     BearerAuth
-// @Router       /api/v1/internal/jobs/extend-daily-schedule [post]
-func (h *JobHandler) ExtendDailySchedule(c *gin.Context) {
-	err := h.capacityUC.ExtendSchedules(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
-			Success: false,
-			Message: "Failed to extend schedules: " + err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.BaseResponse{
-		Success: true,
-		Message: "Rolling schedule window extended successfully",
-	})
 }
 
 // SendReminders godoc

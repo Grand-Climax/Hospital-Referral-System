@@ -26,15 +26,6 @@ func NewReferralRepository(db *gorm.DB) irepository.ReferralRepository {
 	}
 }
 
-func preloadReferralListRelations(query *gorm.DB) *gorm.DB {
-	return query.
-		Preload("Patient").
-		Preload("ReferralForm").
-		Preload("Diagnoses").
-		Preload("Diagnoses.CodeInfo").
-		Preload("TargetDepartment")
-}
-
 func (r *referralRepository) CreateReferralTransaction(ctx context.Context, referral *entity.Referral) error {
 	// GORM automatically manages the transaction for associated creations
 	// Patient, ReferralForm, and Diagnoses will be inserted atomically.
@@ -193,7 +184,8 @@ func (r *referralRepository) ListForSystemAdmin(ctx context.Context, filter irep
 	query := r.db.WithContext(ctx).Model(&entity.Referral{})
 	query = r.applyFilter(query, filter)
 
-	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -216,7 +208,8 @@ func (r *referralRepository) listHospitalAdminReferrals(ctx context.Context, hos
 	}
 	query = r.applyFilter(query, filter)
 
-	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -433,7 +426,8 @@ func (r *referralRepository) ListForDoctor(ctx context.Context, doctorID uuid.UU
 	}
 	query = r.applyFilter(query, filter)
 
-	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -445,7 +439,8 @@ func (r *referralRepository) ListOutgoingForLiaison(ctx context.Context, hospID 
 	query := r.db.WithContext(ctx).Model(&entity.Referral{}).Where("sender_hospital_id = ? AND status != ?", hospID, entity.StatusDraft)
 	query = r.applyFilter(query, filter)
 
-	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -470,7 +465,8 @@ func (r *referralRepository) ListIncomingForLiaison(ctx context.Context, hospID 
 
 	query = r.applyFilter(query, filter)
 
-	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -489,7 +485,8 @@ func (r *referralRepository) ListForSpecialist(ctx context.Context, hospID uuid.
 
 	query = r.applyFilter(query, filter)
 
-	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -505,7 +502,8 @@ func (r *referralRepository) ListForReceptionist(ctx context.Context, hospID uui
 
 	query = r.applyFilter(query, filter)
 
-	err := preloadReferralListRelations(query.Count(&count).Limit(filter.Limit).Offset(offset)).Find(&referrals).Error
+	err := query.Count(&count).Limit(filter.Limit).Offset(offset).
+		Preload("Patient").Preload("ReferralForm").Preload("Diagnoses").Preload("Diagnoses.CodeInfo").Find(&referrals).Error
 	return referrals, count, err
 }
 
@@ -563,10 +561,15 @@ func (r *referralRepository) GetLatestPendingForDoctor(ctx context.Context, doct
 		entity.StatusSubmitted, entity.StatusUnderLiaisonReview, entity.StatusForwarded,
 		entity.StatusUnderSpecialistReview, entity.StatusNeedRevision,
 	}
-	err := preloadReferralListRelations(r.db.WithContext(ctx).Model(&entity.Referral{}).
+	err := r.db.WithContext(ctx).Model(&entity.Referral{}).
 		Where("referring_doctor_id = ? AND status IN ?", doctorID, pendingStatuses).
 		Order("created_at desc").
-		Limit(limit)).Find(&referrals).Error
+		Limit(limit).
+		Preload("Patient").
+		Preload("Diagnoses").
+		Preload("Diagnoses.CodeInfo").
+		Preload("ReferralForm").
+		Find(&referrals).Error
 	return referrals, err
 }
 
@@ -751,6 +754,54 @@ func (r *referralRepository) CountAcceptedOrCompletedToday(ctx context.Context, 
 		).
 		Count(&count).Error
 	return count, err
+}
+
+// CountByTargetDeptAndStatuses returns one ReferralStatusCount per requested
+// status for inbound referrals at (target hospital, target department).
+// Archived rows are excluded. If startDate / endDate are non-nil they bound
+// referrals.created_at. Statuses that yield zero rows still appear in the
+// result with Count = 0 so the front-end can render every bucket
+// deterministically.
+func (r *referralRepository) CountByTargetDeptAndStatuses(
+	ctx context.Context,
+	hospID, deptID uuid.UUID,
+	statuses []entity.ReferralStatus,
+	startDate, endDate *time.Time,
+) ([]irepository.ReferralStatusCount, error) {
+	if len(statuses) == 0 {
+		return []irepository.ReferralStatusCount{}, nil
+	}
+
+	query := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("target_hospital_id = ? AND target_dept_id = ? AND is_archived = false", hospID, deptID).
+		Where("status IN ?", statuses)
+
+	if startDate != nil {
+		query = query.Where("created_at >= ?", *startDate)
+	}
+	if endDate != nil {
+		query = query.Where("created_at <= ?", *endDate)
+	}
+
+	type row struct {
+		Status string
+		Count  int64
+	}
+	var rows []row
+	if err := query.Select("status, COUNT(*) AS count").Group("status").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	got := make(map[entity.ReferralStatus]int64, len(rows))
+	for _, r := range rows {
+		got[entity.ReferralStatus(r.Status)] = r.Count
+	}
+
+	out := make([]irepository.ReferralStatusCount, 0, len(statuses))
+	for _, s := range statuses {
+		out = append(out, irepository.ReferralStatusCount{Status: s, Count: got[s]})
+	}
+	return out, nil
 }
 
 func (r *referralRepository) UpdateFields(ctx context.Context, referralID uuid.UUID, updates irepository.ReferralUpdateFields) error {
