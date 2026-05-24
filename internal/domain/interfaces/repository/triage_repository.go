@@ -24,4 +24,41 @@ type TriageQueueRepository interface {
 	IncrementWaitingWeights(ctx context.Context) (int64, error)
 	ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error)
 	FindMissedByDate(ctx context.Context, beforeDate time.Time) ([]entity.TriageQueue, error)
+
+	// CountByDeptAndDate returns the live count of triage queue rows booked
+	// for the given (hospital, department, date) that still occupy a slot.
+	// Slots are occupied while the patient is Expected/Arrived/Admitted;
+	// Missed and Completed rows are excluded so that a missed appointment
+	// frees its capacity for a same-day re-book.
+	CountByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (int64, error)
+
+	// CountAssignedDoctorsByDeptAndDate returns the distinct
+	// assigned_doctor_id count on the triage queue for (hospital,
+	// department, date), considered only for Arrived/Admitted rows whose
+	// referral is in SCHEDULED status. Purely advisory ("staff_assigned"
+	// metric on capacity views).
+	CountAssignedDoctorsByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (int64, error)
+
+	// FindScheduledByDeptAndDate returns the triage rows scheduled for
+	// the given date with Referral + Patient eagerly loaded. Matches the
+	// same Expected/Arrived/Admitted set as CountByDeptAndDate so the
+	// "scheduled patients" list and the capacity counter agree.
+	FindScheduledByDeptAndDate(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) ([]entity.TriageQueue, error)
+
+	// CountMissedByDeptInRange returns the number of triage rows whose
+	// appointment_date falls inside [start, end] and whose ArrivalStatus
+	// is MISSED. Used by the dept-head dashboard to surface a missed-
+	// appointment KPI without scanning the whole table.
+	CountMissedByDeptInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) (int64, error)
+
+	// CountScheduledByDeptInRange returns the number of triage rows whose
+	// appointment_date falls inside [start, end] and whose ArrivalStatus
+	// is Expected/Arrived/Admitted (i.e. still counts toward capacity).
+	CountScheduledByDeptInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) (int64, error)
+
+	// OldestWaitingDaysByDept returns the integer number of days since the
+	// oldest still-waiting (appointment_date IS NULL, arrival_status =
+	// EXPECTED) triage row in the dept was created. 0 when the queue is
+	// empty.
+	OldestWaitingDaysByDept(ctx context.Context, hospitalID, deptID uuid.UUID) (int, error)
 }

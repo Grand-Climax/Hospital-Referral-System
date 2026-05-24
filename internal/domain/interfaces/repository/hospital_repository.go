@@ -39,4 +39,10 @@ type CapacityOverrideRepository interface {
 	BaseRepository[entity.CapacityOverride]
 	GetActive(ctx context.Context, hospitalID, deptID uuid.UUID, date time.Time) (*entity.CapacityOverride, error)
 	ListByDept(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.CapacityOverride, error)
+
+	// ListByDeptAndYearMonth returns overrides whose target_date falls in
+	// the given year (required, > 0) and optional month (1-12; 0 = any
+	// month). Active and inactive rows are included, ordered ascending by
+	// target_date so a calendar UI can render them top-down.
+	ListByDeptAndYearMonth(ctx context.Context, hospitalID, deptID uuid.UUID, year, month int) ([]entity.CapacityOverride, error)
 }

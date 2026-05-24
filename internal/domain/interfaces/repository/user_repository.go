@@ -12,6 +12,7 @@ type UserListFilter struct {
 	Page                      int
 	PageSize                  int
 	Role                      *entity.UserRole
+	Roles                     []entity.UserRole // OR-match across multiple roles (takes precedence over Role when set)
 	HospitalID                *string
 	DepartmentID              *string
 	Email                     *string
