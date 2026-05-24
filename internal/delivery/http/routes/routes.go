@@ -470,6 +470,13 @@ func Register(router *gin.Engine, db *gorm.DB, redisClient *redis.Client, cfg co
 			// Staff capacity (soft hint, surfaced via /capacity/detail only)
 			deptHeadGroup.PUT("/staff-capacity", deptHeadHandler.UpdateStaffCapacity)
 
+			// Baseline daily capacity (standard_daily_limit + overbook_limit).
+			// GET returns the current baseline (for form pre-fill / display).
+			// PUT writes both fields together; effective immediately for
+			// future dates without an active override.
+			deptHeadGroup.GET("/daily-capacity", deptHeadHandler.GetDailyCapacity)
+			deptHeadGroup.PUT("/daily-capacity", deptHeadHandler.UpdateDailyCapacity)
+
 			// Dept-head dashboard widgets (live, read-only)
 			deptHeadGroup.GET("/dashboard/stats", deptHeadDashboardHandler.GetDashboardStats)
 			deptHeadGroup.GET("/dashboard/trends", deptHeadDashboardHandler.GetTrends)

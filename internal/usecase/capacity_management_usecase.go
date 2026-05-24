@@ -282,3 +282,64 @@ func (u *capacityManagementUseCase) UpdateStaffCapacity(ctx context.Context, hos
 		"note":                  fmt.Sprintf("staff capacity soft hint set to %d", value),
 	})
 }
+
+// GetDailyCapacity reads the current baseline (standard_daily_limit,
+// overbook_limit) for the (hospital, department) pair. The FE calls
+// this to pre-fill the edit form and to show the active baseline on
+// the capacity page; live capacity decisions go through
+// getEffectiveCapacity, not this endpoint.
+func (u *capacityManagementUseCase) GetDailyCapacity(ctx context.Context, hospitalID, deptID uuid.UUID) (*dto.DeptHeadDailyCapacityResponse, error) {
+	hd, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.DeptHeadDailyCapacityResponse{
+		Success:            true,
+		HospitalID:         hd.HospitalID,
+		DepartmentID:       hd.DepartmentID,
+		StandardDailyLimit: hd.StandardDailyLimit,
+		OverbookLimit:      hd.OverbookLimit,
+		UpdatedAt:          hd.UpdatedAt,
+	}, nil
+}
+
+// UpdateDailyCapacity persists the baseline daily capacity for a
+// (hospital, department). The change applies to every future date that
+// does not have an active CapacityOverride, starting on the very next
+// getEffectiveCapacity call. Already-frozen DailySchedule rows keep
+// their original MaxSlots / OverbookLimit because logs are immutable.
+func (u *capacityManagementUseCase) UpdateDailyCapacity(
+	ctx context.Context,
+	hospitalID, deptID uuid.UUID,
+	standardDailyLimit, overbookLimit int,
+	userID uuid.UUID,
+) error {
+	if standardDailyLimit < 0 {
+		return errors.New("standard_daily_limit must be 0 or greater")
+	}
+	if overbookLimit < 0 {
+		return errors.New("overbook_limit must be 0 or greater")
+	}
+
+	// Verify the (hospital, department) link exists before mutating.
+	// Without this guard a PUT for a department the caller does not
+	// belong to (or a department that has been unlinked) would succeed
+	// silently because the UPDATE would simply match zero rows.
+	if _, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, deptID); err != nil {
+		return err
+	}
+
+	if err := u.deptRepo.UpdateDailyCapacity(ctx, hospitalID, deptID, standardDailyLimit, overbookLimit); err != nil {
+		return err
+	}
+
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "DAILY_CAPACITY_UPDATED", uuid.Nil, userID)
+
+	return u.auditRepo.LogWithContext(ctx, userID, entity.ActionUpdateSystemConfig, nil, nil, map[string]interface{}{
+		"hospital_id":          hospitalID,
+		"department_id":        deptID,
+		"standard_daily_limit": standardDailyLimit,
+		"overbook_limit":       overbookLimit,
+		"note":                 fmt.Sprintf("baseline daily capacity updated: standard=%d overbook=%d", standardDailyLimit, overbookLimit),
+	})
+}
