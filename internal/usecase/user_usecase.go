@@ -219,6 +219,26 @@ func (u *userUseCase) ListUsers(ctx context.Context, filter irepository.UserList
 	return u.repo.ListUsers(ctx, filter)
 }
 
+// ListDepartmentStaff returns active REFERRING_DOCTOR and RECEPTIONIST
+// users assigned to the given (hospital, department). Used by dept-scoped
+// UIs (assign-doctor pickers, audit lists, etc.). Soft-deleted users and
+// inactive accounts are excluded.
+func (u *userUseCase) ListDepartmentStaff(ctx context.Context, hospitalID, deptID uuid.UUID) ([]entity.User, error) {
+	hospStr := hospitalID.String()
+	deptStr := deptID.String()
+	active := true
+	filter := irepository.UserListFilter{
+		Roles:        []entity.UserRole{entity.RoleReferringDoctor, entity.RoleReceptionist},
+		HospitalID:   &hospStr,
+		DepartmentID: &deptStr,
+		IsActive:     &active,
+		Page:         1,
+		PageSize:     100,
+	}
+	users, _, err := u.repo.ListUsers(ctx, filter)
+	return users, err
+}
+
 func (u *userUseCase) AssignRole(ctx context.Context, userID uuid.UUID, role entity.UserRole) error {
 	if !validRoles[role] {
 		return ErrInvalidRole
