@@ -24,6 +24,7 @@ type httpClient struct {
 }
 
 func NewClient(baseURL string, timeout time.Duration) Client {
+	baseURL = strings.TrimSpace(baseURL)
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &httpClient{
 		baseURL: baseURL,

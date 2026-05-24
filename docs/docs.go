@@ -8194,7 +8194,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the machine learning prediction details for a specific referral.\n**Roles:** RECEIVING_SPECIALIST\n**Visibility:** The specialist must belong to the target hospital of the referral.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access\n- 404 ML prediction not found",
+                "description": "Get the machine learning prediction details for a specific referral, containing inputs and outputs.\n**Roles:** RECEIVING_SPECIALIST\n**Visibility:** The specialist must belong to the target hospital of the referral.\n**Prerequisites:** Referral must exist at the specialist's target hospital.\n**Common Errors:**\n- 400 Invalid format\n- 403 Forbidden (unauthorized hospital access)\n- 404 ML prediction not found",
                 "produces": [
                     "application/json"
                 ],
@@ -8489,7 +8489,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Rerun the machine learning prediction for a specific referral.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Status must be FORWARDED or UNDER_SPECIALIST_REVIEW.\n**Common Errors:**\n- 400 invalid format\n- 403 unauthorized hospital access",
+                "description": "Rerun the machine learning prediction for a specific referral.\n**Roles:** RECEIVING_SPECIALIST\n**Prerequisites:** Status must be UNDER_SPECIALIST_REVIEW (unless ML state is failed or stuck pending).\n**Ownership Check:** The specialist must be the one claimed/assigned to the referral.\n**State Transition:** Triggers a forced rerun check and queues the prediction update.\n**Common Errors:**\n- 400 Invalid format\n- 403 Forbidden (wrong hospital or not assigned)\n- 422 Unprocessable Entity (ML service not configured or daily limit exceeded)",
                 "produces": [
                     "application/json"
                 ],
@@ -8515,6 +8515,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -12657,7 +12669,10 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "explanation": {
-                    "type": "object"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "external_prediction_id": {
                     "type": "string"
