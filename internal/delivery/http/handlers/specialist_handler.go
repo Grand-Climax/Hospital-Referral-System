@@ -339,7 +339,7 @@ func (h *SpecialistHandler) listFilteredReferrals(c *gin.Context, statuses []ent
 // @Summary      Get Referral Details for Specialist
 // @Description  Get detailed information about a forwarded referral, including ML triage (`ml_severity_score`, `ml_severity_tier`, `ml_explanations`, `ml_model_version`, `ml_status`).
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** Status must be FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, ASSIGNED, COMPLETED, REJECTED_BY_SPECIALIST, MISSED, RESCHEDULED, REDIRECTED, or REJECTED_AFTER_SEND.
+// @Description  **Prerequisites:** Referral status must be one of: FORWARDED, UNDER_SPECIALIST_REVIEW, ACCEPTED, SCHEDULED, COMPLETED, REJECTED_BY_SPECIALIST, REDIRECTED, REJECTED_AFTER_SEND, CANCELLED, or DECEASED.
 // @Description  **Common Errors:**
 // @Description  - 400 Invalid format
 // @Description  - 403 Forbidden (wrong hospital)
