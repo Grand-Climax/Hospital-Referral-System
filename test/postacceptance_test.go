@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 
 	"Hospital-Referral-System/internal/delivery/http/dto"
 	"Hospital-Referral-System/internal/delivery/http/handlers"
@@ -87,6 +88,8 @@ func setupPostAcceptanceTestRouter() (*gin.Engine, *MockReferralUseCase, *MockTr
 			dh.GET("/capacity/detail", deptHeadHandler.GetCapacityDetail)
 			dh.GET("/capacity/calendar", deptHeadHandler.GetCapacityCalendar)
 			dh.PUT("/staff-capacity", deptHeadHandler.UpdateStaffCapacity)
+			dh.GET("/daily-capacity", deptHeadHandler.GetDailyCapacity)
+			dh.PUT("/daily-capacity", deptHeadHandler.UpdateDailyCapacity)
 
 			dh.GET("/dashboard/stats", deptHeadDashboardHandler.GetDashboardStats)
 			dh.GET("/dashboard/trends", deptHeadDashboardHandler.GetTrends)
@@ -389,6 +392,107 @@ func TestDepartmentHeadEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.Code)
 		mockCapacity.AssertExpectations(t)
+	})
+
+	t.Run("Get Daily Capacity - happy path returns current baseline", func(t *testing.T) {
+		r2, _, _, _, _, _, mockCap2, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockCap2.On("GetDailyCapacity", mock.Anything, mock.Anything, mock.Anything).
+			Return(&dto.DeptHeadDailyCapacityResponse{
+				Success:            true,
+				HospitalID:         uuid.New(),
+				DepartmentID:       uuid.New(),
+				StandardDailyLimit: 25,
+				OverbookLimit:      3,
+				UpdatedAt:          time.Now(),
+			}, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/daily-capacity", nil)
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"standard_daily_limit":25`)
+		assert.Contains(t, resp.Body.String(), `"overbook_limit":3`)
+		mockCap2.AssertExpectations(t)
+	})
+
+	t.Run("Get Daily Capacity - 404 when link missing", func(t *testing.T) {
+		r2, _, _, _, _, _, mockCap2, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockCap2.On("GetDailyCapacity", mock.Anything, mock.Anything, mock.Anything).
+			Return((*dto.DeptHeadDailyCapacityResponse)(nil), gorm.ErrRecordNotFound)
+
+		req, _ := http.NewRequest("GET", "/api/v1/department-head/daily-capacity", nil)
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+		assert.Contains(t, resp.Body.String(), "hospital-department link not found")
+		mockCap2.AssertExpectations(t)
+	})
+
+	t.Run("Update Daily Capacity - happy path echoes new values", func(t *testing.T) {
+		r2, _, _, _, _, _, mockCap2, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockCap2.On("UpdateDailyCapacity", mock.Anything, mock.Anything, mock.Anything, 35, 5, mock.Anything).Return(nil)
+
+		body, _ := json.Marshal(dto.UpdateDailyCapacityRequest{StandardDailyLimit: 35, OverbookLimit: 5})
+		req, _ := http.NewRequest("PUT", "/api/v1/department-head/daily-capacity", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), "daily capacity baseline updated")
+		assert.Contains(t, resp.Body.String(), `"standard_daily_limit":35`)
+		assert.Contains(t, resp.Body.String(), `"overbook_limit":5`)
+		mockCap2.AssertExpectations(t)
+	})
+
+	t.Run("Update Daily Capacity - zero is a valid value (paused department)", func(t *testing.T) {
+		// 0 is legitimate (e.g. dept temporarily paused). The binding
+		// tag is `min=0` without `required` so 0 must NOT be rejected.
+		r2, _, _, _, _, _, mockCap2, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockCap2.On("UpdateDailyCapacity", mock.Anything, mock.Anything, mock.Anything, 0, 0, mock.Anything).Return(nil)
+
+		body, _ := json.Marshal(dto.UpdateDailyCapacityRequest{StandardDailyLimit: 0, OverbookLimit: 0})
+		req, _ := http.NewRequest("PUT", "/api/v1/department-head/daily-capacity", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockCap2.AssertExpectations(t)
+	})
+
+	t.Run("Update Daily Capacity - negative value rejected by binding", func(t *testing.T) {
+		// No mock expectation: the request must be rejected at the
+		// binding layer before the use case is ever invoked.
+		r2, _, _, _, _, _, _, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+
+		// We can't use the struct because binding:"min=0" lives on the
+		// DTO; instead build a raw JSON body with a negative value.
+		raw := []byte(`{"standard_daily_limit": -1, "overbook_limit": 5}`)
+		req, _ := http.NewRequest("PUT", "/api/v1/department-head/daily-capacity", bytes.NewBuffer(raw))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+	})
+
+	t.Run("Update Daily Capacity - 404 when link missing", func(t *testing.T) {
+		r2, _, _, _, _, _, mockCap2, _, _, _, _, _, _, _ := setupPostAcceptanceTestRouter()
+		mockCap2.On("UpdateDailyCapacity", mock.Anything, mock.Anything, mock.Anything, 30, 0, mock.Anything).
+			Return(gorm.ErrRecordNotFound)
+
+		body, _ := json.Marshal(dto.UpdateDailyCapacityRequest{StandardDailyLimit: 30, OverbookLimit: 0})
+		req, _ := http.NewRequest("PUT", "/api/v1/department-head/daily-capacity", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r2.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+		assert.Contains(t, resp.Body.String(), "hospital-department link not found")
+		mockCap2.AssertExpectations(t)
 	})
 
 	t.Run("Get Schedule single-day missing", func(t *testing.T) {

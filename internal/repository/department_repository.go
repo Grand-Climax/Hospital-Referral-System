@@ -98,3 +98,18 @@ func (r *departmentRepository) UpdateStaffCapacity(ctx context.Context, hospital
 		Where("hospital_id = ? AND department_id = ?", hospitalID, departmentID).
 		Update("max_capacity_of_staff", value).Error
 }
+
+// UpdateDailyCapacity writes standard_daily_limit + overbook_limit in
+// a single UPDATE statement so the live capacity engine never observes
+// a half-applied transition. Like UpdateStaffCapacity, we deliberately
+// avoid Save() so a concurrent write to a different column (e.g.
+// is_active or max_capacity_of_staff) is not stomped.
+func (r *departmentRepository) UpdateDailyCapacity(ctx context.Context, hospitalID, departmentID uuid.UUID, standardDailyLimit, overbookLimit int) error {
+	return r.db.WithContext(ctx).
+		Model(&entity.HospitalDepartment{}).
+		Where("hospital_id = ? AND department_id = ?", hospitalID, departmentID).
+		Updates(map[string]interface{}{
+			"standard_daily_limit": standardDailyLimit,
+			"overbook_limit":       overbookLimit,
+		}).Error
+}
