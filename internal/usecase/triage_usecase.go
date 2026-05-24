@@ -578,7 +578,7 @@ func (u *triageUseCase) GetTriageDetailForSpecialist(ctx context.Context, referr
 	for i := range tc.access {
 		d.ReferralAccessList = append(d.ReferralAccessList, buildDoctorCard(&tc.access[i]))
 	}
-	if tc.queue.Department.Name != "" {
+	if tc.queue.Department != nil && tc.queue.Department.Name != "" {
 		d.DepartmentName = tc.queue.Department.Name
 	}
 
@@ -606,7 +606,7 @@ func (u *triageUseCase) GetTriageDetailForReceptionist(ctx context.Context, refe
 		d.MissReason = string(*tc.queue.MissReason)
 	}
 	d.DepartmentID = tc.queue.DepartmentID
-	if tc.queue.Department.Name != "" {
+	if tc.queue.Department != nil && tc.queue.Department.Name != "" {
 		d.DepartmentName = tc.queue.Department.Name
 	}
 	if tc.referral != nil {
@@ -650,7 +650,7 @@ func (u *triageUseCase) GetTriageDetailForDeptHead(ctx context.Context, referral
 	d.CompositeScore = tc.queue.CompositeScore
 	d.DepartmentID = tc.queue.DepartmentID
 	d.CreatedAt = tc.queue.AssignedAt
-	if tc.queue.Department.Name != "" {
+	if tc.queue.Department != nil && tc.queue.Department.Name != "" {
 		d.DepartmentName = tc.queue.Department.Name
 	}
 	if tc.queue.AssignedDoctorID != nil {
