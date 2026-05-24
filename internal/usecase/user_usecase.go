@@ -144,6 +144,44 @@ func (u *userUseCase) GetMyProfile(ctx context.Context, userID uuid.UUID) (*enti
 	return user, nil
 }
 
+func (u *userUseCase) UpdateMyProfile(ctx context.Context, userID uuid.UUID, input iusecase.UpdateMyProfileInput) (*entity.User, error) {
+	user, err := u.repo.FindByID(ctx, userID)
+	if err != nil || user.IsDeleted {
+		return nil, ErrUserNotFound
+	}
+
+	if input.FirstName != nil {
+		name := strings.TrimSpace(*input.FirstName)
+		if name == "" {
+			return nil, errors.New("first_name cannot be empty")
+		}
+		user.FirstName = name
+	}
+	if input.MiddleName != nil {
+		user.MiddleName = strings.TrimSpace(*input.MiddleName)
+	}
+	if input.LastName != nil {
+		name := strings.TrimSpace(*input.LastName)
+		if name == "" {
+			return nil, errors.New("last_name cannot be empty")
+		}
+		user.LastName = name
+	}
+	if input.PhoneNumber != nil {
+		phone := strings.TrimSpace(*input.PhoneNumber)
+		if phone == "" {
+			user.PhoneNumber = nil
+		} else {
+			user.PhoneNumber = &phone
+		}
+	}
+
+	if err := u.repo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func (u *userUseCase) UpdateUser(ctx context.Context, user *entity.User) error {
 	existing, err := u.repo.FindByID(ctx, user.ID)
 	if err != nil || existing.IsDeleted {
