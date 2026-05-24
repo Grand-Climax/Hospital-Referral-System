@@ -1136,6 +1136,14 @@ func (m *MockTriageQueueRepo) OldestWaitingDaysByDept(ctx context.Context, hospi
 	return args.Int(0), args.Error(1)
 }
 
+func (m *MockTriageQueueRepo) ListTriageQueueFiltered(ctx context.Context, filter irepository.TriageQueueFilter) ([]entity.TriageQueue, int64, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]entity.TriageQueue), args.Get(1).(int64), args.Error(2)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: ClinicalUpdateRepository
@@ -1249,6 +1257,14 @@ func (m *MockReferralAccessRepo) CheckAccess(ctx context.Context, referralID, us
 
 func (m *MockReferralAccessRepo) ListActiveByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error) {
 	args := m.Called(ctx, referralID)
+	return args.Get(0).([]entity.ReferralAccess), args.Error(1)
+}
+
+func (m *MockReferralAccessRepo) ListAllByReferral(ctx context.Context, referralID uuid.UUID) ([]entity.ReferralAccess, error) {
+	args := m.Called(ctx, referralID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).([]entity.ReferralAccess), args.Error(1)
 }
 
@@ -1374,6 +1390,38 @@ func (m *MockTriageUseCase) ReviewTriage(ctx context.Context, referralID, userID
 func (m *MockTriageUseCase) ListScheduledInRange(ctx context.Context, hospitalID, deptID uuid.UUID, start, end time.Time) ([]entity.TriageQueue, error) {
 	args := m.Called(ctx, hospitalID, deptID, start, end)
 	return args.Get(0).([]entity.TriageQueue), args.Error(1)
+}
+
+func (m *MockTriageUseCase) ListTriageFiltered(ctx context.Context, filter dto.TriageListFilter) ([]dto.TriageListItem, int64, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]dto.TriageListItem), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockTriageUseCase) GetTriageDetailForSpecialist(ctx context.Context, referralID, userID uuid.UUID) (*dto.TriageDetailSpecialistResponse, error) {
+	args := m.Called(ctx, referralID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.TriageDetailSpecialistResponse), args.Error(1)
+}
+
+func (m *MockTriageUseCase) GetTriageDetailForReceptionist(ctx context.Context, referralID, userID uuid.UUID) (*dto.TriageDetailReceptionistResponse, error) {
+	args := m.Called(ctx, referralID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.TriageDetailReceptionistResponse), args.Error(1)
+}
+
+func (m *MockTriageUseCase) GetTriageDetailForDeptHead(ctx context.Context, referralID, userID uuid.UUID) (*dto.TriageDetailDeptHeadResponse, error) {
+	args := m.Called(ctx, referralID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.TriageDetailDeptHeadResponse), args.Error(1)
 }
 
 

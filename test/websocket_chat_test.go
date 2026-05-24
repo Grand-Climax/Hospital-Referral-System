@@ -143,6 +143,14 @@ func (m *MockAuditLogRepo) ListByHospital(ctx context.Context, hospitalID uuid.U
 	return args.Get(0).([]entity.AuditLog), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockAuditLogRepo) ListByReferralAndActions(ctx context.Context, referralID uuid.UUID, actions []entity.ActionType, limit int) ([]entity.AuditLog, error) {
+	args := m.Called(ctx, referralID, actions, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]entity.AuditLog), args.Error(1)
+}
+
 // Custom mock JWT Auth handler for testing multiple sessions
 type MockMultiJWTAuth struct {
 	sessions map[string]*auth.TokenPayload
