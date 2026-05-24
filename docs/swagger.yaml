@@ -8899,12 +8899,13 @@ paths:
   /api/v1/specialist/referrals/{id}/ml-prediction:
     get:
       description: |-
-        Get the machine learning prediction details for a specific referral.
+        Get the machine learning prediction details for a specific referral, containing inputs and outputs.
         **Roles:** RECEIVING_SPECIALIST
         **Visibility:** The specialist must belong to the target hospital of the referral.
+        **Prerequisites:** Referral must exist at the specialist's target hospital.
         **Common Errors:**
-        - 400 invalid format
-        - 403 unauthorized hospital access
+        - 400 Invalid format
+        - 403 Forbidden (unauthorized hospital access)
         - 404 ML prediction not found
       parameters:
       - description: Referral ID
@@ -9124,10 +9125,13 @@ paths:
       description: |-
         Rerun the machine learning prediction for a specific referral.
         **Roles:** RECEIVING_SPECIALIST
-        **Prerequisites:** Status must be FORWARDED or UNDER_SPECIALIST_REVIEW.
+        **Prerequisites:** Status must be UNDER_SPECIALIST_REVIEW (unless ML state is failed or stuck pending).
+        **Ownership Check:** The specialist must be the one claimed/assigned to the referral.
+        **State Transition:** Triggers a forced rerun check and queues the prediction update.
         **Common Errors:**
-        - 400 invalid format
-        - 403 unauthorized hospital access
+        - 400 Invalid format
+        - 403 Forbidden (wrong hospital or not assigned)
+        - 422 Unprocessable Entity (ML service not configured or daily limit exceeded)
       parameters:
       - description: Referral ID
         in: path
@@ -9143,6 +9147,14 @@ paths:
             $ref: '#/definitions/dto.BaseResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:

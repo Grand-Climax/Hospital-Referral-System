@@ -570,15 +570,20 @@ func (h *SpecialistHandler) Reject(c *gin.Context) {
 // @Summary      Rerun ML Prediction
 // @Description  Rerun the machine learning prediction for a specific referral.
 // @Description  **Roles:** RECEIVING_SPECIALIST
-// @Description  **Prerequisites:** Status must be FORWARDED or UNDER_SPECIALIST_REVIEW.
+// @Description  **Prerequisites:** Status must be UNDER_SPECIALIST_REVIEW (unless ML state is failed or stuck pending).
+// @Description  **Ownership Check:** The specialist must be the one claimed/assigned to the referral.
+// @Description  **State Transition:** Triggers a forced rerun check and queues the prediction update.
 // @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 403 unauthorized hospital access
+// @Description  - 400 Invalid format
+// @Description  - 403 Forbidden (wrong hospital or not assigned)
+// @Description  - 422 Unprocessable Entity (ML service not configured or daily limit exceeded)
 // @Tags         Specialist
 // @Produce      json
 // @Param        id path string true "Referral ID"
 // @Success      200 {object} dto.BaseResponse
 // @Failure      400 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      422 {object} dto.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/specialist/referrals/{id}/rerun-ml [post]
 func (h *SpecialistHandler) RerunML(c *gin.Context) {
@@ -620,12 +625,13 @@ func (h *SpecialistHandler) RerunML(c *gin.Context) {
 
 // GetMLPrediction godoc
 // @Summary      Get ML Prediction Details
-// @Description  Get the machine learning prediction details for a specific referral.
+// @Description  Get the machine learning prediction details for a specific referral, containing inputs and outputs.
 // @Description  **Roles:** RECEIVING_SPECIALIST
 // @Description  **Visibility:** The specialist must belong to the target hospital of the referral.
+// @Description  **Prerequisites:** Referral must exist at the specialist's target hospital.
 // @Description  **Common Errors:**
-// @Description  - 400 invalid format
-// @Description  - 403 unauthorized hospital access
+// @Description  - 400 Invalid format
+// @Description  - 403 Forbidden (unauthorized hospital access)
 // @Description  - 404 ML prediction not found
 // @Tags         Specialist
 // @Produce      json
