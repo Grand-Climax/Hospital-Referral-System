@@ -333,6 +333,19 @@ func (u *inAppNotificationUseCase) CreateForEvent(ctx context.Context, eventType
 			recipientIDs = append(recipientIDs, h.ID)
 		}
 
+	case "DAILY_CAPACITY_UPDATED":
+		title = "Daily Capacity Updated"
+		message = "The baseline daily capacity (standard limit and overbook ceiling) for your department has been updated. The change applies to all future dates without an active override."
+		heads, _, _ := u.userRepo.ListUsers(ctx, irepository.UserListFilter{
+			Role:         ptrRole(entity.RoleDeptHead),
+			HospitalID:   ptrStrOrNil(hospIDStr),
+			DepartmentID: ptrStrOrNil(deptIDStr),
+			PageSize:     10,
+		})
+		for _, h := range heads {
+			recipientIDs = append(recipientIDs, h.ID)
+		}
+
 	case "STAFF_ADDED":
 		title = "New Staff Added"
 		message = "A new staff member has been registered at your hospital."

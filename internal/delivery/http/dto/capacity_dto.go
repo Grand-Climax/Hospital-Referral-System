@@ -48,6 +48,20 @@ type UpdateStaffCapacityRequest struct {
 	MaxCapacityOfStaff int `json:"max_capacity_of_staff" binding:"required,min=0"`
 }
 
+// UpdateDailyCapacityRequest changes the baseline daily capacity for
+// the caller's HospitalDepartment. Both fields are required so the
+// engine never sees a partial update where one column is at the new
+// value and the other is stale.
+//
+// NOTE: `binding:"min=0"` is used WITHOUT `required` because the int
+// zero-value (0) is a legitimate input (a department can be paused by
+// setting standard_daily_limit to 0). With `required` Gin would reject
+// a literal 0 as "missing".
+type UpdateDailyCapacityRequest struct {
+	StandardDailyLimit int `json:"standard_daily_limit" binding:"min=0" example:"30"`
+	OverbookLimit      int `json:"overbook_limit"        binding:"min=0" example:"5"`
+}
+
 // ScheduleOption is one entry returned by /referrals/{id}/schedule-options.
 type ScheduleOption struct {
 	Date           string `json:"date"`

@@ -176,6 +176,32 @@ type DeptHeadStaffCapacityUpdateResponse struct {
 	Message string `json:"message" example:"staff capacity (soft hint) updated"`
 }
 
+// ── /department-head/daily-capacity ───────────────────────────────────────────
+
+// DeptHeadDailyCapacityUpdateResponse is the success envelope returned
+// after PUT /daily-capacity. The new values are echoed so the FE can
+// reconcile its optimistic cache without an extra GET.
+type DeptHeadDailyCapacityUpdateResponse struct {
+	Success            bool   `json:"success" example:"true"`
+	Message            string `json:"message" example:"daily capacity baseline updated"`
+	StandardDailyLimit int    `json:"standard_daily_limit" example:"30"`
+	OverbookLimit      int    `json:"overbook_limit" example:"5"`
+}
+
+// DeptHeadDailyCapacityResponse is the GET /daily-capacity payload.
+// It returns the current baseline used by the live capacity engine for
+// every future date without an active CapacityOverride. The FE uses
+// this to pre-fill the edit form and to display the "current baseline"
+// chip on the capacity page.
+type DeptHeadDailyCapacityResponse struct {
+	Success            bool      `json:"success" example:"true"`
+	HospitalID         uuid.UUID `json:"hospital_id"`
+	DepartmentID       uuid.UUID `json:"department_id"`
+	StandardDailyLimit int       `json:"standard_daily_limit" example:"30"`
+	OverbookLimit      int       `json:"overbook_limit" example:"5"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
 // ── /department-head/dashboard/stats ──────────────────────────────────────────
 
 // DeptHeadDashboardStatsResponse is the success envelope for the

@@ -596,6 +596,116 @@ func (h *DepartmentHeadHandler) UpdateStaffCapacity(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: "staff capacity (soft hint) updated"})
 }
 
+// GetDailyCapacity godoc
+// @Summary      Get current baseline daily capacity (standard_daily_limit + overbook_limit)
+// @Description  Returns the active baseline daily capacity for the caller's (hospital, department). The FE uses this to pre-fill the edit form on the capacity-settings page and to render the "current baseline" chip.
+// @Description
+// @Description  **Roles:** DEPT_HEAD (scope inferred from token).
+// @Description
+// @Description  **Note:** this is the baseline used when no active CapacityOverride exists for a date. To see what capacity applies to a SPECIFIC date (taking overrides into account), call GET /capacity/detail?date=YYYY-MM-DD instead.
+// @Description
+// @Description  **Common Errors:**
+// @Description  - 401 Unauthorized / scope missing
+// @Description  - 404 hospital-department link not found
+// @Description  - 500 Internal Server Error
+// @Tags         Department Head
+// @Produce      json
+// @Success      200 {object} dto.DeptHeadDailyCapacityResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.DeptHeadErrorResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/department-head/daily-capacity [get]
+func (h *DepartmentHeadHandler) GetDailyCapacity(c *gin.Context) {
+	hospID, deptID, ok := h.scopedHospDept(c)
+	if !ok {
+		return
+	}
+
+	resp, err := h.capacityUC.GetDailyCapacity(c.Request.Context(), hospID, deptID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.BaseResponse{Success: false, Message: "hospital-department link not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// UpdateDailyCapacity godoc
+// @Summary      Update baseline daily capacity (standard_daily_limit + overbook_limit)
+// @Description  Persists a new baseline daily capacity for the caller's (hospital, department). Both fields are written together in a single UPDATE so the live capacity engine never observes a half-applied transition.
+// @Description
+// @Description  **Roles:** DEPT_HEAD (scope inferred from token).
+// @Description
+// @Description  **Effective immediately** for every future date that does NOT have an active CapacityOverride. Date-specific overrides continue to win as they always have. Already-frozen DailySchedule history rows are not touched - their MaxSlots / OverbookLimit remain whatever they were when first written (logs are immutable by design).
+// @Description
+// @Description  **Prerequisites:**
+// @Description  - standard_daily_limit >= 0
+// @Description  - overbook_limit >= 0
+// @Description  - the (hospital, department) link must exist (the caller's own scope)
+// @Description
+// @Description  **Side Effects:**
+// @Description  - UPDATE hospital_departments SET standard_daily_limit=..., overbook_limit=... WHERE ...
+// @Description  - Emits a DAILY_CAPACITY_UPDATED in-app notification to the department's heads.
+// @Description  - Writes an UPDATE_SYSTEM_CONFIG audit row with both new values.
+// @Description
+// @Description  **Common Errors:**
+// @Description  - 400 invalid payload / negative value
+// @Description  - 401 Unauthorized / scope missing
+// @Description  - 404 hospital-department link not found
+// @Description  - 500 Internal Server Error
+// @Tags         Department Head
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.UpdateDailyCapacityRequest true "New baseline daily capacity"
+// @Success      200 {object} dto.DeptHeadDailyCapacityUpdateResponse
+// @Failure      400 {object} dto.DeptHeadErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.DeptHeadErrorResponse
+// @Failure      500 {object} dto.DeptHeadErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/department-head/daily-capacity [put]
+func (h *DepartmentHeadHandler) UpdateDailyCapacity(c *gin.Context) {
+	hospID, deptID, ok := h.scopedHospDept(c)
+	if !ok {
+		return
+	}
+
+	var req dto.UpdateDailyCapacityRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	userIDVal, _ := c.Get("userID")
+	userID := uuid.Nil
+	if uid, ok := userIDVal.(uuid.UUID); ok {
+		userID = uid
+	} else if uid, ok := userIDVal.(*uuid.UUID); ok && uid != nil {
+		userID = *uid
+	}
+
+	if err := h.capacityUC.UpdateDailyCapacity(c.Request.Context(), hospID, deptID, req.StandardDailyLimit, req.OverbookLimit, userID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.BaseResponse{Success: false, Message: "hospital-department link not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.DeptHeadDailyCapacityUpdateResponse{
+		Success:            true,
+		Message:            "daily capacity baseline updated",
+		StandardDailyLimit: req.StandardDailyLimit,
+		OverbookLimit:      req.OverbookLimit,
+	})
+}
+
 // scopedHospDept is a tiny helper that pulls hospID + deptID off the
 // gin context, fails the response with 401 if either is missing, and
 // returns (hospID, deptID, ok). All the dept-head endpoints that scope

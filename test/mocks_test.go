@@ -495,6 +495,10 @@ func (m *MockDepartmentRepo) UpdateStaffCapacity(ctx context.Context, hospitalID
 	return m.Called(ctx, hospitalID, deptID, value).Error(0)
 }
 
+func (m *MockDepartmentRepo) UpdateDailyCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, standardDailyLimit, overbookLimit int) error {
+	return m.Called(ctx, hospitalID, deptID, standardDailyLimit, overbookLimit).Error(0)
+}
+
 func (m *MockReferralUseCase) UpdateAndResubmit(ctx context.Context, id, doctorID uuid.UUID, req dto.UpdateReferralRequest, submit bool) (*dto.ReferralCreationResponse, error) {
 	args := m.Called(ctx, id, doctorID, req, submit)
 	if args.Get(0) == nil {
@@ -1516,6 +1520,18 @@ func (m *MockCapacityManagementUseCase) BuildCapacityCalendar(ctx context.Contex
 
 func (m *MockCapacityManagementUseCase) UpdateStaffCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, value int, userID uuid.UUID) error {
 	return m.Called(ctx, hospitalID, deptID, value, userID).Error(0)
+}
+
+func (m *MockCapacityManagementUseCase) UpdateDailyCapacity(ctx context.Context, hospitalID, deptID uuid.UUID, standardDailyLimit, overbookLimit int, userID uuid.UUID) error {
+	return m.Called(ctx, hospitalID, deptID, standardDailyLimit, overbookLimit, userID).Error(0)
+}
+
+func (m *MockCapacityManagementUseCase) GetDailyCapacity(ctx context.Context, hospitalID, deptID uuid.UUID) (*dto.DeptHeadDailyCapacityResponse, error) {
+	args := m.Called(ctx, hospitalID, deptID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dto.DeptHeadDailyCapacityResponse), args.Error(1)
 }
 
 // ---------------------------------------------------------------------------

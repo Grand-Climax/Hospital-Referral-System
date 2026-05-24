@@ -1543,6 +1543,110 @@
                 }
             }
         },
+        "/api/v1/department-head/daily-capacity": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the active baseline daily capacity for the caller's (hospital, department). The FE uses this to pre-fill the edit form on the capacity-settings page and to render the \"current baseline\" chip.\n\n**Roles:** DEPT_HEAD (scope inferred from token).\n\n**Note:** this is the baseline used when no active CapacityOverride exists for a date. To see what capacity applies to a SPECIFIC date (taking overrides into account), call GET /capacity/detail?date=YYYY-MM-DD instead.\n\n**Common Errors:**\n- 401 Unauthorized / scope missing\n- 404 hospital-department link not found\n- 500 Internal Server Error",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Get current baseline daily capacity (standard_daily_limit + overbook_limit)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadDailyCapacityResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Persists a new baseline daily capacity for the caller's (hospital, department). Both fields are written together in a single UPDATE so the live capacity engine never observes a half-applied transition.\n\n**Roles:** DEPT_HEAD (scope inferred from token).\n\n**Effective immediately** for every future date that does NOT have an active CapacityOverride. Date-specific overrides continue to win as they always have. Already-frozen DailySchedule history rows are not touched - their MaxSlots / OverbookLimit remain whatever they were when first written (logs are immutable by design).\n\n**Prerequisites:**\n- standard_daily_limit \u003e= 0\n- overbook_limit \u003e= 0\n- the (hospital, department) link must exist (the caller's own scope)\n\n**Side Effects:**\n- UPDATE hospital_departments SET standard_daily_limit=..., overbook_limit=... WHERE ...\n- Emits a DAILY_CAPACITY_UPDATED in-app notification to the department's heads.\n- Writes an UPDATE_SYSTEM_CONFIG audit row with both new values.\n\n**Common Errors:**\n- 400 invalid payload / negative value\n- 401 Unauthorized / scope missing\n- 404 hospital-department link not found\n- 500 Internal Server Error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Department Head"
+                ],
+                "summary": "Update baseline daily capacity (standard_daily_limit + overbook_limit)",
+                "parameters": [
+                    {
+                        "description": "New baseline daily capacity",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.UpdateDailyCapacityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadDailyCapacityUpdateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Hospital-Referral-System_internal_delivery_http_dto.DeptHeadErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/department-head/dashboard/stats": {
             "get": {
                 "security": [
@@ -11427,6 +11531,53 @@
                 }
             }
         },
+        "Hospital-Referral-System_internal_delivery_http_dto.DeptHeadDailyCapacityResponse": {
+            "type": "object",
+            "properties": {
+                "department_id": {
+                    "type": "string"
+                },
+                "hospital_id": {
+                    "type": "string"
+                },
+                "overbook_limit": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "standard_daily_limit": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.DeptHeadDailyCapacityUpdateResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "daily capacity baseline updated"
+                },
+                "overbook_limit": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "standard_daily_limit": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "Hospital-Referral-System_internal_delivery_http_dto.DeptHeadDashboardStatsResponse": {
             "type": "object",
             "properties": {
@@ -13782,6 +13933,21 @@
                 },
                 "unread_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "Hospital-Referral-System_internal_delivery_http_dto.UpdateDailyCapacityRequest": {
+            "type": "object",
+            "properties": {
+                "overbook_limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 5
+                },
+                "standard_daily_limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 30
                 }
             }
         },
