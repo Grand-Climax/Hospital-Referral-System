@@ -16,12 +16,15 @@ type TokenPair struct {
 	RefreshToken string
 }
 
+const PurposePasswordResetConfirm = "password_reset_confirm"
+
 type TokenPayload struct {
 	UserID     uuid.UUID       `json:"sub"`
 	Role       entity.UserRole `json:"role,omitempty"`
 	HospID     *uuid.UUID      `json:"hosp_id,omitempty"`
 	DeptID     *uuid.UUID      `json:"dept_id,omitempty"`
 	MFAPending bool            `json:"mfa_pending,omitempty"`
+	Purpose    string          `json:"purpose,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -51,6 +54,23 @@ func GenerateAccessTokenOnly(user *entity.User) (string, error) {
 		},
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, accessPayload).SignedString(getSecret())
+}
+
+func GeneratePasswordResetConfirmToken(userID uuid.UUID) (string, time.Time, error) {
+	expiresAt := time.Now().Add(15 * time.Minute)
+	payload := &TokenPayload{
+		UserID:  userID,
+		Purpose: PurposePasswordResetConfirm,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, payload).SignedString(getSecret())
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return token, expiresAt, nil
 }
 
 func GenerateMFAIntermediateToken(userID uuid.UUID) (string, time.Time, error) {
