@@ -3075,6 +3075,7 @@ definitions:
     - SCHEDULING
     - REMINDER
     - RESCHEDULE
+    - MISSED
     - MISSED_RESCHEDULE
     type: string
     x-enum-varnames:
@@ -3082,6 +3083,7 @@ definitions:
     - NotifyScheduling
     - NotifyReminder
     - NotifyReschedule
+    - NotifyMissed
     - NotifyMissedReschedule
   entity.Patient:
     properties:
@@ -3818,7 +3820,9 @@ paths:
         Update system-wide runtime configuration values.
         **Roles:** SYSTEM_SUPER_ADMIN
         **State Transition:** Immediately affects scheduling logic and triage weight calculations.
-        **Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default.
+        **Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default, mfa_enabled, sms_otp_enabled.
+        **Read-only keys (ignored on PUT):** schema_version — returned by GET for migration tracking only.
+        **MFA / SMS:** sms_otp_enabled requires mfa_enabled=true; disabling MFA automatically sets sms_otp_enabled=false.
         **Common Errors:**
         - 400 invalid key or value format
         - 403 forbidden (not super admin)
