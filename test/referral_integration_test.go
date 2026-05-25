@@ -310,7 +310,7 @@ func TestReceptionistOperations(t *testing.T) {
 	t.Run("Confirm Arrival", func(t *testing.T) {
 		queueID := uuid.New()
 		mockArrival.On("GetTriageQueueByReferralID", mock.Anything, queueID).Return(&entity.TriageQueue{ID: queueID, ReferralID: queueID}, nil)
-		mockArrival.On("ConfirmArrival", mock.Anything, queueID, receptionistID).Return(nil)
+		mockArrival.On("ConfirmArrival", mock.Anything, queueID, receptionistID, hospID, deptID).Return(nil)
 
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/receptionist/"+queueID.String()+"/arrive", nil)
 		req.Header.Set("Content-Type", "application/json")

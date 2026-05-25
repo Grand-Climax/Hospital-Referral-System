@@ -1,41 +1,41 @@
 {
-  "started_at": "2026-05-25T05:02:48.3183432+03:00",
+  "started_at": "2026-05-25T07:22:45.9907858+03:00",
   "base_url": "http://localhost:8081/api/v1",
   "users": {
     "ta_liaison": {
       "user_id": "",
       "email": "liaison.ta@hospital.et",
       "role": "LIAISON_OFFICER",
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJyb2xlIjoiTElBSVNPTl9PRkZJQ0VSIiwiaG9zcF9pZCI6ImExMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImV4cCI6MTc3OTY3ODE3NiwiaWF0IjoxNzc5Njc0NTc2fQ.7DKcht79a6VMR4mk2ZImHCKbF1HUks1Wj4J5ttmLF_k",
-      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJleHAiOjE3ODAyNzkzNzYsImlhdCI6MTc3OTY3NDU3Nn0.1vA2z9PobCQH16ov2LJyecLpjP21BaVzMHwGBTr_pNk"
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJyb2xlIjoiTElBSVNPTl9PRkZJQ0VSIiwiaG9zcF9pZCI6ImExMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImV4cCI6MTc3OTY4NjU3NCwiaWF0IjoxNzc5NjgyOTc0fQ.7jbN5scvVym9N2Kt4F8PpF6mNrmtbPQOwhujMv_2rak",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJleHAiOjE3ODAyODc3NzQsImlhdCI6MTc3OTY4Mjk3NH0.HC4embTtGA4JQZ-qQloZdB2NPGnNq40FwIHXgYem0hY"
     },
     "ta_receptionist": {
       "user_id": "",
       "email": "reception.ta@hospital.et",
       "role": "RECEPTIONIST",
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiUkVDRVBUSU9OSVNUIiwiaG9zcF9pZCI6ImExMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImRlcHRfaWQiOiJiMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3Nzk2NzgxNzgsImlhdCI6MTc3OTY3NDU3OH0.mHU1p8OP-EelvmTtb26FUjQjO7hhO4GylF4mdStFI38",
-      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJleHAiOjE3ODAyNzkzNzgsImlhdCI6MTc3OTY3NDU3OH0.-FZkYsRNQCsRe_0ocPAHf7q5QS5yKJ60FBqft-5kqQ0"
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiUkVDRVBUSU9OSVNUIiwiaG9zcF9pZCI6ImExMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImRlcHRfaWQiOiJiMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3Nzk2ODY1NzYsImlhdCI6MTc3OTY4Mjk3Nn0.ovCeGIsC_YygH0TTUnqG9gyVR6BC4GbizwZbgpNj39w",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJleHAiOjE3ODAyODc3NzYsImlhdCI6MTc3OTY4Mjk3Nn0.F7YgR7ExJM4A_iwTzN4jA0gK1UAAL8b0i85zKFJh49s"
     },
     "ta_specialist": {
       "user_id": "",
       "email": "specialist.ta@hospital.et",
       "role": "RECEIVING_SPECIALIST",
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJyb2xlIjoiUkVDRUlWSU5HX1NQRUNJQUxJU1QiLCJob3NwX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZGVwdF9pZCI6ImIxMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImV4cCI6MTc3OTY3ODE3NywiaWF0IjoxNzc5Njc0NTc3fQ.H_ytxPwxo1nneaasUGlzrsFcKx6FcvNcCXBY1bZiFVI",
-      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJleHAiOjE3ODAyNzkzNzcsImlhdCI6MTc3OTY3NDU3N30.qeafCM9rT-Ldct3SJEOV3ny9Yyurac9kAdR877r75Pk"
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJyb2xlIjoiUkVDRUlWSU5HX1NQRUNJQUxJU1QiLCJob3NwX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZGVwdF9pZCI6ImIxMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImV4cCI6MTc3OTY4NjU3NSwiaWF0IjoxNzc5NjgyOTc1fQ.W4C5dlEQMAHxvGIeYK-z3frgvzx2D845PXdsL_QzRYs",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJleHAiOjE3ODAyODc3NzUsImlhdCI6MTc3OTY4Mjk3NX0.ochOBVxdZPjDsvcDdpsOhsI1IhGjB9cMMnsHO2jLVZs"
     },
     "y12_doctor": {
       "user_id": "",
       "email": "doctor.y12@hospital.et",
       "role": "REFERRING_DOCTOR",
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiUkVGRVJSSU5HX0RPQ1RPUiIsImhvc3BfaWQiOiJhOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDkiLCJleHAiOjE3Nzk2NzgxNzUsImlhdCI6MTc3OTY3NDU3NX0.4xEVv8n3QmwCmuUnXf5IWSUsInS78-ArOsb2znbjg1A",
-      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJleHAiOjE3ODAyNzkzNzUsImlhdCI6MTc3OTY3NDU3NX0.1lgyGdMyyh_kBbOwm95KI6ZDQcAt_l0hYjndery_mgI"
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiUkVGRVJSSU5HX0RPQ1RPUiIsImhvc3BfaWQiOiJhOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDkiLCJleHAiOjE3Nzk2ODY1NzIsImlhdCI6MTc3OTY4Mjk3Mn0.vCO_y12nvYQWU7z-xsJg-YDvV4eJL7S0Pje4MFKxtOM",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJleHAiOjE3ODAyODc3NzIsImlhdCI6MTc3OTY4Mjk3Mn0.KpYLD_Rr_VTh0qo8iuR4q0oC-HTauc9VmaeGaSJbTyY"
     },
     "y12_liaison": {
       "user_id": "",
       "email": "liaison.y12@hospital.et",
       "role": "LIAISON_OFFICER",
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJyb2xlIjoiTElBSVNPTl9PRkZJQ0VSIiwiaG9zcF9pZCI6ImE5MDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwOSIsImV4cCI6MTc3OTY3ODE3NiwiaWF0IjoxNzc5Njc0NTc2fQ.AMpcv63QRaO637kJn36pcLOEjjwE7sB6gqMpVeup7Hc",
-      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJleHAiOjE3ODAyNzkzNzYsImlhdCI6MTc3OTY3NDU3Nn0.u-FD88MzMPqEBRrZuEEb65Hw3MV2zOZua8pBi90huV0"
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJyb2xlIjoiTElBSVNPTl9PRkZJQ0VSIiwiaG9zcF9pZCI6ImE5MDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwOSIsImV4cCI6MTc3OTY4NjU3MywiaWF0IjoxNzc5NjgyOTczfQ.xvQfEFK5-TutKO-M7WQYxyFPh3n7JoRDfESAQTbLT9k",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJleHAiOjE3ODAyODc3NzMsImlhdCI6MTc3OTY4Mjk3M30.g8kP_VbjYV3fUeuhrL7-0xPJsoypfSqgAARcHm8YHVE"
     }
   },
   "patients": {
@@ -57,7 +57,7 @@
   "flows": {
     "jaefer": {
       "label": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
-      "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+      "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
       "steps": [
         {
           "step": 1,
@@ -68,7 +68,7 @@
           "ok": true,
           "body": {
             "referral": {
-              "id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+              "id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
               "patient_id": "e1000000-0000-0000-0000-00000000000a",
               "referring_doctor_id": "d9000000-0000-0000-0000-000000000004",
               "sender_hospital_id": "a9000000-0000-0000-0000-000000000009",
@@ -85,8 +85,8 @@
               "clinical_history_attached": false,
               "vitals_included": false,
               "attachments_included": false,
-              "created_at": "2026-05-25T02:03:39.952024Z",
-              "updated_at": "2026-05-25T02:03:39.952024Z",
+              "created_at": "2026-05-25T04:23:41.751046Z",
+              "updated_at": "2026-05-25T04:23:41.751046Z",
               "is_archived": false,
               "patient": {
                 "id": "e1000000-0000-0000-0000-00000000000a",
@@ -99,8 +99,8 @@
                 "last_name": ""
               },
               "referral_form": {
-                "id": "76424a75-4598-480b-b55e-300304b882aa",
-                "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+                "id": "1d220c26-10e9-4359-9b0b-3e9316910910",
+                "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
                 "clinical_summary": "Chest pain on exertion; suspected angina",
                 "patient_history": "Hypertension 5y, smoker",
                 "reason_of_referral": "Cardiology evaluation required",
@@ -108,8 +108,8 @@
               },
               "diagnoses": [
                 {
-                  "id": "9c331627-74bd-4f72-b411-cc9b7527d128",
-                  "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+                  "id": "dc7ee1d9-41e2-4599-8954-e55d5e5bd81d",
+                  "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
                   "icd_code": "I10",
                   "is_primary": true,
                   "diagnosis_certainty": "SUSPECTED",
@@ -122,9 +122,9 @@
               ],
               "vitals": [
                 {
-                  "id": "563d5203-6d17-4469-8eb8-989bdfcb4201",
-                  "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
-                  "recorded_at": "2026-05-25T02:03:39.952024Z",
+                  "id": "87439aef-6960-46c0-a11f-9da524e93e06",
+                  "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+                  "recorded_at": "2026-05-25T04:23:41.751046Z",
                   "systolic_bp": 150,
                   "diastolic_bp": 95,
                   "heart_rate": 102,
@@ -143,104 +143,104 @@
                 "contact_phone": "+251 11 551 1211",
                 "is_active": true,
                 "created_at": "2026-05-13T23:14:41.848975Z",
-                "updated_at": "2026-05-25T02:03:21.450151Z"
+                "updated_at": "2026-05-25T04:23:22.995236Z"
               },
               "target_department": {
                 "id": "b1000000-0000-0000-0000-000000000001",
                 "name": "Cardiology",
                 "description": "Diagnosis and treatment of heart and vascular conditions",
                 "created_at": "2026-05-13T23:14:44.580071Z",
-                "updated_at": "2026-05-25T02:03:21.548539Z"
+                "updated_at": "2026-05-25T04:23:23.091265Z"
               }
             },
             "success": true,
             "message": "Referral submitted (SUBMITTED)"
           },
-          "duration": "3.8330917s"
+          "duration": "3.7485288s"
         },
         {
           "step": 2,
           "name": "liaison_read",
           "method": "POST",
-          "path": "/liaison/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/read",
+          "path": "/liaison/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/read",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral marked as read"
           },
-          "duration": "4.7381042s"
+          "duration": "4.6630332s"
         },
         {
           "step": 3,
           "name": "liaison_checklist",
           "method": "PUT",
-          "path": "/liaison/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/review-checklist",
+          "path": "/liaison/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/review-checklist",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Review checklist updated"
           },
-          "duration": "3.3484671s"
+          "duration": "3.1745353s"
         },
         {
           "step": 4,
           "name": "liaison_forward",
           "method": "POST",
-          "path": "/liaison/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/forward",
+          "path": "/liaison/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/forward",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral forwarded to specialist"
           },
-          "duration": "5.137142s"
+          "duration": "4.9679834s"
         },
         {
           "step": 5,
           "name": "specialist_read",
           "method": "POST",
-          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/read",
+          "path": "/specialist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/read",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral marked as read and claimed"
           },
-          "duration": "5.8989405s"
+          "duration": "6.4068149s"
         },
         {
           "step": 6,
           "name": "ml_override",
           "method": "POST",
-          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/ml-severity-override",
+          "path": "/specialist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/ml-severity-override",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Severity score overridden successfully"
           },
-          "duration": "1.9736926s"
+          "duration": "1.9297419s"
         },
         {
           "step": 7,
           "name": "specialist_accept",
           "method": "POST",
-          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/accept",
+          "path": "/specialist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/accept",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral accepted and severity score assigned"
           },
-          "duration": "9.5702939s"
+          "duration": "9.955756s"
         },
         {
           "step": 8,
           "name": "specialist_schedule",
           "method": "POST",
-          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/schedule",
+          "path": "/specialist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/schedule",
           "status": 200,
           "ok": true,
           "body": {
@@ -248,26 +248,26 @@
             "message": "Appointment scheduled successfully",
             "rescheduled_from_missed": false
           },
-          "duration": "14.4603097s"
+          "duration": "14.5491086s"
         },
         {
           "step": 9,
           "name": "receptionist_mark_missed",
           "method": "POST",
-          "path": "/receptionist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/miss",
+          "path": "/receptionist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/miss",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Patient marked as missed"
           },
-          "duration": "6.8146035s"
+          "duration": "6.4572166s"
         },
         {
           "step": 10,
           "name": "specialist_emergency_schedule",
           "method": "POST",
-          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/emergency-schedule",
+          "path": "/specialist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/emergency-schedule",
           "status": 200,
           "ok": true,
           "body": {
@@ -275,20 +275,20 @@
             "message": "Emergency appointment scheduled successfully",
             "rescheduled_from_missed": true
           },
-          "duration": "17.427217s"
+          "duration": "17.284476s"
         },
         {
           "step": 11,
           "name": "receptionist_confirm_arrival",
           "method": "POST",
-          "path": "/receptionist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/arrive",
+          "path": "/receptionist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/arrive",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Patient arrival confirmed"
           },
-          "duration": "2.6780703s"
+          "duration": "2.5725631s"
         }
       ],
       "sms_check": [
@@ -296,43 +296,43 @@
           "notification_type": "ACCEPTANCE",
           "delivery_status": "SENT",
           "phone": "+251714855110",
-          "content_preview": "Your referral to Tikur Anbessa Specialized Hospital - Cardiology has been ACCEPTED. The receiving team will contact you for scheduling. Ref: d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+          "content_preview": "Your referral to Tikur Anbessa Specialized Hospital - Cardiology has been ACCEPTED. The receiving team will contact you for scheduling. Ref: bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
           "language_detected": "en (English)",
           "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
-          "created_at": "2026-05-25T05:04:10+03:00"
+          "created_at": "2026-05-25T07:24:11+03:00"
         },
         {
           "notification_type": "SCHEDULING",
-          "delivery_status": "SENT",
+          "delivery_status": "FAILED",
           "phone": "+251714855110",
-          "content_preview": "Your appointment is on Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital, Cardiology. Please arrive on time. Ref: d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+          "content_preview": "Your appointment is on Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital, Cardiology. Please arrive on time. Ref: bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
           "language_detected": "en (English)",
           "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
-          "created_at": "2026-05-25T05:04:24+03:00"
+          "created_at": "2026-05-25T07:24:26+03:00"
         },
         {
           "notification_type": "MISSED",
-          "delivery_status": "SENT",
+          "delivery_status": "FAILED",
           "phone": "+251714855110",
-          "content_preview": "You missed your appointment on Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital. Please visit the hospital as soon as possible. Your referral is being re-evaluated. Ref: d5bb319d-48b6-4...",
+          "content_preview": "You missed your appointment on Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital. Please visit the hospital as soon as possible. Your referral is being re-evaluated. Ref: bebeda5c-b3eb-4...",
           "language_detected": "en (English)",
           "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
-          "created_at": "2026-05-25T05:04:34+03:00"
+          "created_at": "2026-05-25T07:24:36+03:00"
         },
         {
           "notification_type": "MISSED_RESCHEDULE",
-          "delivery_status": "SENT",
+          "delivery_status": "FAILED",
           "phone": "+251714855110",
-          "content_preview": "Your missed appointment has been rescheduled to Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital, Cardiology. Please arrive on time. Ref: d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+          "content_preview": "Your missed appointment has been rescheduled to Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital, Cardiology. Please arrive on time. Ref: bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
           "language_detected": "en (English)",
           "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
-          "created_at": "2026-05-25T05:04:45+03:00"
+          "created_at": "2026-05-25T07:24:47+03:00"
         }
       ]
     },
     "muhammed": {
       "label": "Muhammed (Amhara, Amharic) - happy path",
-      "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+      "referral_id": "5c3cb32f-f864-4267-bf34-3c55872b78c7",
       "steps": [
         {
           "step": 1,
@@ -343,7 +343,7 @@
           "ok": true,
           "body": {
             "referral": {
-              "id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+              "id": "5c3cb32f-f864-4267-bf34-3c55872b78c7",
               "patient_id": "e1000000-0000-0000-0000-00000000000b",
               "referring_doctor_id": "d9000000-0000-0000-0000-000000000004",
               "sender_hospital_id": "a9000000-0000-0000-0000-000000000009",
@@ -360,8 +360,8 @@
               "clinical_history_attached": false,
               "vitals_included": false,
               "attachments_included": false,
-              "created_at": "2026-05-25T02:03:00.15445Z",
-              "updated_at": "2026-05-25T02:03:00.15445Z",
+              "created_at": "2026-05-25T04:22:59.359774Z",
+              "updated_at": "2026-05-25T04:22:59.359774Z",
               "is_archived": false,
               "patient": {
                 "id": "e1000000-0000-0000-0000-00000000000b",
@@ -374,8 +374,8 @@
                 "last_name": ""
               },
               "referral_form": {
-                "id": "c4b6917d-8923-4897-826a-ed00d341aca2",
-                "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+                "id": "563a40d8-330f-418f-8630-cbca4d3aa1f8",
+                "referral_id": "5c3cb32f-f864-4267-bf34-3c55872b78c7",
                 "clinical_summary": "Recurrent chest pain, palpitations",
                 "patient_history": "Hypertension, diabetes 8y",
                 "reason_of_referral": "Cardiology evaluation required",
@@ -383,8 +383,8 @@
               },
               "diagnoses": [
                 {
-                  "id": "a150a857-e316-49b0-b83f-eb7826ea593e",
-                  "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+                  "id": "91a662c4-7f8c-480c-8af4-b26cf5a02b26",
+                  "referral_id": "5c3cb32f-f864-4267-bf34-3c55872b78c7",
                   "icd_code": "I10",
                   "is_primary": true,
                   "diagnosis_certainty": "SUSPECTED",
@@ -397,9 +397,9 @@
               ],
               "vitals": [
                 {
-                  "id": "15229db4-03e5-4d1f-a85b-ac3622668849",
-                  "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
-                  "recorded_at": "2026-05-25T02:03:00.15445Z",
+                  "id": "2255c20a-3da4-46fc-9b1e-a2fe9be6a322",
+                  "referral_id": "5c3cb32f-f864-4267-bf34-3c55872b78c7",
+                  "recorded_at": "2026-05-25T04:22:59.359774Z",
                   "systolic_bp": 150,
                   "diastolic_bp": 95,
                   "heart_rate": 102,
@@ -418,104 +418,104 @@
                 "contact_phone": "+251 11 551 1211",
                 "is_active": true,
                 "created_at": "2026-05-13T23:14:41.848975Z",
-                "updated_at": "2026-05-25T01:59:04.653744Z"
+                "updated_at": "2026-05-25T04:08:31.979008Z"
               },
               "target_department": {
                 "id": "b1000000-0000-0000-0000-000000000001",
                 "name": "Cardiology",
                 "description": "Diagnosis and treatment of heart and vascular conditions",
                 "created_at": "2026-05-13T23:14:44.580071Z",
-                "updated_at": "2026-05-25T01:59:04.749372Z"
+                "updated_at": "2026-05-25T04:08:32.074889Z"
               }
             },
             "success": true,
             "message": "Referral submitted (SUBMITTED)"
           },
-          "duration": "4.0392961s"
+          "duration": "4.9841414s"
         },
         {
           "step": 2,
           "name": "liaison_read",
           "method": "POST",
-          "path": "/liaison/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/read",
+          "path": "/liaison/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/read",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral marked as read"
           },
-          "duration": "4.5706884s"
+          "duration": "3.8751684s"
         },
         {
           "step": 3,
           "name": "liaison_checklist",
           "method": "PUT",
-          "path": "/liaison/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/review-checklist",
+          "path": "/liaison/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/review-checklist",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Review checklist updated"
           },
-          "duration": "1.6828283s"
+          "duration": "2.5884783s"
         },
         {
           "step": 4,
           "name": "liaison_forward",
           "method": "POST",
-          "path": "/liaison/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/forward",
+          "path": "/liaison/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/forward",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral forwarded to specialist"
           },
-          "duration": "5.1616977s"
+          "duration": "6.042265s"
         },
         {
           "step": 5,
           "name": "specialist_read",
           "method": "POST",
-          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/read",
+          "path": "/specialist/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/read",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral marked as read and claimed"
           },
-          "duration": "3.0463295s"
+          "duration": "3.5847715s"
         },
         {
           "step": 6,
           "name": "ml_override",
           "method": "POST",
-          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/ml-severity-override",
+          "path": "/specialist/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/ml-severity-override",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Severity score overridden successfully"
           },
-          "duration": "1.6964187s"
+          "duration": "1.7965222s"
         },
         {
           "step": 7,
           "name": "specialist_accept",
           "method": "POST",
-          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/accept",
+          "path": "/specialist/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/accept",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Referral accepted and severity score assigned"
           },
-          "duration": "9.0211384s"
+          "duration": "8.7941403s"
         },
         {
           "step": 8,
           "name": "specialist_schedule",
           "method": "POST",
-          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/schedule",
+          "path": "/specialist/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/schedule",
           "status": 200,
           "ok": true,
           "body": {
@@ -523,20 +523,20 @@
             "message": "Appointment scheduled successfully",
             "rescheduled_from_missed": false
           },
-          "duration": "7.6486694s"
+          "duration": "7.5016169s"
         },
         {
           "step": 9,
           "name": "receptionist_confirm_arrival",
           "method": "POST",
-          "path": "/receptionist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/arrive",
+          "path": "/receptionist/referrals/5c3cb32f-f864-4267-bf34-3c55872b78c7/arrive",
           "status": 200,
           "ok": true,
           "body": {
             "success": true,
             "message": "Patient arrival confirmed"
           },
-          "duration": "2.6555992s"
+          "duration": "3.1031662s"
         }
       ],
       "sms_check": [
@@ -547,22 +547,22 @@
           "content_preview": "ወደ Tikur Anbessa Specialized Hospital – Cardiology የተላከው ሪፈራል ተቀባይነት አግኝቷል። ለቀጠሮ ተቀባዩ ቡድን ያነጋግርዎታል። መለያ: 5...",
           "language_detected": "am (Amharic)",
           "lifecycle_step": "Muhammed (Amhara, Amharic) - happy path",
-          "created_at": "2026-05-25T05:03:25+03:00"
+          "created_at": "2026-05-25T07:23:27+03:00"
         },
         {
           "notification_type": "SCHEDULING",
           "delivery_status": "SENT",
           "phone": "+251947753588",
-          "content_preview": "ቀጠሮዎ በ Mon, 25 May 2026 at 08:00 በ Tikur Anbessa Specialized Hospital፣ Cardiology ነው። እባክዎ በሰዓቱ ይድረሱ። መለያ: 5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+          "content_preview": "ቀጠሮዎ በ Mon, 25 May 2026 at 08:00 በ Tikur Anbessa Specialized Hospital፣ Cardiology ነው። እባክዎ በሰዓቱ ይድረሱ። መለያ: 5c3cb32f-f864-4267-bf34-3c55872b78c7",
           "language_detected": "am (Amharic)",
           "lifecycle_step": "Muhammed (Amhara, Amharic) - happy path",
-          "created_at": "2026-05-25T05:03:34+03:00"
+          "created_at": "2026-05-25T07:23:36+03:00"
         }
       ]
     }
   },
   "errors": [
-    "[non-fatal] [login_ta_depthead] FAIL after 419.7005ms: status=401 body={\"success\":false,\"error\":\"invalid email or password\"}"
+    "[non-fatal] [login_ta_depthead] FAIL after 1.2527027s: status=401 body={\"success\":false,\"error\":\"invalid email or password\"}"
   ],
-  "ended_at": "2026-05-25T05:04:55.2601999+03:00"
+  "ended_at": "2026-05-25T07:24:56.8358007+03:00"
 }

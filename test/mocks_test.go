@@ -1462,25 +1462,25 @@ func (m *MockArrivalUseCase) GetTodayAndTomorrowSchedule(ctx context.Context, ho
 	return args.Get(0).([]*entity.TriageQueue), args.Error(1)
 }
 
-func (m *MockArrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID) error {
-	return m.Called(ctx, queueID, userID).Error(0)
+func (m *MockArrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID, callerHospID, callerDeptID uuid.UUID) error {
+	return m.Called(ctx, queueID, userID, callerHospID, callerDeptID).Error(0)
 }
 
-func (m *MockArrivalUseCase) ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID) error {
-	return m.Called(ctx, queueID, userID).Error(0)
+func (m *MockArrivalUseCase) ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID, callerHospID, callerDeptID uuid.UUID) error {
+	return m.Called(ctx, queueID, userID, callerHospID, callerDeptID).Error(0)
 }
 
-func (m *MockArrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID, reason string) error {
-	return m.Called(ctx, queueID, doctorID, userID, reason).Error(0)
+func (m *MockArrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID, reason string, callerHospID, callerDeptID uuid.UUID) error {
+	return m.Called(ctx, queueID, doctorID, userID, reason, callerHospID, callerDeptID).Error(0)
 }
 
-func (m *MockArrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
-	return m.Called(ctx, queueID, missReason, userID).Error(0)
+func (m *MockArrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID, callerHospID, callerDeptID uuid.UUID) error {
+	return m.Called(ctx, queueID, missReason, userID, callerHospID, callerDeptID).Error(0)
 }
 
 
-func (m *MockArrivalUseCase) RevokeDoctorAssignment(ctx context.Context, queueID, userID uuid.UUID, reason string) error {
-	return m.Called(ctx, queueID, userID, reason).Error(0)
+func (m *MockArrivalUseCase) RevokeDoctorAssignment(ctx context.Context, queueID, userID uuid.UUID, reason string, callerHospID, callerDeptID uuid.UUID) error {
+	return m.Called(ctx, queueID, userID, reason, callerHospID, callerDeptID).Error(0)
 }
 
 func (m *MockArrivalUseCase) ListMissedByHospital(ctx context.Context, hospitalID uuid.UUID, limit, offset int) ([]*entity.TriageQueue, int64, error) {

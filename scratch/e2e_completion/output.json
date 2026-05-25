@@ -1,0 +1,681 @@
+{
+  "started_at": "2026-05-25T07:28:10.2022588+03:00",
+  "base_url": "http://localhost:8081/api/v1",
+  "users": {
+    "ta_cardio_doctor": {
+      "email": "doctor.cardio1.ta@hospital.et",
+      "role": "REFERRING_DOCTOR",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMjAiLCJyb2xlIjoiUkVGRVJSSU5HX0RPQ1RPUiIsImhvc3BfaWQiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJkZXB0X2lkIjoiYjEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzc5Njg2ODk0LCJpYXQiOjE3Nzk2ODMyOTR9.G76C5OwSwXtpi7-W5SKo2UGP-aFJ12cTDViSmVOwFv0"
+    },
+    "ta_cardio_other": {
+      "email": "doctor.cardio2.ta@hospital.et",
+      "role": "REFERRING_DOCTOR",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMjEiLCJyb2xlIjoiUkVGRVJSSU5HX0RPQ1RPUiIsImhvc3BfaWQiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJkZXB0X2lkIjoiYjEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzc5Njg2ODk1LCJpYXQiOjE3Nzk2ODMyOTV9.TGTy-AZRIGTlIUrh36St5_v9KnDZnZdYv0mNqWTEsww"
+    },
+    "ta_receptionist": {
+      "email": "reception.ta@hospital.et",
+      "role": "RECEPTIONIST",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiUkVDRVBUSU9OSVNUIiwiaG9zcF9pZCI6ImExMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImRlcHRfaWQiOiJiMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3Nzk2ODY4OTMsImlhdCI6MTc3OTY4MzI5M30.57rWed06lf75e9dqBcic68CE246c1vrOIlyxv98wZwc"
+    }
+  },
+  "picked_referral": {
+    "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+    "patient_id": "e1000000-0000-0000-0000-00000000000a",
+    "arrival_status_before": "ARRIVED",
+    "referral_status_before": "SCHEDULED",
+    "hospital_id": "a1000000-0000-0000-0000-000000000001",
+    "department_id": "b1000000-0000-0000-0000-000000000001"
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "rec_list_referrals",
+      "method": "GET",
+      "path": "/receptionist/referrals?limit=20\u0026page=1",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "data": [
+          {
+            "id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "patient_first_name": "Jaefer",
+            "patient_middle_name": "Ali",
+            "patient_last_name": "Mohammed",
+            "patient_region": "Addis Ababa",
+            "department_id": "b1000000-0000-0000-0000-000000000001",
+            "department": "Cardiology",
+            "status": "SCHEDULED",
+            "icd_code": "I10",
+            "diagnosis": "Essential (primary) hypertension",
+            "condition_at_referral": "UNSTABLE",
+            "created_at": "2026-05-25T04:23:41.751046Z",
+            "updated_at": "2026-05-25T04:24:41.645054Z",
+            "ml_status": "MANUAL",
+            "ml_severity_score": 55
+          },
+          {
+            "id": "5c3cb32f-f864-4267-bf34-3c55872b78c7",
+            "patient_first_name": "Muhammed",
+            "patient_middle_name": "Samson",
+            "patient_last_name": "Jemal",
+            "patient_region": "Amhara",
+            "department_id": "b1000000-0000-0000-0000-000000000001",
+            "department": "Cardiology",
+            "status": "SCHEDULED",
+            "icd_code": "I10",
+            "diagnosis": "Essential (primary) hypertension",
+            "condition_at_referral": "UNSTABLE",
+            "created_at": "2026-05-25T04:22:59.359774Z",
+            "updated_at": "2026-05-25T04:23:32.591583Z",
+            "ml_status": "MANUAL",
+            "ml_severity_score": 55
+          },
+          {
+            "id": "24a59c2a-50b2-4700-b8e1-6316976f56f5",
+            "patient_first_name": "Mohammed",
+            "patient_middle_name": "Sam",
+            "patient_last_name": "Mam",
+            "patient_region": "Addis Ababa",
+            "department_id": "b6000000-0000-0000-0000-000000000006",
+            "department": "General Surgery",
+            "status": "SCHEDULED",
+            "icd_code": "A001",
+            "diagnosis": "Cholera due to Vibrio cholerae 01, biovar eltor",
+            "condition_at_referral": "STABLE",
+            "created_at": "2026-05-24T11:38:58.673597Z",
+            "updated_at": "2026-05-24T22:37:21.084952Z",
+            "ml_status": "SUCCESS",
+            "ml_severity_score": 27.9,
+            "ml_severity_tier": "Routine"
+          }
+        ],
+        "success": true,
+        "message": "Referrals retrieved successfully",
+        "total": 3,
+        "page": 1,
+        "page_size": 20
+      },
+      "duration": "1.5067898s"
+    },
+    {
+      "step": 2,
+      "name": "rec_list_missed",
+      "method": "GET",
+      "path": "/receptionist/referrals/missed?limit=20\u0026page=1",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "data": [],
+        "message": "Missed referrals retrieved successfully",
+        "page": 1,
+        "page_size": 20,
+        "success": true,
+        "total": 0
+      },
+      "duration": "914.2864ms"
+    },
+    {
+      "step": 3,
+      "name": "rec_list_upcoming",
+      "method": "GET",
+      "path": "/receptionist/referrals/upcoming",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "data": [],
+        "success": true
+      },
+      "duration": "594.7247ms"
+    },
+    {
+      "step": 4,
+      "name": "rec_offline_data",
+      "method": "GET",
+      "path": "/receptionist/referrals/offline-data",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "schedule": [],
+        "doctors": [
+          {
+            "id": "d1000000-0000-0000-0000-000000000020",
+            "first_name": "Bereket",
+            "last_name": "Cardio"
+          },
+          {
+            "id": "d1000000-0000-0000-0000-000000000021",
+            "first_name": "Selamawit",
+            "last_name": "Cardio"
+          }
+        ]
+      },
+      "duration": "868.4273ms"
+    },
+    {
+      "step": 5,
+      "name": "rec_list_triage_queue",
+      "method": "GET",
+      "path": "/receptionist/referrals/triage-queue?limit=20\u0026page=1",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "queue_id": "ac0a43dd-1396-47dc-9778-45179ae235cf",
+            "referral_id": "24a59c2a-50b2-4700-b8e1-6316976f56f5",
+            "patient_id": "031b55c6-df43-4b84-a482-653acd8aa720",
+            "patient_name": "Mohammed Mam",
+            "composite_score": 26.81,
+            "appointment_date": "2026-05-30T00:00:00Z",
+            "arrival_status": "EXPECTED",
+            "referral_status": "SCHEDULED",
+            "condition_at_referral": "stable",
+            "department_id": "b6000000-0000-0000-0000-000000000006",
+            "department_name": "General Surgery",
+            "has_doctor_assigned": false,
+            "created_at": "2026-05-24T22:07:47.647856Z"
+          },
+          {
+            "queue_id": "cc7f2a85-80de-41d4-8600-d41716ec3bf9",
+            "referral_id": "5c3cb32f-f864-4267-bf34-3c55872b78c7",
+            "patient_id": "e1000000-0000-0000-0000-00000000000b",
+            "patient_name": "Muhammed Jemal",
+            "composite_score": 21,
+            "appointment_date": "2026-05-25T00:00:00Z",
+            "arrival_status": "ARRIVED",
+            "referral_status": "SCHEDULED",
+            "condition_at_referral": "unstable",
+            "department_id": "b1000000-0000-0000-0000-000000000001",
+            "department_name": "Cardiology",
+            "has_doctor_assigned": false,
+            "created_at": "2026-05-25T04:23:30.265876Z"
+          },
+          {
+            "queue_id": "958bb63f-4b76-446f-ac71-06f0c4f4794b",
+            "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "patient_id": "e1000000-0000-0000-0000-00000000000a",
+            "patient_name": "Jaefer Mohammed",
+            "composite_score": 21,
+            "appointment_date": "2026-05-25T00:00:00Z",
+            "arrival_status": "ARRIVED",
+            "referral_status": "SCHEDULED",
+            "condition_at_referral": "unstable",
+            "department_id": "b1000000-0000-0000-0000-000000000001",
+            "department_name": "Cardiology",
+            "has_doctor_assigned": false,
+            "created_at": "2026-05-25T04:24:16.003643Z"
+          }
+        ],
+        "total": 3,
+        "page": 1,
+        "limit": 20,
+        "has_more": false
+      },
+      "duration": "863.8512ms"
+    },
+    {
+      "step": 6,
+      "name": "rec_list_doctors",
+      "method": "GET",
+      "path": "/receptionist/doctors",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "success": true,
+        "message": "Doctors retrieved successfully",
+        "data": [
+          {
+            "id": "d1000000-0000-0000-0000-000000000020",
+            "first_name": "Bereket",
+            "last_name": "Cardio"
+          },
+          {
+            "id": "d1000000-0000-0000-0000-000000000021",
+            "first_name": "Selamawit",
+            "last_name": "Cardio"
+          }
+        ]
+      },
+      "duration": "780.0184ms"
+    },
+    {
+      "step": 7,
+      "name": "rec_get_referral",
+      "method": "GET",
+      "path": "/receptionist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+        "patient_id": "e1000000-0000-0000-0000-00000000000a",
+        "referring_doctor_id": "d9000000-0000-0000-0000-000000000004",
+        "sender_hospital_id": "a9000000-0000-0000-0000-000000000009",
+        "target_hospital_id": "a1000000-0000-0000-0000-000000000001",
+        "liaison_officer_id": "d9000000-0000-0000-0000-000000000002",
+        "target_dept_id": "b1000000-0000-0000-0000-000000000001",
+        "status": "SCHEDULED",
+        "triage_status": "OVERRIDDEN",
+        "ml_severity_score": 55,
+        "waiting_hours_weight": 0,
+        "ml_status": "MANUAL",
+        "ml_retry_count": 0,
+        "ml_successful_rerun_count": 0,
+        "patient_identity_verified": true,
+        "clinical_history_attached": true,
+        "vitals_included": true,
+        "attachments_included": true,
+        "specialist_id": "d1000000-0000-0000-0000-000000000003",
+        "created_at": "2026-05-25T04:23:41.751046Z",
+        "updated_at": "2026-05-25T04:24:41.645054Z",
+        "is_archived": false,
+        "patient": {
+          "id": "e1000000-0000-0000-0000-00000000000a",
+          "sex": "male",
+          "date_of_birth": "1990-06-15T00:00:00Z",
+          "home_region": "Addis Ababa",
+          "allow_sms": true,
+          "first_name": "Jaefer",
+          "middle_name": "Ali",
+          "last_name": "Mohammed",
+          "national_id": "NAT-E2E-JAEFER-001",
+          "phone_number": "+251714855110"
+        },
+        "referral_form": {
+          "id": "1d220c26-10e9-4359-9b0b-3e9316910910",
+          "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+          "clinical_summary": "Chest pain on exertion; suspected angina",
+          "patient_history": "Hypertension 5y, smoker",
+          "reason_of_referral": "Cardiology evaluation required",
+          "condition_at_referral": "UNSTABLE"
+        },
+        "diagnoses": [
+          {
+            "id": "dc7ee1d9-41e2-4599-8954-e55d5e5bd81d",
+            "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "icd_code": "I10",
+            "is_primary": true,
+            "diagnosis_certainty": "SUSPECTED",
+            "code_info": {
+              "code": "I10",
+              "description": "Essential (primary) hypertension",
+              "category": "Circulatory System Diseases"
+            }
+          }
+        ],
+        "vitals": [
+          {
+            "id": "87439aef-6960-46c0-a11f-9da524e93e06",
+            "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "recorded_at": "2026-05-25T04:23:41.751046Z",
+            "systolic_bp": 150,
+            "diastolic_bp": 95,
+            "heart_rate": 102,
+            "sp_o2": 96.5,
+            "temperature": 37.1,
+            "respiratory_rate": 22,
+            "gcs_score": 15
+          }
+        ],
+        "receiver_hospital": {
+          "id": "a1000000-0000-0000-0000-000000000001",
+          "name": "Tikur Anbessa Specialized Hospital",
+          "tier_level": "TERTIARY",
+          "region": "Addis Ababa",
+          "address": "Zambia St, Addis Ababa, Ethiopia",
+          "contact_phone": "+251 11 551 1211",
+          "is_active": true,
+          "created_at": "2026-05-13T23:14:41.848975Z",
+          "updated_at": "2026-05-25T04:24:07.54772Z"
+        },
+        "target_department": {
+          "id": "b1000000-0000-0000-0000-000000000001",
+          "name": "Cardiology",
+          "description": "Diagnosis and treatment of heart and vascular conditions",
+          "created_at": "2026-05-13T23:14:44.580071Z",
+          "updated_at": "2026-05-25T04:24:07.645409Z"
+        },
+        "success": true,
+        "message": "Referral details retrieved successfully"
+      },
+      "duration": "1.4780093s"
+    },
+    {
+      "step": 8,
+      "name": "rec_get_triage_detail",
+      "method": "GET",
+      "path": "/receptionist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/triage-detail",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "success": true,
+        "data": {
+          "queue_id": "958bb63f-4b76-446f-ac71-06f0c4f4794b",
+          "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+          "arrival_status": "ARRIVED",
+          "referral_status": "SCHEDULED",
+          "appointment_date": "2026-05-25T00:00:00Z",
+          "department_id": "b1000000-0000-0000-0000-000000000001",
+          "department_name": "Cardiology",
+          "patient": {
+            "id": "e1000000-0000-0000-0000-00000000000a",
+            "full_name": "Jaefer Mohammed",
+            "first_name": "Jaefer",
+            "middle_name": "Ali",
+            "last_name": "Mohammed",
+            "sex": "male",
+            "age_years": 35,
+            "home_region": "Addis Ababa",
+            "national_id": "NAT-E2E-JAEFER-001",
+            "phone_number": "+251714855110"
+          },
+          "arrived_at": "2026-05-25T04:24:54.742439Z",
+          "miss_reason": "PATIENT_NO_SHOW",
+          "arrival_history": [
+            {
+              "at": "2026-05-25T04:23:57.490723Z",
+              "event": "APPROVE_REFERRAL",
+              "description": "Referral approved by liaison",
+              "actor_id": "d9000000-0000-0000-0000-000000000002",
+              "actor_name": "Liaison Y12"
+            },
+            {
+              "at": "2026-05-25T04:24:15.778676Z",
+              "event": "ACCEPT_REFERRAL",
+              "description": "Referral accepted into triage",
+              "actor_id": "d1000000-0000-0000-0000-000000000003",
+              "actor_name": "Yohannes Specialist"
+            },
+            {
+              "at": "2026-05-25T04:24:31.814027Z",
+              "event": "MARK_MISSED",
+              "description": "Appointment marked as missed",
+              "actor_id": "d1000000-0000-0000-0000-000000000004",
+              "actor_name": "Aster Receptionist"
+            },
+            {
+              "at": "2026-05-25T04:24:43.226994Z",
+              "event": "MANUAL_EMERGENCY_SCHEDULE",
+              "description": "Emergency schedule applied",
+              "actor_id": "d1000000-0000-0000-0000-000000000003",
+              "actor_name": "Yohannes Specialist"
+            },
+            {
+              "at": "2026-05-25T04:24:55.553996Z",
+              "event": "CONFIRM_ARRIVAL",
+              "description": "Patient arrived and was checked in",
+              "actor_id": "d1000000-0000-0000-0000-000000000004",
+              "actor_name": "Aster Receptionist"
+            }
+          ],
+          "available_actions": {
+            "schedule": false,
+            "emergency_schedule": false,
+            "return_to_triage": false,
+            "mark_arrived": false,
+            "mark_missed": false,
+            "assign_doctor": true,
+            "revoke_doctor": false
+          }
+        }
+      },
+      "duration": "1.8229047s"
+    },
+    {
+      "step": 9,
+      "name": "receptionist_assign_doctor",
+      "method": "POST",
+      "path": "/receptionist/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/assign-doctor",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "success": true,
+        "message": "Doctor assigned successfully"
+      },
+      "duration": "4.6523563s"
+    },
+    {
+      "step": 10,
+      "name": "doc_assigned_treating_alias",
+      "method": "GET",
+      "path": "/doctor/referrals/assigned?access_type=treating\u0026include_revoked=false",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "data": [
+          {
+            "id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "patient_first_name": "Jaefer",
+            "patient_middle_name": "Ali",
+            "patient_last_name": "Mohammed",
+            "patient_region": "Addis Ababa",
+            "department_id": "b1000000-0000-0000-0000-000000000001",
+            "department": "Cardiology",
+            "status": "SCHEDULED",
+            "icd_code": "I10",
+            "diagnosis": "Essential (primary) hypertension",
+            "condition_at_referral": "UNSTABLE",
+            "created_at": "2026-05-25T04:23:41.751046Z",
+            "updated_at": "2026-05-25T04:24:41.645054Z",
+            "ml_status": "MANUAL",
+            "ml_severity_score": 55,
+            "access_type": "TREATING_DOCTOR",
+            "access_granted_at": "2026-05-25T04:28:26Z"
+          }
+        ],
+        "success": true,
+        "message": "Assigned referrals retrieved successfully"
+      },
+      "duration": "2.0968296s"
+    },
+    {
+      "step": 11,
+      "name": "doc_assigned_treating_canonical",
+      "method": "GET",
+      "path": "/doctor/referrals/assigned?access_type=TREATING_DOCTOR\u0026include_revoked=false",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "data": [
+          {
+            "id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "patient_first_name": "Jaefer",
+            "patient_middle_name": "Ali",
+            "patient_last_name": "Mohammed",
+            "patient_region": "Addis Ababa",
+            "department_id": "b1000000-0000-0000-0000-000000000001",
+            "department": "Cardiology",
+            "status": "SCHEDULED",
+            "icd_code": "I10",
+            "diagnosis": "Essential (primary) hypertension",
+            "condition_at_referral": "UNSTABLE",
+            "created_at": "2026-05-25T04:23:41.751046Z",
+            "updated_at": "2026-05-25T04:24:41.645054Z",
+            "ml_status": "MANUAL",
+            "ml_severity_score": 55,
+            "access_type": "TREATING_DOCTOR",
+            "access_granted_at": "2026-05-25T04:28:26Z"
+          }
+        ],
+        "success": true,
+        "message": "Assigned referrals retrieved successfully"
+      },
+      "duration": "2.4521912s"
+    },
+    {
+      "step": 12,
+      "name": "doc_get_single_as_grantee",
+      "method": "GET",
+      "path": "/doctor/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+        "patient_id": "e1000000-0000-0000-0000-00000000000a",
+        "referring_doctor_id": "d9000000-0000-0000-0000-000000000004",
+        "sender_hospital_id": "a9000000-0000-0000-0000-000000000009",
+        "target_hospital_id": "a1000000-0000-0000-0000-000000000001",
+        "liaison_officer_id": "d9000000-0000-0000-0000-000000000002",
+        "target_dept_id": "b1000000-0000-0000-0000-000000000001",
+        "status": "SCHEDULED",
+        "triage_status": "OVERRIDDEN",
+        "ml_severity_score": 55,
+        "waiting_hours_weight": 0,
+        "ml_status": "MANUAL",
+        "ml_retry_count": 0,
+        "ml_successful_rerun_count": 0,
+        "patient_identity_verified": true,
+        "clinical_history_attached": true,
+        "vitals_included": true,
+        "attachments_included": true,
+        "specialist_id": "d1000000-0000-0000-0000-000000000003",
+        "created_at": "2026-05-25T04:23:41.751046Z",
+        "updated_at": "2026-05-25T04:24:41.645054Z",
+        "is_archived": false,
+        "patient": {
+          "id": "e1000000-0000-0000-0000-00000000000a",
+          "sex": "male",
+          "date_of_birth": "1990-06-15T00:00:00Z",
+          "home_region": "Addis Ababa",
+          "allow_sms": true,
+          "first_name": "Jaefer",
+          "middle_name": "Ali",
+          "last_name": "Mohammed",
+          "national_id": "NAT-E2E-JAEFER-001",
+          "phone_number": "+251714855110"
+        },
+        "referral_form": {
+          "id": "1d220c26-10e9-4359-9b0b-3e9316910910",
+          "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+          "clinical_summary": "Chest pain on exertion; suspected angina",
+          "patient_history": "Hypertension 5y, smoker",
+          "reason_of_referral": "Cardiology evaluation required",
+          "condition_at_referral": "UNSTABLE"
+        },
+        "diagnoses": [
+          {
+            "id": "dc7ee1d9-41e2-4599-8954-e55d5e5bd81d",
+            "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "icd_code": "I10",
+            "is_primary": true,
+            "diagnosis_certainty": "SUSPECTED",
+            "code_info": {
+              "code": "I10",
+              "description": "Essential (primary) hypertension",
+              "category": "Circulatory System Diseases"
+            }
+          }
+        ],
+        "vitals": [
+          {
+            "id": "87439aef-6960-46c0-a11f-9da524e93e06",
+            "referral_id": "bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+            "recorded_at": "2026-05-25T04:23:41.751046Z",
+            "systolic_bp": 150,
+            "diastolic_bp": 95,
+            "heart_rate": 102,
+            "sp_o2": 96.5,
+            "temperature": 37.1,
+            "respiratory_rate": 22,
+            "gcs_score": 15
+          }
+        ],
+        "receiver_hospital": {
+          "id": "a1000000-0000-0000-0000-000000000001",
+          "name": "Tikur Anbessa Specialized Hospital",
+          "tier_level": "TERTIARY",
+          "region": "Addis Ababa",
+          "address": "Zambia St, Addis Ababa, Ethiopia",
+          "contact_phone": "+251 11 551 1211",
+          "is_active": true,
+          "created_at": "2026-05-13T23:14:41.848975Z",
+          "updated_at": "2026-05-25T04:24:07.54772Z"
+        },
+        "target_department": {
+          "id": "b1000000-0000-0000-0000-000000000001",
+          "name": "Cardiology",
+          "description": "Diagnosis and treatment of heart and vascular conditions",
+          "created_at": "2026-05-13T23:14:44.580071Z",
+          "updated_at": "2026-05-25T04:24:07.645409Z"
+        },
+        "success": true,
+        "message": "Referral details retrieved successfully"
+      },
+      "duration": "3.1048597s"
+    },
+    {
+      "step": 13,
+      "name": "doctor_record_outcome_peer_expects_403",
+      "method": "POST",
+      "path": "/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/clinical/outcome",
+      "status": 403,
+      "ok": true,
+      "body": {
+        "success": false,
+        "error": "forbidden: only the assigned treating doctor can record an outcome"
+      },
+      "duration": "2.8329772s"
+    },
+    {
+      "step": 14,
+      "name": "doctor_clinical_update",
+      "method": "POST",
+      "path": "/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/clinical/updates",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "success": true,
+        "message": "Clinical update added successfully"
+      },
+      "duration": "1.893241s"
+    },
+    {
+      "step": 15,
+      "name": "doctor_record_outcome",
+      "method": "POST",
+      "path": "/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364/clinical/outcome",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "success": true,
+        "message": "Referral outcome recorded successfully"
+      },
+      "duration": "7.5821808s"
+    },
+    {
+      "step": 16,
+      "name": "doc_get_single_post_outcome_expects_403",
+      "method": "GET",
+      "path": "/doctor/referrals/bebeda5c-b3eb-4402-87e3-64f0ce4f1364",
+      "status": 403,
+      "ok": true,
+      "body": {
+        "success": false,
+        "error": "unauthorized: not the sender and no active access grant"
+      },
+      "duration": "1.6389586s"
+    }
+  ],
+  "db_checks": [
+    {
+      "name": "referral.status",
+      "expected": "COMPLETED",
+      "actual": "COMPLETED",
+      "ok": true
+    },
+    {
+      "name": "triage_queue.arrival_status",
+      "expected": "ADMITTED",
+      "actual": "ADMITTED",
+      "ok": true
+    },
+    {
+      "name": "referral_outcomes row count",
+      "expected": "\u003e=1",
+      "actual": "1",
+      "ok": true
+    }
+  ],
+  "errors": null,
+  "ended_at": "2026-05-25T07:28:52.3716502+03:00"
+}

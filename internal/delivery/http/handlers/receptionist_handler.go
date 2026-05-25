@@ -496,7 +496,8 @@ func (h *ReceptionistHandler) ConfirmArrival(c *gin.Context) {
 		return
 	}
 
-	if err := h.arrivalUC.ConfirmArrival(c.Request.Context(), queue.ID, userID); err != nil {
+	hospID, deptID := h.getHospitalAndDept(c)
+	if err := h.arrivalUC.ConfirmArrival(c.Request.Context(), queue.ID, userID, hospID, deptID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
@@ -548,7 +549,8 @@ func (h *ReceptionistHandler) AssignDoctor(c *gin.Context) {
 		return
 	}
 
-	if err := h.arrivalUC.AssignDoctor(c.Request.Context(), queue.ID, req.DoctorID, userID, req.Reason); err != nil {
+	hospID, deptID := h.getHospitalAndDept(c)
+	if err := h.arrivalUC.AssignDoctor(c.Request.Context(), queue.ID, req.DoctorID, userID, req.Reason, hospID, deptID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
@@ -595,7 +597,8 @@ func (h *ReceptionistHandler) RevokeDoctor(c *gin.Context) {
 		return
 	}
 
-	if err := h.arrivalUC.RevokeDoctorAssignment(c.Request.Context(), queue.ID, userID, req.Reason); err != nil {
+	hospID, deptID := h.getHospitalAndDept(c)
+	if err := h.arrivalUC.RevokeDoctorAssignment(c.Request.Context(), queue.ID, userID, req.Reason, hospID, deptID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
@@ -648,7 +651,8 @@ func (h *ReceptionistHandler) MarkMissed(c *gin.Context) {
 		return
 	}
 
-	if err := h.arrivalUC.MarkMissed(c.Request.Context(), queue.ID, entity.MissReason(req.MissReason), userID); err != nil {
+	hospID, deptID := h.getHospitalAndDept(c)
+	if err := h.arrivalUC.MarkMissed(c.Request.Context(), queue.ID, entity.MissReason(req.MissReason), userID, hospID, deptID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
@@ -687,7 +691,8 @@ func (h *ReceptionistHandler) ReturnToTriage(c *gin.Context) {
 		userID = *uID
 	}
 
-	if err := h.arrivalUC.ReturnToTriage(c.Request.Context(), triageQueueID, userID); err != nil {
+	hospID, deptID := h.getHospitalAndDept(c)
+	if err := h.arrivalUC.ReturnToTriage(c.Request.Context(), triageQueueID, userID, hospID, deptID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
