@@ -84,6 +84,18 @@ func (r *departmentRepository) FindHospitalDepartment(ctx context.Context, hospi
 	return &link, nil
 }
 
+func (r *departmentRepository) FindHospitalDepartmentForHospital(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID) (*entity.HospitalDepartment, error) {
+	var link entity.HospitalDepartment
+	err := r.db.WithContext(ctx).
+		Preload("Department").
+		Where("hospital_id = ? AND (department_id = ? OR id = ?)", hospitalID, departmentOrLinkID, departmentOrLinkID).
+		First(&link).Error
+	if err != nil {
+		return nil, err
+	}
+	return &link, nil
+}
+
 func (r *departmentRepository) UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error {
 	return r.db.WithContext(ctx).Save(link).Error
 }

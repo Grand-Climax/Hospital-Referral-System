@@ -123,10 +123,18 @@ func (u *departmentUseCase) ListHospitalDepartments(ctx context.Context, hospita
 	return u.repo.ListHospitalDepartments(ctx, hospitalID)
 }
 
-func (u *departmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentID uuid.UUID, isActive bool) error {
-	existing, _ := u.repo.FindHospitalDepartment(ctx, hospitalID, departmentID)
-	if existing == nil {
-		return ErrHospitalDeptLinkNotFound
+func (u *departmentUseCase) GetHospitalDepartmentLink(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID) (*entity.HospitalDepartment, error) {
+	link, err := u.repo.FindHospitalDepartmentForHospital(ctx, hospitalID, departmentOrLinkID)
+	if err != nil || link == nil {
+		return nil, ErrHospitalDeptLinkNotFound
+	}
+	return link, nil
+}
+
+func (u *departmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID, isActive bool) error {
+	existing, err := u.GetHospitalDepartmentLink(ctx, hospitalID, departmentOrLinkID)
+	if err != nil {
+		return err
 	}
 	existing.IsActive = isActive
 	return u.repo.UpdateHospitalDepartment(ctx, existing)
