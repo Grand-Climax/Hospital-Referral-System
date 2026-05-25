@@ -62,4 +62,5 @@ type UserUseCase interface {
 	HospitalAdminListActiveStaffSessions(ctx context.Context, adminID uuid.UUID, filter HospitalAdminSessionFilter) ([]entity.Session, int64, error)
 	HospitalAdminForceLogoutStaff(ctx context.Context, adminID, staffID uuid.UUID) (int64, error)
 	GetPersonnelWidgetStats(ctx context.Context, adminID uuid.UUID) (*dto.HospitalAdminPersonnelWidgetResponse, error)
+	GetDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) (map[uuid.UUID]*entity.User, error)
 }
