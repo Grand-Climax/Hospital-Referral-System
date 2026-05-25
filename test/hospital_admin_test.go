@@ -57,6 +57,7 @@ func setupHospitalAdminTestRouter() (*gin.Engine, *MockUserUseCase, *MockReferra
 		api.PATCH("/hospital/profile", opsHandler.UpdateMyHospitalProfile)
 		api.POST("/departments", opsHandler.LinkDepartmentToMyHospital)
 		api.GET("/departments", opsHandler.ListMyHospitalDepartments)
+		api.PATCH("/departments/:deptId/activation", opsHandler.SetDepartmentActive)
 		api.PATCH("/departments/:deptId/head", opsHandler.AssignDepartmentHead)
 	}
 
@@ -115,6 +116,7 @@ func TestHospitalAdminStaffManagement(t *testing.T) {
 
 func TestHospitalAdminOperations(t *testing.T) {
 	deptID := uuid.New()
+	linkID := uuid.New()
 
 	t.Run("Get Hospital Profile", func(t *testing.T) {
 		r, _, _, mockHosp, _ := setupHospitalAdminTestRouter()
@@ -151,9 +153,8 @@ func TestHospitalAdminOperations(t *testing.T) {
 		reqBody := dto.HospitalAdminAssignDepartmentHeadRequest{
 			StaffID: staffID.String(),
 		}
-		
-		// AssignDepartmentHead calls ListHospitalDepartments first for validation
-		mockDept.On("ListHospitalDepartments", mock.Anything, mock.Anything).Return([]entity.HospitalDepartment{{DepartmentID: deptID}}, nil)
+
+		mockDept.On("GetHospitalDepartmentLink", mock.Anything, mock.Anything, deptID).Return(&entity.HospitalDepartment{DepartmentID: deptID}, nil)
 		mockUser.On("HospitalAdminReassignStaffDepartment", mock.Anything, mock.Anything, staffID, &deptID).Return(nil)
 		mockUser.On("HospitalAdminChangeStaffRole", mock.Anything, mock.Anything, staffID, entity.RoleDeptHead).Return(nil)
 
@@ -168,11 +169,30 @@ func TestHospitalAdminOperations(t *testing.T) {
 		mockUser.AssertExpectations(t)
 	})
 
+	t.Run("Assign Department Head using hospital-department link id", func(t *testing.T) {
+		r, mockUser, _, _, mockDept := setupHospitalAdminTestRouter()
+		staffID := uuid.New()
+
+		mockDept.On("GetHospitalDepartmentLink", mock.Anything, mock.Anything, linkID).Return(&entity.HospitalDepartment{ID: linkID, DepartmentID: deptID}, nil)
+		mockUser.On("HospitalAdminReassignStaffDepartment", mock.Anything, mock.Anything, staffID, &deptID).Return(nil)
+		mockUser.On("HospitalAdminChangeStaffRole", mock.Anything, mock.Anything, staffID, entity.RoleDeptHead).Return(nil)
+
+		body := []byte(`{"id":"` + staffID.String() + `"}`)
+		req, _ := http.NewRequest("PATCH", "/api/v1/hospital-admin/departments/"+linkID.String()+"/head", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockDept.AssertExpectations(t)
+		mockUser.AssertExpectations(t)
+	})
+
 	t.Run("Assign Department Head with staffId camelCase", func(t *testing.T) {
 		r, mockUser, _, _, mockDept := setupHospitalAdminTestRouter()
 		staffID := uuid.New()
 
-		mockDept.On("ListHospitalDepartments", mock.Anything, mock.Anything).Return([]entity.HospitalDepartment{{DepartmentID: deptID}}, nil)
+		mockDept.On("GetHospitalDepartmentLink", mock.Anything, mock.Anything, deptID).Return(&entity.HospitalDepartment{DepartmentID: deptID}, nil)
 		mockUser.On("HospitalAdminReassignStaffDepartment", mock.Anything, mock.Anything, staffID, &deptID).Return(nil)
 		mockUser.On("HospitalAdminChangeStaffRole", mock.Anything, mock.Anything, staffID, entity.RoleDeptHead).Return(nil)
 
@@ -185,6 +205,22 @@ func TestHospitalAdminOperations(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.Code)
 		mockDept.AssertExpectations(t)
 		mockUser.AssertExpectations(t)
+	})
+
+	t.Run("Set Department Active using hospital-department link id", func(t *testing.T) {
+		r, _, _, _, mockDept := setupHospitalAdminTestRouter()
+		isActive := false
+
+		mockDept.On("SetHospitalDepartmentActive", mock.Anything, mock.Anything, linkID, isActive).Return(nil)
+
+		body, _ := json.Marshal(dto.HospitalAdminSetDepartmentActiveRequest{IsActive: &isActive})
+		req, _ := http.NewRequest("PATCH", "/api/v1/hospital-admin/departments/"+linkID.String()+"/activation", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		mockDept.AssertExpectations(t)
 	})
 
 	t.Run("Get Personnel Widget Stats", func(t *testing.T) {
