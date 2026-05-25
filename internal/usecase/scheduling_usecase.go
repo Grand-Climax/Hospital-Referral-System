@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,10 @@ type schedulingUseCase struct {
 	jobCheckpointRepo irepository.JobCheckpointRepository
 	clinicalRepo      irepository.ClinicalUpdateRepository
 	checkpointRepo    irepository.SchedulerCheckpointRepository
+	// triageUC owns the composite-score formula so BatchSchedule can
+	// recompute waiting rows just before booking them. Optional - nil
+	// means "skip the recompute step" (useful in tests / older wiring).
+	triageUC iusecase.TriageUseCase
 }
 
 func NewSchedulingUseCase(
@@ -48,6 +53,7 @@ func NewSchedulingUseCase(
 	jRepo irepository.JobCheckpointRepository,
 	cRepo irepository.ClinicalUpdateRepository,
 	checkpointRepo irepository.SchedulerCheckpointRepository,
+	triageUC iusecase.TriageUseCase,
 ) iusecase.SchedulingUseCase {
 	return &schedulingUseCase{
 		db:                db,
@@ -63,6 +69,7 @@ func NewSchedulingUseCase(
 		jobCheckpointRepo: jRepo,
 		clinicalRepo:      cRepo,
 		checkpointRepo:    checkpointRepo,
+		triageUC:          triageUC,
 	}
 }
 
@@ -488,6 +495,51 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 		return nil, err
 	}
 
+	// ── Composite recompute pass ────────────────────────────────────────
+	// CalculateCompositeScore is only run at LandInQueue time, which
+	// means the aging bonus is fixed at zero on every stored row. We
+	// refresh the score for every waiting row in THIS dept (no others)
+	// before booking, so that:
+	//   * aging actually moves the queue (e.g. a 30-day waiter outranks
+	//     a fresh patient with the same clinical inputs),
+	//   * patients that don't get a slot this run keep their fresh
+	//     score for the next batch,
+	//   * dashboard / list reads see live numbers immediately.
+	//
+	// Cost: one CalculateCompositeScore per row + N UPDATEs wrapped in a
+	// single transaction. For typical dept queue sizes (<100) this adds
+	// well under 100ms. The recompute is scoped strictly to the
+	// (hospital, department) being batch-processed — no other depts'
+	// rows are touched.
+	recomputedCount := 0
+	scoreDeltaTotal := 0.0
+	if u.triageUC != nil && len(waiting) > 0 {
+		_ = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			for i := range waiting {
+				newScore, scErr := u.triageUC.CalculateCompositeScore(ctx, waiting[i].ReferralID)
+				if scErr != nil {
+					continue
+				}
+				delta := newScore - waiting[i].CompositeScore
+				if upErr := tx.Model(&entity.TriageQueue{}).
+					Where("id = ?", waiting[i].ID).
+					Update("composite_score", newScore).Error; upErr != nil {
+					continue
+				}
+				waiting[i].CompositeScore = newScore
+				scoreDeltaTotal += delta
+				recomputedCount++
+			}
+			return nil
+		})
+		// Sort in-memory by the fresh scores so the booking loop honors
+		// the new ordering without a re-fetch round trip.
+		sort.SliceStable(waiting, func(a, b int) bool {
+			return waiting[a].CompositeScore > waiting[b].CompositeScore
+		})
+	}
+	// ────────────────────────────────────────────────────────────────────
+
 	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, departmentID)
 	if err != nil {
 		return nil, err
@@ -581,9 +633,11 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 	}
 
 	u.auditRepo.LogWithContext(ctx, userID, entity.ActionBatchSchedule, nil, nil, map[string]interface{}{
-		"hospital_id":   hospitalID,
-		"department_id": departmentID,
-		"result":        result,
+		"hospital_id":       hospitalID,
+		"department_id":     departmentID,
+		"recomputed_count":  recomputedCount,
+		"score_delta_total": scoreDeltaTotal,
+		"result":            result,
 	})
 
 	if result.ScheduledCount > 0 {
