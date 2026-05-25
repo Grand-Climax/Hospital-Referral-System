@@ -168,13 +168,32 @@ func (c *afroMessageClient) Send(ctx context.Context, req SendRequest) (*SendRes
 		return nil, err
 	}
 
+	// Even if AfroMessage returns 4xx/5xx, the body is usually JSON
+	// describing the rejection. We parse-best-effort and surface the
+	// raw body in the error so operators can see exactly what the
+	// provider said. The previous behaviour ("AfroMessage error: map[]")
+	// dropped every actionable detail when Errors was empty.
 	var afroResp AfroMessageResponse
-	if err := json.Unmarshal(respBody, &afroResp); err != nil {
-		return nil, fmt.Errorf("failed to parse AfroMessage response: %w", err)
+	parseErr := json.Unmarshal(respBody, &afroResp)
+
+	bodySnippet := string(respBody)
+	if len(bodySnippet) > 512 {
+		bodySnippet = bodySnippet[:512] + "...[truncated]"
+	}
+
+	if parseErr != nil {
+		log.Printf("afromessage send: parse error http=%d body=%q to=%s",
+			resp.StatusCode, bodySnippet, req.To)
+		return nil, fmt.Errorf("AfroMessage parse error: http=%d body=%s", resp.StatusCode, bodySnippet)
 	}
 
 	if afroResp.Acknowledge != "success" {
-		return nil, fmt.Errorf("AfroMessage error: %v", afroResp.Errors)
+		log.Printf("afromessage send REJECTED http=%d acknowledge=%q errors=%v body=%q to=%s",
+			resp.StatusCode, afroResp.Acknowledge, afroResp.Errors, bodySnippet, req.To)
+		return nil, fmt.Errorf(
+			"AfroMessage rejected send: http=%d acknowledge=%q errors=%v body=%s",
+			resp.StatusCode, afroResp.Acknowledge, afroResp.Errors, bodySnippet,
+		)
 	}
 
 	// Extract message ID from polymorphic response
