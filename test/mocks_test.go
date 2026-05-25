@@ -487,6 +487,14 @@ func (m *MockDepartmentRepo) FindHospitalDepartment(ctx context.Context, hospita
 	return args.Get(0).(*entity.HospitalDepartment), args.Error(1)
 }
 
+func (m *MockDepartmentRepo) FindHospitalDepartmentForHospital(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID) (*entity.HospitalDepartment, error) {
+	args := m.Called(ctx, hospitalID, departmentOrLinkID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.HospitalDepartment), args.Error(1)
+}
+
 func (m *MockDepartmentRepo) UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error {
 	return m.Called(ctx, link).Error(0)
 }
@@ -2103,9 +2111,17 @@ func (m *MockDepartmentUseCase) ListHospitalDepartments(ctx context.Context, hos
 	return args.Get(0).([]entity.HospitalDepartment), args.Error(1)
 }
 
-func (m *MockDepartmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentID uuid.UUID, isActive bool) error {
-	args := m.Called(ctx, hospitalID, departmentID, isActive)
+func (m *MockDepartmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID, isActive bool) error {
+	args := m.Called(ctx, hospitalID, departmentOrLinkID, isActive)
 	return args.Error(0)
+}
+
+func (m *MockDepartmentUseCase) GetHospitalDepartmentLink(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID) (*entity.HospitalDepartment, error) {
+	args := m.Called(ctx, hospitalID, departmentOrLinkID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.HospitalDepartment), args.Error(1)
 }
 
 func (m *MockDepartmentUseCase) ValidateDepartmentForHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error {
