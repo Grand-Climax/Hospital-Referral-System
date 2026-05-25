@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -140,19 +141,28 @@ func (h *HospitalAdminOperationsHandler) LinkDepartmentToMyHospital(c *gin.Conte
 		return
 	}
 
-	var req dto.HospitalAdminLinkDepartmentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var raw map[string]interface{}
+	if err := c.ShouldBindJSON(&raw); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	deptID, err := uuid.Parse(req.DepartmentID)
+	deptIDStr, dailyLimit := dto.ResolveLinkDepartmentFromBody(raw)
+	if deptIDStr == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "department_id is required in the request body (accepted keys: department_id, departmentId, id)",
+		})
+		return
+	}
+
+	deptID, err := uuid.Parse(deptIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
 		return
 	}
 
-	if err := h.departmentUseCase.LinkDepartmentToHospital(c.Request.Context(), hospID, deptID, req.DailyLimit); err != nil {
+	if err := h.departmentUseCase.LinkDepartmentToHospital(c.Request.Context(), hospID, deptID, dailyLimit); err != nil {
 		switch err {
 		case usecase.ErrHospitalNotFound:
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "Hospital not found"})
@@ -299,17 +309,20 @@ func (h *HospitalAdminOperationsHandler) AssignDepartmentHead(c *gin.Context) {
 		return
 	}
 
-	var raw map[string]interface{}
-	if err := c.ShouldBindJSON(&raw); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
-		return
+	var bodyBytes []byte
+	if c.Request.Body != nil {
+		bodyBytes, err = io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request body"})
+			return
+		}
 	}
 
-	staffIDStr := dto.ResolveStaffIDFromBody(raw)
+	staffIDStr := dto.ResolveStaffID(bodyBytes, c.Request.URL.Query())
 	if staffIDStr == "" {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Success: false,
-			Error:   "staff_id is required in the request body (accepted keys: staff_id, staffId, user_id, userId, head_id, headId, id)",
+			Error:   "staff_id is required (body keys: staff_id, staffId, user_id, userId, head_id, headId, departmentHeadId, staff, head, id; or query param staff_id)",
 		})
 		return
 	}
