@@ -309,10 +309,13 @@ func (h *HospitalAdminOperationsHandler) AssignDepartmentHead(c *gin.Context) {
 		return
 	}
 
-	bodyBytes, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request body"})
-		return
+	var bodyBytes []byte
+	if c.Request.Body != nil {
+		bodyBytes, err = io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request body"})
+			return
+		}
 	}
 
 	staffIDStr := dto.ResolveStaffID(bodyBytes, c.Request.URL.Query())
