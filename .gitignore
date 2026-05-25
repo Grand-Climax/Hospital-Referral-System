@@ -58,3 +58,7 @@ Thumbs.db
 *.swp
 *.swo
 referral_ml/
+
+# Local helper scripts not part of the codebase
+commit.sh
+FRONTEND_DOCTOR_RECEPTIONIST.md

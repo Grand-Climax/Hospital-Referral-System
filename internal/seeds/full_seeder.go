@@ -328,6 +328,15 @@ func seedUsers(ctx context.Context, db *gorm.DB) error {
 		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000008"), NationalID: "REC-READ-001", Email: "reception.primary@hospital.et", FirstName: "Primary", LastName: "Reception", Role: entity.RoleReceptionist, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash},
 		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000009"), NationalID: "LIA-READ-001", Email: "liaison@moh.gov.et", FirstName: "MoH", LastName: "Liaison", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp1, PasswordHash: defaultHash},
 
+		// TA Cardiology treating doctors. AssignDoctor (receptionist_handler)
+		// and the /receptionist/doctors dropdown both filter to
+		// REFERRING_DOCTOR users that share the queue's (hospital_id,
+		// department_id). Without these two rows the seed dataset has
+		// zero assignable doctors at TA Cardiology and the receptionist
+		// can never finish the post-arrival flow.
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000020"), NationalID: "DOC-TA-CARDIO-001", Email: "doctor.cardio1.ta@hospital.et", FirstName: "Bereket", LastName: "Cardio", Role: entity.RoleReferringDoctor, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+		{ID: uuid.MustParse("d1000000-0000-0000-0000-000000000021"), NationalID: "DOC-TA-CARDIO-002", Email: "doctor.cardio2.ta@hospital.et", FirstName: "Selamawit", LastName: "Cardio", Role: entity.RoleReferringDoctor, HospitalID: &hosp1, DepartmentID: &deptCardio, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
+
 		// St. Paul's
 		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000001"), NationalID: "DOC-SP-001", Email: "doctor.sp@hospital.et", FirstName: "Tesfaye", LastName: "Doctor", Role: entity.RoleReferringDoctor, HospitalID: &hosp2, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
 		{ID: uuid.MustParse("d2000000-0000-0000-0000-000000000002"), NationalID: "LIA-SP-001", Email: "liaison.sp@hospital.et", FirstName: "Liaison", LastName: "SP", Role: entity.RoleLiaisonOfficer, HospitalID: &hosp2, PasswordHash: defaultHash, Region: ptrRegion(entity.RegionAddisAbaba)},
