@@ -21,6 +21,8 @@ type DepartmentRepository interface {
 	UnlinkFromHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error
 	ListHospitalDepartments(ctx context.Context, hospitalID uuid.UUID) ([]entity.HospitalDepartment, error)
 	FindHospitalDepartment(ctx context.Context, hospitalID, departmentID uuid.UUID) (*entity.HospitalDepartment, error)
+	// FindHospitalDepartmentForHospital resolves a link by department_id OR hospital_departments.id.
+	FindHospitalDepartmentForHospital(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID) (*entity.HospitalDepartment, error)
 	UpdateHospitalDepartment(ctx context.Context, link *entity.HospitalDepartment) error
 
 	// UpdateStaffCapacity sets HospitalDepartment.MaxCapacityOfStaff to
