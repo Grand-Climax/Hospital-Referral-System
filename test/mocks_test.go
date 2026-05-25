@@ -109,6 +109,11 @@ func (m *MockReferralRepo) UpdateReferralTransaction(ctx context.Context, referr
 	return args.Error(0)
 }
 
+func (m *MockReferralRepo) UpdateTargetDepartment(ctx context.Context, referralID, newDeptID uuid.UUID) error {
+	args := m.Called(ctx, referralID, newDeptID)
+	return args.Error(0)
+}
+
 func (m *MockReferralRepo) DeleteReferral(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)

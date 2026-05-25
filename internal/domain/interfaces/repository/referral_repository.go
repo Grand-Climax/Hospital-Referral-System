@@ -107,6 +107,13 @@ type ReferralRepository interface {
 	BaseRepository[entity.Referral]
 	CreateReferralTransaction(ctx context.Context, referral *entity.Referral) error
 	UpdateReferralTransaction(ctx context.Context, referral *entity.Referral) error
+	// UpdateTargetDepartment performs a focused single-column UPDATE
+	// on referrals.target_dept_id. It exists because the heavyweight
+	// UpdateReferralTransaction uses Save with FullSaveAssociations,
+	// which re-applies the preloaded TargetDepartment row and silently
+	// reverts the FK change. Callers that only need to flip the dept
+	// must use this method, not UpdateReferralTransaction.
+	UpdateTargetDepartment(ctx context.Context, referralID, newDeptID uuid.UUID) error
 	DeleteReferral(ctx context.Context, id uuid.UUID) error
 	GetReferralByID(ctx context.Context, id uuid.UUID) (*entity.Referral, error)
 	ListReferrals(ctx context.Context, filter map[string]interface{}) ([]entity.Referral, error)

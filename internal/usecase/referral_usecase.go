@@ -1679,9 +1679,19 @@ func (u *referralUseCase) ChangeDepartment(ctx context.Context, referralID, spec
 	}
 
 	oldDeptID := ref.TargetDeptID
-	ref.TargetDeptID = newDeptID
+	if oldDeptID == newDeptID {
+		// Idempotency guard: treat a no-op change as success so the FE
+		// can re-issue the same request without flipping audit rows.
+		return nil
+	}
 
-	if err := u.referralRepo.UpdateReferralTransaction(ctx, ref); err != nil {
+	// IMPORTANT: do NOT call UpdateReferralTransaction here. That helper
+	// uses Save with FullSaveAssociations, which re-saves the preloaded
+	// TargetDepartment relation and silently reverts target_dept_id
+	// back to the old value - exactly the bug the FE just hit (200 OK
+	// with no DB change). UpdateTargetDepartment is a focused single-
+	// column UPDATE that bypasses associations entirely.
+	if err := u.referralRepo.UpdateTargetDepartment(ctx, referralID, newDeptID); err != nil {
 		return err
 	}
 
