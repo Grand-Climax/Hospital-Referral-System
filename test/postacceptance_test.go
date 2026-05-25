@@ -216,7 +216,7 @@ func TestSpecialistEndpoints(t *testing.T) {
 	})
 
 	t.Run("Return To Triage - Success", func(t *testing.T) {
-		mockArrival.On("ReturnToTriage", mock.Anything, referralID, mock.Anything).Return(nil)
+		mockArrival.On("ReturnToTriage", mock.Anything, referralID, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		req, _ := http.NewRequest("POST", "/api/v1/specialist/referrals/"+referralID.String()+"/return-to-triage", nil)
 		resp := httptest.NewRecorder()
@@ -687,7 +687,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 
 	t.Run("Confirm Arrival", func(t *testing.T) {
 		mockArrival.On("GetTriageQueueByReferralID", mock.Anything, queueID).Return(&entity.TriageQueue{ID: queueID, ReferralID: queueID}, nil)
-		mockArrival.On("ConfirmArrival", mock.Anything, queueID, mock.Anything).Return(nil)
+		mockArrival.On("ConfirmArrival", mock.Anything, queueID, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/arrive", nil)
 		resp := httptest.NewRecorder()
@@ -701,7 +701,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 		doctorID := uuid.New()
 		reqBody := dto.AssignDoctorRequest{DoctorID: doctorID}
 		mockArrival.On("GetTriageQueueByReferralID", mock.Anything, queueID).Return(&entity.TriageQueue{ID: queueID, ReferralID: queueID}, nil)
-		mockArrival.On("AssignDoctor", mock.Anything, queueID, doctorID, mock.Anything, mock.Anything).Return(nil)
+		mockArrival.On("AssignDoctor", mock.Anything, queueID, doctorID, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/assign-doctor", bytes.NewBuffer(body))
@@ -716,7 +716,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 	t.Run("Mark Missed", func(t *testing.T) {
 		reqBody := dto.MarkMissedRequest{MissReason: "PATIENT_NO_SHOW"}
 		mockArrival.On("GetTriageQueueByReferralID", mock.Anything, queueID).Return(&entity.TriageQueue{ID: queueID, ReferralID: queueID}, nil)
-		mockArrival.On("MarkMissed", mock.Anything, queueID, entity.MissPatientNoShow, mock.Anything).Return(nil)
+		mockArrival.On("MarkMissed", mock.Anything, queueID, entity.MissPatientNoShow, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/miss", bytes.NewBuffer(body))
@@ -728,7 +728,7 @@ func TestReceptionistEndpoints(t *testing.T) {
 	})
 
 	t.Run("Return To Triage", func(t *testing.T) {
-		mockArrival.On("ReturnToTriage", mock.Anything, queueID, mock.Anything).Return(nil)
+		mockArrival.On("ReturnToTriage", mock.Anything, queueID, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		req, _ := http.NewRequest("POST", "/api/v1/receptionist/referrals/"+queueID.String()+"/return-to-triage", nil)
 		resp := httptest.NewRecorder()
