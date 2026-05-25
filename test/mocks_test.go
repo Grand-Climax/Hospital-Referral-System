@@ -1680,8 +1680,8 @@ func (m *MockNotificationRepo) GetSent(ctx context.Context, limit int) ([]entity
 	return args.Get(0).([]entity.Notification), args.Error(1)
 }
 
-func (m *MockNotificationRepo) UpdateDelivery(ctx context.Context, id uuid.UUID, status entity.DeliveryStatus, messageID *string) error {
-	return m.Called(ctx, id, status, messageID).Error(0)
+func (m *MockNotificationRepo) UpdateDelivery(ctx context.Context, id uuid.UUID, status entity.DeliveryStatus, messageID *string, failureReason *string) error {
+	return m.Called(ctx, id, status, messageID, failureReason).Error(0)
 }
 
 // ---------------------------------------------------------------------------

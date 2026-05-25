@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,25 @@ import (
 	"Hospital-Referral-System/internal/infrastructure/sms"
 	"Hospital-Referral-System/pkg/utils"
 )
+
+// smsFailureReason flattens an AfroMessage send error into a stable,
+// human-readable string we can persist in notifications.failure_reason
+// AND emit via log.Printf so Cloud Logging picks it up. Without this
+// the only signal was a `delivery_status=FAILED` row with no breadcrumb,
+// which forced operators to guess between "bad phone number", "expired
+// JWT", "carrier outage", and "bulk endpoint 500".
+func smsFailureReason(err error, resp *sms.SendResponse) *string {
+	switch {
+	case err != nil:
+		s := err.Error()
+		return &s
+	case resp == nil:
+		s := "AfroMessage returned a nil response without an error"
+		return &s
+	default:
+		return nil
+	}
+}
 
 type notificationUseCase struct {
 	referralRepo     irepository.ReferralRepository
@@ -177,11 +197,22 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 		Message: content,
 	})
 	if sendErr != nil || resp == nil {
-		_ = u.notificationRepo.UpdateDelivery(ctx, notif.ID, entity.DeliveryFailed, nil)
+		reason := smsFailureReason(sendErr, resp)
+		log.Printf("sms send FAILED referral=%s notif=%s to=%s reason=%v",
+			ref.ID, notif.ID, patient.PhonePlain, derefStr(reason))
+		_ = u.notificationRepo.UpdateDelivery(ctx, notif.ID, entity.DeliveryFailed, nil, reason)
 		return nil
 	}
-	_ = u.notificationRepo.UpdateDelivery(ctx, notif.ID, entity.DeliverySent, &resp.MessageID)
+	_ = u.notificationRepo.UpdateDelivery(ctx, notif.ID, entity.DeliverySent, &resp.MessageID, nil)
 	return nil
+}
+
+// derefStr safely formats a *string for log lines.
+func derefStr(s *string) string {
+	if s == nil {
+		return "<nil>"
+	}
+	return *s
 }
 
 func mapTypeToKey(notifType entity.NotificationType) string {
@@ -220,11 +251,13 @@ func (u *notificationUseCase) TriggerManualSend(ctx context.Context, hospitalID,
 			Message: n.Content,
 		})
 
-		if err != nil {
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil)
+		if err != nil || resp == nil {
+			reason := smsFailureReason(err, resp)
+			log.Printf("sms manual-send FAILED notif=%s to=%s reason=%v", n.ID, n.PhoneNumber, derefStr(reason))
+			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil, reason)
 			summary.FailedCount++
 		} else {
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &resp.MessageID)
+			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &resp.MessageID, nil)
 			summary.SentCount++
 		}
 	}
@@ -280,11 +313,12 @@ func (u *notificationUseCase) ProcessPendingSMS(ctx context.Context, limit int) 
 
 	for _, n := range pending {
 		if msgID, ok := msgMap[n.PhoneNumber]; ok {
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &msgID)
+			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &msgID, nil)
 			summary.SentCount++
 		} else {
-			// This recipient wasn't in success list – mark as failed
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil)
+			reason := "bulk send did not return a message_id for this recipient (likely rejected by AfroMessage)"
+			log.Printf("sms bulk-send FAILED notif=%s to=%s reason=%s", n.ID, n.PhoneNumber, reason)
+			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil, &reason)
 			summary.FailedCount++
 		}
 	}
@@ -311,10 +345,12 @@ func (u *notificationUseCase) sendIndividualWithFallback(ctx context.Context, no
 			Message: n.Content,
 		})
 		if err != nil || resp == nil {
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil)
+			reason := smsFailureReason(err, resp)
+			log.Printf("sms fallback FAILED notif=%s to=%s reason=%v", n.ID, n.PhoneNumber, derefStr(reason))
+			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil, reason)
 			summary.FailedCount++
 		} else {
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &resp.MessageID)
+			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &resp.MessageID, nil)
 			summary.SentCount++
 		}
 	}
@@ -349,12 +385,17 @@ func (u *notificationUseCase) ResendNotification(ctx context.Context, id uuid.UU
 		Message: n.Content,
 	})
 
-	if err != nil {
-		_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil)
-		return nil, fmt.Errorf("resend failed: %w", err)
+	if err != nil || resp == nil {
+		reason := smsFailureReason(err, resp)
+		log.Printf("sms resend FAILED notif=%s to=%s reason=%v", n.ID, n.PhoneNumber, derefStr(reason))
+		_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil, reason)
+		if err != nil {
+			return nil, fmt.Errorf("resend failed: %w", err)
+		}
+		return nil, fmt.Errorf("resend failed: nil response from provider")
 	}
 
-	err = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &resp.MessageID)
+	err = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &resp.MessageID, nil)
 	if err != nil {
 		return nil, err
 	}
