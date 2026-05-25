@@ -9,14 +9,20 @@ type DepartmentResponse struct {
 	BaseResponse
 }
 
+type DepartmentHeadSummary struct {
+	ID       string `json:"id"`
+	FullName string `json:"full_name"`
+}
+
 type HospitalDepartmentResponse struct {
-	ID                 string             `json:"id"`
-	HospitalID         string             `json:"hospital_id"`
-	DepartmentID       string             `json:"department_id"`
-	Department         DepartmentResponse `json:"department"`
-	StandardDailyLimit int                `json:"standard_daily_limit"`
-	IsActive           bool               `json:"is_active"`
-	CreatedAt          string             `json:"created_at"`
+	ID                 string                 `json:"id"`
+	HospitalID         string                 `json:"hospital_id"`
+	DepartmentID       string                 `json:"department_id"`
+	Department         DepartmentResponse     `json:"department"`
+	DepartmentHead     *DepartmentHeadSummary `json:"department_head,omitempty"`
+	StandardDailyLimit int                    `json:"standard_daily_limit"`
+	IsActive           bool                   `json:"is_active"`
+	CreatedAt          string                 `json:"created_at"`
 	BaseResponse
 }
 
