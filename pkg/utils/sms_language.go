@@ -20,7 +20,7 @@ func GetLocalizedSMS(templateKey string, homeRegion string, placeholders map[str
 	switch lang {
 	case "am":
 		templates = map[string]string{
-			"accepted":          "ወደ {{Hospital}} – {{Department}} የተላከው ሪፈራል ተቀባይነት አግኝቷል። ለቀጠሮ ተቀባዩ ቡድን ያነጋግርዎታል። መለያ: {{ReferralID}}",
+			"accepted":          "ወደ {{Hospital}} - {{Department}} የተላከው ሪፈራል ተቀባይነት አግኝቷል። ለቀጠሮ ተቀባዩ ቡድን ያነጋግርዎታል። መለያ: {{ReferralID}}",
 			"scheduled":         "ቀጠሮዎ በ {{Date}} በ {{Hospital}}፣ {{Department}} ነው። እባክዎ በሰዓቱ ይድረሱ። መለያ: {{ReferralID}}",
 			"missed":            "በ {{Date}} በ {{Hospital}} የነበረዎትን ቀጠሮ አሳልፈዋል። እባክዎ በተቻለ ፍጥነት ሆስፒታሉን ይጎብኙ። ሪፈራልዎ እንደገና እየታየ ነው። መለያ: {{ReferralID}}",
 			"rescheduled":       "ቀጠሮዎ ወደ {{NewDate}} በ {{Hospital}}፣ {{Department}} ተቀይሯል። የቀድሞው ቀጠሮ ተሰርዟል። መለያ: {{ReferralID}}",
