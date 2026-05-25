@@ -48,6 +48,25 @@ func NewNotificationUseCase(
 	}
 }
 
+// QueueNotification builds the localized SMS for `notifType`, persists a
+// Notification row, and (on Cloud Run, which has no cron) attempts an
+// immediate synchronous Send so the row ends up SENT or FAILED before
+// the function returns.
+//
+// Skip rules:
+//   - patient.AllowSMS = false                -> drop silently
+//   - phone is not a +251 number              -> save row as MANUAL_REQUIRED,
+//                                                do NOT call the provider
+//                                                (foreign-number policy)
+//   - auto_notify system config is OFF        -> save row as MANUAL_REQUIRED,
+//                                                wait for an operator to
+//                                                trigger TriggerManualSend
+//
+// Otherwise: persist as QUEUED, call smsClient.Send, then update to
+// SENT (with message_id) or FAILED. Any provider failure is swallowed
+// here - the row is still in the DB for inspection / resend, and the
+// rest of the lifecycle step must not roll back just because an SMS
+// failed.
 func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID uuid.UUID, notifType entity.NotificationType, _ string) error {
 	ref, err := u.referralRepo.GetReferralByID(ctx, referralID)
 	if err != nil {
@@ -66,11 +85,6 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 		return nil
 	}
 
-	deliveryStatus := entity.DeliveryQueued
-	if !strings.HasPrefix(patient.PhonePlain, "+251") {
-		deliveryStatus = entity.DeliveryManualRequired
-	}
-
 	lang := ""
 	if patient.HomeRegion != nil {
 		lang = string(*patient.HomeRegion)
@@ -78,35 +92,58 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 
 	placeholders := map[string]string{
 		"ReferralID": referralID.String(),
+		// Sensible defaults so we never leak a literal {{Hospital}} /
+		// {{Department}} into a real SMS even if a relationship was
+		// somehow not preloaded.
+		"Hospital":   "the referral hospital",
+		"Department": "the receiving department",
 	}
-	if ref.ReceiverHospital != nil {
+	if ref.ReceiverHospital != nil && ref.ReceiverHospital.Name != "" {
 		placeholders["Hospital"] = ref.ReceiverHospital.Name
 	}
-	if ref.TargetDepartment != nil {
+	if ref.TargetDepartment != nil && ref.TargetDepartment.Name != "" {
 		placeholders["Department"] = ref.TargetDepartment.Name
 	}
-	if notifType == entity.NotifyScheduling || notifType == entity.NotifyReschedule || notifType == entity.NotifyMissedReschedule {
+	if notifType == entity.NotifyScheduling || notifType == entity.NotifyReschedule || notifType == entity.NotifyMissedReschedule || notifType == entity.NotifyReminder || notifType == entity.NotifyMissed {
 		queue, _ := u.triageRepo.GetByReferralID(ctx, referralID)
 		if queue != nil && queue.AppointmentDate != nil {
-			placeholders["Date"] = queue.AppointmentDate.Format("2006-01-02")
-			placeholders["NewDate"] = queue.AppointmentDate.Format("2006-01-02")
-			placeholders["Time"] = queue.AppointmentDate.Format("15:04")
+			// triage_queues.appointment_date is stored as a DATE column
+			// (no time), so Postgres always hands us back 00:00. The
+			// system is day-slot based - patients are booked for the day,
+			// not a specific time - so we render the SMS with the
+			// clinic's default opening time (08:00) instead of the
+			// stored midnight, which would otherwise read "at 00:00" and
+			// confuse patients into thinking the appointment is at
+			// midnight.
+			appt := *queue.AppointmentDate
+			if appt.Hour() == 0 && appt.Minute() == 0 {
+				appt = time.Date(appt.Year(), appt.Month(), appt.Day(), 8, 0, 0, 0, appt.Location())
+			}
+			// Human-friendly format: e.g. "Mon, 25 May 2026 at 08:00".
+			// SMS-length friendly (~25 chars) and unambiguous across
+			// regions - no MM/DD vs DD/MM confusion.
+			human := appt.Format("Mon, 02 Jan 2006 at 15:04")
+			placeholders["Date"] = human
+			placeholders["NewDate"] = human
+			placeholders["Time"] = appt.Format("15:04")
 		}
 	}
 
 	templateKey := mapTypeToKey(notifType)
 	content := utils.GetLocalizedSMS(templateKey, lang, placeholders)
 
+	// Decide initial status based on auto_notify + phone country.
 	autoNotify := false
 	if u.configRepo != nil {
-		val, err := u.configRepo.GetBool(ctx, "auto_notify", false)
-		if err == nil {
+		if val, cfgErr := u.configRepo.GetBool(ctx, "auto_notify", false); cfgErr == nil {
 			autoNotify = val
 		}
 	}
 
-	if !autoNotify && deliveryStatus != entity.DeliveryManualRequired {
-		deliveryStatus = entity.DeliveryManualRequired
+	canSendNow := autoNotify && strings.HasPrefix(patient.PhonePlain, "+251") && u.smsClient != nil
+	initialStatus := entity.DeliveryQueued
+	if !canSendNow {
+		initialStatus = entity.DeliveryManualRequired
 	}
 
 	notif := &entity.Notification{
@@ -114,10 +151,37 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 		NotificationType: notifType,
 		PhoneNumber:      patient.PhonePlain,
 		Content:          content,
-		DeliveryStatus:   deliveryStatus,
+		DeliveryStatus:   initialStatus,
+	}
+	if err := u.notificationRepo.Create(ctx, notif); err != nil {
+		return err
 	}
 
-	return u.notificationRepo.Create(ctx, notif)
+	if !canSendNow {
+		return nil
+	}
+
+	// Synchronous send. We deliberately don't return provider errors:
+	// the lifecycle event has already happened, and the Notification
+	// row is the audit trail (FAILED rows can be resent later).
+	//
+	// IMPORTANT: AfroMessage's Send() already gates on its own
+	// `acknowledge == "success"` check internally and returns an error
+	// when the provider rejected the message; the returned SendResponse
+	// does NOT carry the Acknowledge field through (it only sets
+	// MessageID + Status="Sent"). So a nil err + non-nil resp is the
+	// only correct success signal here. Checking resp.Acknowledge
+	// would mark every successful SMS as FAILED.
+	resp, sendErr := u.smsClient.Send(ctx, sms.SendRequest{
+		To:      patient.PhonePlain,
+		Message: content,
+	})
+	if sendErr != nil || resp == nil {
+		_ = u.notificationRepo.UpdateDelivery(ctx, notif.ID, entity.DeliveryFailed, nil)
+		return nil
+	}
+	_ = u.notificationRepo.UpdateDelivery(ctx, notif.ID, entity.DeliverySent, &resp.MessageID)
+	return nil
 }
 
 func mapTypeToKey(notifType entity.NotificationType) string {
@@ -128,6 +192,8 @@ func mapTypeToKey(notifType entity.NotificationType) string {
 		return "scheduled"
 	case entity.NotifyReschedule:
 		return "rescheduled"
+	case entity.NotifyMissed:
+		return "missed"
 	case entity.NotifyMissedReschedule:
 		return "missed_rescheduled"
 	case entity.NotifyReminder:
@@ -231,14 +297,20 @@ func (u *notificationUseCase) ProcessPendingSMS(ctx context.Context, limit int) 
 	return summary, nil
 }
 
-// Helper: send individual notifications when bulk fails
+// Helper: send individual notifications when bulk fails.
+//
+// AfroMessage's Send() returns a non-nil error whenever the provider
+// did not acknowledge success, so a nil err + non-nil resp is the
+// authoritative success signal. The returned SendResponse never
+// carries the Acknowledge field, so checking it here would mark every
+// successful SMS as FAILED.
 func (u *notificationUseCase) sendIndividualWithFallback(ctx context.Context, notifications []entity.Notification, summary *dto.NotificationSendSummary) (*dto.NotificationSendSummary, error) {
 	for _, n := range notifications {
 		resp, err := u.smsClient.Send(ctx, sms.SendRequest{
 			To:      n.PhoneNumber,
 			Message: n.Content,
 		})
-		if err != nil || resp == nil || resp.Acknowledge != "success" {
+		if err != nil || resp == nil {
 			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil)
 			summary.FailedCount++
 		} else {

@@ -22,6 +22,10 @@ type arrivalUseCase struct {
 	clinicalRepo       irepository.ClinicalUpdateRepository
 	auditRepo          irepository.AuditLogRepository
 	inAppNotifUC       iusecase.InAppNotificationUseCase
+	// notifUC is used to dispatch the patient-facing MISSED SMS when a
+	// receptionist marks a no-show. We deliberately call it post-commit
+	// so the SMS isn't sent for transactions that roll back.
+	notifUC iusecase.NotificationUseCase
 }
 
 func NewArrivalUseCase(
@@ -33,6 +37,7 @@ func NewArrivalUseCase(
 	clinRepo irepository.ClinicalUpdateRepository,
 	auditRepo irepository.AuditLogRepository,
 	inAppNotifUC iusecase.InAppNotificationUseCase,
+	notifUC iusecase.NotificationUseCase,
 ) iusecase.ArrivalUseCase {
 	return &arrivalUseCase{
 		db:                 db,
@@ -43,6 +48,7 @@ func NewArrivalUseCase(
 		clinicalRepo:       clinRepo,
 		auditRepo:          auditRepo,
 		inAppNotifUC:       inAppNotifUC,
+		notifUC:            notifUC,
 	}
 }
 
@@ -212,7 +218,7 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 	queue.ArrivalStatus = entity.ArrivalMissed
 	queue.MissReason = &missReason
 
-	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(queue).Error; err != nil {
 			return err
 		}
@@ -225,7 +231,19 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 		_ = u.inAppNotifUC.CreateForEvent(ctx, "PATIENT_MISSED", queue.ReferralID, userID)
 
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	// Fire the patient-facing MISSED SMS AFTER commit so we don't text
+	// somebody about a no-show that ultimately rolled back. The SMS use
+	// case is best-effort - a provider failure must not invalidate a
+	// receptionist's recorded action.
+	if u.notifUC != nil {
+		_ = u.notifUC.QueueNotification(ctx, queue.ReferralID, entity.NotifyMissed, "")
+	}
+
+	return nil
 }
 
 func (u *arrivalUseCase) ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID) error {

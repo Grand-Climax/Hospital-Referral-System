@@ -1,0 +1,568 @@
+{
+  "started_at": "2026-05-25T05:02:48.3183432+03:00",
+  "base_url": "http://localhost:8081/api/v1",
+  "users": {
+    "ta_liaison": {
+      "user_id": "",
+      "email": "liaison.ta@hospital.et",
+      "role": "LIAISON_OFFICER",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJyb2xlIjoiTElBSVNPTl9PRkZJQ0VSIiwiaG9zcF9pZCI6ImExMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImV4cCI6MTc3OTY3ODE3NiwiaWF0IjoxNzc5Njc0NTc2fQ.7DKcht79a6VMR4mk2ZImHCKbF1HUks1Wj4J5ttmLF_k",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJleHAiOjE3ODAyNzkzNzYsImlhdCI6MTc3OTY3NDU3Nn0.1vA2z9PobCQH16ov2LJyecLpjP21BaVzMHwGBTr_pNk"
+    },
+    "ta_receptionist": {
+      "user_id": "",
+      "email": "reception.ta@hospital.et",
+      "role": "RECEPTIONIST",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiUkVDRVBUSU9OSVNUIiwiaG9zcF9pZCI6ImExMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImRlcHRfaWQiOiJiMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3Nzk2NzgxNzgsImlhdCI6MTc3OTY3NDU3OH0.mHU1p8OP-EelvmTtb26FUjQjO7hhO4GylF4mdStFI38",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJleHAiOjE3ODAyNzkzNzgsImlhdCI6MTc3OTY3NDU3OH0.-FZkYsRNQCsRe_0ocPAHf7q5QS5yKJ60FBqft-5kqQ0"
+    },
+    "ta_specialist": {
+      "user_id": "",
+      "email": "specialist.ta@hospital.et",
+      "role": "RECEIVING_SPECIALIST",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJyb2xlIjoiUkVDRUlWSU5HX1NQRUNJQUxJU1QiLCJob3NwX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZGVwdF9pZCI6ImIxMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImV4cCI6MTc3OTY3ODE3NywiaWF0IjoxNzc5Njc0NTc3fQ.H_ytxPwxo1nneaasUGlzrsFcKx6FcvNcCXBY1bZiFVI",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJleHAiOjE3ODAyNzkzNzcsImlhdCI6MTc3OTY3NDU3N30.qeafCM9rT-Ldct3SJEOV3ny9Yyurac9kAdR877r75Pk"
+    },
+    "y12_doctor": {
+      "user_id": "",
+      "email": "doctor.y12@hospital.et",
+      "role": "REFERRING_DOCTOR",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiUkVGRVJSSU5HX0RPQ1RPUiIsImhvc3BfaWQiOiJhOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDkiLCJleHAiOjE3Nzk2NzgxNzUsImlhdCI6MTc3OTY3NDU3NX0.4xEVv8n3QmwCmuUnXf5IWSUsInS78-ArOsb2znbjg1A",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJleHAiOjE3ODAyNzkzNzUsImlhdCI6MTc3OTY3NDU3NX0.1lgyGdMyyh_kBbOwm95KI6ZDQcAt_l0hYjndery_mgI"
+    },
+    "y12_liaison": {
+      "user_id": "",
+      "email": "liaison.y12@hospital.et",
+      "role": "LIAISON_OFFICER",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJyb2xlIjoiTElBSVNPTl9PRkZJQ0VSIiwiaG9zcF9pZCI6ImE5MDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwOSIsImV4cCI6MTc3OTY3ODE3NiwiaWF0IjoxNzc5Njc0NTc2fQ.AMpcv63QRaO637kJn36pcLOEjjwE7sB6gqMpVeup7Hc",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJleHAiOjE3ODAyNzkzNzYsImlhdCI6MTc3OTY3NDU3Nn0.u-FD88MzMPqEBRrZuEEb65Hw3MV2zOZua8pBi90huV0"
+    }
+  },
+  "patients": {
+    "jaefer": {
+      "id": "e1000000-0000-0000-0000-00000000000a",
+      "national_id": "NAT-E2E-JAEFER-001",
+      "phone": "+251714855110",
+      "region": "Addis Ababa",
+      "language": "English (en)"
+    },
+    "muhammed": {
+      "id": "e1000000-0000-0000-0000-00000000000b",
+      "national_id": "NAT-E2E-MUHAMMED-001",
+      "phone": "+251947753588",
+      "region": "Amhara",
+      "language": "Amharic (am)"
+    }
+  },
+  "flows": {
+    "jaefer": {
+      "label": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
+      "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+      "steps": [
+        {
+          "step": 1,
+          "name": "doctor_create_submit",
+          "method": "POST",
+          "path": "/doctor/referrals",
+          "status": 201,
+          "ok": true,
+          "body": {
+            "referral": {
+              "id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+              "patient_id": "e1000000-0000-0000-0000-00000000000a",
+              "referring_doctor_id": "d9000000-0000-0000-0000-000000000004",
+              "sender_hospital_id": "a9000000-0000-0000-0000-000000000009",
+              "target_hospital_id": "a1000000-0000-0000-0000-000000000001",
+              "liaison_officer_id": "d9000000-0000-0000-0000-000000000002",
+              "target_dept_id": "b1000000-0000-0000-0000-000000000001",
+              "status": "SUBMITTED",
+              "triage_status": "AUTO_SCORED",
+              "waiting_hours_weight": 0,
+              "ml_status": "PENDING",
+              "ml_retry_count": 0,
+              "ml_successful_rerun_count": 0,
+              "patient_identity_verified": false,
+              "clinical_history_attached": false,
+              "vitals_included": false,
+              "attachments_included": false,
+              "created_at": "2026-05-25T02:03:39.952024Z",
+              "updated_at": "2026-05-25T02:03:39.952024Z",
+              "is_archived": false,
+              "patient": {
+                "id": "e1000000-0000-0000-0000-00000000000a",
+                "sex": "male",
+                "date_of_birth": "1990-06-15T00:00:00Z",
+                "home_region": "Addis Ababa",
+                "allow_sms": true,
+                "first_name": "",
+                "middle_name": "",
+                "last_name": ""
+              },
+              "referral_form": {
+                "id": "76424a75-4598-480b-b55e-300304b882aa",
+                "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+                "clinical_summary": "Chest pain on exertion; suspected angina",
+                "patient_history": "Hypertension 5y, smoker",
+                "reason_of_referral": "Cardiology evaluation required",
+                "condition_at_referral": "UNSTABLE"
+              },
+              "diagnoses": [
+                {
+                  "id": "9c331627-74bd-4f72-b411-cc9b7527d128",
+                  "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+                  "icd_code": "I10",
+                  "is_primary": true,
+                  "diagnosis_certainty": "SUSPECTED",
+                  "code_info": {
+                    "code": "I10",
+                    "description": "Essential (primary) hypertension",
+                    "category": "Circulatory System Diseases"
+                  }
+                }
+              ],
+              "vitals": [
+                {
+                  "id": "563d5203-6d17-4469-8eb8-989bdfcb4201",
+                  "referral_id": "d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+                  "recorded_at": "2026-05-25T02:03:39.952024Z",
+                  "systolic_bp": 150,
+                  "diastolic_bp": 95,
+                  "heart_rate": 102,
+                  "sp_o2": 96.5,
+                  "temperature": 37.1,
+                  "respiratory_rate": 22,
+                  "gcs_score": 15
+                }
+              ],
+              "receiver_hospital": {
+                "id": "a1000000-0000-0000-0000-000000000001",
+                "name": "Tikur Anbessa Specialized Hospital",
+                "tier_level": "TERTIARY",
+                "region": "Addis Ababa",
+                "address": "Zambia St, Addis Ababa, Ethiopia",
+                "contact_phone": "+251 11 551 1211",
+                "is_active": true,
+                "created_at": "2026-05-13T23:14:41.848975Z",
+                "updated_at": "2026-05-25T02:03:21.450151Z"
+              },
+              "target_department": {
+                "id": "b1000000-0000-0000-0000-000000000001",
+                "name": "Cardiology",
+                "description": "Diagnosis and treatment of heart and vascular conditions",
+                "created_at": "2026-05-13T23:14:44.580071Z",
+                "updated_at": "2026-05-25T02:03:21.548539Z"
+              }
+            },
+            "success": true,
+            "message": "Referral submitted (SUBMITTED)"
+          },
+          "duration": "3.8330917s"
+        },
+        {
+          "step": 2,
+          "name": "liaison_read",
+          "method": "POST",
+          "path": "/liaison/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/read",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral marked as read"
+          },
+          "duration": "4.7381042s"
+        },
+        {
+          "step": 3,
+          "name": "liaison_checklist",
+          "method": "PUT",
+          "path": "/liaison/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/review-checklist",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Review checklist updated"
+          },
+          "duration": "3.3484671s"
+        },
+        {
+          "step": 4,
+          "name": "liaison_forward",
+          "method": "POST",
+          "path": "/liaison/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/forward",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral forwarded to specialist"
+          },
+          "duration": "5.137142s"
+        },
+        {
+          "step": 5,
+          "name": "specialist_read",
+          "method": "POST",
+          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/read",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral marked as read and claimed"
+          },
+          "duration": "5.8989405s"
+        },
+        {
+          "step": 6,
+          "name": "ml_override",
+          "method": "POST",
+          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/ml-severity-override",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Severity score overridden successfully"
+          },
+          "duration": "1.9736926s"
+        },
+        {
+          "step": 7,
+          "name": "specialist_accept",
+          "method": "POST",
+          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/accept",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral accepted and severity score assigned"
+          },
+          "duration": "9.5702939s"
+        },
+        {
+          "step": 8,
+          "name": "specialist_schedule",
+          "method": "POST",
+          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/schedule",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Appointment scheduled successfully",
+            "rescheduled_from_missed": false
+          },
+          "duration": "14.4603097s"
+        },
+        {
+          "step": 9,
+          "name": "receptionist_mark_missed",
+          "method": "POST",
+          "path": "/receptionist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/miss",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Patient marked as missed"
+          },
+          "duration": "6.8146035s"
+        },
+        {
+          "step": 10,
+          "name": "specialist_emergency_schedule",
+          "method": "POST",
+          "path": "/specialist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/emergency-schedule",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Emergency appointment scheduled successfully",
+            "rescheduled_from_missed": true
+          },
+          "duration": "17.427217s"
+        },
+        {
+          "step": 11,
+          "name": "receptionist_confirm_arrival",
+          "method": "POST",
+          "path": "/receptionist/referrals/d5bb319d-48b6-499b-a22c-a79b37ee2bbf/arrive",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Patient arrival confirmed"
+          },
+          "duration": "2.6780703s"
+        }
+      ],
+      "sms_check": [
+        {
+          "notification_type": "ACCEPTANCE",
+          "delivery_status": "SENT",
+          "phone": "+251714855110",
+          "content_preview": "Your referral to Tikur Anbessa Specialized Hospital - Cardiology has been ACCEPTED. The receiving team will contact you for scheduling. Ref: d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+          "language_detected": "en (English)",
+          "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
+          "created_at": "2026-05-25T05:04:10+03:00"
+        },
+        {
+          "notification_type": "SCHEDULING",
+          "delivery_status": "SENT",
+          "phone": "+251714855110",
+          "content_preview": "Your appointment is on Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital, Cardiology. Please arrive on time. Ref: d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+          "language_detected": "en (English)",
+          "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
+          "created_at": "2026-05-25T05:04:24+03:00"
+        },
+        {
+          "notification_type": "MISSED",
+          "delivery_status": "SENT",
+          "phone": "+251714855110",
+          "content_preview": "You missed your appointment on Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital. Please visit the hospital as soon as possible. Your referral is being re-evaluated. Ref: d5bb319d-48b6-4...",
+          "language_detected": "en (English)",
+          "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
+          "created_at": "2026-05-25T05:04:34+03:00"
+        },
+        {
+          "notification_type": "MISSED_RESCHEDULE",
+          "delivery_status": "SENT",
+          "phone": "+251714855110",
+          "content_preview": "Your missed appointment has been rescheduled to Mon, 25 May 2026 at 08:00 at Tikur Anbessa Specialized Hospital, Cardiology. Please arrive on time. Ref: d5bb319d-48b6-499b-a22c-a79b37ee2bbf",
+          "language_detected": "en (English)",
+          "lifecycle_step": "Jaefer (Addis Ababa, English) - missed -\u003e rescheduled -\u003e arrived",
+          "created_at": "2026-05-25T05:04:45+03:00"
+        }
+      ]
+    },
+    "muhammed": {
+      "label": "Muhammed (Amhara, Amharic) - happy path",
+      "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+      "steps": [
+        {
+          "step": 1,
+          "name": "doctor_create_submit",
+          "method": "POST",
+          "path": "/doctor/referrals",
+          "status": 201,
+          "ok": true,
+          "body": {
+            "referral": {
+              "id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+              "patient_id": "e1000000-0000-0000-0000-00000000000b",
+              "referring_doctor_id": "d9000000-0000-0000-0000-000000000004",
+              "sender_hospital_id": "a9000000-0000-0000-0000-000000000009",
+              "target_hospital_id": "a1000000-0000-0000-0000-000000000001",
+              "liaison_officer_id": "d9000000-0000-0000-0000-000000000002",
+              "target_dept_id": "b1000000-0000-0000-0000-000000000001",
+              "status": "SUBMITTED",
+              "triage_status": "AUTO_SCORED",
+              "waiting_hours_weight": 0,
+              "ml_status": "PENDING",
+              "ml_retry_count": 0,
+              "ml_successful_rerun_count": 0,
+              "patient_identity_verified": false,
+              "clinical_history_attached": false,
+              "vitals_included": false,
+              "attachments_included": false,
+              "created_at": "2026-05-25T02:03:00.15445Z",
+              "updated_at": "2026-05-25T02:03:00.15445Z",
+              "is_archived": false,
+              "patient": {
+                "id": "e1000000-0000-0000-0000-00000000000b",
+                "sex": "male",
+                "date_of_birth": "1990-06-15T00:00:00Z",
+                "home_region": "Amhara",
+                "allow_sms": true,
+                "first_name": "",
+                "middle_name": "",
+                "last_name": ""
+              },
+              "referral_form": {
+                "id": "c4b6917d-8923-4897-826a-ed00d341aca2",
+                "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+                "clinical_summary": "Recurrent chest pain, palpitations",
+                "patient_history": "Hypertension, diabetes 8y",
+                "reason_of_referral": "Cardiology evaluation required",
+                "condition_at_referral": "UNSTABLE"
+              },
+              "diagnoses": [
+                {
+                  "id": "a150a857-e316-49b0-b83f-eb7826ea593e",
+                  "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+                  "icd_code": "I10",
+                  "is_primary": true,
+                  "diagnosis_certainty": "SUSPECTED",
+                  "code_info": {
+                    "code": "I10",
+                    "description": "Essential (primary) hypertension",
+                    "category": "Circulatory System Diseases"
+                  }
+                }
+              ],
+              "vitals": [
+                {
+                  "id": "15229db4-03e5-4d1f-a85b-ac3622668849",
+                  "referral_id": "5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+                  "recorded_at": "2026-05-25T02:03:00.15445Z",
+                  "systolic_bp": 150,
+                  "diastolic_bp": 95,
+                  "heart_rate": 102,
+                  "sp_o2": 96.5,
+                  "temperature": 37.1,
+                  "respiratory_rate": 22,
+                  "gcs_score": 15
+                }
+              ],
+              "receiver_hospital": {
+                "id": "a1000000-0000-0000-0000-000000000001",
+                "name": "Tikur Anbessa Specialized Hospital",
+                "tier_level": "TERTIARY",
+                "region": "Addis Ababa",
+                "address": "Zambia St, Addis Ababa, Ethiopia",
+                "contact_phone": "+251 11 551 1211",
+                "is_active": true,
+                "created_at": "2026-05-13T23:14:41.848975Z",
+                "updated_at": "2026-05-25T01:59:04.653744Z"
+              },
+              "target_department": {
+                "id": "b1000000-0000-0000-0000-000000000001",
+                "name": "Cardiology",
+                "description": "Diagnosis and treatment of heart and vascular conditions",
+                "created_at": "2026-05-13T23:14:44.580071Z",
+                "updated_at": "2026-05-25T01:59:04.749372Z"
+              }
+            },
+            "success": true,
+            "message": "Referral submitted (SUBMITTED)"
+          },
+          "duration": "4.0392961s"
+        },
+        {
+          "step": 2,
+          "name": "liaison_read",
+          "method": "POST",
+          "path": "/liaison/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/read",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral marked as read"
+          },
+          "duration": "4.5706884s"
+        },
+        {
+          "step": 3,
+          "name": "liaison_checklist",
+          "method": "PUT",
+          "path": "/liaison/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/review-checklist",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Review checklist updated"
+          },
+          "duration": "1.6828283s"
+        },
+        {
+          "step": 4,
+          "name": "liaison_forward",
+          "method": "POST",
+          "path": "/liaison/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/forward",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral forwarded to specialist"
+          },
+          "duration": "5.1616977s"
+        },
+        {
+          "step": 5,
+          "name": "specialist_read",
+          "method": "POST",
+          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/read",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral marked as read and claimed"
+          },
+          "duration": "3.0463295s"
+        },
+        {
+          "step": 6,
+          "name": "ml_override",
+          "method": "POST",
+          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/ml-severity-override",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Severity score overridden successfully"
+          },
+          "duration": "1.6964187s"
+        },
+        {
+          "step": 7,
+          "name": "specialist_accept",
+          "method": "POST",
+          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/accept",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Referral accepted and severity score assigned"
+          },
+          "duration": "9.0211384s"
+        },
+        {
+          "step": 8,
+          "name": "specialist_schedule",
+          "method": "POST",
+          "path": "/specialist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/schedule",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Appointment scheduled successfully",
+            "rescheduled_from_missed": false
+          },
+          "duration": "7.6486694s"
+        },
+        {
+          "step": 9,
+          "name": "receptionist_confirm_arrival",
+          "method": "POST",
+          "path": "/receptionist/referrals/5f12f827-8cbb-44ed-a6cd-da9d154079f5/arrive",
+          "status": 200,
+          "ok": true,
+          "body": {
+            "success": true,
+            "message": "Patient arrival confirmed"
+          },
+          "duration": "2.6555992s"
+        }
+      ],
+      "sms_check": [
+        {
+          "notification_type": "ACCEPTANCE",
+          "delivery_status": "SENT",
+          "phone": "+251947753588",
+          "content_preview": "ወደ Tikur Anbessa Specialized Hospital – Cardiology የተላከው ሪፈራል ተቀባይነት አግኝቷል። ለቀጠሮ ተቀባዩ ቡድን ያነጋግርዎታል። መለያ: 5...",
+          "language_detected": "am (Amharic)",
+          "lifecycle_step": "Muhammed (Amhara, Amharic) - happy path",
+          "created_at": "2026-05-25T05:03:25+03:00"
+        },
+        {
+          "notification_type": "SCHEDULING",
+          "delivery_status": "SENT",
+          "phone": "+251947753588",
+          "content_preview": "ቀጠሮዎ በ Mon, 25 May 2026 at 08:00 በ Tikur Anbessa Specialized Hospital፣ Cardiology ነው። እባክዎ በሰዓቱ ይድረሱ። መለያ: 5f12f827-8cbb-44ed-a6cd-da9d154079f5",
+          "language_detected": "am (Amharic)",
+          "lifecycle_step": "Muhammed (Amhara, Amharic) - happy path",
+          "created_at": "2026-05-25T05:03:34+03:00"
+        }
+      ]
+    }
+  },
+  "errors": [
+    "[non-fatal] [login_ta_depthead] FAIL after 419.7005ms: status=401 body={\"success\":false,\"error\":\"invalid email or password\"}"
+  ],
+  "ended_at": "2026-05-25T05:04:55.2601999+03:00"
+}

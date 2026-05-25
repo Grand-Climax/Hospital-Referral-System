@@ -29,6 +29,10 @@ const (
 	NotifyScheduling       NotificationType = "SCHEDULING"
 	NotifyReminder         NotificationType = "REMINDER"
 	NotifyReschedule       NotificationType = "RESCHEDULE"
+	// NotifyMissed fires when a receptionist marks a scheduled patient as a
+	// no-show. It does NOT imply a reschedule has happened yet; that comes
+	// later as NotifyMissedReschedule when the specialist re-books them.
+	NotifyMissed           NotificationType = "MISSED"
 	NotifyMissedReschedule NotificationType = "MISSED_RESCHEDULE"
 )
 

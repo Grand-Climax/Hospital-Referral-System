@@ -77,15 +77,34 @@ func (r *schedulerCheckpointRepository) ReleaseLease(ctx context.Context, hospit
 		}).Error
 }
 
+// AcquireLease grabs (or refreshes) the manual-batch lease for the given
+// (hospital, department). Behaviour:
+//   - row doesn't exist yet           -> INSERT a new checkpoint with the
+//                                         caller as lease_holder
+//   - existing row has expired lease  -> UPDATE lease_holder + expires_at
+//   - existing row has an active lease-> no-op, returns (false, nil)
+//
+// Implemented with ON CONFLICT so first-time depts don't silently fail
+// (the previous UPDATE-only version returned RowsAffected = 0 when the
+// row was missing, which BatchSchedule misread as "someone else is
+// running", blocking new departments forever).
 func (r *schedulerCheckpointRepository) AcquireLease(ctx context.Context, hospitalID, departmentID uuid.UUID, leaseHolder string, leaseDuration time.Duration) (bool, error) {
-	result := r.db.WithContext(ctx).Model(&entity.SchedulerCheckpoint{}).
-		Where("hospital_id = ? AND department_id = ? AND (lease_expires_at IS NULL OR lease_expires_at < NOW())", hospitalID, departmentID).
-		Updates(map[string]interface{}{
-			"lease_holder":     leaseHolder,
-			"lease_expires_at": time.Now().Add(leaseDuration),
-		})
-	if result.Error != nil {
-		return false, result.Error
+	expiresAt := time.Now().Add(leaseDuration)
+	query := `
+		INSERT INTO scheduler_checkpoints (id, hospital_id, department_id, lease_holder, lease_expires_at)
+		VALUES (gen_random_uuid(), ?, ?, ?, ?)
+		ON CONFLICT (hospital_id, department_id) DO UPDATE
+		SET lease_holder     = EXCLUDED.lease_holder,
+		    lease_expires_at = EXCLUDED.lease_expires_at
+		WHERE scheduler_checkpoints.lease_expires_at IS NULL
+		   OR scheduler_checkpoints.lease_expires_at < NOW()
+		RETURNING id`
+	var id uuid.UUID
+	err := r.db.WithContext(ctx).Raw(query, hospitalID, departmentID, leaseHolder, expiresAt).Scan(&id).Error
+	if err != nil {
+		return false, err
 	}
-	return result.RowsAffected > 0, nil
+	// Empty UUID -> ON CONFLICT matched but the WHERE filter rejected the
+	// update (lease still active). That's a clean "busy" signal.
+	return id != uuid.Nil, nil
 }
