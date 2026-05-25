@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -140,19 +141,28 @@ func (h *HospitalAdminOperationsHandler) LinkDepartmentToMyHospital(c *gin.Conte
 		return
 	}
 
-	var req dto.HospitalAdminLinkDepartmentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var raw map[string]interface{}
+	if err := c.ShouldBindJSON(&raw); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	deptID, err := uuid.Parse(req.DepartmentID)
+	deptIDStr, dailyLimit := dto.ResolveLinkDepartmentFromBody(raw)
+	if deptIDStr == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Success: false,
+			Error:   "department_id is required in the request body (accepted keys: department_id, departmentId, id)",
+		})
+		return
+	}
+
+	deptID, err := uuid.Parse(deptIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department_id"})
 		return
 	}
 
-	if err := h.departmentUseCase.LinkDepartmentToHospital(c.Request.Context(), hospID, deptID, req.DailyLimit); err != nil {
+	if err := h.departmentUseCase.LinkDepartmentToHospital(c.Request.Context(), hospID, deptID, dailyLimit); err != nil {
 		switch err {
 		case usecase.ErrHospitalNotFound:
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "Hospital not found"})
@@ -171,7 +181,7 @@ func (h *HospitalAdminOperationsHandler) LinkDepartmentToMyHospital(c *gin.Conte
 
 // ListMyHospitalDepartments godoc
 // @Summary      View own hospital departments (Hospital Admin)
-// @Description  List departments linked to the admin's hospital.
+// @Description  List departments linked to the admin's hospital, including assigned department head (if any).
 // @Description  **Roles:** HOSPITAL_ADMIN
 // @Description  **Visibility:** Hospital scoped department listing.
 // @Description  **Common Errors:**
@@ -199,9 +209,19 @@ func (h *HospitalAdminOperationsHandler) ListMyHospitalDepartments(c *gin.Contex
 		return
 	}
 
+	heads, err := h.userUseCase.GetDepartmentHeadsByHospital(c.Request.Context(), hospID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to load department heads"})
+		return
+	}
+
 	resp := make([]dto.HospitalDepartmentResponse, 0, len(links))
 	for i := range links {
-		resp = append(resp, toHospitalDepartmentResponse(&links[i]))
+		var head *entity.User
+		if h, ok := heads[links[i].DepartmentID]; ok {
+			head = h
+		}
+		resp = append(resp, toHospitalDepartmentResponseWithHead(&links[i], head))
 	}
 
 	c.JSON(http.StatusOK, dto.HospitalDepartmentListResponse{
@@ -221,7 +241,7 @@ func (h *HospitalAdminOperationsHandler) ListMyHospitalDepartments(c *gin.Contex
 // @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
-// @Param        deptId path string true "Department ID"
+// @Param        deptId path string true "Hospital-department link ID (id from GET /departments) or department_id"
 // @Param        body body dto.HospitalAdminSetDepartmentActiveRequest true "Activation payload"
 // @Success      200 {object} dto.BaseResponse
 // @Failure      400 {object} dto.ErrorResponse
@@ -242,12 +262,17 @@ func (h *HospitalAdminOperationsHandler) SetDepartmentActive(c *gin.Context) {
 	}
 
 	var req dto.HospitalAdminSetDepartmentActiveRequest
-	if err := c.ShouldBindJSON(&req); err != nil || req.IsActive == nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request payload"})
 		return
 	}
+	isActive := req.ResolvedIsActive()
+	if isActive == nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "is_active is required (accepted keys: is_active, isActive)"})
+		return
+	}
 
-	if err := h.departmentUseCase.SetHospitalDepartmentActive(c.Request.Context(), hospID, deptID, *req.IsActive); err != nil {
+	if err := h.departmentUseCase.SetHospitalDepartmentActive(c.Request.Context(), hospID, deptID, *isActive); err != nil {
 		if err == usecase.ErrHospitalDeptLinkNotFound {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: err.Error()})
 			return
@@ -257,7 +282,7 @@ func (h *HospitalAdminOperationsHandler) SetDepartmentActive(c *gin.Context) {
 	}
 
 	msg := "Department deactivated successfully"
-	if *req.IsActive {
+	if *isActive {
 		msg = "Department activated successfully"
 	}
 	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Message: msg})
@@ -274,7 +299,7 @@ func (h *HospitalAdminOperationsHandler) SetDepartmentActive(c *gin.Context) {
 // @Tags         Hospital Admin
 // @Accept       json
 // @Produce      json
-// @Param        deptId path string true "Department ID"
+// @Param        deptId path string true "Hospital-department link ID (id from GET /departments) or department_id"
 // @Param        body body dto.HospitalAdminAssignDepartmentHeadRequest true "Department head payload"
 // @Success      200 {object} dto.BaseResponse
 // @Failure      400 {object} dto.ErrorResponse
@@ -288,23 +313,26 @@ func (h *HospitalAdminOperationsHandler) AssignDepartmentHead(c *gin.Context) {
 		return
 	}
 
-	deptID, err := uuid.Parse(c.Param("deptId"))
+	pathID, err := uuid.Parse(c.Param("deptId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid department ID"})
 		return
 	}
 
-	var req dto.HospitalAdminAssignDepartmentHeadRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
-		return
+	var bodyBytes []byte
+	if c.Request.Body != nil {
+		bodyBytes, err = io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: "invalid request body"})
+			return
+		}
 	}
 
-	staffIDStr := req.ResolvedStaffID()
+	staffIDStr := dto.ResolveStaffID(bodyBytes, c.Request.URL.Query())
 	if staffIDStr == "" {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Success: false,
-			Error:   "staff_id is required in the request body (accepted keys: staff_id, staffId, user_id, userId)",
+			Error:   "staff_id is required (body keys: staff_id, staffId, user_id, userId, head_id, headId, departmentHeadId, staff, head, id; or query param staff_id)",
 		})
 		return
 	}
@@ -315,23 +343,16 @@ func (h *HospitalAdminOperationsHandler) AssignDepartmentHead(c *gin.Context) {
 		return
 	}
 
-	// Ensure department is linked to admin's hospital before assigning a head.
-	links, err := h.departmentUseCase.ListHospitalDepartments(c.Request.Context(), hospID)
+	link, err := h.departmentUseCase.GetHospitalDepartmentLink(c.Request.Context(), hospID, pathID)
 	if err != nil {
+		if err == usecase.ErrHospitalDeptLinkNotFound {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to validate department scope"})
 		return
 	}
-	linked := false
-	for _, l := range links {
-		if l.DepartmentID == deptID {
-			linked = true
-			break
-		}
-	}
-	if !linked {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: "department is not linked to this hospital"})
-		return
-	}
+	deptID := link.DepartmentID
 
 	if err := h.userUseCase.HospitalAdminReassignStaffDepartment(c.Request.Context(), adminID, staffID, &deptID); err != nil {
 		c.JSON(mapHospitalAdminStaffError(err), dto.ErrorResponse{Success: false, Error: err.Error()})
