@@ -19,6 +19,23 @@ import (
 	"Hospital-Referral-System/pkg/utils"
 )
 
+// unresolvedPlaceholders returns the first leftover "{{...}}" token
+// found in s, or "" if the body fully rendered. We use this to refuse
+// to dispatch SMS that still contain template variables - those bodies
+// embarrass us with patients ("Your appointment is on {{Date}}") and
+// are silently rejected by AfroMessage with an empty errors map.
+func unresolvedPlaceholders(s string) string {
+	start := strings.Index(s, "{{")
+	if start == -1 {
+		return ""
+	}
+	end := strings.Index(s[start:], "}}")
+	if end == -1 {
+		return s[start:]
+	}
+	return s[start : start+end+2]
+}
+
 // smsFailureReason flattens an AfroMessage send error into a stable,
 // human-readable string we can persist in notifications.failure_reason
 // AND emit via log.Printf so Cloud Logging picks it up. Without this
@@ -113,10 +130,17 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 	placeholders := map[string]string{
 		"ReferralID": referralID.String(),
 		// Sensible defaults so we never leak a literal {{Hospital}} /
-		// {{Department}} into a real SMS even if a relationship was
-		// somehow not preloaded.
+		// {{Department}} / {{Date}} / {{NewDate}} / {{Time}} into a
+		// real SMS even if a relationship was not preloaded or the
+		// triage queue row has no appointment_date yet. AfroMessage
+		// rejects some messages that contain literal "{{...}}" with
+		// an opaque error (empty errors map), so every placeholder
+		// the templates reference MUST resolve to a real string.
 		"Hospital":   "the referral hospital",
 		"Department": "the receiving department",
+		"Date":       "soon",
+		"NewDate":    "soon",
+		"Time":       "08:00",
 	}
 	if ref.ReceiverHospital != nil && ref.ReceiverHospital.Name != "" {
 		placeholders["Hospital"] = ref.ReceiverHospital.Name
@@ -151,6 +175,29 @@ func (u *notificationUseCase) QueueNotification(ctx context.Context, referralID 
 
 	templateKey := mapTypeToKey(notifType)
 	content := utils.GetLocalizedSMS(templateKey, lang, placeholders)
+
+	// Defensive guard: a leftover {{Placeholder}} in the rendered SMS
+	// means some upstream did not preload a relation or feed in a
+	// value we expected. AfroMessage historically rejects such bodies
+	// with an empty errors map (the famous "AfroMessage error: map[]"
+	// in failure_reason). Persist the row anyway so the FE can see
+	// what was attempted, but mark it FAILED immediately with a
+	// precise reason and skip the network call.
+	if leftover := unresolvedPlaceholders(content); leftover != "" {
+		reason := "unresolved template placeholders in rendered SMS: " + leftover
+		log.Printf("sms render BLOCKED referral=%s to=%s reason=%s body=%q",
+			ref.ID, patient.PhonePlain, reason, content)
+		blocked := &entity.Notification{
+			ReferralID:       referralID,
+			NotificationType: notifType,
+			PhoneNumber:      patient.PhonePlain,
+			Content:          content,
+			DeliveryStatus:   entity.DeliveryFailed,
+			FailureReason:    &reason,
+		}
+		_ = u.notificationRepo.Create(ctx, blocked)
+		return nil
+	}
 
 	// Decide initial status based on auto_notify + phone country.
 	autoNotify := false
@@ -271,7 +318,7 @@ func (u *notificationUseCase) ProcessPendingSMS(ctx context.Context, limit int) 
 		return &dto.NotificationSendSummary{TotalProcessed: 0}, nil
 	}
 
-	pending, err := u.notificationRepo.GetPendingByFilter(ctx, nil, nil, 
+	pending, err := u.notificationRepo.GetPendingByFilter(ctx, nil, nil,
 		[]entity.DeliveryStatus{entity.DeliveryQueued, entity.DeliveryManualRequired}, limit)
 	if err != nil {
 		return nil, err
@@ -280,55 +327,14 @@ func (u *notificationUseCase) ProcessPendingSMS(ctx context.Context, limit int) 
 		return &dto.NotificationSendSummary{TotalProcessed: 0}, nil
 	}
 
-	// Prepare bulk payload
-	var recipients []sms.BulkRecipient
-	for _, n := range pending {
-		recipients = append(recipients, sms.BulkRecipient{
-			To:      n.PhoneNumber,
-			Message: n.Content,
-		})
-	}
-
-	bulkReq := sms.BulkSendRequest{
-		To:       recipients,
-		Campaign: fmt.Sprintf("ReferralHub-%s", time.Now().Format("20060102-150405")),
-	}
-
+	// Always send one-by-one via /api/send. We previously tried
+	// SendBulk first and fell back to individuals, but the bulk
+	// endpoint has been unreliable (empty errors map, no
+	// per-recipient diagnostics) and the FE only needs the cron to
+	// drain the queue, not to be fast. Single-send is the proven
+	// stable path.
 	summary := &dto.NotificationSendSummary{TotalProcessed: len(pending)}
-
-	// Attempt bulk send
-	bulkResp, err := u.smsClient.SendBulk(ctx, bulkReq)
-	
-	if err != nil || bulkResp == nil || bulkResp.Acknowledge != "success" {
-		// Bulk failed completely – fall back to individual sends
-		return u.sendIndividualWithFallback(ctx, pending, summary)
-	}
-
-	// Bulk succeeded – map responses to notifications
-	// Create a map of phone -> message_id
-	msgMap := make(map[string]string)
-	for _, msg := range bulkResp.Response.Messages {
-		msgMap[msg.To] = msg.MessageID
-	}
-
-	for _, n := range pending {
-		if msgID, ok := msgMap[n.PhoneNumber]; ok {
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliverySent, &msgID, nil)
-			summary.SentCount++
-		} else {
-			reason := "bulk send did not return a message_id for this recipient (likely rejected by AfroMessage)"
-			log.Printf("sms bulk-send FAILED notif=%s to=%s reason=%s", n.ID, n.PhoneNumber, reason)
-			_ = u.notificationRepo.UpdateDelivery(ctx, n.ID, entity.DeliveryFailed, nil, &reason)
-			summary.FailedCount++
-		}
-	}
-
-	// Update checkpoint
-	if u.jobCheckpointRepo != nil {
-		_ = u.jobCheckpointRepo.UpdateLastRun(ctx, "sms_processing", time.Now())
-	}
-
-	return summary, nil
+	return u.sendIndividualWithFallback(ctx, pending, summary)
 }
 
 // Helper: send individual notifications when bulk fails.
