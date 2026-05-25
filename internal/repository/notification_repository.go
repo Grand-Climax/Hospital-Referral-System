@@ -90,13 +90,26 @@ func (r *notificationRepository) GetSent(ctx context.Context, limit int) ([]enti
 	return ns, err
 }
 
-func (r *notificationRepository) UpdateDelivery(ctx context.Context, id uuid.UUID, status entity.DeliveryStatus, messageID *string) error {
+func (r *notificationRepository) UpdateDelivery(ctx context.Context, id uuid.UUID, status entity.DeliveryStatus, messageID *string, failureReason *string) error {
 	updates := map[string]interface{}{"delivery_status": status}
 	if messageID != nil {
 		updates["provider_message_id"] = *messageID
 	}
 	if status == entity.DeliverySent || status == entity.DeliveryResend {
 		updates["sent_at"] = time.Now()
+		// Clear any stale failure_reason left over from a previous
+		// attempt - if it's now sent, the old error is misleading.
+		updates["failure_reason"] = nil
+	}
+	if failureReason != nil {
+		// Truncate defensively. text columns are unbounded in Postgres
+		// but we don't want a 2KB AfroMessage stacktrace bloating the
+		// admin UI.
+		reason := *failureReason
+		if len(reason) > 1024 {
+			reason = reason[:1024]
+		}
+		updates["failure_reason"] = reason
 	}
 	if status == entity.DeliveryFailed {
 		return r.db.WithContext(ctx).Model(&entity.Notification{}).
