@@ -181,7 +181,7 @@ func (h *HospitalAdminOperationsHandler) LinkDepartmentToMyHospital(c *gin.Conte
 
 // ListMyHospitalDepartments godoc
 // @Summary      View own hospital departments (Hospital Admin)
-// @Description  List departments linked to the admin's hospital.
+// @Description  List departments linked to the admin's hospital, including assigned department head (if any).
 // @Description  **Roles:** HOSPITAL_ADMIN
 // @Description  **Visibility:** Hospital scoped department listing.
 // @Description  **Common Errors:**
@@ -209,9 +209,19 @@ func (h *HospitalAdminOperationsHandler) ListMyHospitalDepartments(c *gin.Contex
 		return
 	}
 
+	heads, err := h.userUseCase.GetDepartmentHeadsByHospital(c.Request.Context(), hospID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: "Failed to load department heads"})
+		return
+	}
+
 	resp := make([]dto.HospitalDepartmentResponse, 0, len(links))
 	for i := range links {
-		resp = append(resp, toHospitalDepartmentResponse(&links[i]))
+		var head *entity.User
+		if h, ok := heads[links[i].DepartmentID]; ok {
+			head = h
+		}
+		resp = append(resp, toHospitalDepartmentResponseWithHead(&links[i], head))
 	}
 
 	c.JSON(http.StatusOK, dto.HospitalDepartmentListResponse{
