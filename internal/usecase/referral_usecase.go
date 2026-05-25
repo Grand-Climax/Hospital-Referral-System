@@ -328,6 +328,17 @@ func (u *referralUseCase) ListAssignedReferrals(ctx context.Context, doctorID uu
 		return nil, nil, 0, err
 	}
 
+	// Normalize the FE-friendly aliases ("treating", "consulting") to
+	// the enum values stored in the DB ("TREATING_DOCTOR",
+	// "CONSULTED_DOCTOR"). We still accept the raw enum form so older
+	// callers don't break.
+	switch strings.ToLower(strings.TrimSpace(accessType)) {
+	case "treating", "treating_doctor":
+		accessType = string(entity.AccessTreatingDoctor)
+	case "consulting", "consulted", "consulted_doctor":
+		accessType = string(entity.AccessConsultedDoctor)
+	}
+
 	filteredReferralIDs := make([]uuid.UUID, 0)
 	accessTypeMap := make(map[uuid.UUID]*entity.ReferralAccess)
 
@@ -389,8 +400,19 @@ func (u *referralUseCase) GetDetailsForDoctor(ctx context.Context, id, doctorID 
 	if err != nil {
 		return nil, err
 	}
+	// Authorize either as the sender OR as an active grantee
+	// (TREATING_DOCTOR / CONSULTED_DOCTOR). Without the second branch,
+	// treating doctors who see the row via /doctor/referrals/assigned
+	// cannot open the detail page that lists vitals, ICD codes, and
+	// clinical history.
 	if ref.ReferringDoctorID != doctorID {
-		return nil, errors.New("unauthorized: can only view own referrals")
+		hasAccess, accessErr := u.referralAccessRepo.CheckAccess(ctx, id, doctorID)
+		if accessErr != nil {
+			return nil, accessErr
+		}
+		if !hasAccess {
+			return nil, errors.New("unauthorized: not the sender and no active access grant")
+		}
 	}
 	if ref.Patient != nil {
 		_ = ref.Patient.DecryptFields(u.cryptoSvc)
