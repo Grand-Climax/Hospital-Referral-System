@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"math"
 	"time"
@@ -57,6 +58,28 @@ func (r *referralRepository) UpdateReferralTransaction(ctx context.Context, refe
 		// FullSaveAssociations: true ensures that GORM saves everything in the entity graph.
 		return tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(referral).Error
 	})
+}
+
+// UpdateTargetDepartment writes ONLY referrals.target_dept_id (and
+// bumps updated_at). It deliberately bypasses Save/FullSaveAssociations
+// because that path re-applies the preloaded TargetDepartment relation
+// and silently reverts the FK back to the old dept - which is exactly
+// how the specialist's "change department" endpoint was returning 200
+// with no DB change for the FE.
+func (r *referralRepository) UpdateTargetDepartment(ctx context.Context, referralID, newDeptID uuid.UUID) error {
+	res := r.db.WithContext(ctx).Model(&entity.Referral{}).
+		Where("id = ?", referralID).
+		Updates(map[string]interface{}{
+			"target_dept_id": newDeptID,
+			"updated_at":     time.Now(),
+		})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return fmt.Errorf("no referral updated for id=%s (row missing or filtered out)", referralID)
+	}
+	return nil
 }
 
 func (r *referralRepository) DeleteReferral(ctx context.Context, id uuid.UUID) error {
