@@ -89,85 +89,125 @@ func (u *clinicalUseCase) AddClinicalUpdate(ctx context.Context, referralID, use
 }
 
 func (u *clinicalUseCase) RecordOutcome(ctx context.Context, referralID, userID uuid.UUID, req dto.RecordOutcomeRequest) error {
-	if err := u.checkAccess(ctx, referralID, userID); err != nil {
+	// Read the referral up-front so we can validate state BEFORE we open
+	// the transaction. The old implementation did this inside the tx,
+	// which meant a failed precondition still left a half-applied
+	// outcome row behind on databases where the repo bypassed `tx`.
+	referral, err := u.referralRepo.GetReferralByID(ctx, referralID)
+	if err != nil {
 		return err
 	}
-
-	outcome := &entity.ReferralOutcome{
-		ReferralID:             referralID,
-		Outcome:                req.Outcome,
-		LengthOfStayDays:       req.LengthOfStayDays,
-		WasReferralAppropriate: req.WasReferralAppropriate,
-		OutcomeNotes:           &req.OutcomeNotes,
-		RecordedByID:           userID,
+	if referral.Status != entity.StatusScheduled && referral.Status != entity.StatusAccepted {
+		return errors.New("cannot record outcome: referral must be scheduled first")
 	}
 
-	return u.db.Transaction(func(tx *gorm.DB) error {
-		if err := u.outcomeRepo.Create(ctx, outcome); err != nil {
+	// HARD GATE: only the assigned treating doctor (the one the
+	// receptionist linked via /receptionist/.../assign-doctor) can
+	// close the case. The sender, the receiving specialist, and any
+	// consulting doctor are all rejected. This matches the FE
+	// contract: the "Record outcome" CTA is only ever rendered for
+	// the doctor whose ID equals triage_queue.assigned_doctor_id.
+	//
+	// We bypass the regular checkAccess() / ReferralAccess lookup
+	// because that helper is too permissive for this specific
+	// endpoint - it accepts senders, specialists, and consultants.
+	var queue entity.TriageQueue
+	if err := u.db.WithContext(ctx).
+		Select("assigned_doctor_id").
+		Where("referral_id = ?", referralID).
+		First(&queue).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("forbidden: no triage entry exists for this referral")
+		}
+		return err
+	}
+	if queue.AssignedDoctorID == nil {
+		return errors.New("forbidden: no treating doctor has been assigned to this referral yet")
+	}
+	if *queue.AssignedDoctorID != userID {
+		return errors.New("forbidden: only the assigned treating doctor can record an outcome")
+	}
+
+	oldStatus := referral.Status
+	newStatus := entity.StatusCompleted
+	isDeceased := req.Outcome == "deceased"
+	if isDeceased {
+		newStatus = entity.StatusDeceased
+	}
+
+	if err := u.db.Transaction(func(tx *gorm.DB) error {
+		// Write all five rows through `tx` so a failure in any one
+		// step rolls the whole thing back. The previous version used
+		// repos that hold their own `db` handle - the outcome,
+		// status-history, and audit-log rows would commit
+		// independently of the referral status update.
+		outcome := &entity.ReferralOutcome{
+			ReferralID:             referralID,
+			Outcome:                req.Outcome,
+			LengthOfStayDays:       req.LengthOfStayDays,
+			WasReferralAppropriate: req.WasReferralAppropriate,
+			OutcomeNotes:           &req.OutcomeNotes,
+			RecordedByID:           userID,
+		}
+		if err := tx.Create(outcome).Error; err != nil {
 			return err
 		}
 
-		referral, err := u.referralRepo.GetReferralByID(ctx, referralID)
-		if err != nil {
-			return err
-		}
-
-		if referral.Status != entity.StatusScheduled && referral.Status != entity.StatusAccepted {
-			return errors.New("cannot record outcome: referral must be scheduled first")
-		}
-
-		oldStatus := referral.Status
-		newStatus := entity.StatusCompleted
-		if req.Outcome == "deceased" {
-			newStatus = entity.StatusDeceased
-			referral.IsArchived = true
+		updates := map[string]interface{}{"status": newStatus}
+		if isDeceased {
 			now := time.Now()
-			referral.ArchivedAt = &now
-		}
-		referral.Status = newStatus
-
-		updates := map[string]interface{}{
-			"status":      newStatus,
-			"is_archived": referral.IsArchived,
-			"archived_at": referral.ArchivedAt,
+			updates["is_archived"] = true
+			updates["archived_at"] = &now
 		}
 		if err := tx.Model(&entity.Referral{}).Where("id = ?", referralID).Updates(updates).Error; err != nil {
 			return err
 		}
 
-		// Status History
-		_ = u.referralRepo.CreateStatusHistory(ctx, &entity.ReferralStatusHistory{
+		// Flip the triage row to ADMITTED for non-deceased outcomes.
+		// The /deceased path deletes the triage row entirely, so this
+		// branch only runs for the successful-completion paths
+		// (discharged, improved, deteriorated, transferred).
+		// ADMITTED here is used as the terminal "patient finished
+		// treatment" marker so dashboards can filter out completed
+		// referrals from active arrival lists.
+		if !isDeceased {
+			if err := tx.Model(&entity.TriageQueue{}).
+				Where("referral_id = ?", referralID).
+				Update("arrival_status", entity.ArrivalAdmitted).Error; err != nil {
+				return err
+			}
+		}
+
+		if err := tx.Create(&entity.ReferralStatusHistory{
 			ReferralID:  referralID,
 			ChangedByID: userID,
 			FromStatus:  &oldStatus,
 			ToStatus:    newStatus,
 			Reason:      &req.Outcome,
-		})
-
-		// Auto-revoke all active clinical access grants
-		reason := "Referral completed"
-		if req.Outcome == "deceased" {
-			reason = "Patient deceased"
+		}).Error; err != nil {
+			return err
 		}
-		_ = u.referralAccessRepo.RevokeAllByReferral(ctx, referralID, reason)
 
-
-		// Audit Log
-		// Audit Log
-		err = u.auditLogRepo.Create(ctx, &entity.AuditLog{
+		return tx.Create(&entity.AuditLog{
 			UserID:     userID,
 			ReferralID: &referralID,
 			ActionType: entity.ActionRecordOutcome,
 			Timestamp:  time.Now(),
-		})
-		if err != nil {
-			return err
-		}
+		}).Error
+	}); err != nil {
+		return err
+	}
 
-		_ = u.inAppNotifUC.CreateForEvent(ctx, "OUTCOME_RECORDED", referralID, userID)
-
-		return nil
-	})
+	// Post-commit side effects. Revocation + in-app notification are
+	// best-effort - they must not roll back a successfully recorded
+	// outcome if e.g. the in-app notifier hiccups.
+	reason := "Referral completed"
+	if isDeceased {
+		reason = "Patient deceased"
+	}
+	_ = u.referralAccessRepo.RevokeAllByReferral(ctx, referralID, reason)
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "OUTCOME_RECORDED", referralID, userID)
+	return nil
 }
 
 func (u *clinicalUseCase) GetClinicalHistory(ctx context.Context, referralID, userID uuid.UUID) ([]entity.ClinicalUpdate, error) {
