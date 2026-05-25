@@ -42,6 +42,7 @@ func TestValidateConfig(t *testing.T) {
 		// Invalid config keys
 		{"invalid_key", "value", true},
 		{"garbage", "123", true},
+		{"schema_version", "v16", true},
 	}
 
 	for _, tt := range tests {
@@ -51,5 +52,36 @@ func TestValidateConfig(t *testing.T) {
 				t.Errorf("validateConfig() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestIsConfigBoolHelpers(t *testing.T) {
+	if !isConfigTrue("true") || !isConfigTrue("1") {
+		t.Error("isConfigTrue should accept true/1")
+	}
+	if isConfigTrue("false") || isConfigTrue("") {
+		t.Error("isConfigTrue should reject false/empty")
+	}
+	if !isConfigFalse("false") || !isConfigFalse("0") || !isConfigFalse("") {
+		t.Error("isConfigFalse should accept false/0/empty")
+	}
+	if isConfigFalse("true") {
+		t.Error("isConfigFalse should reject true")
+	}
+}
+
+func TestReadOnlyConfigKeysStripped(t *testing.T) {
+	updates := map[string]string{
+		"schema_version": "v16",
+		"mfa_enabled":    "true",
+	}
+	for k := range readOnlyConfigKeys {
+		delete(updates, k)
+	}
+	if _, ok := updates["schema_version"]; ok {
+		t.Error("schema_version should be stripped before validation")
+	}
+	if updates["mfa_enabled"] != "true" {
+		t.Error("mfa_enabled should remain after stripping read-only keys")
 	}
 }
