@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,10 @@ type schedulingUseCase struct {
 	jobCheckpointRepo irepository.JobCheckpointRepository
 	clinicalRepo      irepository.ClinicalUpdateRepository
 	checkpointRepo    irepository.SchedulerCheckpointRepository
+	// triageUC owns the composite-score formula so BatchSchedule can
+	// recompute waiting rows just before booking them. Optional - nil
+	// means "skip the recompute step" (useful in tests / older wiring).
+	triageUC iusecase.TriageUseCase
 }
 
 func NewSchedulingUseCase(
@@ -48,6 +53,7 @@ func NewSchedulingUseCase(
 	jRepo irepository.JobCheckpointRepository,
 	cRepo irepository.ClinicalUpdateRepository,
 	checkpointRepo irepository.SchedulerCheckpointRepository,
+	triageUC iusecase.TriageUseCase,
 ) iusecase.SchedulingUseCase {
 	return &schedulingUseCase{
 		db:                db,
@@ -63,7 +69,26 @@ func NewSchedulingUseCase(
 		jobCheckpointRepo: jRepo,
 		clinicalRepo:      cRepo,
 		checkpointRepo:    checkpointRepo,
+		triageUC:          triageUC,
 	}
+}
+
+// defaultAppointmentHour is the clinic's standard start-of-day. We use it
+// to substitute the hour component when a caller only supplied a date
+// (i.e. midnight) so patient-facing SMS read "at 08:00" instead of
+// "at 00:00". 8AM is the policy default; if a department later wants a
+// per-department opening hour, swap this for a lookup against
+// HospitalDepartment / SystemConfig.
+const defaultAppointmentHour = 8
+
+// normalizeAppointmentTime moves a midnight timestamp forward to the
+// clinic's default opening hour. Any explicit time-of-day from the caller
+// is preserved (it's only the date-only "00:00:00" case that we rewrite).
+func normalizeAppointmentTime(t time.Time) time.Time {
+	if t.Hour() == 0 && t.Minute() == 0 && t.Second() == 0 && t.Nanosecond() == 0 {
+		return time.Date(t.Year(), t.Month(), t.Day(), defaultAppointmentHour, 0, 0, 0, t.Location())
+	}
+	return t
 }
 
 // EffectiveCapacity is the single source of truth for "is there room?".
@@ -255,6 +280,13 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 		return false, errors.New("appointment date cannot be in the past")
 	}
 
+	// Most callers submit a date-only payload (YYYY-MM-DD), which JSON
+	// decodes to 00:00 UTC. Patients shouldn't be told "your appointment
+	// is at 00:00" - normalize to the clinic's standard 08:00 start so
+	// the SMS reads naturally. Any explicit time-of-day from the caller
+	// is preserved.
+	req.AppointmentDate = normalizeAppointmentTime(req.AppointmentDate)
+
 	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
 	if err != nil {
 		return false, err
@@ -299,34 +331,26 @@ func (u *schedulingUseCase) ScheduleAppointment(ctx context.Context, referralID,
 
 		u.snapshotDailySchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, req.AppointmentDate, maxSlots, overbookLimit)
 		u.refreshOldDateSnapshotIfRescheduled(ctx, ref.TargetHospitalID, ref.TargetDeptID, oldAppointmentDate, req.AppointmentDate)
-
-		hospitalName := "the hospital"
-		deptName := "the department"
-		if ref.ReceiverHospital != nil {
-			hospitalName = ref.ReceiverHospital.Name
-		}
-		if ref.TargetDepartment != nil {
-			deptName = ref.TargetDepartment.Name
-		}
-
-		notifType := entity.NotifyScheduling
-		eventType := "APPOINTMENT_SCHEDULED"
-		content := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, req.AppointmentDate.Format("2006-01-02"))
-
-		if wasMissed {
-			notifType = entity.NotifyMissedReschedule
-			eventType = "MISSED_APPOINTMENT_RESCHEDULED"
-			content = fmt.Sprintf("Your missed appointment at %s has been rescheduled to %s.", hospitalName, req.AppointmentDate.Format("2006-01-02"))
-		}
-
-		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, content)
-		_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
-
 		return nil
 	})
 	if err != nil {
 		return false, err
 	}
+
+	// Fire SMS + in-app notification AFTER commit. Doing this inside
+	// the transaction caused QueueNotification's own GetByReferralID
+	// lookup (which uses the parent connection, not `tx`) to read the
+	// pre-update row and miss `appointment_date`, leaving {{Date}}
+	// literally in the SMS. Post-commit also means we never SMS a
+	// patient about a booking that ultimately rolled back.
+	notifType := entity.NotifyScheduling
+	eventType := "APPOINTMENT_SCHEDULED"
+	if wasMissed {
+		notifType = entity.NotifyMissedReschedule
+		eventType = "MISSED_APPOINTMENT_RESCHEDULED"
+	}
+	_ = u.notifUC.QueueNotification(ctx, referralID, notifType, "")
+	_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
 
 	return wasMissed, nil
 }
@@ -348,6 +372,11 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 	if appointmentDate.Before(time.Now().Truncate(24 * time.Hour)) {
 		return false, errors.New("appointment date cannot be in the past")
 	}
+
+	// Same 08:00 default as ScheduleAppointment - the emergency-schedule
+	// handler parses YYYY-MM-DD into 00:00 UTC, which is a poor message
+	// for the SMS template.
+	appointmentDate = normalizeAppointmentTime(appointmentDate)
 
 	queue, err := u.triageRepo.GetByReferralID(ctx, referralID)
 	if err != nil {
@@ -418,38 +447,28 @@ func (u *schedulingUseCase) ManualEmergencySchedule(ctx context.Context, referra
 
 		u.snapshotDailySchedule(ctx, ref.TargetHospitalID, ref.TargetDeptID, appointmentDate, maxSlots, overbookLimit)
 		u.refreshOldDateSnapshotIfRescheduled(ctx, ref.TargetHospitalID, ref.TargetDeptID, oldAppointmentDate, appointmentDate)
-
-		hospitalName := "the hospital"
-		deptName := "the department"
-		if ref.ReceiverHospital != nil {
-			hospitalName = ref.ReceiverHospital.Name
-		}
-		if ref.TargetDepartment != nil {
-			deptName = ref.TargetDepartment.Name
-		}
-
-		notifType := entity.NotifyScheduling
-		eventType := "APPOINTMENT_SCHEDULED"
-		message := fmt.Sprintf("Your appointment at %s, %s is confirmed for %s.", hospitalName, deptName, appointmentDate.Format("2006-01-02"))
-
-		if wasMissed {
-			notifType = entity.NotifyMissedReschedule
-			eventType = "MISSED_APPOINTMENT_RESCHEDULED"
-			message = fmt.Sprintf("Your missed appointment at %s has been rescheduled to %s.", hospitalName, appointmentDate.Format("2006-01-02"))
-		}
-
-		_ = u.notifUC.QueueNotification(ctx, referralID, notifType, message)
-		_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
-		// Emergency bookings consume the overbook buffer; the dept head
-		// should know whenever that happens so they can re-evaluate
-		// capacity overrides for the affected date.
-		_ = u.inAppNotifUC.CreateForEvent(ctx, "EMERGENCY_SCHEDULE_USED", referralID, userID)
-
 		return nil
 	})
 	if err != nil {
 		return false, err
 	}
+
+	// Notifications fire AFTER the commit so QueueNotification's own
+	// GetByReferralID/GetByReferralID lookups see the new appointment
+	// date instead of the pre-update snapshot (which would leave
+	// {{Date}} literally in the SMS body).
+	notifType := entity.NotifyScheduling
+	eventType := "APPOINTMENT_SCHEDULED"
+	if wasMissed {
+		notifType = entity.NotifyMissedReschedule
+		eventType = "MISSED_APPOINTMENT_RESCHEDULED"
+	}
+	_ = u.notifUC.QueueNotification(ctx, referralID, notifType, "")
+	_ = u.inAppNotifUC.CreateForEvent(ctx, eventType, referralID, userID)
+	// Emergency bookings consume the overbook buffer; the dept head
+	// should know whenever that happens so they can re-evaluate
+	// capacity overrides for the affected date.
+	_ = u.inAppNotifUC.CreateForEvent(ctx, "EMERGENCY_SCHEDULE_USED", referralID, userID)
 
 	return wasMissed, nil
 }
@@ -487,6 +506,51 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 	if err != nil {
 		return nil, err
 	}
+
+	// ── Composite recompute pass ────────────────────────────────────────
+	// CalculateCompositeScore is only run at LandInQueue time, which
+	// means the aging bonus is fixed at zero on every stored row. We
+	// refresh the score for every waiting row in THIS dept (no others)
+	// before booking, so that:
+	//   * aging actually moves the queue (e.g. a 30-day waiter outranks
+	//     a fresh patient with the same clinical inputs),
+	//   * patients that don't get a slot this run keep their fresh
+	//     score for the next batch,
+	//   * dashboard / list reads see live numbers immediately.
+	//
+	// Cost: one CalculateCompositeScore per row + N UPDATEs wrapped in a
+	// single transaction. For typical dept queue sizes (<100) this adds
+	// well under 100ms. The recompute is scoped strictly to the
+	// (hospital, department) being batch-processed — no other depts'
+	// rows are touched.
+	recomputedCount := 0
+	scoreDeltaTotal := 0.0
+	if u.triageUC != nil && len(waiting) > 0 {
+		_ = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			for i := range waiting {
+				newScore, scErr := u.triageUC.CalculateCompositeScore(ctx, waiting[i].ReferralID)
+				if scErr != nil {
+					continue
+				}
+				delta := newScore - waiting[i].CompositeScore
+				if upErr := tx.Model(&entity.TriageQueue{}).
+					Where("id = ?", waiting[i].ID).
+					Update("composite_score", newScore).Error; upErr != nil {
+					continue
+				}
+				waiting[i].CompositeScore = newScore
+				scoreDeltaTotal += delta
+				recomputedCount++
+			}
+			return nil
+		})
+		// Sort in-memory by the fresh scores so the booking loop honors
+		// the new ordering without a re-fetch round trip.
+		sort.SliceStable(waiting, func(a, b int) bool {
+			return waiting[a].CompositeScore > waiting[b].CompositeScore
+		})
+	}
+	// ────────────────────────────────────────────────────────────────────
 
 	dept, err := u.deptRepo.FindHospitalDepartment(ctx, hospitalID, departmentID)
 	if err != nil {
@@ -581,9 +645,11 @@ func (u *schedulingUseCase) BatchSchedule(ctx context.Context, hospitalID, depar
 	}
 
 	u.auditRepo.LogWithContext(ctx, userID, entity.ActionBatchSchedule, nil, nil, map[string]interface{}{
-		"hospital_id":   hospitalID,
-		"department_id": departmentID,
-		"result":        result,
+		"hospital_id":       hospitalID,
+		"department_id":     departmentID,
+		"recomputed_count":  recomputedCount,
+		"score_delta_total": scoreDeltaTotal,
+		"result":            result,
 	})
 
 	if result.ScheduledCount > 0 {

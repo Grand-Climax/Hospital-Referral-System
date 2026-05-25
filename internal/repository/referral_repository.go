@@ -78,6 +78,11 @@ func (r *referralRepository) GetReferralByID(ctx context.Context, id uuid.UUID) 
 		Preload("Redirections").
 		Preload("Redirections.RedirectedFromHospital").
 		Preload("Redirections.RedirectedToHospital").
+		// Receiver hospital + target department are needed by
+		// QueueNotification (and any UI that renders the routing) so
+		// they're cheap to preload here instead of N+1ing them later.
+		Preload("ReceiverHospital").
+		Preload("TargetDepartment").
 		Where("id = ?", id).
 		First(&referral).Error
 	return &referral, err

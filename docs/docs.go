@@ -48,7 +48,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update system-wide runtime configuration values.\n**Roles:** SYSTEM_SUPER_ADMIN\n**State Transition:** Immediately affects scheduling logic and triage weight calculations.\n**Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default.\n**Common Errors:**\n- 400 invalid key or value format\n- 403 forbidden (not super admin)",
+                "description": "Update system-wide runtime configuration values.\n**Roles:** SYSTEM_SUPER_ADMIN\n**State Transition:** Immediately affects scheduling logic and triage weight calculations.\n**Common Keys:** buffer_days, aging_factor, max_horizon_days, overbook_limit_default, mfa_enabled, sms_otp_enabled.\n**Read-only keys (ignored on PUT):** schema_version — returned by GET for migration tracking only.\n**MFA / SMS:** sms_otp_enabled requires mfa_enabled=true; disabling MFA automatically sets sms_otp_enabled=false.\n**Common Errors:**\n- 400 invalid key or value format\n- 403 forbidden (not super admin)",
                 "consumes": [
                     "application/json"
                 ],
@@ -15454,6 +15454,7 @@ const docTemplate = `{
                 "SCHEDULING",
                 "REMINDER",
                 "RESCHEDULE",
+                "MISSED",
                 "MISSED_RESCHEDULE"
             ],
             "x-enum-varnames": [
@@ -15461,6 +15462,7 @@ const docTemplate = `{
                 "NotifyScheduling",
                 "NotifyReminder",
                 "NotifyReschedule",
+                "NotifyMissed",
                 "NotifyMissedReschedule"
             ]
         },
