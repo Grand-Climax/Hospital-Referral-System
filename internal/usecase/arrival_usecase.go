@@ -58,9 +58,33 @@ func (u *arrivalUseCase) GetTodayAndTomorrowSchedule(ctx context.Context, hospit
 	return u.triageRepo.FindScheduledByHospitalAndDept(ctx, hospitalID, deptID, startDate, endDate)
 }
 
-func (u *arrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID) error {
+// enforceQueueScope rejects callers who try to operate on a queue row
+// outside their own hospital (and department, if dept-scoped). Returns
+// a generic 403-style error to avoid leaking which UUIDs are valid.
+func enforceQueueScope(queue *entity.TriageQueue, callerHospID, callerDeptID uuid.UUID, requireDept bool) error {
+	if callerHospID == uuid.Nil {
+		return errors.New("unauthorized: missing hospital scope on caller token")
+	}
+	if queue.HospitalID != callerHospID {
+		return errors.New("forbidden: triage queue belongs to a different hospital")
+	}
+	if requireDept {
+		if callerDeptID == uuid.Nil {
+			return errors.New("unauthorized: missing department scope on caller token")
+		}
+		if queue.DepartmentID != callerDeptID {
+			return errors.New("forbidden: triage queue belongs to a different department")
+		}
+	}
+	return nil
+}
+
+func (u *arrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, userID uuid.UUID, callerHospID, callerDeptID uuid.UUID) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
 	if err != nil {
+		return err
+	}
+	if err := enforceQueueScope(queue, callerHospID, callerDeptID, false); err != nil {
 		return err
 	}
 
@@ -98,9 +122,14 @@ func (u *arrivalUseCase) ConfirmArrival(ctx context.Context, queueID uuid.UUID, 
 	return nil
 }
 
-func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID, reason string) error {
+func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, doctorID uuid.UUID, userID uuid.UUID, reason string, callerHospID, callerDeptID uuid.UUID) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
 	if err != nil {
+		return err
+	}
+	// AssignDoctor is department-scoped: the assigning receptionist must
+	// belong to the same hospital AND department as the queue row.
+	if err := enforceQueueScope(queue, callerHospID, callerDeptID, true); err != nil {
 		return err
 	}
 
@@ -171,9 +200,12 @@ func (u *arrivalUseCase) AssignDoctor(ctx context.Context, queueID uuid.UUID, do
 }
 
 
-func (u *arrivalUseCase) RevokeDoctorAssignment(ctx context.Context, queueID, userID uuid.UUID, reason string) error {
+func (u *arrivalUseCase) RevokeDoctorAssignment(ctx context.Context, queueID, userID uuid.UUID, reason string, callerHospID, callerDeptID uuid.UUID) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
 	if err != nil {
+		return err
+	}
+	if err := enforceQueueScope(queue, callerHospID, callerDeptID, true); err != nil {
 		return err
 	}
 	if queue.AssignedDoctorID == nil {
@@ -199,9 +231,12 @@ func (u *arrivalUseCase) RevokeDoctorAssignment(ctx context.Context, queueID, us
 	return nil
 }
 
-func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID) error {
+func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, missReason entity.MissReason, userID uuid.UUID, callerHospID, callerDeptID uuid.UUID) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
 	if err != nil {
+		return err
+	}
+	if err := enforceQueueScope(queue, callerHospID, callerDeptID, false); err != nil {
 		return err
 	}
 
@@ -246,9 +281,12 @@ func (u *arrivalUseCase) MarkMissed(ctx context.Context, queueID uuid.UUID, miss
 	return nil
 }
 
-func (u *arrivalUseCase) ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID) error {
+func (u *arrivalUseCase) ReturnToTriage(ctx context.Context, queueID, userID uuid.UUID, callerHospID, callerDeptID uuid.UUID) error {
 	queue, err := u.triageRepo.FindByID(ctx, queueID)
 	if err != nil {
+		return err
+	}
+	if err := enforceQueueScope(queue, callerHospID, callerDeptID, false); err != nil {
 		return err
 	}
 

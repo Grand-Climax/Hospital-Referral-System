@@ -1320,7 +1320,22 @@ func (h *SpecialistHandler) ReturnToTriage(c *gin.Context) {
 		userID = *uID
 	}
 
-	if err := h.arrivalUC.ReturnToTriage(c.Request.Context(), triageQueueID, userID); err != nil {
+	hospIdVal, _ := c.Get("hospID")
+	hospID := uuid.Nil
+	if hID, ok := hospIdVal.(uuid.UUID); ok {
+		hospID = hID
+	} else if hID, ok := hospIdVal.(*uuid.UUID); ok && hID != nil {
+		hospID = *hID
+	}
+	deptIdVal, _ := c.Get("deptID")
+	deptID := uuid.Nil
+	if dID, ok := deptIdVal.(uuid.UUID); ok {
+		deptID = dID
+	} else if dID, ok := deptIdVal.(*uuid.UUID); ok && dID != nil {
+		deptID = *dID
+	}
+
+	if err := h.arrivalUC.ReturnToTriage(c.Request.Context(), triageQueueID, userID, hospID, deptID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: err.Error()})
 		return
 	}
