@@ -82,6 +82,14 @@ func (m *MockUserRepo) CountHospitalStaffByStatus(ctx context.Context, hospitalI
 	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Error(3)
 }
 
+func (m *MockUserRepo) FindDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) ([]entity.User, error) {
+	args := m.Called(ctx, hospitalID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]entity.User), args.Error(1)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: ReferralRepository
@@ -2011,6 +2019,14 @@ func (m *MockUserUseCase) GetPersonnelWidgetStats(ctx context.Context, adminID u
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*dto.HospitalAdminPersonnelWidgetResponse), args.Error(1)
+}
+
+func (m *MockUserUseCase) GetDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) (map[uuid.UUID]*entity.User, error) {
+	args := m.Called(ctx, hospitalID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[uuid.UUID]*entity.User), args.Error(1)
 }
 
 

@@ -162,6 +162,41 @@ func TestHospitalAdminOperations(t *testing.T) {
 		mockDept.AssertExpectations(t)
 	})
 
+	t.Run("List Departments includes department head", func(t *testing.T) {
+		r, mockUser, _, _, mockDept := setupHospitalAdminTestRouter()
+		headID := uuid.New()
+		headDeptID := deptID
+		links := []entity.HospitalDepartment{{
+			ID:           linkID,
+			DepartmentID: deptID,
+			Department:   entity.Department{ID: deptID, Name: "Cardiology"},
+			IsActive:     true,
+		}}
+		heads := map[uuid.UUID]*entity.User{
+			headDeptID: {
+				ID:           headID,
+				FirstName:    "Henok",
+				LastName:     "Dept Head",
+				DepartmentID: &headDeptID,
+				Role:         entity.RoleDeptHead,
+			},
+		}
+
+		mockDept.On("ListHospitalDepartments", mock.Anything, mock.Anything).Return(links, nil)
+		mockUser.On("GetDepartmentHeadsByHospital", mock.Anything, mock.Anything).Return(heads, nil)
+
+		req, _ := http.NewRequest("GET", "/api/v1/hospital-admin/departments", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), `"department_head"`)
+		assert.Contains(t, resp.Body.String(), headID.String())
+		assert.Contains(t, resp.Body.String(), "Henok Dept Head")
+		mockDept.AssertExpectations(t)
+		mockUser.AssertExpectations(t)
+	})
+
 	t.Run("Assign Department Head", func(t *testing.T) {
 		r, mockUser, _, _, mockDept := setupHospitalAdminTestRouter()
 		staffID := uuid.New()

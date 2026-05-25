@@ -166,3 +166,11 @@ func (r *userRepository) CountHospitalStaffByStatus(ctx context.Context, hospita
 	return total, active, inactive, nil
 }
 
+func (r *userRepository) FindDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) ([]entity.User, error) {
+	var users []entity.User
+	err := r.db.WithContext(ctx).
+		Where("hospital_id = ? AND role = ? AND is_deleted = false AND department_id IS NOT NULL", hospitalID, entity.RoleDeptHead).
+		Find(&users).Error
+	return users, err
+}
+
