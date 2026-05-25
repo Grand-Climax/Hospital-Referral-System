@@ -82,6 +82,14 @@ func (m *MockUserRepo) CountHospitalStaffByStatus(ctx context.Context, hospitalI
 	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Error(3)
 }
 
+func (m *MockUserRepo) FindDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) ([]entity.User, error) {
+	args := m.Called(ctx, hospitalID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]entity.User), args.Error(1)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: ReferralRepository
@@ -481,6 +489,14 @@ func (m *MockDepartmentRepo) ListHospitalDepartments(ctx context.Context, hospit
 
 func (m *MockDepartmentRepo) FindHospitalDepartment(ctx context.Context, hospitalID, departmentID uuid.UUID) (*entity.HospitalDepartment, error) {
 	args := m.Called(ctx, hospitalID, departmentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.HospitalDepartment), args.Error(1)
+}
+
+func (m *MockDepartmentRepo) FindHospitalDepartmentForHospital(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID) (*entity.HospitalDepartment, error) {
+	args := m.Called(ctx, hospitalID, departmentOrLinkID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -2005,6 +2021,14 @@ func (m *MockUserUseCase) GetPersonnelWidgetStats(ctx context.Context, adminID u
 	return args.Get(0).(*dto.HospitalAdminPersonnelWidgetResponse), args.Error(1)
 }
 
+func (m *MockUserUseCase) GetDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) (map[uuid.UUID]*entity.User, error) {
+	args := m.Called(ctx, hospitalID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[uuid.UUID]*entity.User), args.Error(1)
+}
+
 
 // ---------------------------------------------------------------------------
 // Mock: HospitalUseCase
@@ -2103,9 +2127,17 @@ func (m *MockDepartmentUseCase) ListHospitalDepartments(ctx context.Context, hos
 	return args.Get(0).([]entity.HospitalDepartment), args.Error(1)
 }
 
-func (m *MockDepartmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentID uuid.UUID, isActive bool) error {
-	args := m.Called(ctx, hospitalID, departmentID, isActive)
+func (m *MockDepartmentUseCase) SetHospitalDepartmentActive(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID, isActive bool) error {
+	args := m.Called(ctx, hospitalID, departmentOrLinkID, isActive)
 	return args.Error(0)
+}
+
+func (m *MockDepartmentUseCase) GetHospitalDepartmentLink(ctx context.Context, hospitalID, departmentOrLinkID uuid.UUID) (*entity.HospitalDepartment, error) {
+	args := m.Called(ctx, hospitalID, departmentOrLinkID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.HospitalDepartment), args.Error(1)
 }
 
 func (m *MockDepartmentUseCase) ValidateDepartmentForHospital(ctx context.Context, hospitalID, departmentID uuid.UUID) error {

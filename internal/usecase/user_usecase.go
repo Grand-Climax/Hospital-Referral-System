@@ -701,3 +701,22 @@ func (u *userUseCase) GetPersonnelWidgetStats(ctx context.Context, adminID uuid.
 	}, nil
 }
 
+func (u *userUseCase) GetDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) (map[uuid.UUID]*entity.User, error) {
+	heads, err := u.repo.FindDepartmentHeadsByHospital(ctx, hospitalID)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[uuid.UUID]*entity.User, len(heads))
+	for i := range heads {
+		if heads[i].DepartmentID == nil {
+			continue
+		}
+		deptID := *heads[i].DepartmentID
+		if _, exists := out[deptID]; !exists {
+			user := heads[i]
+			out[deptID] = &user
+		}
+	}
+	return out, nil
+}
+

@@ -28,6 +28,7 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*entity.User, error)
 	FindByNationalID(ctx context.Context, nationalID string) (*entity.User, error)
 	ListUsers(ctx context.Context, filter UserListFilter) ([]entity.User, int64, error)
+	FindDepartmentHeadsByHospital(ctx context.Context, hospitalID uuid.UUID) ([]entity.User, error)
 	CreateStaffReplacementLog(ctx context.Context, log *entity.StaffReplacementLog) error
 	CountHospitalStaffByStatus(ctx context.Context, hospitalID uuid.UUID) (total int64, active int64, inactive int64, err error)
 }

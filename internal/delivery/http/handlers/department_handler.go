@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -53,7 +54,11 @@ func toDepartmentResponse(d *entity.Department) dto.DepartmentResponse {
 }
 
 func toHospitalDepartmentResponse(hd *entity.HospitalDepartment) dto.HospitalDepartmentResponse {
-	return dto.HospitalDepartmentResponse{
+	return toHospitalDepartmentResponseWithHead(hd, nil)
+}
+
+func toHospitalDepartmentResponseWithHead(hd *entity.HospitalDepartment, head *entity.User) dto.HospitalDepartmentResponse {
+	resp := dto.HospitalDepartmentResponse{
 		ID:                 hd.ID.String(),
 		HospitalID:         hd.HospitalID.String(),
 		DepartmentID:       hd.DepartmentID.String(),
@@ -62,6 +67,26 @@ func toHospitalDepartmentResponse(hd *entity.HospitalDepartment) dto.HospitalDep
 		IsActive:           hd.IsActive,
 		CreatedAt:          hd.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
+	if head != nil {
+		resp.DepartmentHead = &dto.DepartmentHeadSummary{
+			ID:       head.ID.String(),
+			FullName: userFullName(head),
+		}
+	}
+	return resp
+}
+
+func userFullName(u *entity.User) string {
+	if u == nil {
+		return ""
+	}
+	parts := make([]string, 0, 3)
+	for _, p := range []string{u.FirstName, u.MiddleName, u.LastName} {
+		if s := strings.TrimSpace(p); s != "" {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 // CreateDepartment godoc
