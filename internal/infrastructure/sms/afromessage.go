@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -87,21 +88,23 @@ type afroMessageClient struct {
 }
 
 func NewAfroMessageClient() SMSClient {
-	apiKey := os.Getenv("AFROMESSAGE_API_KEY")
+	// TrimSpace defends against CRLF-terminated secrets that were
+	// written on Windows or via tooling that appended a trailing \r\n.
+	// Without this, os.Getenv returns "https://api.afromessage.com\r\n"
+	// and net/http.NewRequest rejects the URL with "invalid control
+	// character in URL".
+	apiKey := strings.TrimSpace(os.Getenv("AFROMESSAGE_API_KEY"))
 	if apiKey == "" {
 		log.Println("Warning: AFROMESSAGE_API_KEY is not configured. Falling back to log-based mockSMSClient.")
 		return NewMockSMSClient()
 	}
 
-	baseURL := os.Getenv("AFROMESSAGE_BASE_URL")
-	if baseURL == "" {
-		baseURL = "https://api.afromessage.com/api"
-	}
+	baseURL := "https://api.afromessage.com"
 
 	return &afroMessageClient{
 		apiKey:        apiKey,
-		defaultSender: os.Getenv("AFROMESSAGE_SENDER_NAME"),
-		defaultFrom:   os.Getenv("AFROMESSAGE_IDENTIFIER_ID"),
+		defaultSender: strings.TrimSpace(os.Getenv("AFROMESSAGE_SENDER_NAME")),
+		defaultFrom:   strings.TrimSpace(os.Getenv("AFROMESSAGE_IDENTIFIER_ID")),
 		baseURL:       baseURL,
 		httpClient:    &http.Client{Timeout: 10 * time.Second},
 	}
