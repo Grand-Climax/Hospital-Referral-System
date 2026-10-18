@@ -119,7 +119,7 @@ The project maintains a professional test suite covering complex State Machine t
 go test ./test -v -count=1
 
 # Run comprehensive E2E suite (Server must be running)
-go run scratch/run_e2e_tests_v2/run_e2e_tests_v2.go
+go run test/e2e/main.go
 ```
 
 ### API Exploration (Swagger)
@@ -190,6 +190,6 @@ All accounts use the default password: **`password123`**
 │   └── usecase/        # Business logic orchestration
 ├── pkg/                # Reusable public packages
 ├── docs/               # Auto-generated Swagger docs
-├── test/               # Integration tests
-└── scratch/            # Utility scripts and E2E runs
+└── test/               # Integration tests & E2E suite
 ```
+
