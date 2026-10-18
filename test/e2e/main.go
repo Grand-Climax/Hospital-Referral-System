@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -277,6 +278,20 @@ func seedDB(report *reporter) error {
 	if dsn == "" {
 		return errors.New("DATABASE_URL is required for seeding (set E2E_SKIP_SEED=true to skip)")
 	}
+
+	// Safety Circuit Breaker: prevent running seedDB on cloud / remote / production databases
+	dsnLower := strings.ToLower(dsn)
+	isRemoteOrProd := strings.Contains(dsnLower, "neon.tech") ||
+		strings.Contains(dsnLower, "aws") ||
+		strings.Contains(dsnLower, "rds.amazonaws.com") ||
+		strings.Contains(dsnLower, "cloudsql") ||
+		strings.Contains(dsnLower, "supabase.co")
+
+	allowRemote := strings.ToLower(os.Getenv("ALLOW_REMOTE_E2E_DB")) == "true"
+	if isRemoteOrProd && !allowRemote {
+		return fmt.Errorf("safety check triggered: DATABASE_URL appears to point to a remote/cloud database (%s). Refusing to run E2E auto-seeder to prevent live data corruption. Set a local test database in .env.test or pass ALLOW_REMOTE_E2E_DB=true", dsn)
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return fmt.Errorf("connect DB: %w", err)
@@ -418,10 +433,31 @@ func main() {
 		_ = report.writeFile("e2e_final_report.txt")
 	}()
 
-	// Load local env defaults for developer convenience.
-	// The script still allows overriding via real environment variables.
-	_ = godotenv.Load(".env.local")
-	_ = godotenv.Load(".env")
+	// E2E Environment Isolation:
+	// Prioritize dedicated test environments (.env.test.local, .env.test, or custom E2E_ENV_FILE).
+	// We deliberately avoid loading .env.local by default to prevent accidentally running
+	// destructive seeding or creating test fixtures in development/production databases.
+	envFile := os.Getenv("E2E_ENV_FILE")
+	if envFile != "" {
+		if err := godotenv.Load(envFile); err != nil {
+			log.Fatalf("[E2E FATAL] Failed to load specified E2E_ENV_FILE (%s): %v", envFile, err)
+		}
+		fmt.Printf("✓ Loaded test environment from %s\n", envFile)
+	} else if err := godotenv.Load(".env.test.local"); err == nil {
+		fmt.Println("✓ Loaded test environment from .env.test.local")
+	} else if err := godotenv.Load(".env.test"); err == nil {
+		fmt.Println("✓ Loaded test environment from .env.test")
+	} else {
+		if strings.ToLower(os.Getenv("ALLOW_NON_TEST_ENV")) == "true" {
+			_ = godotenv.Load(".env.local")
+			_ = godotenv.Load(".env")
+			fmt.Println("⚠️ [WARN] ALLOW_NON_TEST_ENV=true: loaded .env.local (use with caution)")
+		} else {
+			fmt.Println("ℹ️ [E2E] No .env.test or .env.test.local found.")
+			fmt.Println("   Using current process environment variables.")
+			fmt.Println("   To configure a dedicated isolated test DB, create a .env.test (see .env.test.example).")
+		}
+	}
 
 	ids := seeded()
 	baseURL := os.Getenv("BASE_URL")
