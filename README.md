@@ -118,8 +118,11 @@ The project maintains a professional test suite covering complex State Machine t
 # Run unit & integration tests
 go test ./test -v -count=1
 
-# Run comprehensive E2E suite (Server must be running)
+# Run comprehensive E2E suite (uses isolated .env.test; server must be running)
+# 1. Copy .env.test.example to .env.test and set a dedicated test DB (e.g. referral_test)
+# 2. Run the test suite:
 go run test/e2e/main.go
+
 ```
 
 ### API Exploration (Swagger)
