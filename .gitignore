@@ -34,6 +34,11 @@ coverage.txt
 /dist/
 /build/
 
+# Scratch & Local Experimentation
+scratch/
+*.tmp
+*.ps1
+
 # Temp test logs produced during development
 *.log
 temp_*.log
@@ -42,6 +47,8 @@ test_build.log
 final_test.log
 e2e_report.txt
 e2e_final_report.txt
+test/e2e/report.txt
+output.json
 
 # ──────────────────────────────────────────────
 # File Storage (uploaded attachments)
@@ -57,3 +64,10 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+referral_ml/
+
+# Local helper scripts not part of the codebase
+commit.sh
+FRONTEND_DOCTOR_RECEPTIONIST.md
+PRESENTATION_BRIEF.md
+
